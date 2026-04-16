@@ -1,0 +1,471 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+model adminprofile {
+  id           String  @id
+  userId       String  @unique(map: "AdminProfile_userId_key")
+  isSuperAdmin Boolean @default(false)
+}
+
+model auditlog {
+  id         String   @id
+  userId     String
+  action     String
+  targetType String
+  targetId   String
+  details    String?  @db.LongText
+  ipAddress  String?
+  createdAt  DateTime @default(now())
+
+  @@index([userId], map: "AuditLog_userId_fkey")
+}
+
+model binomeinvitation {
+  id                   String                  @id
+  studentApplicationId String                  @unique(map: "BinomeInvitation_studentApplicationId_key")
+  invitedStudentId     String
+  status               binomeinvitation_status @default(PENDING)
+  expiresAt            DateTime
+  createdAt            DateTime                @default(now())
+}
+
+model companyprofile {
+  id              String  @id
+  userId          String  @unique(map: "CompanyProfile_userId_key")
+  companyName     String
+  sector          String?
+  address         String?
+  wilaya          String?
+  contactPhone    String?
+  supervisorTitle String?
+}
+
+model deadline {
+  id           String        @id
+  title        String
+  type         deadline_type
+  dueDate      DateTime
+  internshipId String?
+  isGlobal     Boolean       @default(false)
+  academicYear String
+  createdById  String
+  createdAt    DateTime      @default(now())
+
+  @@index([createdById], map: "Deadline_createdById_fkey")
+  @@index([internshipId], map: "Deadline_internshipId_fkey")
+}
+
+model defense {
+  id                 String         @id
+  internshipId       String         @unique(map: "Defense_internshipId_key")
+  scheduledAt        DateTime
+  room               String
+  timeSlot           String
+  status             defense_status @default(SCHEDULED)
+  gradesFinalized    Boolean        @default(false)
+  finalGrade         Float?
+  mention            String?
+  adminGradeOverride Float?
+  overrideComment    String?        @db.Text
+}
+
+model document {
+  id            String          @id
+  internshipId  String
+  uploadedById  String
+  type          document_type
+  fileName      String
+  fileUrl       String
+  fileSize      Int
+  version       Int             @default(1)
+  status        document_status @default(UPLOADED)
+  reviewComment String?
+  reviewedById  String?
+  uploadedAt    DateTime        @default(now())
+
+  @@index([internshipId], map: "Document_internshipId_fkey")
+  @@index([uploadedById], map: "Document_uploadedById_fkey")
+}
+
+model evaluation {
+  id             String   @id
+  defenseId      String
+  evaluatorId    String
+  reportScore    Float?
+  technicalScore Float?
+  oralScore      Float?
+  companyScore   Float?
+  finalGrade     Float?
+  feedback       String?  @db.Text
+  isAdvisory     Boolean  @default(false)
+  submittedAt    DateTime @default(now())
+
+  @@unique([defenseId, evaluatorId], map: "Evaluation_defenseId_evaluatorId_key")
+  @@index([evaluatorId], map: "Evaluation_evaluatorId_fkey")
+}
+
+model internship {
+  id           String            @id
+  topicId      String            @unique(map: "Internship_topicId_key")
+  teacherId    String
+  academicYear String
+  status       internship_status @default(APPROVED)
+  startDate    DateTime?
+  endDate      DateTime?
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime
+
+  @@index([teacherId], map: "Internship_teacherId_fkey")
+}
+
+model internshipstudent {
+  id           String  @id
+  internshipId String
+  studentId    String
+  isLeader     Boolean @default(false)
+
+  @@unique([internshipId, studentId], map: "InternshipStudent_internshipId_studentId_key")
+  @@index([studentId], map: "InternshipStudent_studentId_fkey")
+}
+
+model jurymember {
+  id         String          @id
+  defenseId  String
+  userId     String
+  role       jurymember_role
+  isAdvisory Boolean         @default(false)
+  createdAt  DateTime        @default(now())
+
+  @@unique([defenseId, userId], map: "JuryMember_defenseId_userId_key")
+  @@index([userId], map: "JuryMember_userId_fkey")
+}
+
+model message {
+  id             String   @id
+  internshipId   String
+  senderId       String
+  content        String   @db.Text
+  attachmentUrl  String?
+  attachmentName String?
+  attachmentSize Int?
+  requiresAction Boolean  @default(false)
+  actionType     String?
+  actionStatus   String?
+  actionById     String?
+  sentAt         DateTime @default(now())
+
+  @@index([internshipId], map: "Message_internshipId_fkey")
+  @@index([senderId], map: "Message_senderId_fkey")
+}
+
+model messageread {
+  id        String   @id
+  messageId String
+  userId    String
+  readAt    DateTime @default(now())
+
+  @@unique([messageId, userId], map: "MessageRead_messageId_userId_key")
+}
+
+model minipresentation {
+  id               String                  @id
+  internshipId     String
+  title            String
+  scheduledAt      DateTime
+  room             String
+  timeSlot         String
+  documentDeadline DateTime
+  status           minipresentation_status @default(SCHEDULED)
+  documentUrl      String?
+  documentName     String?
+  submittedAt      DateTime?
+  adminComment     String?
+  createdAt        DateTime                @default(now())
+
+  @@index([internshipId], map: "MiniPresentation_internshipId_fkey")
+}
+
+model notification {
+  id          String            @id
+  userId      String
+  type        notification_type
+  title       String
+  message     String            @db.Text
+  isRead      Boolean           @default(false)
+  emailSent   Boolean           @default(false)
+  relatedId   String?
+  relatedType String?
+  createdAt   DateTime          @default(now())
+
+  @@index([userId], map: "Notification_userId_fkey")
+}
+
+model registrationrequest {
+  id           String                     @id
+  name         String
+  email        String                     @unique(map: "RegistrationRequest_email_key")
+  role         registrationrequest_role
+  motivation   String?                    @db.Text
+  companyName  String?
+  status       registrationrequest_status @default(PENDING)
+  adminComment String?
+  userId       String?                    @unique(map: "RegistrationRequest_userId_key")
+  createdAt    DateTime                   @default(now())
+  reviewedAt   DateTime?
+}
+
+model studentapplication {
+  id         String                    @id
+  topicId    String
+  leaderId   String
+  partnerId  String?
+  status     studentapplication_status @default(PENDING)
+  appliedAt  DateTime                  @default(now())
+  reviewedAt DateTime?
+
+  @@index([topicId], map: "StudentApplication_topicId_fkey")
+}
+
+model studentprofile {
+  id           String @id
+  userId       String @unique(map: "StudentProfile_userId_key")
+  studentId    String @unique(map: "StudentProfile_studentId_key")
+  promotion    String
+  speciality   String
+  academicYear String
+}
+
+model systemsettings {
+  id        String   @id
+  key       String   @unique(map: "SystemSettings_key_key")
+  value     String
+  updatedAt DateTime
+}
+
+model teacherapplication {
+  id        String                    @id
+  teacherId String
+  topicId   String
+  message   String?                   @db.Text
+  status    teacherapplication_status @default(PENDING)
+  appliedAt DateTime                  @default(now())
+
+  @@unique([teacherId, topicId], map: "TeacherApplication_teacherId_topicId_key")
+  @@index([topicId], map: "TeacherApplication_topicId_fkey")
+}
+
+model teacherprofile {
+  id          String  @id
+  userId      String  @unique(map: "TeacherProfile_userId_key")
+  speciality  String?
+  grade       String?
+  maxStudents Int     @default(5)
+  currentLoad Int     @default(0)
+  isAvailable Boolean @default(true)
+}
+
+model topic {
+  id                       String       @id
+  title                    String
+  description              String       @db.Text
+  requiredSkills           String?      @db.Text
+  type                     topic_type
+  status                   topic_status @default(PENDING_ADMIN)
+  maxStudents              Int          @default(1)
+  academicYear             String
+  proposedById             String
+  assignedTeacherId        String?
+  supervisorRejectionCount Int          @default(0)
+  resubmissionCount        Int          @default(0)
+  maxResubmissions         Int          @default(3)
+  rejectionReason          String?      @db.Text
+  createdAt                DateTime     @default(now())
+  updatedAt                DateTime
+
+  @@index([assignedTeacherId], map: "Topic_assignedTeacherId_fkey")
+  @@index([proposedById], map: "Topic_proposedById_fkey")
+}
+
+model user {
+  id                 String    @id
+  name               String
+  email              String    @unique(map: "User_email_key")
+  password           String
+  role               user_role
+  isActive           Boolean   @default(false)
+  mustChangePassword Boolean   @default(true)
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime
+}
+
+model validation {
+  id          String            @id
+  topicId     String
+  validatorId String
+  step        validation_step
+  status      validation_status @default(PENDING)
+  comment     String?           @db.Text
+  validatedAt DateTime?
+  createdAt   DateTime          @default(now())
+
+  @@index([topicId], map: "Validation_topicId_fkey")
+  @@index([validatorId], map: "Validation_validatorId_fkey")
+}
+
+enum deadline_type {
+  TOPIC_SUBMISSION
+  MID_REPORT
+  FINAL_REPORT
+  MINI_PRESENTATION
+  DEFENSE
+}
+
+enum notification_type {
+  REGISTRATION_SUBMITTED
+  REGISTRATION_APPROVED
+  REGISTRATION_REJECTED
+  TOPIC_SUBMITTED
+  TOPIC_APPROVED
+  TOPIC_REJECTED
+  TEACHER_ASSIGNED
+  TEACHER_ACCEPTED
+  TEACHER_REJECTED
+  TOPIC_PUBLISHED
+  STUDENT_APPLIED
+  APPLICATION_APPROVED
+  APPLICATION_REJECTED
+  BINOME_INVITATION
+  BINOME_ACCEPTED
+  BINOME_DECLINED
+  INTERNSHIP_STARTED
+  INTERNSHIP_COMPLETED
+  INTERNSHIP_CANCELLED
+  DOCUMENT_UPLOADED
+  DOCUMENT_APPROVED
+  DOCUMENT_REJECTED
+  MESSAGE_RECEIVED
+  MINI_PRESENTATION_SCHEDULED
+  MINI_PRESENTATION_REMINDER
+  DEFENSE_SCHEDULED
+  DEFENSE_UPDATED
+  GRADE_AVAILABLE
+  DEADLINE_APPROACHING
+  DEADLINE_OVERDUE
+  ACCOUNT_CREATED
+  PASSWORD_RESET
+}
+
+enum binomeinvitation_status {
+  PENDING
+  ACCEPTED
+  DECLINED
+  EXPIRED
+}
+
+enum document_type {
+  PROGRESS_REPORT
+  MID_REPORT
+  FINAL_REPORT
+  OTHER
+}
+
+enum jurymember_role {
+  PRESIDENT
+  RAPPORTEUR
+  EXAMINATEUR
+  COMPANY_ADVISOR
+}
+
+enum registrationrequest_role {
+  STUDENT
+  COMPANY
+}
+
+enum validation_step {
+  ADMIN
+  TEACHER
+  COMPANY
+  FINAL_ADMIN
+}
+
+enum internship_status {
+  APPROVED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum studentapplication_status {
+  PENDING
+  ACCEPTED
+  REJECTED
+  CANCELLED
+}
+
+enum teacherapplication_status {
+  PENDING
+  ACCEPTED
+  REJECTED
+  CANCELLED
+}
+
+enum topic_type {
+  STUDENT_PROPOSED
+  COMPANY_PROPOSED
+}
+
+enum user_role {
+  STUDENT
+  TEACHER
+  COMPANY
+  ADMIN
+}
+
+enum validation_status {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum defense_status {
+  SCHEDULED
+  HELD
+  POSTPONED
+  CANCELLED
+}
+
+enum topic_status {
+  PENDING_ADMIN
+  PENDING_TEACHER
+  APPROVED
+  REJECTED
+  OPEN_FOR_SELECTION
+  TAKEN
+}
+
+enum registrationrequest_status {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum minipresentation_status {
+  SCHEDULED
+  DOCUMENT_SUBMITTED
+  REVIEWED
+  HELD
+  POSTPONED
+  CANCELLED
+}
+
+enum document_status {
+  UPLOADED
+  REVIEWED
+  APPROVED
+  REJECTED
+}
