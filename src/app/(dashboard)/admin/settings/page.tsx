@@ -1,18 +1,62 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { toast } from "sonner";
-import { Settings, Lock, Unlock, Calendar, Save } from "lucide-react";
+import { Settings, Lock, Unlock, Calendar, Save, Palette, Upload } from "lucide-react";
 
 export default function AdminSettingsPage() {
+  const router = useRouter();
   const [settings, setSettings] = useState({
-    currentAcademicYear: "2024-2025",
-    registrationOpen: "true",
+    currentAcademicYear: "",
+    registrationOpen: "false",
     maxResubmissions: "3",
+    universityLogo: "",
+    availableSpecialities: "",
+    availablePromotions: "",
   });
-  const [isLoading, setIsLoading] = useState(false);
+  const [loadingKey, setLoadingKey] = useState<string | null>(null);
+  
+  const [brandingFile, setBrandingFile] = useState<File | null>(null);
+  const [brandingPreview, setBrandingPreview] = useState<string | null>(null);
+  const [isUploadingLogo, setIsUploadingLogo] = useState(false);
+
+  const handleBrandingSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setBrandingFile(file);
+      setBrandingPreview(URL.createObjectURL(file));
+    }
+  };
+
+  const handleLogoUpload = async () => {
+    if (!brandingFile) return;
+    setIsUploadingLogo(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", brandingFile);
+
+      const res = await fetch("/api/upload/logo", {
+        method: "POST",
+        body: formData,
+      });
+
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error || "Upload failed");
+
+      toast.success("University logo updated successfully");
+      setBrandingFile(null);
+      setBrandingPreview(null);
+      await fetchSettings();
+      router.refresh(); // Crucial: forces the Layout (Sidebar) to refetch the logo from DB
+    } catch (error: any) {
+      toast.error(error.message || "Failed to upload logo");
+    } finally {
+      setIsUploadingLogo(false);
+    }
+  };
 
   const fetchSettings = async () => {
     try {
@@ -26,7 +70,7 @@ export default function AdminSettingsPage() {
         setSettings(prev => ({ ...prev, ...settingMap }));
       }
     } catch (error) {
-      console.error("Failed to load settings");
+      console.error("Failed to load settings:", error);
     }
   };
 
@@ -35,20 +79,27 @@ export default function AdminSettingsPage() {
   }, []);
 
   const handleUpdate = async (key: string, value: string) => {
-    setIsLoading(true);
+    setLoadingKey(key);
     try {
       const res = await fetch("/api/settings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ key, value }),
       });
-      if (!res.ok) throw new Error("Update failed");
+      
+      const result = await res.json();
+      
+      if (!res.ok) {
+        throw new Error(result.error + (result.message ? `: ${result.message}` : "") || "Update failed");
+      }
+      
       toast.success(`${key} updated successfully`);
-      fetchSettings();
-    } catch (error) {
-      toast.error("Failed to update setting");
+      await fetchSettings();
+    } catch (error: any) {
+      console.error("Update error:", error);
+      toast.error(error.message || "Failed to update setting");
     } finally {
-      setIsLoading(false);
+      setLoadingKey(null);
     }
   };
 
@@ -74,10 +125,16 @@ export default function AdminSettingsPage() {
           <div className="flex items-center space-x-3">
             <input 
               className="admin-input w-[120px] text-center font-mono" 
-              value={settings.currentAcademicYear}
+              value={settings.currentAcademicYear || "2024-2025"}
               onChange={(e) => setSettings({...settings, currentAcademicYear: e.target.value})}
             />
-            <Button size="sm" onClick={() => handleUpdate("currentAcademicYear", settings.currentAcademicYear)}>Update</Button>
+            <Button 
+              size="sm" 
+              isLoading={loadingKey === "currentAcademicYear"}
+              onClick={() => handleUpdate("currentAcademicYear", settings.currentAcademicYear)}
+            >
+              Update
+            </Button>
           </div>
         </div>
 
@@ -95,6 +152,7 @@ export default function AdminSettingsPage() {
           <div>
             <Button 
               variant={settings.registrationOpen === "true" ? "danger" : "primary"}
+              isLoading={loadingKey === "registrationOpen"}
               onClick={() => handleUpdate("registrationOpen", settings.registrationOpen === "true" ? "false" : "true")}
             >
               {settings.registrationOpen === "true" ? "Close Registration" : "Open Registration"}
@@ -117,13 +175,166 @@ export default function AdminSettingsPage() {
             <input 
               type="number"
               className="admin-input w-[80px] text-center" 
-              value={settings.maxResubmissions}
+              value={settings.maxResubmissions || "3"}
               onChange={(e) => setSettings({...settings, maxResubmissions: e.target.value})}
             />
-            <Button size="sm" onClick={() => handleUpdate("maxResubmissions", settings.maxResubmissions)}>Save</Button>
+            <Button 
+              size="sm" 
+              isLoading={loadingKey === "maxResubmissions"}
+              onClick={() => handleUpdate("maxResubmissions", settings.maxResubmissions)}
+            >
+              Save
+            </Button>
+          </div>
+        </div>
+
+        {/* Specialities Management */}
+        <SettingsList
+          title="Specialities Management"
+          description="Add or remove specialities available for student registration."
+          value={settings.availableSpecialities}
+          onUpdate={(val) => handleUpdate("availableSpecialities", val)}
+          isLoading={loadingKey === "availableSpecialities"}
+          icon={<Settings className="h-5 w-5" />}
+          colorClass="bg-blue-50 text-blue-600"
+        />
+
+        {/* Promotions Management */}
+        <SettingsList
+          title="Promotions Management"
+          description="Manage the promotion levels available (e.g., M1, M2)."
+          value={settings.availablePromotions}
+          onUpdate={(val) => handleUpdate("availablePromotions", val)}
+          isLoading={loadingKey === "availablePromotions"}
+          icon={<Calendar className="h-5 w-5" />}
+          colorClass="bg-purple-50 text-purple-600"
+        />
+
+        {/* Branding & Assets */}
+        <div className="bg-white border border-gray-200 rounded-md p-6 shadow-sm">
+          <div className="flex items-center space-x-4 mb-6">
+            <div className="p-3 bg-rose-50 rounded-md text-rose-600">
+              <Palette className="h-5 w-5" />
+            </div>
+            <div>
+              <h3 className="text-[14px] font-semibold text-gray-900">Branding & Assets</h3>
+              <p className="text-[12px] text-gray-500">Manage the official university logo and visuals.</p>
+            </div>
+          </div>
+          
+          <div className="flex flex-col md:flex-row items-center gap-8 p-4 bg-gray-50 rounded-md border border-gray-200 border-dashed">
+            <div className="h-24 w-24 bg-white rounded-md border border-gray-200 flex items-center justify-center overflow-hidden">
+              {brandingPreview || settings.universityLogo ? (
+                <img src={brandingPreview || settings.universityLogo} alt="Preview" className="h-full w-full object-contain p-2" />
+              ) : (
+                <img src="/esst-logo.png" alt="Default Logo" className="h-full w-full object-contain p-3 opacity-50" />
+              )}
+            </div>
+            <div className="flex-1 text-center md:text-left">
+              <p className="text-[13px] font-medium text-gray-900 mb-1">University Official Logo</p>
+              <p className="text-[12px] text-gray-500 mb-4">Recommended: PNG with transparent background (Min 200x200px).</p>
+              {!brandingFile ? (
+                <div>
+                   <input type="file" id="logo-upload" className="hidden" accept="image/*" onChange={handleBrandingSelect} />
+                   <label htmlFor="logo-upload" className="cursor-pointer inline-flex items-center justify-center bg-indigo-600 text-white hover:bg-indigo-700 text-[12px] font-semibold h-9 px-4 rounded-md shadow-sm transition-all">
+                     Choose File
+                   </label>
+                </div>
+              ) : (
+                <div className="flex items-center gap-3 justify-center md:justify-start">
+                   <Button size="sm" onClick={handleLogoUpload} isLoading={isUploadingLogo}>
+                     Add System Logo
+                   </Button>
+                   <Button size="sm" variant="outline" onClick={() => { setBrandingFile(null); setBrandingPreview(null); }} disabled={isUploadingLogo}>
+                     Cancel
+                   </Button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
     </div>
   );
 }
+
+interface SettingsListProps {
+  title: string;
+  description: string;
+  value: string;
+  onUpdate: (value: string) => void;
+  isLoading: boolean;
+  icon: React.ReactNode;
+  colorClass: string;
+}
+
+function SettingsList({ title, description, value, onUpdate, isLoading, icon, colorClass }: SettingsListProps) {
+  const [newItem, setNewItem] = useState("");
+  const items = value.split(",").map(s => s.trim()).filter(Boolean);
+
+  const addItem = () => {
+    if (!newItem.trim()) return;
+    if (items.includes(newItem.trim())) {
+      toast.error("Item already exists");
+      return;
+    }
+    const updated = [...items, newItem.trim()].join(",");
+    onUpdate(updated);
+    setNewItem("");
+  };
+
+  const removeItem = (item: string) => {
+    const updated = items.filter(i => i !== item).join(",");
+    onUpdate(updated);
+  };
+
+  return (
+    <div className="bg-white border border-gray-200 rounded-md p-6 shadow-sm">
+      <div className="flex items-center space-x-4 mb-6">
+        <div className={`p-3 rounded-md ${colorClass}`}>
+          {icon}
+        </div>
+        <div>
+          <h3 className="text-[14px] font-semibold text-gray-900">{title}</h3>
+          <p className="text-[12px] text-gray-500">{description}</p>
+        </div>
+      </div>
+      
+      <div className="space-y-4">
+        <div className="flex flex-wrap gap-2 min-h-[40px] p-3 bg-gray-50 rounded-md border border-gray-200">
+          {items.map(item => (
+            <div key={item} className="flex items-center bg-white border border-gray-200 rounded-md px-2 py-1 text-[12px] font-medium text-gray-700 shadow-sm">
+              {item}
+              <button 
+                onClick={() => removeItem(item)}
+                className="ml-2 text-gray-400 hover:text-red-600 transition-colors"
+              >
+                ×
+              </button>
+            </div>
+          ))}
+          {items.length === 0 && <span className="text-gray-400 text-[12px]">No items configured</span>}
+        </div>
+
+        <div className="flex items-center space-x-3">
+          <Input 
+            placeholder="Add new item..." 
+            value={newItem}
+            onChange={(e) => setNewItem(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && addItem()}
+            containerClassName="flex-1"
+          />
+          <Button 
+            size="sm" 
+            onClick={addItem}
+            isLoading={isLoading}
+            disabled={!newItem.trim()}
+          >
+            Add Item
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+

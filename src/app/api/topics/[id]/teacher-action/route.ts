@@ -64,7 +64,7 @@ export async function PATCH(
       userId: session.user.id,
       action: action === "ACCEPT" ? "TEACHER_TOPIC_ACCEPTED" : "TEACHER_TOPIC_REJECTED",
       targetType: "Topic",
-      targetId: id,
+      targetId: topic.title,
     });
 
     return NextResponse.json({ message: `Topic ${action.toLowerCase()}ed successfully` });

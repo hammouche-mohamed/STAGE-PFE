@@ -95,12 +95,62 @@ export async function PATCH(
       userId: session.user.id,
       action: "TOPIC_UPDATED_BY_ADMIN",
       targetType: "Topic",
-      targetId: id,
+      targetId: updated.title,
       details: { status, teacherId }
     });
 
     return NextResponse.json({ data: updated });
   } catch (error) {
     return NextResponse.json({ error: "Update failed" }, { status: 500 });
+  }
+}
+
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const session = await auth();
+  if (!session) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  try {
+    const { id } = await params;
+    const topic = await prisma.topic.findUnique({
+      where: { id },
+    });
+
+    if (!topic) {
+      return NextResponse.json({ error: "Topic not found" }, { status: 404 });
+    }
+
+    // Only Admin or the Proposer can delete the topic
+    if (session.user.role !== "ADMIN" && topic.proposedById !== session.user.id) {
+      return NextResponse.json({ error: "Unauthorized to delete this topic" }, { status: 403 });
+    }
+
+    // Check if the topic is already assigned or in progress (can't delete if so)
+    if (["APPROVED", "TAKEN", "IN_PROGRESS"].includes(topic.status)) {
+      return NextResponse.json({ 
+        error: "Cannot delete an approved or assigned topic. Please contact administration for cancellation." 
+      }, { status: 400 });
+    }
+
+    await prisma.topic.delete({
+      where: { id }
+    });
+
+    await AuditService.log({
+      userId: session.user.id,
+      action: "TOPIC_DELETED",
+      targetType: "Topic",
+      targetId: topic.title,
+      details: { title: topic.title }
+    });
+
+    return NextResponse.json({ message: "Topic deleted successfully" });
+  } catch (error) {
+    console.error("Delete error:", error);
+    return NextResponse.json({ error: "Deletion failed" }, { status: 500 });
   }
 }

@@ -68,42 +68,74 @@ export default function TeacherEvaluationsPage() {
         </div>
       </div>
 
-      {!selectedDefense ? (
-        <div className="admin-table-container">
-          <table className="admin-table">
-            <thead className="admin-table-header">
-              <tr>
-                <th>Topic</th>
-                <th>Students</th>
-                <th>Time & Room</th>
-                <th>Your Role</th>
-                <th className="text-right">Action</th>
+  const pendingEvaluations = defenses
+    .filter((d: any) => new Date(d.scheduledAt) >= new Date())
+    .sort((a: any, b: any) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime());
+
+  const completedEvaluations = defenses
+    .filter((d: any) => new Date(d.scheduledAt) < new Date())
+    .sort((a: any, b: any) => new Date(b.scheduledAt).getTime() - new Date(a.scheduledAt).getTime());
+
+  const renderEvaluationsTable = (data: any[], title: string, isCompleted: boolean = false) => (
+    <div className="space-y-4">
+      <h2 className={`text-[14px] font-bold border-b border-gray-100 pb-2 flex items-center ${isCompleted ? 'text-gray-500 mt-8' : 'text-gray-900'}`}>
+         <div className={`h-2 w-2 rounded-full mr-2 ${isCompleted ? 'bg-gray-300' : 'bg-indigo-500'}`} />
+         {title}
+      </h2>
+      <div className={`admin-table-container ${isCompleted ? 'opacity-60 grayscale-[0.3]' : ''}`}>
+        <table className="admin-table">
+          <thead className="admin-table-header">
+            <tr>
+              <th>Topic</th>
+              <th>Students</th>
+              <th>Time & Room</th>
+              <th>Your Role</th>
+              <th className="text-right">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {data.map((def: any) => (
+              <tr key={def.id} className="admin-table-row">
+                <td className="font-medium text-gray-900 truncate max-w-[300px]">{def.internship.topic.title}</td>
+                <td className="text-[12px]">{def.internship.students.map((s: any) => s.student.name).join(", ")}</td>
+                <td><span className="text-[12px]">{formatDateTime(def.scheduledAt)} - {def.room}</span></td>
+                <td>
+                  <span className="text-[12px] font-medium text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded">
+                    {def.juryMembers.find((m: any) => m.userId === "current-user-id")?.role || "Jury Member"}
+                  </span>
+                </td>
+                <td className="text-right">
+                  <Button size="sm" onClick={() => setSelectedDefense(def)}>{isCompleted ? "Update Grade" : "Grade Session"}</Button>
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {isLoading ? (
-                <tr><td colSpan={5} className="text-center py-8 text-gray-400">Loading...</td></tr>
-              ) : defenses.length === 0 ? (
-                <tr><td colSpan={5} className="text-center py-8 text-gray-400">No defenses assigned to you.</td></tr>
-              ) : (
-                defenses.map((def: any) => (
-                  <tr key={def.id} className="admin-table-row">
-                    <td className="font-medium text-gray-900 truncate max-w-[300px]">{def.internship.topic.title}</td>
-                    <td className="text-[12px]">{def.internship.students.map((s: any) => s.student.name).join(", ")}</td>
-                    <td><span className="text-[12px]">{formatDateTime(def.scheduledAt)} - {def.room}</span></td>
-                    <td>
-                      <span className="text-[12px] font-medium text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded">
-                        {def.juryMembers.find((m: any) => m.userId === "current-user-id")?.role || "Jury Member"}
-                      </span>
-                    </td>
-                    <td className="text-right">
-                      <Button size="sm" onClick={() => setSelectedDefense(def)}>Grade Session</Button>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-[17px] font-semibold text-gray-900">Jury Evaluations</h1>
+          <p className="text-[13px] text-gray-500 mt-0.5">Submit scores and feedback for the defenses you are presiding or examining.</p>
+        </div>
+      </div>
+
+      {!selectedDefense ? (
+        <div className="space-y-8">
+          {isLoading ? (
+            <div className="admin-table-container py-12 text-center text-gray-400">Loading assignments...</div>
+          ) : defenses.length === 0 ? (
+            <div className="admin-table-container py-12 text-center text-gray-400">No defenses assigned to you.</div>
+          ) : (
+            <>
+              {pendingEvaluations.length > 0 && renderEvaluationsTable(pendingEvaluations, "Pending Evaluations")}
+              {completedEvaluations.length > 0 && renderEvaluationsTable(completedEvaluations, "Completed Evaluations", true)}
+            </>
+          )}
         </div>
       ) : (
         <div className="max-w-[800px] bg-white border border-gray-200 rounded-md overflow-hidden shadow-sm animate-in fade-in slide-in-from-bottom-2">

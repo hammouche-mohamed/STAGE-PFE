@@ -130,13 +130,13 @@ export default function AdminTopicDetailPage() {
   return (
     <div className="space-y-6 max-w-5xl">
       <div className="flex items-center justify-between">
-        <button 
-          onClick={() => router.back()}
-          className="flex items-center text-gray-500 hover:text-indigo-600 transition-colors text-[13px] font-medium"
+        <Link
+          href="/admin/topics"
+          className="inline-flex items-center gap-2 text-[13px] text-indigo-600 hover:text-indigo-800"
         >
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to Repository
-        </button>
+          <ArrowLeft className="h-4 w-4" />
+          Back to repository
+        </Link>
 
         <Button 
           onClick={handleUpdate} 

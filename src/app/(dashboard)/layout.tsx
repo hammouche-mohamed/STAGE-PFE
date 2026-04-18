@@ -1,34 +1,41 @@
-"use client";
-
-import React from "react";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Topbar } from "@/components/layout/Topbar";
 import { BreadcrumbProvider } from "@/lib/contexts/BreadcrumbContext";
+import { auth } from "@/lib/auth";
+import prisma from "@/lib/prisma";
 
-export default function DashboardLayout({
+export const dynamic = "force-dynamic";
+
+export default async function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  // TODO: Fetch real role from session
-  const role: "ADMIN" | "STUDENT" | "TEACHER" | "COMPANY" = "ADMIN";
+  const session = await auth();
+  const role = (session?.user?.role as "ADMIN" | "STUDENT" | "TEACHER" | "COMPANY") ?? "ADMIN";
+
+  const logoSetting = await prisma.systemSettings.findUnique({
+    where: { key: "universityLogo" }
+  });
+  const baseLogoUrl = logoSetting?.value || "";
+  const logoUrl = baseLogoUrl ? `${baseLogoUrl}?v=${Date.now()}` : "";
 
   return (
     <BreadcrumbProvider>
       <div className="min-h-screen bg-gray-50 flex">
-      {/* Sidebar - Fixed */}
-      <Sidebar role={role} />
+        {/* Sidebar - Fixed */}
+        <Sidebar role={role} logoUrl={logoUrl} />
 
-      {/* Main Content Area */}
-      <div className="flex-1 flex flex-col ml-[240px]">
-        {/* Topbar - Fixed height, sticky or fixed */}
-        <Topbar />
+        {/* Main Content Area */}
+        <div className="flex-1 flex flex-col ml-[240px]">
+          {/* Topbar - Fixed height, sticky or fixed */}
+          <Topbar />
 
-        {/* Content - Scrollable container */}
-        <main className="mt-[56px] p-6 min-h-[calc(100vh-56px)]">
-          {children}
-        </main>
-      </div>
+          {/* Content - Scrollable container */}
+          <main className="mt-[56px] p-6 min-h-[calc(100vh-56px)]">
+            {children}
+          </main>
+        </div>
       </div>
     </BreadcrumbProvider>
   );

@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { registrationSchema } from "@/lib/validations/registration.schema";
+import bcrypt from "bcryptjs";
+import { randomUUID } from "crypto";
 
 export async function GET(req: NextRequest) {
   const session = await auth();
@@ -22,9 +24,6 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  // Existing POST logic moved here for completeness or handled in route.ts
-  // I already created route.ts for the public POST. 
-  // This file handles the Admin GET and potentially other Admin actions.
   try {
     const body = await req.json();
     const validatedData = registrationSchema.parse(body);
@@ -37,18 +36,35 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Request already exists" }, { status: 409 });
     }
 
+    // Hash the password
+    const hashedPassword = await bcrypt.hash(validatedData.password, 10);
+
     const request = await prisma.registrationRequest.create({
       data: {
+        id: randomUUID(),
         name: validatedData.name,
         email: validatedData.email,
-        role: validatedData.role,
+        role: validatedData.role as any, // Cast to ensure compatibility with generated client
+        password: hashedPassword,
         motivation: validatedData.motivation,
+        // Shared fields
+        speciality: validatedData.speciality,
+        // Student specific
+        studentId: validatedData.studentId,
+        promotion: validatedData.promotion,
+        academicYear: validatedData.academicYear,
+        // Company specific
         companyName: validatedData.companyName,
+        sector: validatedData.sector,
+        wilaya: validatedData.wilaya,
+        // Teacher specific
+        grade: validatedData.grade,
       }
     });
 
     return NextResponse.json({ data: request }, { status: 201 });
   } catch (error: any) {
+    console.error("Registration submission failed:", error);
     return NextResponse.json({ error: error.message }, { status: 400 });
   }
 }

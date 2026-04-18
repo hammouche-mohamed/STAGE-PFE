@@ -1,0 +1,175 @@
+import { auth } from "@/lib/auth";
+import prisma from "@/lib/prisma";
+import { notFound } from "next/navigation";
+import Link from "next/link";
+import { ArrowLeft, Users, MapPin, MessageSquare, GraduationCap, Briefcase, Calendar } from "lucide-react";
+import { StatusBadge } from "@/components/ui/StatusBadge";
+import { format } from "date-fns";
+
+
+export default async function InternshipDetailPage({ params }: { params: Promise<{ slug: string }> }) {
+  const session = await auth();
+  if (!session) {
+    notFound();
+  }
+
+  const { slug } = await params;
+  if (!slug) {
+    notFound();
+  }
+
+  const decodedSlug = decodeURIComponent(slug);
+  const normalizeSlug = (value: string) =>
+    value
+      .normalize("NFKD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9]+/gi, "-")
+      .replace(/^-+|-+$/g, "")
+      .toLowerCase();
+
+  const normalizedSlug = normalizeSlug(decodedSlug);
+
+  let internship;
+  try {
+    const internships = await prisma.internship.findMany({
+      include: {
+        topic: { select: { title: true, type: true, description: true } },
+        teacher: { select: { name: true, email: true } },
+        students: { include: { student: { select: { name: true, email: true } } } },
+        _count: { select: { documents: true, messages: true } },
+      },
+    });
+
+    internship = internships.find((i) => {
+      const titleSlug = normalizeSlug(i.topic.title);
+      // Support matching by direct ID or by slugified title
+      return i.id === slug || i.id === decodedSlug || titleSlug === normalizedSlug;
+    });
+  } catch (error) {
+    console.error("Error fetching internship details:", error);
+    // If the error is still 'Unknown field', it will be clear in the logs
+    throw new Error("Data fetching failed. Please check the server logs.");
+  }
+
+  if (!internship) {
+    console.warn(`Internship not found for slug: ${slug} (normalized: ${normalizedSlug})`);
+    notFound();
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+          <Link
+            href="/admin/internships"
+            className="inline-flex items-center gap-2 text-[13px] text-indigo-600 hover:text-indigo-800"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to internships
+          </Link>
+          <div className="mt-4">
+            <div className="flex items-center gap-2 mb-2">
+              <StatusBadge status={internship.status} />
+              <span className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">{internship.topic.type}</span>
+            </div>
+            <h1 className="text-[24px] font-bold text-gray-900">{internship.topic.title}</h1>
+            <p className="text-[13px] text-gray-500 mt-1">Academic year {internship.academicYear}</p>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+          <div className="bg-white border border-gray-200 rounded-md p-4 text-center">
+            <Briefcase className="h-5 w-5 text-indigo-600 mx-auto mb-2" />
+            <p className="text-[12px] text-gray-400 uppercase tracking-widest">Documents</p>
+            <p className="text-[18px] font-semibold text-gray-900">{internship._count.documents}</p>
+          </div>
+          <div className="bg-white border border-gray-200 rounded-md p-4 text-center">
+            <MessageSquare className="h-5 w-5 text-indigo-600 mx-auto mb-2" />
+            <p className="text-[12px] text-gray-400 uppercase tracking-widest">Messages</p>
+            <p className="text-[18px] font-semibold text-gray-900">{internship._count.messages}</p>
+          </div>
+          <div className="bg-white border border-gray-200 rounded-md p-4 text-center">
+            <Calendar className="h-5 w-5 text-indigo-600 mx-auto mb-2" />
+            <p className="text-[12px] text-gray-400 uppercase tracking-widest">Created</p>
+            <p className="text-[18px] font-semibold text-gray-900">{format(new Date(internship.createdAt), "MMM d, yyyy")}</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 space-y-6">
+          <section className="bg-white border border-gray-200 rounded-md p-6 shadow-sm">
+            <h2 className="text-[15px] font-semibold text-gray-900 mb-4">Project Description</h2>
+            <p className="text-[14px] text-gray-600 leading-relaxed">
+              {internship.topic.description || "No description provided for this project."}
+            </p>
+          </section>
+
+          <section className="bg-white border border-gray-200 rounded-md p-6 shadow-sm">
+            <h2 className="text-[15px] font-semibold text-gray-900 mb-4">Participants</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-3">
+                <p className="text-[12px] text-gray-400 uppercase tracking-widest">Supervisor</p>
+                <div className="rounded-md border border-gray-100 bg-gray-50 p-4">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-full bg-indigo-50 text-indigo-700 flex items-center justify-center font-bold">{internship.teacher.name.charAt(0)}</div>
+                    <div>
+                      <p className="text-[14px] font-semibold text-gray-900">{internship.teacher.name}</p>
+                      <p className="text-[12px] text-gray-500">{internship.teacher.email}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="space-y-3">
+                <p className="text-[12px] text-gray-400 uppercase tracking-widest">Students</p>
+                <div className="rounded-md border border-gray-100 bg-gray-50 p-4 space-y-3">
+                  {internship.students.map((student) => (
+                    <div key={student.student.email} className="flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-full bg-indigo-50 text-indigo-700 flex items-center justify-center font-bold">{student.student.name.charAt(0)}</div>
+                      <div>
+                        <p className="text-[14px] font-semibold text-gray-900">{student.student.name}</p>
+                        <p className="text-[12px] text-gray-500">{student.student.email}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <aside className="space-y-4">
+          <div className="bg-white border border-gray-200 rounded-md p-5 shadow-sm space-y-4">
+            <div className="flex items-center gap-3">
+              <GraduationCap className="h-5 w-5 text-indigo-600" />
+              <div>
+                <p className="text-[12px] text-gray-400 uppercase tracking-widest">Topic type</p>
+                <p className="text-[14px] font-semibold text-gray-900">{internship.topic.type}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <MapPin className="h-5 w-5 text-indigo-600" />
+              <div>
+                <p className="text-[12px] text-gray-400 uppercase tracking-widest">Room / location</p>
+                <p className="text-[14px] font-semibold text-gray-900">TBD</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white border border-gray-200 rounded-md p-5 shadow-sm">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-[12px] text-gray-400 uppercase tracking-widest">Quick actions</p>
+            </div>
+            <div className="space-y-3">
+              <Link href={`/student/documents?back=/admin/internships/${normalizeSlug(internship.topic.title)}`} className="block rounded-md border border-gray-200 bg-white px-4 py-3 text-[13px] font-medium text-gray-700 hover:bg-gray-50 text-center">
+                View documents
+              </Link>
+              <Link href={`/student/messages?back=/admin/internships/${normalizeSlug(internship.topic.title)}`} className="block rounded-md border border-gray-200 bg-white px-4 py-3 text-[13px] font-medium text-gray-700 hover:bg-gray-50 text-center">
+                Open messages
+              </Link>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </div>
+  );
+}

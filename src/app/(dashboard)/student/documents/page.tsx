@@ -1,29 +1,30 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, Suspense } from "react";
 import { DocumentList } from "@/components/documents/DocumentList";
 import { UploadDocumentSection } from "@/components/documents/UploadDocumentSection";
 import { toast } from "sonner";
-import { Info } from "lucide-react";
+import { Info, ChevronLeft } from "lucide-react";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 
-export default function StudentDocumentsPage() {
+function DocumentsContent() {
+  const searchParams = useSearchParams();
+  const backUrl = searchParams.get("back") || "/student/internship";
+  
   const [documents, setDocuments] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  
-  // Real app: get internshipId from current user's active internship
   const [internshipId, setInternshipId] = useState<string | null>(null);
 
   const fetchInternshipAndDocs = async () => {
     try {
-      // 1. Get active internship
       const intRes = await fetch("/api/internships");
       const intData = await intRes.json();
       
       if (intData.data && intData.data.length > 0) {
-        const activeIntId = intData.data[0].id; // Simple heuristic: first one is active
+        const activeIntId = intData.data[0].id;
         setInternshipId(activeIntId);
 
-        // 2. Get documents
         const docRes = await fetch(`/api/documents?internshipId=${activeIntId}`);
         const docData = await docRes.json();
         setDocuments(docData.data || []);
@@ -41,10 +42,19 @@ export default function StudentDocumentsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-[17px] font-semibold text-gray-900">Internship Documents</h1>
-          <p className="text-[13px] text-gray-500 mt-0.5">Upload and manage your PFE reports and attachments.</p>
+      <div className="flex flex-col space-y-4">
+        <Link 
+          href={backUrl} 
+          className="flex items-center text-[12px] text-indigo-600 hover:text-indigo-800 font-medium transition-colors w-fit bg-indigo-50 px-3 py-1 rounded-full"
+        >
+          <ChevronLeft className="h-4 w-4 mr-1" />
+          Back to Internship
+        </Link>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-[17px] font-semibold text-gray-900">Internship Documents</h1>
+            <p className="text-[13px] text-gray-500 mt-0.5">Upload and manage your PFE reports and attachments.</p>
+          </div>
         </div>
       </div>
 
@@ -56,15 +66,13 @@ export default function StudentDocumentsPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 items-start">
-          {/* Main List (2/3) */}
           <div className="xl:col-span-2 space-y-6">
             <DocumentList 
               documents={documents} 
-              canReview={false} // Student can't review their own docs
+              canReview={false}
             />
           </div>
 
-          {/* Upload Section (1/3) */}
           <div className="space-y-6">
             {internshipId && (
               <UploadDocumentSection 
@@ -86,5 +94,13 @@ export default function StudentDocumentsPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function StudentDocumentsPage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-center text-gray-400">Loading documents...</div>}>
+      <DocumentsContent />
+    </Suspense>
   );
 }

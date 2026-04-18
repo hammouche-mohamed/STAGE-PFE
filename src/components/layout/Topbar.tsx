@@ -1,32 +1,64 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
+import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useBreadcrumbs } from "@/lib/contexts/BreadcrumbContext";
-import { Bell, Search, LogOut } from "lucide-react";
+import { Bell, User as UserIcon, LogOut } from "lucide-react";
+import { signOut, useSession } from "next-auth/react";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 
 export const Topbar: React.FC = () => {
   const pathname = usePathname();
   const { labels } = useBreadcrumbs();
+  const { data: session } = useSession();
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [isLogoutDialogOpen, setIsLogoutDialogOpen] = useState(false);
 
-  // Simple breadcrumb logic
+  useEffect(() => {
+    const fetchCount = async () => {
+      try {
+        const res = await fetch("/api/notifications?count=true");
+        if (!res.ok) {
+          throw new Error(`Failed to fetch notifications: ${res.status}`);
+        }
+        const text = await res.text();
+        if (!text) {
+          setUnreadCount(0);
+          return;
+        }
+        const data = JSON.parse(text);
+        setUnreadCount(data.count ?? 0);
+      } catch (error) {
+        console.error("Failed to load notification count", error);
+        setUnreadCount(0);
+      }
+    };
+    fetchCount();
+  }, []);
+
   const paths = pathname.split("/").filter(Boolean);
-  
-  // Get formatted title for the current page
   const getCurrentTitle = () => {
     const lastSegment = paths[paths.length - 1];
     if (labels[lastSegment]) return labels[lastSegment];
     return lastSegment?.charAt(0).toUpperCase() + lastSegment?.slice(1).replace(/-/g, " ") || "Dashboard";
   };
 
-  const formattedTitle = getCurrentTitle();
+  const displayName = session?.user?.name ?? "John Doe";
+  const email = session?.user?.email ?? "john.doe@esst-sup.com";
+  const avatarUrl = session?.user?.image;
+  const initials = displayName
+    .split(" ")
+    .map((segment: string) => segment[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
 
   return (
     <header className="h-[56px] fixed top-0 right-0 left-[240px] bg-white border-b border-gray-200 z-40 flex items-center justify-between px-6">
-      {/* Page Title & Breadcrumb */}
       <div className="flex flex-col">
         <h1 className="text-[15px] font-medium text-gray-900 leading-tight">
-          {formattedTitle}
+          {getCurrentTitle()}
         </h1>
         <div className="flex items-center text-[11px] text-gray-400 mt-0.5">
           <span>Home</span>
@@ -41,27 +73,38 @@ export const Topbar: React.FC = () => {
         </div>
       </div>
 
-      {/* Right Side Actions */}
       <div className="flex items-center space-x-5">
-        <div className="relative cursor-pointer text-gray-400 hover:text-gray-600 transition-colors">
+        <Link href="/notifications" className="relative text-gray-400 hover:text-gray-600 transition-colors">
           <Bell className="h-[20px] w-[20px]" />
-          <span className="absolute -top-1 -right-1 h-4 w-4 bg-red-600 text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-white">
-            3
-          </span>
-        </div>
+          {unreadCount > 0 && (
+            <span className="absolute -top-1 -right-1 h-4 min-w-[16px] px-[3px] bg-red-600 text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-white">
+              {unreadCount > 9 ? "9+" : unreadCount}
+            </span>
+          )}
+        </Link>
 
         <div className="h-[32px] w-px bg-gray-200 mx-2" />
 
-        <div className="flex items-center group cursor-pointer">
-          <div className="flex flex-col items-end mr-3">
-            <span className="text-[13px] font-medium text-gray-900 group-hover:text-indigo-600 transition-colors">John Doe</span>
-            <span className="text-[11px] text-gray-400">john.doe@esst-sup.com</span>
-          </div>
-          <div className="h-9 w-9 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center text-[13px] font-semibold text-gray-500 overflow-hidden">
-            JD
-          </div>
+        <div className="flex items-center">
+          <button 
+            onClick={() => setIsLogoutDialogOpen(true)}
+            className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-all cursor-pointer"
+            title="Logout"
+          >
+            <LogOut className="h-[18px] w-[18px]" />
+          </button>
         </div>
       </div>
+
+      <ConfirmDialog
+        isOpen={isLogoutDialogOpen}
+        onClose={() => setIsLogoutDialogOpen(false)}
+        onConfirm={() => signOut({ callbackUrl: "/" })}
+        title="Confirm Logout"
+        description="Are you sure you want to sign out? Any unsaved changes on the current page may be lost."
+        confirmLabel="Logout"
+        variant="danger"
+      />
     </header>
   );
 };

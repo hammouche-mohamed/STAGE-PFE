@@ -3,6 +3,7 @@ import prisma from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { AuditService } from "@/lib/services/audit.service";
 import { NotificationService } from "@/lib/services/notification.service";
+import { randomUUID } from "crypto";
 
 export async function POST(req: NextRequest) {
   const session = await auth();
@@ -19,6 +20,7 @@ export async function POST(req: NextRequest) {
       // 1. Create Defense
       const def = await tx.defense.create({
         data: {
+          id: randomUUID(),
           internshipId,
           scheduledAt: new Date(scheduledAt),
           room,
@@ -58,11 +60,17 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    // 4. Log the action with topic title
+    const topic = await prisma.topic.findFirst({
+      where: { internship: { id: internshipId } },
+      select: { title: true }
+    });
+
     await AuditService.log({
       userId: session.user.id,
       action: "DEFENSE_SCHEDULED",
       targetType: "Defense",
-      targetId: defense.id,
+      targetId: topic?.title || internshipId,
       details: { room, timeSlot, scheduledAt }
     });
 

@@ -47,6 +47,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           id: user.id,
           name: user.name,
           email: user.email,
+          image: user.avatarUrl ?? null,
           role: user.role,
           isActive: user.isActive,
           mustChangePassword: user.mustChangePassword,
@@ -59,6 +60,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (user) {
         token.id = user.id;
         token.role = user.role;
+        token.image = user.image;
         token.isActive = user.isActive;
         token.mustChangePassword = user.mustChangePassword;
       }
@@ -68,6 +70,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (token && session.user) {
         session.user.id = token.id as string;
         session.user.role = token.role as string;
+        session.user.image = token.image as string | null;
         session.user.isActive = token.isActive as boolean;
         session.user.mustChangePassword = token.mustChangePassword as boolean;
       }

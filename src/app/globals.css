@@ -47,6 +47,10 @@
   }
 
   h1 { @apply text-[17px]; }
+
+  button, a, [role="button"] {
+    cursor: pointer;
+  }
 }
 
 @layer components {

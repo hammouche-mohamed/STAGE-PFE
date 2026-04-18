@@ -16,6 +16,14 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import Link from "next/link";
 
+const slugify = (value: string) =>
+  value
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/gi, "-")
+    .replace(/^-+|-+$/g, "")
+    .toLowerCase();
+
 interface Internship {
   id: string;
   topic: { title: string; type: string };
@@ -28,6 +36,7 @@ interface Internship {
 export default function TeacherInternshipsPage() {
   const [internships, setInternships] = useState<Internship[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [academicYear, setAcademicYear] = useState("");
 
   const fetchInternships = async () => {
     try {
@@ -43,6 +52,10 @@ export default function TeacherInternshipsPage() {
 
   useEffect(() => {
     fetchInternships();
+    fetch("/api/settings/public")
+      .then(r => r.json())
+      .then(d => setAcademicYear(d.data?.currentAcademicYear || "2024-2025"))
+      .catch(() => setAcademicYear("2024-2025"));
   }, []);
 
   return (
@@ -65,7 +78,7 @@ export default function TeacherInternshipsPage() {
               <div className="flex-1 space-y-3">
                 <div className="flex items-center gap-2">
                   <StatusBadge status={internship.status} />
-                  <span className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">PFE 2024-2025</span>
+                  <span className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">PFE {academicYear}</span>
                 </div>
                 <h3 className="text-[15px] font-bold text-gray-900 leading-tight">
                   {internship.topic.title}
@@ -96,9 +109,13 @@ export default function TeacherInternshipsPage() {
                     <p className="text-[10px] text-gray-400 font-bold uppercase">Msgs</p>
                   </div>
                 </div>
-                <button className="h-9 w-9 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center hover:bg-indigo-600 hover:text-white transition-all">
+                <Link
+                  href={`/teacher/internships/${slugify(internship.topic.title)}`}
+                  className="h-9 w-9 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center hover:bg-indigo-600 hover:text-white transition-all"
+                  aria-label={`View internship ${internship.topic.title}`}
+                >
                   <ArrowRight className="h-4 w-4" />
-                </button>
+                </Link>
               </div>
             </div>
           ))

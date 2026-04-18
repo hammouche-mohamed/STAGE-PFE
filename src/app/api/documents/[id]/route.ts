@@ -51,7 +51,7 @@ export async function PATCH(
       userId: session.user.id,
       action: "DOCUMENT_REVIEWED",
       targetType: "Document",
-      targetId: id,
+      targetId: document.fileName,
       details: { status, comment: reviewComment }
     });
 

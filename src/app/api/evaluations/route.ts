@@ -79,11 +79,17 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // Log the action with topic context
+    const topic = await prisma.topic.findFirst({
+      where: { internship: { defense: { id: defenseId } } },
+      select: { title: true }
+    });
+
     await AuditService.log({
       userId: session.user.id,
       action: "EVALUATION_SUBMITTED",
       targetType: "Evaluation",
-      targetId: evaluation.id,
+      targetId: topic?.title || defenseId,
       details: { final: individualFinal }
     });
 

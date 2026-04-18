@@ -11,19 +11,33 @@ import { useRouter } from "next/navigation";
 import { topicSchema } from "@/lib/validations/topic.schema";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
+import { useEffect } from "react";
 
 export default function NewTopicPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
 
-  const { register, handleSubmit, formState: { errors } } = useForm<any>({
+  const { register, handleSubmit, formState: { errors }, reset } = useForm<any>({
     resolver: zodResolver(topicSchema),
     defaultValues: {
       type: "COMPANY_PROPOSED",
       maxStudents: 1,
-      academicYear: "2024-2025", 
+      academicYear: "2024-2025", // will be overridden from settings
     }
   });
+
+  useEffect(() => {
+    const fetchYear = async () => {
+      try {
+        const res = await fetch("/api/settings/public");
+        const data = await res.json();
+        if (data.data?.currentAcademicYear) {
+          reset((values) => ({ ...values, academicYear: data.data.currentAcademicYear }));
+        }
+      } catch { /* keep default */ }
+    };
+    fetchYear();
+  }, [reset]);
 
   const onSubmit = async (data: any) => {
     setIsLoading(true);

@@ -1,17 +1,28 @@
 import Image from "next/image";
 import Link from "next/link";
-import { 
-  Users, 
-  BookOpen, 
-  Briefcase, 
-  ArrowRight, 
-  CheckCircle2, 
-  Clock, 
-  ShieldCheck, 
-  UserPlus 
+import {
+  Users,
+  BookOpen,
+  Briefcase,
+  ArrowRight,
+  CheckCircle2,
+  Clock,
+  ShieldCheck,
+  UserPlus
 } from "lucide-react";
+import prisma from "@/lib/prisma";
 
-export default function Home() {
+export const dynamic = "force-dynamic";
+
+export default async function Home() {
+  const [logoSetting, yearSetting] = await Promise.all([
+    prisma.systemSettings.findUnique({ where: { key: "universityLogo" } }),
+    prisma.systemSettings.findUnique({ where: { key: "currentAcademicYear" } }),
+  ]);
+  const baseLogoUrl = logoSetting?.value || "";
+  const logoUrl = baseLogoUrl ? `${baseLogoUrl}?v=${Date.now()}` : "";
+  const academicYear = yearSetting?.value || "2024-2025";
+
   return (
     <div className="min-h-screen bg-white font-sans text-gray-900">
       {/* Top Navbar */}
@@ -19,23 +30,29 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="h-11 w-11 flex items-center justify-center flex-shrink-0">
-              <img 
-                src="/esst-logo.png" 
-                alt="ESST Logo" 
-                className="h-full w-full object-contain"
-              />
+              {logoUrl ? (
+                <img
+                  src={logoUrl}
+                  alt="ESST Logo"
+                  className="h-full w-full object-contain"
+                />
+              ) : (
+                <div className="h-full w-full bg-gray-200 rounded-md flex items-center justify-center text-[10px] font-bold text-gray-400">
+                  ESST
+                </div>
+              )}
             </div>
             <div className="flex flex-col">
-              <span className="text-[15px] font-bold tracking-tight text-gray-900 leading-none">ESST - Alger</span>
+              <span className="text-[15px] font-bold tracking-tight text-gray-900 leading-none">ESST - École Supérieure des Sciences et Technologies d’Alger</span>
               <span className="text-[10px] text-gray-500 uppercase tracking-wider font-semibold mt-1">PFE Management Portal</span>
             </div>
           </div>
-          
+
           <nav className="hidden md:flex items-center gap-8">
             <a href="#process" className="text-[13px] font-medium text-gray-600 hover:text-indigo-600 transition-colors">How it works</a>
             <a href="#roles" className="text-[13px] font-medium text-gray-600 hover:text-indigo-600 transition-colors">Portals</a>
-            <Link 
-              href="/login" 
+            <Link
+              href="/login"
               className="px-4 py-2 bg-indigo-600 text-white text-[13px] font-semibold rounded-md hover:bg-indigo-700 transition-all shadow-sm"
             >
               Sign In
@@ -53,29 +70,29 @@ export default function Home() {
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
               </span>
-              <span className="text-[12px] font-bold uppercase tracking-wider">Academic Year 2024-2025</span>
+              <span className="text-[12px] font-bold uppercase tracking-wider">Academic Year {academicYear}</span>
             </div>
-            
+
             <h1 className="text-[44px] md:text-[56px] font-extrabold leading-[1.1] text-gray-900 tracking-tight mb-8">
-              Simplified Internship <br/>
+              Simplified Internship <br />
               <span className="text-indigo-600">Management System.</span>
             </h1>
-            
+
             <p className="text-lg text-gray-600 leading-relaxed mb-10 max-w-2xl">
-              The official platform for the École Supérieure des Sciences et Technologies d’Alger. 
+              The official platform for the École Supérieure des Sciences et Technologies d’Alger.
               Modernizing the PFE lifecycle from topic proposals to final defense evaluations.
             </p>
 
             <div className="flex flex-col sm:flex-row items-center gap-4">
-              <Link 
-                href="/register" 
+              <Link
+                href="/register"
                 className="w-full sm:w-auto px-8 h-14 bg-gray-900 text-white rounded-lg flex items-center justify-center font-bold text-[15px] hover:bg-black transition-all shadow-xl group"
               >
                 Register for PFE
                 <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
               </Link>
-              <Link 
-                href="/login" 
+              <Link
+                href="/login"
                 className="w-full sm:w-auto px-8 h-14 bg-white text-gray-900 border border-gray-200 rounded-lg flex items-center justify-center font-bold text-[15px] hover:bg-gray-50 transition-all shadow-sm"
               >
                 Member Login
@@ -177,19 +194,25 @@ export default function Home() {
           <div className="flex flex-col md:flex-row justify-between items-start gap-12 mb-16 px-8">
             <div className="max-w-sm">
               <div className="flex items-center gap-3 mb-6">
-                <img 
-                  src="/esst-logo.png" 
-                  alt="ESST Logo" 
-                  className="h-10 w-10 object-contain"
-                />
-                <span className="text-white font-bold">ESST - Alger</span>
+                {logoUrl ? (
+                  <img
+                    src={logoUrl}
+                    alt="ESST Logo"
+                    className="h-10 w-10 object-contain"
+                  />
+                ) : (
+                  <div className="h-10 w-10 bg-gray-700 rounded-md flex items-center justify-center text-[9px] font-bold text-gray-400">
+                    ESST
+                  </div>
+                )}
+                <span className="text-white font-bold">ESST - École Supérieure des Sciences et Technologies d’Alger</span>
               </div>
               <p className="text-[13px] leading-relaxed">
-                École Supérieure des Sciences et Technologies d’Alger. <br/>
+                École Supérieure des Sciences et Technologies d’Alger. <br />
                 Empowering the next generation of engineers and technologists.
               </p>
             </div>
-            
+
             <div className="grid grid-cols-2 gap-24">
               <div>
                 <h5 className="text-white font-bold mb-6">Portal Access</h5>
@@ -209,7 +232,7 @@ export default function Home() {
               </div>
             </div>
           </div>
-          
+
           <div className="border-t border-gray-800 pt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-[12px]">
             <p>© 2024 ESST - PFE Management. All rights reserved.</p>
             <div className="flex items-center gap-8">

@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth";
 import { topicSchema } from "@/lib/validations/topic.schema";
 import { AuditService } from "@/lib/services/audit.service";
 import { addHours } from "date-fns";
+import { SettingsService } from "@/lib/services/settings.service";
 
 export async function POST(req: NextRequest) {
   const session = await auth();
@@ -99,7 +100,8 @@ export async function GET(req: NextRequest) {
 
   const { searchParams } = new URL(req.url);
   const type = searchParams.get("type");
-  const academicYear = searchParams.get("academicYear") || "2024-2025";
+  const defaultYear = await SettingsService.getCurrentAcademicYear();
+  const academicYear = searchParams.get("academicYear") || defaultYear;
 
   try {
     const topics = await prisma.topic.findMany({

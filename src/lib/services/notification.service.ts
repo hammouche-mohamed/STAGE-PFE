@@ -1,7 +1,5 @@
 import prisma from "../prisma";
-import { Resend } from "resend";
-
-const resend = new Resend(process.env.RESEND_API_KEY);
+import { MailService } from "./mail.service";
 
 export class NotificationService {
   static async trigger({
@@ -32,20 +30,29 @@ export class NotificationService {
         },
       });
 
-      // 2. Fetch user email for Resend
+      // 2. Fetch user email for MailService
       const user = await prisma.user.findUnique({
         where: { id: userId },
         select: { email: true, name: true }
       });
 
-      if (user && process.env.RESEND_API_KEY) {
-        // In a real scenario, we would use a React Email template here
-        // For now, we'll log the intention or send a simple text version
+      if (user) {
         try {
-          await resend.emails.send({
-            from: process.env.FROM_EMAIL || "onboarding@resend.dev",
+          // Simple HTML template for generic notifications
+          const html = `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e1e1e1;">
+              <h2 style="color: #4f46e5; text-align: center;">${title}</h2>
+              <p>Hello ${user.name},</p>
+              <p>${message}</p>
+              <hr style="margin: 30px 0; border: 0; border-top: 1px solid #e1e1e1;" />
+              <p style="text-align: center; color: #9ca3af; font-size: 12px;">Official ESST Alger Administrative Portal</p>
+            </div>
+          `;
+
+          await MailService.sendEmail({
             to: user.email,
             subject: title,
+            html,
             text: message,
           });
 

@@ -17,6 +17,7 @@ import {
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Button } from "@/components/ui/Button";
 import { toast } from "sonner";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import Link from "next/link";
 
 interface Topic {
@@ -32,6 +33,8 @@ interface Topic {
 export default function CompanyTopicsPage() {
   const [topics, setTopics] = useState<Topic[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [topicToDeleteId, setTopicToDeleteId] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const fetchTopics = async () => {
     try {
@@ -48,6 +51,32 @@ export default function CompanyTopicsPage() {
   useEffect(() => {
     fetchTopics();
   }, []);
+
+  const handleDeleteTopic = (id: string) => {
+    setTopicToDeleteId(id);
+  };
+
+  const confirmDeleteTopic = async () => {
+    if (!topicToDeleteId) return;
+    setIsDeleting(true);
+    try {
+      const res = await fetch(`/api/topics/${topicToDeleteId}`, {
+        method: "DELETE",
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to delete topic");
+      }
+
+      toast.success("Topic proposal deleted successfully");
+      setTopics(prev => prev.filter(t => t.id !== topicToDeleteId));
+      setTopicToDeleteId(null);
+    } catch (error: any) {
+      toast.error(error.message || "An error occurred while deleting the topic");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -104,9 +133,13 @@ export default function CompanyTopicsPage() {
                       <button className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-gray-50 rounded-md transition-all">
                         <Edit className="h-4 w-4" />
                       </button>
-                      <button className="p-2 text-gray-400 hover:text-red-600 hover:bg-gray-50 rounded-md transition-all">
-                        <Trash2 className="h-4 w-4" />
-                      </button>
+                       <button 
+                         onClick={() => handleDeleteTopic(topic.id)}
+                         className="p-2 text-gray-400 hover:text-red-600 hover:bg-gray-50 rounded-md transition-all"
+                         title="Delete topic"
+                       >
+                         <Trash2 className="h-4 w-4" />
+                       </button>
                    </div>
                    <Link 
                      href={`/company/applications?topicId=${topic.id}`}
@@ -121,6 +154,15 @@ export default function CompanyTopicsPage() {
           ))
         )}
       </div>
+      
+      <ConfirmDialog
+        isOpen={!!topicToDeleteId}
+        onClose={() => setTopicToDeleteId(null)}
+        onConfirm={confirmDeleteTopic}
+        title="Delete Topic Proposal"
+        description="Are you sure you want to delete this topic proposal? This will remove all associated student applications and cannot be undone."
+        isLoading={isDeleting}
+      />
     </div>
   );
 }

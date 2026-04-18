@@ -3,25 +3,29 @@
 import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { 
-  LayoutDashboard, 
-  BookOpen, 
-  Briefcase, 
-  FileText, 
-  MessageSquare, 
-  Milestone, 
-  Bell, 
-  Users, 
-  Settings, 
-  History, 
+import {
+  LayoutDashboard,
+  BookOpen,
+  Briefcase,
+  FileText,
+  MessageSquare,
+  Milestone,
+  Users,
+  Settings,
+  History,
   Calendar,
   ShieldCheck,
-  UserPlus 
+  UserPlus,
+  User as UserIcon,
+  LogOut,
 } from "lucide-react";
 import Image from "next/image";
+import { useSession, signOut } from "next-auth/react";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 
 export interface SidebarProps {
   role: "STUDENT" | "TEACHER" | "COMPANY" | "ADMIN";
+  logoUrl?: string;
 }
 
 interface NavItem {
@@ -39,6 +43,7 @@ const navigations: Record<string, NavItem[]> = {
     { label: "Documents", href: "/student/documents", icon: FileText },
     { label: "Messages", href: "/student/messages", icon: MessageSquare },
     { label: "Milestones", href: "/student/milestones", icon: Milestone },
+    { label: "Profile", href: "/profile", icon: UserIcon },
   ],
   TEACHER: [
     { label: "Dashboard", href: "/teacher", icon: LayoutDashboard },
@@ -46,6 +51,7 @@ const navigations: Record<string, NavItem[]> = {
     { label: "Documents", href: "/teacher/documents", icon: FileText },
     { label: "Evaluations", href: "/teacher/evaluations", icon: Milestone },
     { label: "Messages", href: "/teacher/messages", icon: MessageSquare },
+    { label: "Profile", href: "/profile", icon: UserIcon },
   ],
   COMPANY: [
     { label: "Dashboard", href: "/company", icon: LayoutDashboard },
@@ -53,6 +59,7 @@ const navigations: Record<string, NavItem[]> = {
     { label: "Applications", href: "/company/applications", icon: UserPlus },
     { label: "Active Internships", href: "/company/internships", icon: Briefcase },
     { label: "Messages", href: "/company/messages", icon: MessageSquare },
+    { label: "Profile", href: "/profile", icon: UserIcon },
   ],
   ADMIN: [
     { label: "Overview", href: "/admin", icon: LayoutDashboard },
@@ -65,12 +72,22 @@ const navigations: Record<string, NavItem[]> = {
     { label: "Deadlines", href: "/admin/deadlines", icon: Calendar, group: "SYSTEM" },
     { label: "Settings", href: "/admin/settings", icon: Settings, group: "SYSTEM" },
     { label: "Audit Logs", href: "/admin/audit", icon: History, group: "SYSTEM" },
+    { label: "Profile", href: "/profile", icon: UserIcon, group: "SYSTEM" },
   ],
 };
 
-export const Sidebar: React.FC<SidebarProps> = ({ role }) => {
+export const Sidebar: React.FC<SidebarProps> = ({ role, logoUrl }) => {
   const pathname = usePathname();
+  const { data: session } = useSession();
   const navItems: NavItem[] = navigations[role] || [];
+  const [isLogoutDialogOpen, setIsLogoutDialogOpen] = React.useState(false);
+
+  const displayName = session?.user?.name || "User";
+  const initials = displayName
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase();
 
   const groupedItems = navItems.reduce((acc, item) => {
     const groupName = item.group || "MAIN";
@@ -84,14 +101,20 @@ export const Sidebar: React.FC<SidebarProps> = ({ role }) => {
       {/* Branding */}
       <div className="h-[70px] px-6 flex items-center gap-3 border-b border-gray-100">
         <div className="h-11 w-11 flex items-center justify-center flex-shrink-0">
-          <img 
-            src="/esst-logo.png" 
-            alt="ESST Logo" 
-            className="h-full w-full object-contain"
-          />
+          {logoUrl ? (
+            <img
+              src={logoUrl}
+              alt="ESST Logo"
+              className="h-full w-full object-contain"
+            />
+          ) : (
+            <div className="h-full w-full bg-gray-200 rounded-md flex items-center justify-center text-[10px] font-bold text-gray-400">
+              ESST
+            </div>
+          )}
         </div>
         <div className="flex flex-col min-w-0">
-          <span className="text-[14px] font-bold text-gray-900 leading-none truncate">ESST - Alger</span>
+          <span className="text-[14px] font-bold text-gray-900 leading-none truncate">ESST</span>
           <span className="text-[9px] text-gray-500 uppercase tracking-widest font-semibold mt-1 truncate">PFE Management</span>
         </div>
       </div>
@@ -113,8 +136,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ role }) => {
                   key={item.href}
                   href={item.href}
                   className={`flex items-center h-[36px] px-6 text-[13px] transition-colors
-                    ${isActive 
-                      ? "bg-indigo-50 text-indigo-700 border-l-2 border-indigo-600 font-medium" 
+                    ${isActive
+                      ? "bg-indigo-50 text-indigo-700 border-l-2 border-indigo-600 font-medium"
                       : "text-gray-600 hover:bg-gray-50 hover:text-gray-900 border-l-2 border-transparent"
                     }`}
                 >
@@ -128,17 +151,37 @@ export const Sidebar: React.FC<SidebarProps> = ({ role }) => {
       </nav>
 
       {/* User Session Footer */}
-      <div className="p-4 border-t border-gray-100 flex items-center">
-        <div className="h-8 w-8 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-[13px] font-semibold mr-3">
-          JD
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-[13px] font-medium text-gray-900 truncate">John Doe</p>
-          <div className="inline-flex px-1.5 py-0.5 rounded bg-gray-100 text-[10px] font-medium text-gray-500 uppercase">
-            {role}
+      <div className="p-4 border-t border-gray-100 flex flex-col gap-3">
+        <div className="flex items-center">
+          <div className="h-8 w-8 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-[13px] font-semibold mr-3">
+            {initials}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-[13px] font-medium text-gray-900 truncate">{displayName}</p>
+            <div className="inline-flex px-1.5 py-0.5 rounded bg-gray-100 text-[10px] font-medium text-gray-500 uppercase">
+              {role}
+            </div>
           </div>
         </div>
+
+        <button
+          onClick={() => setIsLogoutDialogOpen(true)}
+          className="flex items-center w-full h-[36px] px-3 text-[13px] text-red-600 hover:bg-red-50 rounded transition-colors cursor-pointer"
+        >
+          <LogOut className="mr-3 h-[16px] w-[16px]" />
+          Logout
+        </button>
       </div>
+
+      <ConfirmDialog
+        isOpen={isLogoutDialogOpen}
+        onClose={() => setIsLogoutDialogOpen(false)}
+        onConfirm={() => signOut({ callbackUrl: "/" })}
+        title="Confirm Logout"
+        description="Are you sure you want to sign out of the PFE Management Portal? Any unsaved changes may be lost."
+        confirmLabel="Logout"
+        variant="danger"
+      />
     </aside>
   );
 };

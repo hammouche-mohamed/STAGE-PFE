@@ -10,11 +10,15 @@ import {
   Clock, 
   CheckCircle2,
   AlertCircle,
-  FileText
+  FileText,
+  ChevronLeft
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { useSearchParams } from "next/navigation";
+import Link from "next/link";
+import { Suspense } from "react";
 
 interface Message {
   id: string;
@@ -26,7 +30,10 @@ interface Message {
   requiresAction?: boolean;
 }
 
-export default function MessagesPage() {
+function MessagesContent() {
+  const searchParams = useSearchParams();
+  const backUrl = searchParams.get("back") || "/student/internship";
+  
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [isLoading, setIsLoading] = useState(true);
@@ -82,10 +89,19 @@ export default function MessagesPage() {
 
   return (
     <div className="h-[calc(100vh-140px)] flex flex-col space-y-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-[17px] font-semibold text-gray-900">Coordination Center</h1>
-          <p className="text-[13px] text-gray-500 mt-0.5">Secure communication between student, supervisor, and company.</p>
+      <div className="flex flex-col space-y-4">
+        <Link 
+          href={backUrl} 
+          className="flex items-center text-[12px] text-indigo-600 hover:text-indigo-800 font-medium transition-colors w-fit bg-indigo-50 px-3 py-1 rounded-full"
+        >
+          <ChevronLeft className="h-4 w-4 mr-1" />
+          Back to Internship
+        </Link>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-[17px] font-semibold text-gray-900">Coordination Center</h1>
+            <p className="text-[13px] text-gray-500 mt-0.5">Secure communication between student, supervisor, and company.</p>
+          </div>
         </div>
       </div>
 
@@ -156,5 +172,13 @@ export default function MessagesPage() {
         </form>
       </div>
     </div>
+  );
+}
+
+export default function MessagesPage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-center text-gray-400">Loading conversation...</div>}>
+      <MessagesContent />
+    </Suspense>
   );
 }

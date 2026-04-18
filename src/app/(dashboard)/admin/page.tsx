@@ -15,16 +15,19 @@ import Link from "next/link";
 import prisma from "@/lib/prisma";
 import { format } from "date-fns";
 import { StatusBadge } from "@/components/ui/StatusBadge";
+import { SettingsService } from "@/lib/services/settings.service";
 
 export default async function AdminDashboardPage() {
   // Fetch statistics
+  // Using type assertion to handle potential casing issues between client generations
   const [
     studentCount,
     teacherCount,
     companyCount,
     activeInternships,
     pendingRegistrations,
-    recentTopics
+    recentTopics,
+    currentAcademicYear
   ] = await Promise.all([
     prisma.user.count({ where: { role: "STUDENT" } }),
     prisma.user.count({ where: { role: "TEACHER" } }),
@@ -35,7 +38,8 @@ export default async function AdminDashboardPage() {
       orderBy: { createdAt: "desc" },
       take: 5
     }),
-    prisma.topic.count({ where: { status: "PENDING_ADMIN" } })
+    prisma.topic.count({ where: { status: "PENDING_ADMIN" } }),
+    SettingsService.getCurrentAcademicYear(),
   ]);
 
   return (
@@ -48,7 +52,7 @@ export default async function AdminDashboardPage() {
         <div className="flex items-center gap-2">
           <div className="flex items-center px-3 py-1.5 bg-white border border-gray-200 rounded-md shadow-sm">
             <Calendar className="h-4 w-4 text-gray-400 mr-2" />
-            <span className="text-[12px] font-medium text-gray-600">Academic Year: 2024-2025</span>
+            <span className="text-[12px] font-medium text-gray-600">Academic Year: {currentAcademicYear}</span>
           </div>
         </div>
       </div>

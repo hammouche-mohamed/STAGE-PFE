@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/Input";
 import { toast } from "sonner";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { ShieldCheck } from "lucide-react";
+import { ShieldCheck, ArrowLeft } from "lucide-react";
 
 const loginSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -28,9 +28,11 @@ export default function LoginPage() {
   const { register, handleSubmit, formState: { errors } } = useForm<LoginInput>({
     resolver: zodResolver(loginSchema),
   });
+  const [authError, setAuthError] = useState<string | null>(null);
 
   const onSubmit = async (data: LoginInput) => {
     setIsLoading(true);
+    setAuthError(null);
     try {
       const result = await signIn("credentials", {
         ...data,
@@ -38,7 +40,7 @@ export default function LoginPage() {
       });
 
       if (result?.error) {
-        toast.error("Invalid email or password");
+        setAuthError("Invalid email or password. Please verify your credentials and try again.");
         return;
       }
 
@@ -67,8 +69,15 @@ export default function LoginPage() {
           <h2 className="text-[15px] font-medium text-gray-900 mb-6">Account Login</h2>
           
           {error && (
-            <div className="mb-4 p-3 bg-red-50 border-l-2 border-red-600 text-[11px] text-red-700 font-medium">
-              {error}
+            <div className="mb-4 p-3 bg-red-50 border-l-2 border-red-600 text-[11px] text-red-700 font-medium rounded-r">
+              Session error: {error}
+            </div>
+          )}
+
+          {authError && (
+            <div className="mb-6 p-4 bg-red-50 border border-red-200 text-[13px] text-red-700 font-medium rounded-lg flex items-center gap-3 animate-in fade-in slide-in-from-top-1">
+              <div className="h-2 w-2 bg-red-500 rounded-full animate-pulse flex-shrink-0" />
+              {authError}
             </div>
           )}
 
@@ -83,23 +92,31 @@ export default function LoginPage() {
             
             <div className="space-y-1">
               <div className="flex justify-between">
-                <label className="admin-form-label">Password</label>
-                <Link href="/reset-password" title="Recover account" className="text-[11px] text-indigo-600 hover:text-indigo-700">
+                <label className="admin-form-label" htmlFor="password">Password</label>
+                <Link href="/forgot-password" title="Recover account" className="text-[11px] text-indigo-600 hover:text-indigo-700">
                   Forgot?
                 </Link>
               </div>
-              <input
+              <Input
+                id="password"
                 type="password"
-                {...register("password")}
-                className="admin-input"
                 placeholder="••••••••"
+                {...register("password")}
+                error={errors.password?.message}
               />
-              {errors.password && <p className="admin-error">{errors.password.message}</p>}
             </div>
 
             <Button type="submit" className="w-full" isLoading={isLoading} size="lg">
               Sign In
             </Button>
+            
+            <Link 
+              href="/" 
+              className="flex items-center justify-center gap-2 w-full py-2 text-[13px] text-gray-500 hover:text-indigo-600 font-medium transition-colors"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back to Welcome Page
+            </Link>
           </form>
 
           <div className="mt-8 pt-6 border-t border-gray-100 text-center">

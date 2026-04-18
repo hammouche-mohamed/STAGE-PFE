@@ -1,11 +1,13 @@
 import { z } from "zod";
 
-const RegistrationRole = z.enum(["STUDENT", "COMPANY"]);
+const RegistrationRole = z.enum(["STUDENT", "COMPANY", "TEACHER"]);
 
 export const registrationSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
   email: z.string().email("Invalid email address"),
   role: RegistrationRole,
+  password: z.string().min(6, "Password must be at least 6 characters"),
+  confirmPassword: z.string().min(6, "Confirmation must be at least 6 characters"),
   motivation: z.string().optional(),
   
   // Student specific
@@ -18,6 +20,9 @@ export const registrationSchema = z.object({
   companyName: z.string().optional(),
   sector: z.string().optional(),
   wilaya: z.string().optional(),
+
+  // Teacher specific (reusing speciality from student profile)
+  grade: z.string().optional(),
 }).refine((data) => {
   if (data.role === "STUDENT") {
     return !!data.studentId && !!data.promotion && !!data.speciality;
@@ -25,10 +30,18 @@ export const registrationSchema = z.object({
   if (data.role === "COMPANY") {
     return !!data.companyName;
   }
+  if (data.role === "TEACHER") {
+    return !!data.speciality;
+  }
   return true;
 }, {
   message: "Please fill all required fields for your role",
-  path: ["role"], // This is a bit generic but Zod will point to it
+  path: ["role"],
+}).refine((data) => {
+  return data.password === data.confirmPassword;
+}, {
+  message: "Passwords do not match",
+  path: ["confirmPassword"],
 });
 
 export type RegistrationInput = z.infer<typeof registrationSchema>;

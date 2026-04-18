@@ -3,6 +3,8 @@ import prisma from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { AuditService } from "@/lib/services/audit.service";
 import { NotificationService } from "@/lib/services/notification.service";
+import { SettingsService } from "@/lib/services/settings.service";
+import { randomUUID } from "crypto";
 
 export async function POST(req: NextRequest) {
   const session = await auth();
@@ -15,6 +17,7 @@ export async function POST(req: NextRequest) {
 
     const deadline = await prisma.deadline.create({
       data: {
+        id: randomUUID(),
         title,
         type,
         dueDate: new Date(dueDate),
@@ -53,7 +56,7 @@ export async function POST(req: NextRequest) {
       userId: session.user.id,
       action: "DEADLINE_CREATED",
       targetType: "Deadline",
-      targetId: deadline.id,
+      targetId: deadline.title,
       details: { title, type, isGlobal }
     });
 
@@ -69,7 +72,8 @@ export async function GET(req: NextRequest) {
 
   const { searchParams } = new URL(req.url);
   const internshipId = searchParams.get("internshipId");
-  const academicYear = searchParams.get("academicYear") || "2024-2025";
+  const defaultYear = await SettingsService.getCurrentAcademicYear();
+  const academicYear = searchParams.get("academicYear") || defaultYear;
 
   try {
     const deadlines = await prisma.deadline.findMany({

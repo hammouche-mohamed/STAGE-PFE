@@ -3,6 +3,7 @@ import prisma from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { AuditService } from "@/lib/services/audit.service";
 import { NotificationService } from "@/lib/services/notification.service";
+import { randomUUID } from "crypto";
 
 export async function POST(req: NextRequest) {
   const session = await auth();
@@ -33,6 +34,7 @@ export async function POST(req: NextRequest) {
     // 3. Create document record
     const document = await prisma.document.create({
       data: {
+        id: randomUUID(),
         internshipId,
         uploadedById: session.user.id,
         type,
@@ -69,7 +71,7 @@ export async function POST(req: NextRequest) {
       userId: session.user.id,
       action: "DOCUMENT_UPLOADED",
       targetType: "Document",
-      targetId: document.id,
+      targetId: fileName,
       details: { fileName, type, version }
     });
 

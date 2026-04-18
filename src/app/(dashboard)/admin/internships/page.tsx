@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import Link from "next/link";
 import { 
   Briefcase, 
   Search, 
@@ -18,6 +19,14 @@ import {
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { toast } from "sonner";
 import { format } from "date-fns";
+
+const slugify = (value: string) =>
+  value
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/gi, "-")
+    .replace(/^-+|-+$/g, "")
+    .toLowerCase();
 
 interface Internship {
   id: string;
@@ -155,9 +164,9 @@ export default function AdminInternshipsPage() {
                     <StatusBadge status={internship.status} />
                   </td>
                   <td className="text-right">
-                    <button className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition-colors">
+                    <Link href={`/admin/internships/${slugify(internship.topic.title)}`} className="inline-flex p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition-colors" aria-label={`View internship ${internship.topic.title}`}>
                       <ExternalLink className="h-4 w-4" />
-                    </button>
+                    </Link>
                   </td>
                 </tr>
               ))

@@ -15,11 +15,20 @@ interface RegistrationRequest {
   status: string;
   createdAt: string;
   motivation?: string;
+  companyName?: string;
+  studentId?: string;
+  promotion?: string;
+  speciality?: string;
+  academicYear?: string;
+  grade?: string;
+  sector?: string;
+  wilaya?: string;
 }
 
 export default function AdminRegistrationsPage() {
   const [requests, setRequests] = useState<RegistrationRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedRequest, setSelectedRequest] = useState<RegistrationRequest | null>(null);
 
   const fetchRequests = async () => {
     try {
@@ -105,25 +114,13 @@ export default function AdminRegistrationsPage() {
                     <StatusBadge status={req.status} />
                   </td>
                   <td className="text-right">
-                    <div className="flex items-center justify-end space-x-2">
-                      <button 
-                        onClick={() => handleReview(req.id, "APPROVED")}
-                        className="p-1 text-green-600 hover:bg-green-50 rounded"
-                        title="Approve"
-                      >
-                        <Check className="h-4 w-4" />
-                      </button>
-                      <button 
-                        onClick={() => handleReview(req.id, "REJECTED")}
-                        className="p-1 text-red-600 hover:bg-red-50 rounded"
-                        title="Reject"
-                      >
-                        <X className="h-4 w-4" />
-                      </button>
-                      <button className="p-1 text-gray-400 hover:bg-gray-50 rounded" title="View Details">
-                        <Eye className="h-4 w-4" />
-                      </button>
-                    </div>
+                    <button 
+                      onClick={() => setSelectedRequest(req)}
+                      className="p-1 text-gray-400 hover:bg-gray-50 rounded" 
+                      title="View Details"
+                    >
+                      <Eye className="h-4 w-4" />
+                    </button>
                   </td>
                 </tr>
               ))
@@ -131,6 +128,125 @@ export default function AdminRegistrationsPage() {
           </tbody>
         </table>
       </div>
+
+      {/* Details Modal */}
+      {selectedRequest && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 overflow-y-auto">
+          <div className="bg-white rounded-md shadow-xl w-full max-w-lg mt-10 mb-10">
+            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between sticky top-0 bg-white rounded-t-lg">
+              <h2 className="text-[15px] font-semibold text-gray-900">Registration Details</h2>
+              <button onClick={() => setSelectedRequest(null)} className="text-gray-400 hover:text-gray-600">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            
+            <div className="p-6 space-y-4 text-[13px]">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-gray-400 block mb-1">Full Name</label>
+                  <p className="font-medium text-gray-900">{selectedRequest.name}</p>
+                </div>
+                <div>
+                  <label className="text-gray-400 block mb-1">Role</label>
+                  <p className="font-medium text-gray-900 capitalize">{selectedRequest.role.toLowerCase()}</p>
+                </div>
+                <div className="col-span-2">
+                  <label className="text-gray-400 block mb-1">Email</label>
+                  <p className="font-medium text-gray-900">{selectedRequest.email}</p>
+                </div>
+              </div>
+
+              <div className="pt-4 border-t border-gray-50 space-y-3">
+                {selectedRequest.role === "STUDENT" && (
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-gray-400 block mb-1">Student ID</label>
+                      <p className="text-gray-900">{selectedRequest.studentId}</p>
+                    </div>
+                    <div>
+                      <label className="text-gray-400 block mb-1">Promotion</label>
+                      <p className="text-gray-900">{selectedRequest.promotion}</p>
+                    </div>
+                    <div>
+                      <label className="text-gray-400 block mb-1">Speciality</label>
+                      <p className="text-gray-900">{selectedRequest.speciality}</p>
+                    </div>
+                    <div>
+                      <label className="text-gray-400 block mb-1">Academic Year</label>
+                      <p className="text-gray-900">{selectedRequest.academicYear}</p>
+                    </div>
+                  </div>
+                )}
+
+                {selectedRequest.role === "TEACHER" && (
+                  <div>
+                    <label className="text-gray-400 block mb-1">Speciality</label>
+                    <p className="text-gray-900">{selectedRequest.speciality}</p>
+                  </div>
+                )}
+
+                {selectedRequest.role === "COMPANY" && (
+                  <div className="space-y-3">
+                    <div>
+                      <label className="text-gray-400 block mb-1">Company</label>
+                      <p className="text-gray-900">{selectedRequest.companyName}</p>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-gray-400 block mb-1">Sector</label>
+                        <p className="text-gray-900">{selectedRequest.sector}</p>
+                      </div>
+                      <div>
+                        <label className="text-gray-400 block mb-1">Wilaya</label>
+                        <p className="text-gray-900">{selectedRequest.wilaya}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {selectedRequest.motivation && (
+                <div className="pt-4 border-t border-gray-50">
+                  <label className="text-gray-400 block mb-1">Motivation / Extra Info</label>
+                  <div className="bg-gray-50 p-3 rounded text-gray-700 whitespace-pre-wrap leading-relaxed">
+                    {selectedRequest.motivation}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex items-center justify-end space-x-3 rounded-b-lg">
+              {selectedRequest.status === "PENDING" && (
+                <>
+                  <Button 
+                    variant="danger" 
+                    size="sm" 
+                    onClick={() => {
+                      handleReview(selectedRequest.id, "REJECTED");
+                      setSelectedRequest(null);
+                    }}
+                  >
+                    Reject
+                  </Button>
+                  <Button 
+                    variant="primary" 
+                    size="sm" 
+                    onClick={() => {
+                      handleReview(selectedRequest.id, "APPROVED");
+                      setSelectedRequest(null);
+                    }}
+                  >
+                    Approve Request
+                  </Button>
+                </>
+              )}
+              <Button variant="outline" size="sm" onClick={() => setSelectedRequest(null)}>
+                Close
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

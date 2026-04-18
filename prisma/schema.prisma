@@ -1,18 +1,23 @@
 generator client {
   provider = "prisma-client-js"
+  output   = "../src/lib/prisma-client-final"
 }
 
 datasource db {
   provider = "mysql"
 }
 
-model adminprofile {
+model AdminProfile {
   id           String  @id
   userId       String  @unique(map: "AdminProfile_userId_key")
   isSuperAdmin Boolean @default(false)
+
+  user User? @relation(fields: [userId], references: [id], map: "AdminProfile_userId_fkey")
+
+  @@map("adminprofile")
 }
 
-model auditlog {
+model AuditLog {
   id         String   @id
   userId     String
   action     String
@@ -22,19 +27,26 @@ model auditlog {
   ipAddress  String?
   createdAt  DateTime @default(now())
 
-  @@index([userId], map: "AuditLog_userId_fkey")
+  user User @relation(fields: [userId], references: [id], map: "AuditLog_userId_fkey")
+
+  @@index([userId], map: "AuditLog_userId_idx")
+  @@map("auditlog")
 }
 
-model binomeinvitation {
+model BinomeInvitation {
   id                   String                  @id
   studentApplicationId String                  @unique(map: "BinomeInvitation_studentApplicationId_key")
   invitedStudentId     String
   status               binomeinvitation_status @default(PENDING)
   expiresAt            DateTime
   createdAt            DateTime                @default(now())
+
+  application StudentApplication @relation(fields: [studentApplicationId], references: [id], map: "BinomeInvitation_applicationId_fkey")
+
+  @@map("binomeinvitation")
 }
 
-model companyprofile {
+model CompanyProfile {
   id              String  @id
   userId          String  @unique(map: "CompanyProfile_userId_key")
   companyName     String
@@ -43,9 +55,13 @@ model companyprofile {
   wilaya          String?
   contactPhone    String?
   supervisorTitle String?
+
+  user User? @relation(fields: [userId], references: [id], map: "CompanyProfile_userId_fkey")
+
+  @@map("companyprofile")
 }
 
-model deadline {
+model Deadline {
   id           String        @id
   title        String
   type         deadline_type
@@ -56,11 +72,15 @@ model deadline {
   createdById  String
   createdAt    DateTime      @default(now())
 
-  @@index([createdById], map: "Deadline_createdById_fkey")
-  @@index([internshipId], map: "Deadline_internshipId_fkey")
+  createdBy  User        @relation(fields: [createdById], references: [id], map: "Deadline_createdById_fkey")
+  internship Internship? @relation(fields: [internshipId], references: [id], map: "Deadline_internshipId_fkey")
+
+  @@index([createdById], map: "Deadline_createdById_idx")
+  @@index([internshipId], map: "Deadline_internshipId_idx")
+  @@map("deadline")
 }
 
-model defense {
+model Defense {
   id                 String         @id
   internshipId       String         @unique(map: "Defense_internshipId_key")
   scheduledAt        DateTime
@@ -72,9 +92,15 @@ model defense {
   mention            String?
   adminGradeOverride Float?
   overrideComment    String?        @db.Text
+
+  internship  Internship   @relation(fields: [internshipId], references: [id], map: "Defense_internshipId_fkey")
+  juryMembers JuryMember[]
+  evaluations Evaluation[]
+
+  @@map("defense")
 }
 
-model document {
+model Document {
   id            String          @id
   internshipId  String
   uploadedById  String
@@ -88,11 +114,17 @@ model document {
   reviewedById  String?
   uploadedAt    DateTime        @default(now())
 
-  @@index([internshipId], map: "Document_internshipId_fkey")
-  @@index([uploadedById], map: "Document_uploadedById_fkey")
+  internship Internship @relation(fields: [internshipId], references: [id], map: "Document_internshipId_fkey")
+  uploadedBy User       @relation("UploadedBy", fields: [uploadedById], references: [id], map: "Document_uploadedById_fkey")
+  reviewer   User?      @relation("ReviewedBy", fields: [reviewedById], references: [id], map: "Document_reviewedById_fkey")
+
+  @@index([internshipId], map: "Document_internshipId_idx")
+  @@index([uploadedById], map: "Document_uploadedById_idx")
+  @@index([reviewedById], map: "Document_reviewedById_idx")
+  @@map("document")
 }
 
-model evaluation {
+model Evaluation {
   id             String   @id
   defenseId      String
   evaluatorId    String
@@ -105,11 +137,16 @@ model evaluation {
   isAdvisory     Boolean  @default(false)
   submittedAt    DateTime @default(now())
 
+  defense   Defense @relation(fields: [defenseId], references: [id], map: "Evaluation_defenseId_fkey")
+  evaluator User    @relation(fields: [evaluatorId], references: [id], map: "Evaluation_evaluatorId_fkey")
+
   @@unique([defenseId, evaluatorId], map: "Evaluation_defenseId_evaluatorId_key")
-  @@index([evaluatorId], map: "Evaluation_evaluatorId_fkey")
+  @@index([evaluatorId], map: "Evaluation_evaluatorId_idx")
+  @@index([defenseId], map: "Evaluation_defenseId_idx")
+  @@map("evaluation")
 }
 
-model internship {
+model Internship {
   id           String            @id
   topicId      String            @unique(map: "Internship_topicId_key")
   teacherId    String
@@ -120,20 +157,35 @@ model internship {
   createdAt    DateTime          @default(now())
   updatedAt    DateTime
 
-  @@index([teacherId], map: "Internship_teacherId_fkey")
+  topic             Topic               @relation(fields: [topicId], references: [id], map: "Internship_topicId_fkey")
+  teacher           User                @relation(fields: [teacherId], references: [id], map: "Internship_teacherId_fkey")
+  students          InternshipStudent[]
+  documents         Document[]
+  messages          Message[]
+  defense           Defense?
+  deadlines         Deadline[]
+  miniPresentations MiniPresentation[]
+
+  @@index([teacherId], map: "Internship_teacherId_idx")
+  @@map("internship")
 }
 
-model internshipstudent {
+model InternshipStudent {
   id           String  @id
   internshipId String
   studentId    String
   isLeader     Boolean @default(false)
 
+  internship Internship @relation(fields: [internshipId], references: [id], map: "InternshipStudent_internshipId_fkey")
+  student    User       @relation(fields: [studentId], references: [id], map: "InternshipStudent_studentId_fkey")
+
   @@unique([internshipId, studentId], map: "InternshipStudent_internshipId_studentId_key")
-  @@index([studentId], map: "InternshipStudent_studentId_fkey")
+  @@index([studentId], map: "InternshipStudent_studentId_idx")
+  @@index([internshipId], map: "InternshipStudent_internshipId_idx")
+  @@map("internshipstudent")
 }
 
-model jurymember {
+model JuryMember {
   id         String          @id
   defenseId  String
   userId     String
@@ -141,11 +193,16 @@ model jurymember {
   isAdvisory Boolean         @default(false)
   createdAt  DateTime        @default(now())
 
+  defense Defense @relation(fields: [defenseId], references: [id], map: "JuryMember_defenseId_fkey")
+  user    User    @relation(fields: [userId], references: [id], map: "JuryMember_userId_fkey")
+
   @@unique([defenseId, userId], map: "JuryMember_defenseId_userId_key")
-  @@index([userId], map: "JuryMember_userId_fkey")
+  @@index([userId], map: "JuryMember_userId_idx")
+  @@index([defenseId], map: "JuryMember_defenseId_idx")
+  @@map("jurymember")
 }
 
-model message {
+model Message {
   id             String   @id
   internshipId   String
   senderId       String
@@ -159,20 +216,33 @@ model message {
   actionById     String?
   sentAt         DateTime @default(now())
 
-  @@index([internshipId], map: "Message_internshipId_fkey")
-  @@index([senderId], map: "Message_senderId_fkey")
+  internship Internship    @relation(fields: [internshipId], references: [id], map: "Message_internshipId_fkey")
+  sender     User          @relation("SentMessages", fields: [senderId], references: [id], map: "Message_senderId_fkey")
+  actionBy   User?         @relation("ActionBy", fields: [actionById], references: [id], map: "Message_actionById_fkey")
+  reads      MessageRead[]
+
+  @@index([internshipId], map: "Message_internshipId_idx")
+  @@index([senderId], map: "Message_senderId_idx")
+  @@index([actionById], map: "Message_actionById_idx")
+  @@map("message")
 }
 
-model messageread {
+model MessageRead {
   id        String   @id
   messageId String
   userId    String
   readAt    DateTime @default(now())
 
+  message Message @relation(fields: [messageId], references: [id], map: "MessageRead_messageId_fkey")
+  user    User    @relation(fields: [userId], references: [id], map: "MessageRead_userId_fkey")
+
   @@unique([messageId, userId], map: "MessageRead_messageId_userId_key")
+  @@index([messageId], map: "MessageRead_messageId_idx")
+  @@index([userId], map: "MessageRead_userId_idx")
+  @@map("messageread")
 }
 
-model minipresentation {
+model MiniPresentation {
   id               String                  @id
   internshipId     String
   title            String
@@ -187,10 +257,27 @@ model minipresentation {
   adminComment     String?
   createdAt        DateTime                @default(now())
 
-  @@index([internshipId], map: "MiniPresentation_internshipId_fkey")
+  internship Internship @relation(fields: [internshipId], references: [id], map: "MiniPresentation_internshipId_fkey")
+
+  @@index([internshipId], map: "MiniPresentation_internshipId_idx")
+  @@map("minipresentation")
 }
 
-model notification {
+model PasswordResetToken {
+  id        String   @id
+  userId    String
+  email     String
+  code      String   // The verification code (OTP - digit based)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], map: "PasswordResetToken_userId_fkey")
+
+  @@index([userId], map: "PasswordResetToken_userId_idx")
+  @@map("passwordresettoken")
+}
+
+model Notification {
   id          String            @id
   userId      String
   type        notification_type
@@ -202,24 +289,39 @@ model notification {
   relatedType String?
   createdAt   DateTime          @default(now())
 
-  @@index([userId], map: "Notification_userId_fkey")
+  user User @relation(fields: [userId], references: [id], map: "Notification_userId_fkey")
+
+  @@index([userId], map: "Notification_userId_idx")
+  @@map("notification")
 }
 
-model registrationrequest {
+model RegistrationRequest {
   id           String                     @id
   name         String
   email        String                     @unique(map: "RegistrationRequest_email_key")
+  password     String
   role         registrationrequest_role
   motivation   String?                    @db.Text
   companyName  String?
+  studentId    String?
+  promotion    String?
+  speciality   String?
+  academicYear String?
+  grade        String?
+  sector       String?
+  wilaya       String?
   status       registrationrequest_status @default(PENDING)
   adminComment String?
   userId       String?                    @unique(map: "RegistrationRequest_userId_key")
   createdAt    DateTime                   @default(now())
   reviewedAt   DateTime?
+
+  user User? @relation(fields: [userId], references: [id], map: "RegistrationRequest_userId_fkey")
+
+  @@map("registrationrequest")
 }
 
-model studentapplication {
+model StudentApplication {
   id         String                    @id
   topicId    String
   leaderId   String
@@ -228,26 +330,40 @@ model studentapplication {
   appliedAt  DateTime                  @default(now())
   reviewedAt DateTime?
 
-  @@index([topicId], map: "StudentApplication_topicId_fkey")
+  topic            Topic             @relation(fields: [topicId], references: [id], map: "StudentApplication_topicId_fkey")
+  leader           User              @relation("ApplicationLeader", fields: [leaderId], references: [id], map: "StudentApplication_leaderId_fkey")
+  partner          User?             @relation("ApplicationPartner", fields: [partnerId], references: [id], map: "StudentApplication_partnerId_fkey")
+  binomeInvitation BinomeInvitation?
+
+  @@index([topicId], map: "StudentApplication_topicId_idx")
+  @@index([leaderId], map: "StudentApplication_leaderId_idx")
+  @@index([partnerId], map: "StudentApplication_partnerId_idx")
+  @@map("studentapplication")
 }
 
-model studentprofile {
+model StudentProfile {
   id           String @id
   userId       String @unique(map: "StudentProfile_userId_key")
   studentId    String @unique(map: "StudentProfile_studentId_key")
   promotion    String
   speciality   String
   academicYear String
+
+  user User? @relation(fields: [userId], references: [id], map: "StudentProfile_userId_fkey")
+
+  @@map("studentprofile")
 }
 
-model systemsettings {
+model SystemSettings {
   id        String   @id
   key       String   @unique(map: "SystemSettings_key_key")
   value     String
   updatedAt DateTime
+
+  @@map("systemsettings")
 }
 
-model teacherapplication {
+model TeacherApplication {
   id        String                    @id
   teacherId String
   topicId   String
@@ -255,11 +371,15 @@ model teacherapplication {
   status    teacherapplication_status @default(PENDING)
   appliedAt DateTime                  @default(now())
 
+  teacher User  @relation(fields: [teacherId], references: [id], map: "TeacherApplication_teacherId_fkey")
+  topic   Topic @relation(fields: [topicId], references: [id], map: "TeacherApplication_topicId_fkey")
+
   @@unique([teacherId, topicId], map: "TeacherApplication_teacherId_topicId_key")
-  @@index([topicId], map: "TeacherApplication_topicId_fkey")
+  @@index([topicId], map: "TeacherApplication_topicId_idx")
+  @@map("teacherapplication")
 }
 
-model teacherprofile {
+model TeacherProfile {
   id          String  @id
   userId      String  @unique(map: "TeacherProfile_userId_key")
   speciality  String?
@@ -267,9 +387,13 @@ model teacherprofile {
   maxStudents Int     @default(5)
   currentLoad Int     @default(0)
   isAvailable Boolean @default(true)
+
+  user User? @relation(fields: [userId], references: [id], map: "TeacherProfile_userId_fkey")
+
+  @@map("teacherprofile")
 }
 
-model topic {
+model Topic {
   id                       String       @id
   title                    String
   description              String       @db.Text
@@ -287,23 +411,59 @@ model topic {
   createdAt                DateTime     @default(now())
   updatedAt                DateTime
 
-  @@index([assignedTeacherId], map: "Topic_assignedTeacherId_fkey")
-  @@index([proposedById], map: "Topic_proposedById_fkey")
+  proposedBy          User                 @relation("ProposedTopics", fields: [proposedById], references: [id], map: "Topic_proposedById_fkey")
+  assignedTeacher     User?                @relation("SupervisedTopics", fields: [assignedTeacherId], references: [id], map: "Topic_assignedTeacherId_fkey")
+  internship          Internship?
+  applications        StudentApplication[]
+  teacherApplications TeacherApplication[]
+  validations         Validation[]
+
+  @@index([assignedTeacherId], map: "Topic_assignedTeacherId_idx")
+  @@index([proposedById], map: "Topic_proposedById_idx")
+  @@map("topic")
 }
 
-model user {
+model User {
   id                 String    @id
   name               String
   email              String    @unique(map: "User_email_key")
   password           String
   role               user_role
+  avatarUrl          String?
   isActive           Boolean   @default(false)
   mustChangePassword Boolean   @default(true)
   createdAt          DateTime  @default(now())
   updatedAt          DateTime
+
+  adminProfile             AdminProfile?
+  companyProfile           CompanyProfile?
+  studentProfile           StudentProfile?
+  teacherProfile           TeacherProfile?
+  proposedTopics           Topic[]               @relation("ProposedTopics")
+  supervisedTopics         Topic[]               @relation("SupervisedTopics")
+  supervisedInternships    Internship[]
+  studentParticipations    InternshipStudent[]
+  applications             StudentApplication[]  @relation("ApplicationLeader")
+  partnerApplications      StudentApplication[]  @relation("ApplicationPartner")
+  teacherApplications      TeacherApplication[]
+  notifications            Notification[]
+  sentMessages             Message[]             @relation("SentMessages")
+  actionMessages           Message[]             @relation("ActionBy")
+  messageReads             MessageRead[]
+  auditLogs                AuditLog[]
+  deadlinesCreated         Deadline[]
+  validations              Validation[]
+  registrationRequest      RegistrationRequest?
+  juryMemberships          JuryMember[]
+  evaluations              Evaluation[]
+  uploadedDocuments        Document[]            @relation("UploadedBy")
+  reviewedDocuments        Document[]            @relation("ReviewedBy")
+  passwordResetTokens      PasswordResetToken[]
+
+  @@map("user")
 }
 
-model validation {
+model Validation {
   id          String            @id
   topicId     String
   validatorId String
@@ -313,8 +473,12 @@ model validation {
   validatedAt DateTime?
   createdAt   DateTime          @default(now())
 
-  @@index([topicId], map: "Validation_topicId_fkey")
-  @@index([validatorId], map: "Validation_validatorId_fkey")
+  topic     Topic @relation(fields: [topicId], references: [id], map: "Validation_topicId_fkey")
+  validator User  @relation(fields: [validatorId], references: [id], map: "Validation_validatorId_fkey")
+
+  @@index([topicId], map: "Validation_topicId_idx")
+  @@index([validatorId], map: "Validation_validatorId_idx")
+  @@map("validation")
 }
 
 enum deadline_type {
@@ -384,6 +548,7 @@ enum jurymember_role {
 enum registrationrequest_role {
   STUDENT
   COMPANY
+  TEACHER
 }
 
 enum validation_step {

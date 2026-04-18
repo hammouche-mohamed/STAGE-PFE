@@ -48,7 +48,7 @@ export async function PATCH(
       userId: session.user.id,
       action: "DOCUMENT_ACTION_TAKEN",
       targetType: "Message",
-      targetId: id,
+      targetId: message.actionType || "Action Item",
       details: { status },
     });
 

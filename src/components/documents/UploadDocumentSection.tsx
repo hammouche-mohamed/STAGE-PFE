@@ -1,10 +1,9 @@
 "use client";
 
-import React, { useState } from "react";
-import { UploadButton } from "@/lib/utils/uploadthing";
+import React, { useState, useRef } from "react";
 import { Button } from "@/components/ui/Button";
 import { toast } from "sonner";
-import { FileUp, Info } from "lucide-react";
+import { FileUp, Info, FileText, X, Loader2 } from "lucide-react";
 
 interface UploadDocumentSectionProps {
   internshipId: string;
@@ -23,7 +22,22 @@ export const UploadDocumentSection: React.FC<UploadDocumentSectionProps> = ({
   onUploadSuccess 
 }) => {
   const [selectedType, setSelectedType] = useState(DOCUMENT_TYPES[0].value);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [isUploading, setIsUploading] = useState(false);
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files?.[0]) {
+      const file = e.target.files[0];
+      if (file.size > 16 * 1024 * 1024) {
+        toast.error("File size exceeds 16MB limit");
+        return;
+      }
+      setSelectedFile(file);
+    }
+  };
 
   const handleSyncMetadata = async (res: any) => {
     setIsSyncing(true);
@@ -36,8 +50,8 @@ export const UploadDocumentSection: React.FC<UploadDocumentSectionProps> = ({
           internshipId,
           type: selectedType,
           fileName: file.name,
-          fileUrl: file.url,
-          fileSize: file.size,
+          fileUrl: res.url,
+          fileSize: res.size,
         }),
       });
 
@@ -52,6 +66,37 @@ export const UploadDocumentSection: React.FC<UploadDocumentSectionProps> = ({
     }
   };
 
+  const handleUploadClick = async () => {
+    if (!selectedFile) return;
+    
+    setIsUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", selectedFile);
+      formData.append("type", selectedType);
+      formData.append("internshipId", internshipId);
+
+      const response = await fetch("/api/upload/document", {
+        method: "POST",
+        body: formData,
+      });
+
+      const result = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(result.error || "Failed to upload document");
+      }
+
+      await handleSyncMetadata(result);
+      setSelectedFile(null);
+    } catch (error: any) {
+      console.error("Upload error:", error);
+      toast.error(error.message || "An unexpected error occurred during upload");
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   return (
     <div className="bg-white border border-gray-200 rounded-md p-6 shadow-sm">
       <div className="flex items-center space-x-2 mb-6 text-indigo-700">
@@ -61,11 +106,12 @@ export const UploadDocumentSection: React.FC<UploadDocumentSectionProps> = ({
 
       <div className="space-y-6">
         <div className="w-full">
-          <label className="admin-form-label">Document Category</label>
+          <label className="admin-form-label">1. Document Category</label>
           <select 
             value={selectedType}
             onChange={(e) => setSelectedType(e.target.value)}
             className="admin-input"
+            disabled={isUploading || isSyncing}
           >
             {DOCUMENT_TYPES.map(type => (
               <option key={type.value} value={type.value}>{type.label}</option>
@@ -77,20 +123,69 @@ export const UploadDocumentSection: React.FC<UploadDocumentSectionProps> = ({
           </p>
         </div>
 
-        <div className="flex flex-col items-center justify-center p-8 border-2 border-dashed border-gray-100 rounded-md bg-gray-50/50">
-          <UploadButton
-            endpoint="documentUploader"
-            onClientUploadComplete={(res) => {
-              handleSyncMetadata(res);
-            }}
-            onUploadError={(error: Error) => {
-              toast.error(`Upload error: ${error.message}`);
-            }}
-            appearance={{
-              button: "bg-indigo-600 after:bg-indigo-700 h-[40px] px-6 text-[13px] font-medium rounded-md",
-              allowedContent: "text-[11px] text-gray-400 mt-2",
-            }}
+        <div className="space-y-4">
+          <label className="admin-form-label">2. Select & Upload File</label>
+          
+          <input 
+            type="file" 
+            ref={fileInputRef}
+            onChange={handleFileSelect}
+            className="hidden"
+            accept=".pdf,image/*,.doc,.docx"
           />
+
+          {!selectedFile ? (
+            <div 
+              onClick={() => fileInputRef.current?.click()}
+              className="flex flex-col items-center justify-center p-8 border-2 border-dashed border-gray-100 rounded-md bg-gray-50/50 hover:bg-gray-50 hover:border-indigo-200 transition-all cursor-pointer"
+            >
+              <div className="h-10 w-10 bg-white rounded-full shadow-sm flex items-center justify-center mb-3">
+                <FileUp className="h-5 w-5 text-indigo-600" />
+              </div>
+              <span className="text-[13px] font-medium text-gray-900">Choose a file</span>
+              <span className="text-[11px] text-gray-400 mt-1">or drag and drop here</span>
+            </div>
+          ) : (
+            <div className="p-4 bg-indigo-50/50 border border-indigo-100 rounded-md">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <div className="h-8 w-8 bg-white rounded flex items-center justify-center shadow-sm">
+                    <FileText className="h-4 w-4 text-indigo-600" />
+                  </div>
+                  <div>
+                    <p className="text-[13px] font-medium text-gray-900 truncate max-w-[180px]">
+                      {selectedFile.name}
+                    </p>
+                    <p className="text-[11px] text-gray-500">
+                      {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+                    </p>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => setSelectedFile(null)}
+                  className="p-1 hover:bg-white rounded-full transition-colors text-gray-400 hover:text-red-500"
+                  disabled={isUploading || isSyncing}
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              <Button 
+                onClick={handleUploadClick}
+                className="w-full mt-4 bg-indigo-600 hover:bg-indigo-700 h-[38px] text-[13px]"
+                disabled={isUploading || isSyncing}
+              >
+                {isUploading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Uploading...
+                  </>
+                ) : (
+                  "Add File"
+                )}
+              </Button>
+            </div>
+          )}
         </div>
 
         {isSyncing && (

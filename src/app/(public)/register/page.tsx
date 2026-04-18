@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { registrationSchema, RegistrationInput } from "@/lib/validations/registration.schema";
@@ -8,10 +8,17 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { toast } from "sonner";
 import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 
 export default function RegisterPage() {
   const [isLoading, setIsLoading] = useState(false);
-  const { register, handleSubmit, watch, formState: { errors } } = useForm<RegistrationInput>({
+  const [specialities, setSpecialities] = useState<string[]>([]);
+  const [promotions, setPromotions] = useState<string[]>([]);
+  const [emailStatus, setEmailStatus] = useState<{
+    type: "idle" | "checking" | "pending" | "exists" | "rejected";
+    message?: string;
+  }>({ type: "idle" });
+  const { register, handleSubmit, watch, formState: { errors }, setValue } = useForm<RegistrationInput>({
     resolver: zodResolver(registrationSchema),
     defaultValues: {
       role: "STUDENT",
@@ -19,6 +26,52 @@ export default function RegisterPage() {
   });
 
   const selectedRole = watch("role");
+
+  // Pre-fill academic year from system settings
+  useEffect(() => {
+    fetch("/api/settings/public")
+      .then(r => r.json())
+      .then(d => {
+        if (d.data?.currentAcademicYear) {
+          setValue("academicYear", d.data.currentAcademicYear);
+        }
+        if (d.data?.availableSpecialities) {
+          const list = d.data.availableSpecialities.split(/[,\n]/).map((s: string) => s.trim()).filter(Boolean);
+          setSpecialities(list);
+        }
+        if (d.data?.availablePromotions) {
+          const list = d.data.availablePromotions.split(/[,\n]/).map((s: string) => s.trim()).filter(Boolean);
+          setPromotions(list);
+        }
+      })
+      .catch(() => {});
+  }, [setValue]);
+ 
+  const handleEmailBlur = async (e: React.FocusEvent<HTMLInputElement>) => {
+    const email = e.target.value;
+    if (!email || errors.email) {
+      setEmailStatus({ type: "idle" });
+      return;
+    }
+
+    setEmailStatus({ type: "checking" });
+    try {
+      const res = await fetch(`/api/registrations/check-email?email=${encodeURIComponent(email)}`);
+      const data = await res.json();
+      
+      if (data.status === "PENDING_REQUEST") {
+        setEmailStatus({ type: "pending", message: data.message });
+      } else if (data.status === "ACCOUNT_EXISTS") {
+        setEmailStatus({ type: "exists", message: data.message });
+      } else if (data.status === "REJECTED_REQUEST") {
+        setEmailStatus({ type: "rejected", message: data.message });
+      } else {
+        setEmailStatus({ type: "idle" });
+      }
+    } catch (error) {
+      setEmailStatus({ type: "idle" });
+    }
+  };
 
   const onSubmit = async (data: RegistrationInput) => {
     setIsLoading(true);
@@ -63,27 +116,63 @@ export default function RegisterPage() {
               {...register("name")}
               error={errors.name?.message}
             />
-            <Input
-              label="Email Address"
-              type="email"
-              placeholder="e.g. salim@example.com"
-              {...register("email")}
-              error={errors.email?.message}
-            />
+            <div className="w-full">
+              <Input
+                label="Email Address"
+                type="email"
+                placeholder="e.g. salim@example.com"
+                {...register("email")}
+                onBlur={(e) => {
+                  register("email").onBlur(e);
+                  handleEmailBlur(e);
+                }}
+                error={errors.email?.message}
+              />
+              {emailStatus.type === "checking" && (
+                <p className="mt-1 text-[11px] text-gray-400">Checking email availability...</p>
+              )}
+              {emailStatus.type === "pending" && (
+                <p className="mt-1 text-[11px] text-indigo-600 font-medium">{emailStatus.message}</p>
+              )}
+              {emailStatus.type === "exists" && (
+                <p className="mt-1 text-[11px] text-red-600 font-medium">
+                  {emailStatus.message} <Link href="/login" className="underline font-bold">Login here</Link>
+                </p>
+              )}
+              {emailStatus.type === "rejected" && (
+                <p className="mt-1 text-[11px] text-orange-600 font-medium">{emailStatus.message}</p>
+              )}
+            </div>
 
             <div className="w-full">
               <label className="admin-form-label">Account Role</label>
               <select
                 {...register("role")}
-                className="admin-input"
+                className="admin-input cursor-pointer"
               >
                 <option value="STUDENT">Student</option>
+                <option value="TEACHER">Teacher Supervisor or Co-supervisor</option>
                 <option value="COMPANY">Company Supervisor</option>
               </select>
             </div>
 
+            <Input
+              label="Password"
+              type="password"
+              placeholder="••••••••"
+              {...register("password")}
+              error={errors.password?.message}
+            />
+            <Input
+              label="Confirm Password"
+              type="password"
+              placeholder="••••••••"
+              {...register("confirmPassword")}
+              error={errors.confirmPassword?.message}
+            />
+
             {/* Role Specific Fields */}
-            {selectedRole === "STUDENT" ? (
+            {selectedRole === "STUDENT" && (
               <>
                 <Input
                   label="Student ID (Matricule)"
@@ -91,26 +180,81 @@ export default function RegisterPage() {
                   {...register("studentId")}
                   error={errors.studentId?.message}
                 />
-                <Input
-                  label="Promotion/Level"
-                  placeholder="e.g. M2 Génie Logiciel"
-                  {...register("promotion")}
-                  error={errors.promotion?.message}
-                />
-                <Input
-                  label="Speciality"
-                  placeholder="e.g. Computer Science"
-                  {...register("speciality")}
-                  error={errors.speciality?.message}
-                />
+                <div className="w-full">
+                  <label className="admin-form-label">Promotion/Level</label>
+                  <select
+                    {...register("promotion")}
+                    className="admin-input cursor-pointer"
+                  >
+                    <option value="">Select Promotion</option>
+                    {promotions.map(p => (
+                      <option key={p} value={p}>{p}</option>
+                    ))}
+                    {promotions.length === 0 && (
+                      <option value="M1 Génie Logiciel">M1 Génie Logiciel (Default)</option>
+                    )}
+                  </select>
+                  {errors.promotion && (
+                    <p className="mt-1 text-[11px] text-red-600 font-medium">
+                      {errors.promotion.message}
+                    </p>
+                  )}
+                </div>
+                <div className="w-full">
+                  <label className="admin-form-label">Speciality</label>
+                  <select
+                    {...register("speciality")}
+                    className="admin-input cursor-pointer"
+                  >
+                    <option value="">Select Speciality</option>
+                    {specialities.map(s => (
+                      <option key={s} value={s}>{s}</option>
+                    ))}
+                    {specialities.length === 0 && (
+                      <option value="Computer Science">Computer Science (Default)</option>
+                    )}
+                  </select>
+                  {errors.speciality && (
+                    <p className="mt-1 text-[11px] text-red-600 font-medium">
+                      {errors.speciality.message}
+                    </p>
+                  )}
+                </div>
+
                 <Input
                   label="Academic Year"
-                  placeholder="2024-2025"
+                  readOnly
+                  className="bg-gray-50 cursor-not-allowed"
                   {...register("academicYear")}
                   error={errors.academicYear?.message}
                 />
               </>
-            ) : (
+            )}
+
+            {selectedRole === "TEACHER" && (
+              <div className="w-full col-span-1 lg:col-span-2">
+                <label className="admin-form-label">Your Speciality</label>
+                <select
+                  {...register("speciality")}
+                  className="admin-input cursor-pointer"
+                >
+                  <option value="">Select Speciality</option>
+                  {specialities.map(s => (
+                    <option key={s} value={s}>{s}</option>
+                  ))}
+                  {specialities.length === 0 && (
+                    <option value="Computer Science">Computer Science (Default)</option>
+                  )}
+                </select>
+                {errors.speciality && (
+                  <p className="mt-1 text-[11px] text-red-600 font-medium">
+                    {errors.speciality.message}
+                  </p>
+                )}
+              </div>
+            )}
+
+            {selectedRole === "COMPANY" && (
               <>
                 <Input
                   label="Company Name"
@@ -135,7 +279,7 @@ export default function RegisterPage() {
           </div>
 
           <div className="w-full">
-            <label className="admin-form-label">Motivation / Extra Info</label>
+            <label className="admin-form-label">Motivation / Extra Info <span className="text-gray-400 font-normal ml-1">(Optional)</span></label>
             <textarea
               {...register("motivation")}
               rows={3}
@@ -144,13 +288,23 @@ export default function RegisterPage() {
             />
           </div>
 
-          <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-            <Link href="/login" className="text-[13px] text-indigo-600 hover:text-indigo-700 font-medium">
-              Already have an account? Login here
+          <div className="flex flex-col gap-4 pt-4 border-t border-gray-100">
+            <div className="flex items-center justify-between">
+              <Link href="/login" className="text-[13px] text-indigo-600 hover:text-indigo-700 font-medium">
+                Already have an account? Login here
+              </Link>
+              <Button type="submit" isLoading={isLoading}>
+                Submit Registration Request
+              </Button>
+            </div>
+            
+            <Link 
+              href="/" 
+              className="flex items-center justify-center gap-2 w-full py-2 text-[13px] text-gray-400 hover:text-indigo-600 font-medium transition-colors border-t border-gray-50 mt-2"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Cancel and Return to Welcome Page
             </Link>
-            <Button type="submit" isLoading={isLoading}>
-              Submit Registration Request
-            </Button>
           </div>
         </form>
       </div>

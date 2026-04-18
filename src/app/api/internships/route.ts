@@ -5,13 +5,15 @@ import { internshipSchema } from "@/lib/validations/internship.schema";
 import { AuditService } from "@/lib/services/audit.service";
 import { TeacherLoadService } from "@/lib/services/teacherLoad.service";
 import { NotificationService } from "@/lib/services/notification.service";
+import { SettingsService } from "@/lib/services/settings.service";
 
 export async function GET(req: NextRequest) {
   const session = await auth();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { searchParams } = new URL(req.url);
-  const academicYear = searchParams.get("academicYear") || "2024-2025";
+  const defaultYear = await SettingsService.getCurrentAcademicYear();
+  const academicYear = searchParams.get("academicYear") || defaultYear;
   const role = session.user.role;
 
   try {
