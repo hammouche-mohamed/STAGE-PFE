@@ -18,7 +18,8 @@ export default async function DashboardLayout({
     where: { key: "universityLogo" }
   });
   const baseLogoUrl = logoSetting?.value || "";
-  const logoUrl = baseLogoUrl ? `${baseLogoUrl}?v=${Date.now()}` : "";
+  const routedLogoUrl = baseLogoUrl.startsWith("/uploads/") ? `/api${baseLogoUrl}` : baseLogoUrl;
+  const logoUrl = routedLogoUrl ? `${routedLogoUrl}?v=${Date.now()}` : "";
 
   return (
     <BreadcrumbProvider>

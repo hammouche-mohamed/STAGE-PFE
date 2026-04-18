@@ -20,7 +20,8 @@ export default async function Home() {
     prisma.systemSettings.findUnique({ where: { key: "currentAcademicYear" } }),
   ]);
   const baseLogoUrl = logoSetting?.value || "";
-  const logoUrl = baseLogoUrl ? `${baseLogoUrl}?v=${Date.now()}` : "";
+  const routedLogoUrl = baseLogoUrl.startsWith("/uploads/") ? `/api${baseLogoUrl}` : baseLogoUrl;
+  const logoUrl = routedLogoUrl ? `${routedLogoUrl}?v=${Date.now()}` : "";
   const academicYear = yearSetting?.value || "2024-2025";
 
   return (

@@ -61,13 +61,13 @@ export default function LoginPage() {
           <div className="h-12 w-12 bg-indigo-600 rounded-md mx-auto mb-4 flex items-center justify-center shadow-sm">
             <ShieldCheck className="h-7 w-7 text-white" />
           </div>
-          <h1 className="text-[17px] font-semibold text-gray-900 uppercase tracking-tight">ESST Alger</h1>
+          <h1 className="text-[17px] font-semibold text-gray-900 uppercase tracking-tight">ESST</h1>
           <p className="text-[11px] text-gray-400 uppercase tracking-widest font-medium mt-1">PFE Management System</p>
         </div>
 
         <div className="bg-white border border-gray-200 rounded-md p-8 shadow-sm">
           <h2 className="text-[15px] font-medium text-gray-900 mb-6">Account Login</h2>
-          
+
           {error && (
             <div className="mb-4 p-3 bg-red-50 border-l-2 border-red-600 text-[11px] text-red-700 font-medium rounded-r">
               Session error: {error}
@@ -85,11 +85,11 @@ export default function LoginPage() {
             <Input
               label="University Email"
               type="email"
-              placeholder="e.g. john.doe@esst-sup.com"
+              placeholder="e.g. salim@example.com"
               {...register("email")}
               error={errors.email?.message}
             />
-            
+
             <div className="space-y-1">
               <div className="flex justify-between">
                 <label className="admin-form-label" htmlFor="password">Password</label>
@@ -109,9 +109,9 @@ export default function LoginPage() {
             <Button type="submit" className="w-full" isLoading={isLoading} size="lg">
               Sign In
             </Button>
-            
-            <Link 
-              href="/" 
+
+            <Link
+              href="/"
               className="flex items-center justify-center gap-2 w-full py-2 text-[13px] text-gray-500 hover:text-indigo-600 font-medium transition-colors"
             >
               <ArrowLeft className="h-4 w-4" />

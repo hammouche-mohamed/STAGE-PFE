@@ -224,9 +224,11 @@ export default function AdminSettingsPage() {
           
           <div className="flex flex-col md:flex-row items-center gap-8 p-4 bg-gray-50 rounded-md border border-gray-200 border-dashed">
             <div className="h-24 w-24 bg-white rounded-md border border-gray-200 flex items-center justify-center overflow-hidden">
-              {brandingPreview || settings.universityLogo ? (
-                <img src={brandingPreview || settings.universityLogo} alt="Preview" className="h-full w-full object-contain p-2" />
-              ) : (
+              {brandingPreview || settings.universityLogo ? (() => {
+                const rawUrl = brandingPreview || settings.universityLogo;
+                const finalUrl = rawUrl.startsWith("/uploads/") ? `/api${rawUrl}` : rawUrl;
+                return <img src={finalUrl} alt="Preview" className="h-full w-full object-contain p-2" />;
+              })() : (
                 <img src="/esst-logo.png" alt="Default Logo" className="h-full w-full object-contain p-3 opacity-50" />
               )}
             </div>
