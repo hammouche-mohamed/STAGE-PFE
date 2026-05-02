@@ -1,14 +1,7 @@
 import { PrismaClient } from "./prisma-client-final";
-import { PrismaMariaDb } from "@prisma/adapter-mariadb";
 
 const prismaClientSingleton = () => {
-  const adapter = new PrismaMariaDb(process.env.DATABASE_URL!, {
-    // Limit connection pool to avoid "too many connections" errors
-    connectionLimit: 5,
-    idleTimeout: 10000,
-    connectTimeout: 10000,
-  });
-  return new PrismaClient({ adapter });
+  return new PrismaClient();
 };
 
 declare global {

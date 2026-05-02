@@ -1,10 +1,8 @@
 import { PrismaClient } from '../src/lib/prisma-client-final';
-import { PrismaMariaDb } from '@prisma/adapter-mariadb';
 import bcrypt from 'bcryptjs';
 import { randomUUID } from 'crypto';
 
-const adapter = new PrismaMariaDb("mysql://root:@localhost:3307/PFE_esst");
-const prisma = new PrismaClient({ adapter });
+const prisma = new PrismaClient();
 
 async function main() {
   const hashedPassword = await bcrypt.hash('pass123', 12);

@@ -33,7 +33,7 @@ export class AuditService {
           details: details ? JSON.stringify(details) : undefined,
           ipAddress,
         },
-      });
+      })
     } catch (error) {
       console.error("Audit log failed:", error);
     }
