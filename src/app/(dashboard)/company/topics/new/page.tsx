@@ -32,7 +32,7 @@ export default function NewTopicPage() {
         const res = await fetch("/api/settings/public");
         const data = await res.json();
         if (data.data?.currentAcademicYear) {
-          reset((values) => ({ ...values, academicYear: data.data.currentAcademicYear }));
+          reset((values: Record<string, unknown>) => ({ ...values, academicYear: data.data.currentAcademicYear }));
         }
       } catch { /* keep default */ }
     };

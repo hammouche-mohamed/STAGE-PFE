@@ -7,18 +7,18 @@ import { StatusBadge } from "@/components/ui/StatusBadge";
 import { format } from "date-fns";
 
 
-export default async function TeacherInternshipDetailPage({ params }: { params: Promise<{ slug: string }> }) {
+export default async function TeacherInternshipDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
   if (!session) {
     notFound();
   }
 
-  const { slug } = await params;
-  if (!slug) {
+  const { id } = await params;
+  if (!id) {
     notFound();
   }
 
-  const decodedSlug = decodeURIComponent(slug);
+  const decodedId = decodeURIComponent(id);
   const normalizeSlug = (value: string) =>
     value
       .normalize("NFKD")
@@ -40,7 +40,7 @@ export default async function TeacherInternshipDetailPage({ params }: { params: 
 
   const internship = internships.find((internship) => {
     const titleSlug = normalizeSlug(internship.topic.title);
-    return internship.id === decodedSlug || titleSlug === normalizedSlug;
+    return internship.id === decodedId || titleSlug === normalizedSlug;
   });
 
   if (!internship) {

@@ -3,7 +3,7 @@
 import React from "react";
 import { formatShortDate } from "@/lib/utils/formatDate";
 import { StatusBadge } from "@/components/ui/StatusBadge";
-import { FileIcon, Download, Check, X, MessageSquare } from "lucide-react";
+import { FileIcon, Download, Check, X, MessageSquare, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 interface Document {
@@ -22,10 +22,11 @@ interface Document {
 interface DocumentListProps {
   documents: Document[];
   onReview?: (id: string, status: "APPROVED" | "REJECTED", comment: string) => void;
+  onDelete?: (id: string) => void;
   canReview?: boolean;
 }
 
-export const DocumentList: React.FC<DocumentListProps> = ({ documents, onReview, canReview }) => {
+export const DocumentList: React.FC<DocumentListProps> = ({ documents, onReview, onDelete, canReview }) => {
   const getTypeLabel = (type: string) => {
     return type.replace(/_/g, " ");
   };
@@ -74,12 +75,12 @@ export const DocumentList: React.FC<DocumentListProps> = ({ documents, onReview,
                     <StatusBadge status={doc.status} />
                   </td>
                   <td className="text-right">
-                    <div className="flex items-center justify-end space-x-2">
+                    <div className="flex items-center justify-end space-x-1">
                       <a 
                         href={doc.fileUrl} 
                         target="_blank" 
                         rel="noopener noreferrer"
-                        className="p-1 text-gray-400 hover:text-indigo-600 rounded transition-colors"
+                        className="p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition-all"
                         title="Download"
                       >
                         <Download className="h-4 w-4" />
@@ -92,7 +93,7 @@ export const DocumentList: React.FC<DocumentListProps> = ({ documents, onReview,
                               const comment = prompt("Add a comment (optional):") || "";
                               onReview?.(doc.id, "APPROVED", comment);
                             }}
-                            className="p-1 text-green-600 hover:bg-green-50 rounded"
+                            className="p-1.5 text-green-600 hover:bg-green-50 rounded-md transition-all"
                             title="Approve"
                           >
                             <Check className="h-4 w-4" />
@@ -103,7 +104,7 @@ export const DocumentList: React.FC<DocumentListProps> = ({ documents, onReview,
                               if (!comment) return;
                               onReview?.(doc.id, "REJECTED", comment);
                             }}
-                            className="p-1 text-red-600 hover:bg-red-50 rounded"
+                            className="p-1.5 text-red-600 hover:bg-red-50 rounded-md transition-all"
                             title="Reject"
                           >
                             <X className="h-4 w-4" />
@@ -111,12 +112,22 @@ export const DocumentList: React.FC<DocumentListProps> = ({ documents, onReview,
                         </>
                       )}
 
+                      {onDelete && (
+                        <button 
+                          onClick={() => onDelete(doc.id)}
+                          className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-all"
+                          title="Delete"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      )}
+
                       {doc.reviewComment && (
                         <button 
                           onClick={() => {
                             toast.info(doc.reviewComment as string);
                           }}
-                          className="p-1 text-amber-600 hover:bg-amber-50 rounded"
+                          className="p-1.5 text-amber-600 hover:bg-amber-50 rounded-md transition-all"
                           title="View Feedback"
                         >
                           <MessageSquare className="h-4 w-4" />

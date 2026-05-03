@@ -60,3 +60,46 @@ export async function PATCH(
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
+
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const session = await auth();
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  try {
+    const { id } = await params;
+
+    const document = await prisma.document.findUnique({
+      where: { id }
+    });
+
+    if (!document) return NextResponse.json({ error: "Document not found" }, { status: 404 });
+
+    // Authorization: Only uploader or Admin can delete
+    const isOwner = document.uploadedById === session.user.id;
+    const isAdmin = session.user.role === "ADMIN";
+
+    if (!isOwner && !isAdmin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
+    // Note: In a production app, we should also delete the file from filesystem/S3 here
+    // For now, we delete the database record
+    await prisma.document.delete({
+      where: { id }
+    });
+
+    await AuditService.log({
+      userId: session.user.id,
+      action: "DOCUMENT_DELETED",
+      targetType: "Document",
+      targetId: document.fileName,
+      details: { type: document.type, version: document.version }
+    });
+
+    return NextResponse.json({ message: "Document deleted successfully" });
+  } catch (error) {
+    console.error("Document deletion failed:", error);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
+}

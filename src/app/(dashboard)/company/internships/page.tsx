@@ -12,7 +12,8 @@ import {
   ArrowRight,
   TrendingUp,
   LayoutDashboard,
-  GraduationCap
+  GraduationCap,
+  ExternalLink
 } from "lucide-react";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Button } from "@/components/ui/Button";
@@ -75,6 +76,9 @@ export default function CompanyInternshipsPage() {
                      <StatusBadge status={internship.status} />
                      <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{internship.academicYear}</span>
                   </div>
+                  <Link href={`/company/internships/${internship.id}`} className="inline-flex p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition-colors">
+                    <ExternalLink className="h-4 w-4" />
+                  </Link>
                 </div>
 
                 <h3 className="text-[15px] font-bold text-gray-900 leading-tight">

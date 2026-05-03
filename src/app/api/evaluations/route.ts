@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth";
 import { AuditService } from "@/lib/services/audit.service";
 import { computeIndividualGrade, computeFinalGrade } from "@/lib/utils/gradeCalculator";
 import { computeMention } from "@/lib/utils/mention";
+import { randomUUID } from "crypto";
 
 export async function POST(req: NextRequest) {
   const session = await auth();
@@ -33,6 +34,7 @@ export async function POST(req: NextRequest) {
         submittedAt: new Date(),
       },
       create: {
+        id: randomUUID(),
         defenseId,
         evaluatorId: session.user.id,
         reportScore,

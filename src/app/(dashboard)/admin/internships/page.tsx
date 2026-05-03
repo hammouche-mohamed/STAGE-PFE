@@ -164,7 +164,7 @@ export default function AdminInternshipsPage() {
                     <StatusBadge status={internship.status} />
                   </td>
                   <td className="text-right">
-                    <Link href={`/admin/internships/${slugify(internship.topic.title)}`} className="inline-flex p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition-colors" aria-label={`View internship ${internship.topic.title}`}>
+                    <Link href={`/admin/internships/${internship.id}`} className="inline-flex p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition-colors" aria-label={`View internship ${internship.topic.title}`}>
                       <ExternalLink className="h-4 w-4" />
                     </Link>
                   </td>

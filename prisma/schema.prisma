@@ -1,6 +1,6 @@
 generator client {
-  provider = "prisma-client-js"
-  output   = "../src/lib/prisma-client-final"
+  provider   = "prisma-client-js"
+  engineType = "binary"
 }
 
 datasource db {
@@ -38,6 +38,8 @@ model BinomeInvitation {
   studentApplicationId String                  @unique(map: "BinomeInvitation_studentApplicationId_key")
   invitedStudentId     String
   status               binomeinvitation_status @default(PENDING)
+  message              String?                 @db.Text
+  respondedAt          DateTime?
   expiresAt            DateTime
   createdAt            DateTime                @default(now())
 
@@ -101,18 +103,24 @@ model Defense {
 }
 
 model Document {
-  id            String          @id
-  internshipId  String
-  uploadedById  String
-  type          document_type
-  fileName      String
-  fileUrl       String
-  fileSize      Int
-  version       Int             @default(1)
-  status        document_status @default(UPLOADED)
-  reviewComment String?
-  reviewedById  String?
-  uploadedAt    DateTime        @default(now())
+  id               String          @id
+  internshipId     String
+  uploadedById     String
+  type             document_type
+  fileName         String
+  fileUrl          String
+  fileSize         Int
+  version          Int             @default(1)
+  status           document_status @default(UPLOADED)
+  reviewComment    String?
+  reviewedById     String?
+  // Teacher approval flag (advisory)
+  approvedByTeacher Boolean        @default(false)
+  // Company approval flag (advisory)
+  approvedByCompany Boolean        @default(false)
+  reviewedByCompany String?
+  companyComment    String?        @db.Text
+  uploadedAt        DateTime       @default(now())
 
   internship Internship @relation(fields: [internshipId], references: [id], map: "Document_internshipId_fkey")
   uploadedBy User       @relation("UploadedBy", fields: [uploadedById], references: [id], map: "Document_uploadedById_fkey")
@@ -151,11 +159,20 @@ model Internship {
   topicId      String            @unique(map: "Internship_topicId_key")
   teacherId    String
   academicYear String
-  status       internship_status @default(APPROVED)
-  startDate    DateTime?
-  endDate      DateTime?
-  createdAt    DateTime          @default(now())
-  updatedAt    DateTime
+  status       internship_status @default(REQUESTED)
+  // Internship type: PFE (mandatory midterm) or NORMAL (optional midterm)
+  internshipType           internship_type?
+  // midtermDeadline is NULL for NORMAL internships — never required, never alerted
+  midtermDeadline          DateTime?
+  finalDeadline            DateTime?
+  technicalSupervisorName  String?
+  technicalSupervisorEmail String?
+  activatedAt              DateTime?
+  completedAt              DateTime?
+  startDate                DateTime?
+  endDate                  DateTime?
+  createdAt                DateTime          @default(now())
+  updatedAt                DateTime
 
   topic             Topic               @relation(fields: [topicId], references: [id], map: "Internship_topicId_fkey")
   teacher           User                @relation(fields: [teacherId], references: [id], map: "Internship_teacherId_fkey")
@@ -287,6 +304,8 @@ model Notification {
   emailSent   Boolean           @default(false)
   relatedId   String?
   relatedType String?
+  // Deep link to the relevant entity (e.g. /student/internship)
+  link        String?
   createdAt   DateTime          @default(now())
 
   user User @relation(fields: [userId], references: [id], map: "Notification_userId_fkey")
@@ -306,6 +325,8 @@ model RegistrationRequest {
   studentId    String?
   promotion    String?
   speciality   String?
+  // Student level for eligibility enforcement
+  level        student_level?
   academicYear String?
   grade        String?
   sector       String?
@@ -326,6 +347,8 @@ model StudentApplication {
   topicId    String
   leaderId   String
   partnerId  String?
+  // Whether this is a binôme (pair) application
+  isBinome   Boolean                   @default(false)
   status     studentapplication_status @default(PENDING)
   appliedAt  DateTime                  @default(now())
   reviewedAt DateTime?
@@ -342,12 +365,14 @@ model StudentApplication {
 }
 
 model StudentProfile {
-  id           String @id
-  userId       String @unique(map: "StudentProfile_userId_key")
-  studentId    String @unique(map: "StudentProfile_studentId_key")
+  id           String         @id
+  userId       String         @unique(map: "StudentProfile_userId_key")
+  studentId    String         @unique(map: "StudentProfile_studentId_key")
   promotion    String
   speciality   String
   academicYear String
+  // Academic level for internship type eligibility (L1/L2/M1 → NORMAL only; L3/M2 → PFE or NORMAL)
+  level        student_level?
 
   user User? @relation(fields: [userId], references: [id], map: "StudentProfile_userId_fkey")
 
@@ -361,6 +386,17 @@ model SystemSettings {
   updatedAt DateTime
 
   @@map("systemsettings")
+}
+
+/// System-wide deadline announcements visible to all users on their dashboards
+model SystemDeadline {
+  id        String   @id
+  label     String
+  dueDate   DateTime
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  @@map("systemdeadline")
 }
 
 model TeacherApplication {
@@ -399,6 +435,8 @@ model Topic {
   description              String       @db.Text
   requiredSkills           String?      @db.Text
   type                     topic_type
+  // Internship type this topic targets: PFE or NORMAL
+  internshipType           internship_type?
   status                   topic_status @default(PENDING_ADMIN)
   maxStudents              Int          @default(1)
   academicYear             String
@@ -408,6 +446,17 @@ model Topic {
   resubmissionCount        Int          @default(0)
   maxResubmissions         Int          @default(3)
   rejectionReason          String?      @db.Text
+  // PATH B: student-proposed topic fields
+  proposedByStudent        Boolean      @default(false)
+  directAssigneeId         String?      // Student who will be auto-assigned on admin approval
+  companyName              String?
+  companySector            String?
+  companyAddress           String?
+  companyCity              String?
+  contactPerson            String?
+  contactEmail             String?
+  contactPhone             String?
+  supportingDocUrl         String?
   createdAt                DateTime     @default(now())
   updatedAt                DateTime
 
@@ -424,15 +473,18 @@ model Topic {
 }
 
 model User {
-  id                 String    @id
+  id                 String         @id
   name               String
-  email              String    @unique(map: "User_email_key")
+  email              String         @unique(map: "User_email_key")
   password           String
   role               user_role
+  // Academic level — only meaningful for STUDENT role
+  level              student_level?
+  department         String?
   avatarUrl          String?
-  isActive           Boolean   @default(false)
-  mustChangePassword Boolean   @default(true)
-  createdAt          DateTime  @default(now())
+  isActive           Boolean        @default(false)
+  mustChangePassword Boolean        @default(true)
+  createdAt          DateTime       @default(now())
   updatedAt          DateTime
 
   adminProfile             AdminProfile?
@@ -481,6 +533,8 @@ model Validation {
   @@map("validation")
 }
 
+// ─── ENUMS ───────────────────────────────────────────────────────────────────
+
 enum deadline_type {
   TOPIC_SUBMISSION
   MID_REPORT
@@ -522,6 +576,13 @@ enum notification_type {
   DEADLINE_OVERDUE
   ACCOUNT_CREATED
   PASSWORD_RESET
+  // Dual-track additions
+  REVISION_REQUESTED
+  STUDENT_TOPIC_SUBMITTED
+  STUDENT_TOPIC_APPROVED
+  STUDENT_TOPIC_REJECTED
+  COMPANY_DATES_CONFIRMED
+  DEADLINE_REMINDER
 }
 
 enum binomeinvitation_status {
@@ -559,10 +620,28 @@ enum validation_step {
 }
 
 enum internship_status {
-  APPROVED
+  REQUESTED
+  DOCUMENT_SENT
   IN_PROGRESS
+  NEEDS_REVISION
+  APPROVED
   COMPLETED
   CANCELLED
+}
+
+/// Internship type: PFE has mandatory midterm; NORMAL has optional midterm
+enum internship_type {
+  PFE
+  NORMAL
+}
+
+/// Academic level — determines which internship types the student may access
+enum student_level {
+  L1
+  L2
+  L3
+  M1
+  M2
 }
 
 enum studentapplication_status {

@@ -28,7 +28,7 @@ export default async function DashboardLayout({
         <Sidebar role={role} logoUrl={logoUrl} />
 
         {/* Main Content Area */}
-        <div className="flex-1 flex flex-col ml-[240px]">
+        <div className="flex-1 flex flex-col ltr:ml-[240px] rtl:mr-[240px] transition-all duration-300">
           {/* Topbar - Fixed height, sticky or fixed */}
           <Topbar />
 

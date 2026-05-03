@@ -1,47 +1,52 @@
-import { z } from "zod";
+import { z } from 'zod';
 
-const RegistrationRole = z.enum(["STUDENT", "COMPANY", "TEACHER"]);
+const RegistrationRole = z.enum(['STUDENT', 'COMPANY', 'TEACHER']);
 
-export const registrationSchema = z.object({
-  name: z.string().min(2, "Name must be at least 2 characters"),
-  email: z.string().email("Invalid email address"),
-  role: RegistrationRole,
-  password: z.string().min(6, "Password must be at least 6 characters"),
-  confirmPassword: z.string().min(6, "Confirmation must be at least 6 characters"),
-  motivation: z.string().optional(),
-  
-  // Student specific
-  studentId: z.string().optional(),
-  promotion: z.string().optional(),
-  speciality: z.string().optional(),
-  academicYear: z.string().optional(),
+// Academic levels for the dual-track eligibility system
+const StudentLevel = z.enum(['L1', 'L2', 'L3', 'M1', 'M2']);
 
-  // Company specific
-  companyName: z.string().optional(),
-  sector: z.string().optional(),
-  wilaya: z.string().optional(),
+export const registrationSchema = z
+  .object({
+    name: z.string().min(2, 'Name must be at least 2 characters'),
+    email: z.string().email('Invalid email address'),
+    role: RegistrationRole,
+    password: z.string().min(6, 'Password must be at least 6 characters'),
+    confirmPassword: z.string().min(6, 'Confirmation must be at least 6 characters'),
+    motivation: z.string().optional(),
 
-  // Teacher specific (reusing speciality from student profile)
-  grade: z.string().optional(),
-}).refine((data) => {
-  if (data.role === "STUDENT") {
-    return !!data.studentId && !!data.promotion && !!data.speciality;
-  }
-  if (data.role === "COMPANY") {
-    return !!data.companyName;
-  }
-  if (data.role === "TEACHER") {
-    return !!data.speciality;
-  }
-  return true;
-}, {
-  message: "Please fill all required fields for your role",
-  path: ["role"],
-}).refine((data) => {
-  return data.password === data.confirmPassword;
-}, {
-  message: "Passwords do not match",
-  path: ["confirmPassword"],
-});
+    // Student specific
+    studentId: z.string().optional(),
+    promotion: z.string().optional(),
+    speciality: z.string().optional(),
+    academicYear: z.string().optional(),
+    // Level determines internship type eligibility (L1/L2/M1 → NORMAL only)
+    level: StudentLevel.optional(),
+
+    // Company specific
+    companyName: z.string().optional(),
+    sector: z.string().optional(),
+    wilaya: z.string().optional(),
+
+    // Teacher specific
+    grade: z.string().optional(),
+  })
+  .refine(
+    (data) => {
+      if (data.role === 'STUDENT') {
+        return !!data.studentId && !!data.promotion && !!data.speciality && !!data.level;
+      }
+      if (data.role === 'COMPANY') return !!data.companyName;
+      if (data.role === 'TEACHER') return !!data.speciality;
+      return true;
+    },
+    {
+      message: 'Please fill all required fields for your role',
+      path: ['role'],
+    },
+  )
+  .refine((data) => data.password === data.confirmPassword, {
+    message: 'Passwords do not match',
+    path: ['confirmPassword'],
+  });
 
 export type RegistrationInput = z.infer<typeof registrationSchema>;

@@ -3,6 +3,7 @@ import prisma from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { AuditService } from "@/lib/services/audit.service";
 import { NotificationService } from "@/lib/services/notification.service";
+import { randomUUID } from "crypto";
 
 export async function POST(req: NextRequest) {
   const session = await auth();
@@ -13,6 +14,7 @@ export async function POST(req: NextRequest) {
 
     const message = await prisma.message.create({
       data: {
+        id: randomUUID(),
         internshipId,
         senderId: session.user.id,
         content,

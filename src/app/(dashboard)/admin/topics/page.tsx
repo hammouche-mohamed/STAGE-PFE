@@ -13,12 +13,15 @@ import {
   Users,
   ChevronRight,
   User,
-  GraduationCap
+  GraduationCap,
+  Trash2
 } from "lucide-react";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import Link from "next/link";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { Button } from "@/components/ui/Button";
 
 interface Topic {
   id: string;
@@ -37,6 +40,8 @@ export default function AdminTopicsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
+  const [topicToDelete, setTopicToDelete] = useState<Topic | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const fetchTopics = async () => {
     try {
@@ -47,6 +52,26 @@ export default function AdminTopicsPage() {
       toast.error("Failed to load topics");
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!topicToDelete) return;
+    setIsDeleting(true);
+    try {
+      const res = await fetch(`/api/topics/${topicToDelete.id}`, {
+        method: "DELETE",
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to delete topic");
+      
+      toast.success("Topic deleted successfully");
+      setTopicToDelete(null);
+      fetchTopics();
+    } catch (error: any) {
+      toast.error(error.message || "Could not delete topic");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -140,13 +165,37 @@ export default function AdminTopicsPage() {
                   </div>
                 </div>
                 <div className="flex flex-col items-end gap-3 self-center">
-                  <ChevronRight className="h-5 w-5 text-gray-300 group-hover:text-indigo-500 group-hover:translate-x-1 transition-all" />
+                  <div className="flex items-center gap-2">
+                    <button 
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setTopicToDelete(topic);
+                      }}
+                      className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                      title="Delete topic"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                    <ChevronRight className="h-5 w-5 text-gray-300 group-hover:text-indigo-500 group-hover:translate-x-1 transition-all" />
+                  </div>
                 </div>
               </div>
             </Link>
           ))
         )}
       </div>
+
+      <ConfirmDialog
+        isOpen={!!topicToDelete}
+        onClose={() => setTopicToDelete(null)}
+        onConfirm={handleDelete}
+        title="Delete Topic"
+        description={`Are you sure you want to delete "${topicToDelete?.title}"? This action cannot be undone.`}
+        confirmLabel="Delete Topic"
+        variant="danger"
+        isLoading={isDeleting}
+      />
     </div>
   );
 }

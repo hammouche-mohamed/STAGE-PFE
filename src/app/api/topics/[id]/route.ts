@@ -51,6 +51,19 @@ export async function PATCH(
 
     if (!topic) return NextResponse.json({ error: "Topic not found" }, { status: 404 });
 
+    // FR-T3: Check teacher load if being assigned
+    if (teacherId && teacherId !== topic.assignedTeacherId) {
+      const teacherProfile = await prisma.teacherProfile.findUnique({
+        where: { userId: teacherId }
+      });
+
+      if (teacherProfile && teacherProfile.currentLoad >= teacherProfile.maxStudents) {
+        return NextResponse.json({ 
+          error: `Teacher has reached maximum supervision load (${teacherProfile.maxStudents}).` 
+        }, { status: 400 });
+      }
+    }
+
     // logic for teacher assignment or topic rejection
     const updated = await prisma.topic.update({
       where: { id },

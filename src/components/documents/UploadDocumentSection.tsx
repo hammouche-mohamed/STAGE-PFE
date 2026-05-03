@@ -42,14 +42,13 @@ export const UploadDocumentSection: React.FC<UploadDocumentSectionProps> = ({
   const handleSyncMetadata = async (res: any) => {
     setIsSyncing(true);
     try {
-      const file = res[0];
       const response = await fetch("/api/documents", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           internshipId,
           type: selectedType,
-          fileName: file.name,
+          fileName: res.name,
           fileUrl: res.url,
           fileSize: res.size,
         }),

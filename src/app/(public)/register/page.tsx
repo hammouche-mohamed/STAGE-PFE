@@ -180,8 +180,33 @@ export default function RegisterPage() {
                   {...register("studentId")}
                   error={errors.studentId?.message}
                 />
+                {/* Academic level — determines internship type eligibility */}
                 <div className="w-full">
-                  <label className="admin-form-label">Promotion/Level</label>
+                  <label className="admin-form-label">
+                    Academic Level <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    {...register("level")}
+                    className="admin-input cursor-pointer"
+                  >
+                    <option value="">Select Level</option>
+                    <option value="L1">L1 — Licence 1ère année</option>
+                    <option value="L2">L2 — Licence 2ème année</option>
+                    <option value="L3">L3 — Licence 3ème année (PFE eligible)</option>
+                    <option value="M1">M1 — Master 1ère année</option>
+                    <option value="M2">M2 — Master 2ème année (PFE eligible)</option>
+                  </select>
+                  {errors.level && (
+                    <p className="mt-1 text-[11px] text-red-600 font-medium">
+                      {errors.level.message}
+                    </p>
+                  )}
+                  <p className="mt-1 text-[11px] text-gray-400">
+                    L3 and M2 students can apply for both PFE and Normal internships.
+                  </p>
+                </div>
+                <div className="w-full">
+                  <label className="admin-form-label">Promotion / Cohort</label>
                   <select
                     {...register("promotion")}
                     className="admin-input cursor-pointer"

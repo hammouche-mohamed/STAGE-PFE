@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import Link from "next/link";
 import { 
   ArrowLeft, 
   User, 
@@ -14,12 +15,14 @@ import {
   Layers,
   FileText,
   AlertCircle,
-  Users
+  Users,
+  Trash2
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 
 interface Topic {
   id: string;
@@ -49,6 +52,8 @@ export default function AdminTopicDetailPage() {
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   
   // Editable fields for advanced moderation
   const [editData, setEditData] = useState({
@@ -124,6 +129,27 @@ export default function AdminTopicDetailPage() {
     }
   };
 
+  const handleDelete = async () => {
+    setIsDeleting(true);
+    try {
+      const res = await fetch(`/api/topics/${id}`, {
+        method: "DELETE",
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Delete failed");
+      }
+      
+      toast.success("Topic deleted successfully");
+      router.push("/admin/topics");
+    } catch (error: any) {
+      toast.error(error.message || "Failed to delete topic");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   if (isLoading) return <div className="p-8 text-center text-gray-400">Loading topic details...</div>;
   if (!topic) return <div className="p-8 text-center text-gray-400">Topic not found.</div>;
 
@@ -138,14 +164,25 @@ export default function AdminTopicDetailPage() {
           Back to repository
         </Link>
 
-        <Button 
-          onClick={handleUpdate} 
-          isLoading={isUpdating}
-          size="sm"
-          className="shadow-md"
-        >
-          Save All Changes
-        </Button>
+        <div className="flex items-center gap-3">
+          <Button 
+            variant="outline" 
+            onClick={() => setIsDeleteDialogOpen(true)}
+            size="sm"
+            className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-100"
+          >
+            <Trash2 className="h-4 w-4 mr-2" />
+            Delete Topic
+          </Button>
+          <Button 
+            onClick={handleUpdate} 
+            isLoading={isUpdating}
+            size="sm"
+            className="shadow-md"
+          >
+            Save All Changes
+          </Button>
+        </div>
       </div>
 
       <div className="flex flex-col lg:flex-row gap-6">
@@ -288,6 +325,17 @@ export default function AdminTopicDetailPage() {
            </div>
         </div>
       </div>
+
+      <ConfirmDialog
+        isOpen={isDeleteDialogOpen}
+        onClose={() => setIsDeleteDialogOpen(false)}
+        onConfirm={handleDelete}
+        title="Delete Topic Permanently"
+        description={`Are you sure you want to delete "${topic.title}"? This will remove all associated applications and data. This action is irreversible.`}
+        confirmLabel="Delete Topic"
+        variant="danger"
+        isLoading={isDeleting}
+      />
     </div>
   );
 }

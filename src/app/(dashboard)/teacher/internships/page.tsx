@@ -110,7 +110,7 @@ export default function TeacherInternshipsPage() {
                   </div>
                 </div>
                 <Link
-                  href={`/teacher/internships/${slugify(internship.topic.title)}`}
+                  href={`/teacher/internships/${internship.id}`}
                   className="h-9 w-9 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center hover:bg-indigo-600 hover:text-white transition-all"
                   aria-label={`View internship ${internship.topic.title}`}
                 >

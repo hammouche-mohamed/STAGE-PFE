@@ -1,174 +1,158 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {
-  LayoutDashboard,
-  BookOpen,
-  Briefcase,
-  FileText,
-  MessageSquare,
-  Milestone,
-  Users,
-  Settings,
-  History,
-  Calendar,
-  ShieldCheck,
-  UserPlus,
-  User as UserIcon,
-  LogOut,
-} from "lucide-react";
 import Image from "next/image";
+import { 
+  LayoutDashboard, 
+  Briefcase, 
+  Users, 
+  FileText, 
+  MessageSquare, 
+  LogOut,
+  ShieldCheck,
+  User as UserIcon,
+  Settings,
+  Calendar
+} from "lucide-react";
 import { useSession, signOut } from "next-auth/react";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
 
-export interface SidebarProps {
+interface SidebarProps {
   role: "STUDENT" | "TEACHER" | "COMPANY" | "ADMIN";
   logoUrl?: string;
 }
 
-interface NavItem {
-  label: string;
-  href: string;
-  icon: any;
-  group?: string;
-}
-
-const navigations: Record<string, NavItem[]> = {
-  STUDENT: [
-    { label: "Dashboard", href: "/student", icon: LayoutDashboard },
-    { label: "Find Topics", href: "/student/topics", icon: BookOpen },
-    { label: "My Internship", href: "/student/internship", icon: Briefcase },
-    { label: "Documents", href: "/student/documents", icon: FileText },
-    { label: "Messages", href: "/student/messages", icon: MessageSquare },
-    { label: "Milestones", href: "/student/milestones", icon: Milestone },
-    { label: "Profile", href: "/profile", icon: UserIcon },
-  ],
-  TEACHER: [
-    { label: "Dashboard", href: "/teacher", icon: LayoutDashboard },
-    { label: "Supervisions", href: "/teacher/internships", icon: Briefcase },
-    { label: "Documents", href: "/teacher/documents", icon: FileText },
-    { label: "Evaluations", href: "/teacher/evaluations", icon: Milestone },
-    { label: "Messages", href: "/teacher/messages", icon: MessageSquare },
-    { label: "Profile", href: "/profile", icon: UserIcon },
-  ],
-  COMPANY: [
-    { label: "Dashboard", href: "/company", icon: LayoutDashboard },
-    { label: "My Topics", href: "/company/topics", icon: BookOpen },
-    { label: "Applications", href: "/company/applications", icon: UserPlus },
-    { label: "Active Internships", href: "/company/internships", icon: Briefcase },
-    { label: "Messages", href: "/company/messages", icon: MessageSquare },
-    { label: "Profile", href: "/profile", icon: UserIcon },
-  ],
-  ADMIN: [
-    { label: "Overview", href: "/admin", icon: LayoutDashboard },
-    { label: "Registrations", href: "/admin/registrations", icon: UserPlus, group: "MANAGEMENT" },
-    { label: "Users", href: "/admin/users", icon: Users, group: "MANAGEMENT" },
-    { label: "Topics", href: "/admin/topics", icon: BookOpen, group: "ACADEMIC" },
-    { label: "Internships", href: "/admin/internships", icon: Briefcase, group: "ACADEMIC" },
-    { label: "Milestones", href: "/admin/milestones", icon: Milestone, group: "ACADEMIC" },
-    { label: "Defenses", href: "/admin/defenses", icon: ShieldCheck, group: "ACADEMIC" },
-    { label: "Deadlines", href: "/admin/deadlines", icon: Calendar, group: "SYSTEM" },
-    { label: "Settings", href: "/admin/settings", icon: Settings, group: "SYSTEM" },
-    { label: "Audit Logs", href: "/admin/audit", icon: History, group: "SYSTEM" },
-    { label: "Profile", href: "/profile", icon: UserIcon, group: "SYSTEM" },
-  ],
-};
-
-export const Sidebar: React.FC<SidebarProps> = ({ role, logoUrl }) => {
+export const Sidebar: React.FC<SidebarProps> = ({ role: initialRole, logoUrl }) => {
   const pathname = usePathname();
   const { data: session } = useSession();
-  const navItems: NavItem[] = navigations[role] || [];
-  const [isLogoutDialogOpen, setIsLogoutDialogOpen] = React.useState(false);
+  const { t, language, isRTL } = useTranslation();
+  const [isLogoutDialogOpen, setIsLogoutDialogOpen] = useState(false);
+  
+  const role = initialRole || session?.user?.role || "STUDENT";
+  const roleSlug = role.toLowerCase();
 
-  const displayName = session?.user?.name || "User";
+  const displayName = session?.user?.name ?? "User";
   const initials = displayName
     .split(" ")
-    .map((n) => n[0])
+    .map((s) => s[0])
     .join("")
     .toUpperCase();
 
-  const groupedItems = navItems.reduce((acc, item) => {
-    const groupName = item.group || "MAIN";
-    if (!acc[groupName]) acc[groupName] = [];
-    acc[groupName].push(item);
-    return acc;
-  }, {} as Record<string, NavItem[]>);
+  const getNavItems = () => {
+    switch (role) {
+      case "ADMIN":
+        return [
+          { label: "Dashboard", icon: LayoutDashboard, href: "/admin", active: pathname === "/admin" },
+          { label: "Registrations", icon: UserIcon, href: "/admin/registrations", active: pathname === "/admin/registrations" },
+          { label: "Users", icon: Users, href: "/admin/users", active: pathname === "/admin/users" },
+          { label: "Topics", icon: Briefcase, href: "/admin/topics", active: pathname === "/admin/topics" },
+          { label: "Internships", icon: ShieldCheck, href: "/admin/internships", active: pathname === "/admin/internships" },
+          { label: "Defenses", icon: Calendar, href: "/admin/defenses", active: pathname === "/admin/defenses" },
+          { label: "Audit Logs", icon: FileText, href: "/admin/audit-logs", active: pathname === "/admin/audit-logs" },
+          { label: "Settings", icon: Settings, href: "/admin/settings", active: pathname === "/admin/settings" },
+          { label: "Profile", icon: UserIcon, href: "/profile", active: pathname === "/profile" },
+        ];
+      case "TEACHER":
+        return [
+          { label: "Dashboard", icon: LayoutDashboard, href: "/teacher", active: pathname === "/teacher" },
+          { label: "Topics", icon: Briefcase, href: "/teacher/topics", active: pathname === "/teacher/topics" },
+          { label: "Supervisions", icon: ShieldCheck, href: "/teacher/internships", active: pathname === "/teacher/internships" },
+          { label: "Documents", icon: FileText, href: "/teacher/documents", active: pathname === "/teacher/documents" },
+          { label: "Messages", icon: MessageSquare, href: "/teacher/messages", active: pathname === "/teacher/messages" },
+          { label: "Profile", icon: UserIcon, href: "/profile", active: pathname === "/profile" },
+        ];
+      case "COMPANY":
+        return [
+          { label: "Dashboard", icon: LayoutDashboard, href: "/company", active: pathname === "/company" },
+          { label: "Topics", icon: Briefcase, href: "/company/topics", active: pathname === "/company/topics" },
+          { label: "Applications", icon: Users, href: "/company/applications", active: pathname === "/company/applications" },
+          { label: "Internships", icon: ShieldCheck, href: "/company/internships", active: pathname === "/company/internships" },
+          { label: "Messages", icon: MessageSquare, href: "/company/messages", active: pathname === "/company/messages" },
+          { label: "Profile", icon: UserIcon, href: "/profile", active: pathname === "/profile" },
+        ];
+      default: // STUDENT
+        return [
+          { label: "Dashboard", icon: LayoutDashboard, href: "/student", active: pathname === "/student" },
+          { label: "Topics", icon: Briefcase, href: "/student/topics", active: pathname === "/student/topics" },
+          { label: "My Internship", icon: ShieldCheck, href: "/student/internship", active: pathname === "/student/internship" },
+          { label: "Documents", icon: FileText, href: "/student/documents", active: pathname === "/student/documents" },
+          { label: "Messages", icon: MessageSquare, href: "/student/messages", active: pathname === "/student/messages" },
+          { label: "Invitations", icon: Users, href: "/student/invitations", active: pathname === "/student/invitations" },
+          { label: "Profile", icon: UserIcon, href: "/profile", active: pathname === "/profile" },
+        ];
+    }
+  };
+
+  const navItems = getNavItems();
 
   return (
-    <aside className="w-[240px] fixed left-0 top-0 bottom-0 bg-white border-r border-gray-200 flex flex-col z-50">
-      {/* Branding */}
-      <div className="h-[70px] px-6 flex items-center gap-3 border-b border-gray-100">
-        <div className="h-11 w-11 flex items-center justify-center flex-shrink-0">
+    <aside className={`fixed top-0 ${isRTL ? "right-0 border-l" : "left-0 border-r"} h-full w-[240px] bg-white border-gray-200 z-50 flex flex-col`}>
+      {/* Brand Header */}
+      <div className={`h-[56px] flex items-center px-6 border-b border-gray-100 ${isRTL ? "flex-row-reverse" : ""}`}>
+        <Link href={`/${roleSlug}`} className="flex items-center gap-2.5">
           {logoUrl ? (
-            <img
-              src={logoUrl}
-              alt="ESST Logo"
-              className="h-full w-full object-contain"
-            />
-          ) : (
-            <div className="h-full w-full bg-gray-200 rounded-md flex items-center justify-center text-[10px] font-bold text-gray-400">
-              ESST
+            <div className="h-8 w-8 rounded overflow-hidden">
+              <Image src={logoUrl} alt="Logo" width={32} height={32} className="h-full w-full object-contain" unoptimized />
             </div>
+          ) : (
+            <div className="h-8 w-8 bg-indigo-600 rounded flex items-center justify-center text-white font-bold text-lg">E</div>
           )}
-        </div>
-        <div className="flex flex-col min-w-0">
-          <span className="text-[14px] font-bold text-gray-900 leading-none truncate">ESST</span>
-          <span className="text-[9px] text-gray-500 uppercase tracking-widest font-semibold mt-1 truncate">PFE Management</span>
-        </div>
+          <span className="font-bold text-[15px] text-gray-900">ESST <span className="text-indigo-600">Portal</span></span>
+        </Link>
       </div>
 
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto py-4">
-        {Object.entries(groupedItems).map(([group, items]) => (
-          <div key={group} className="mb-4">
-            {group !== "MAIN" && (
-              <div className="px-6 mb-1 text-[10px] font-medium text-gray-400 tracking-[0.1em] uppercase">
-                {group}
-              </div>
-            )}
-            {items.map((item) => {
-              const isActive = pathname === item.href;
-              const Icon = item.icon;
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={`flex items-center h-[36px] px-6 text-[13px] transition-colors
-                    ${isActive
-                      ? "bg-indigo-50 text-indigo-700 border-l-2 border-indigo-600 font-medium"
-                      : "text-gray-600 hover:bg-gray-50 hover:text-gray-900 border-l-2 border-transparent"
-                    }`}
-                >
-                  <Icon className={`mr-3 h-[16px] w-[16px] ${isActive ? "text-indigo-600" : "text-gray-400"}`} />
-                  {item.label}
-                </Link>
-              );
-            })}
-          </div>
-        ))}
+        {navItems.map((item) => {
+          const Icon = item.icon;
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={`flex items-center h-[40px] px-6 text-[13px] transition-colors group
+                ${item.active
+                  ? "bg-indigo-50 text-indigo-700 border-l-2 border-indigo-600 font-medium"
+                  : "text-gray-600 hover:bg-gray-50 hover:text-gray-900 border-l-2 border-transparent"
+                } ${isRTL ? "flex-row-reverse border-l-0 border-r-2" : ""}`}
+            >
+              <Icon className={`${isRTL ? "ml-3" : "mr-3"} h-[18px] w-[18px] ${item.active ? "text-indigo-600" : "text-gray-400 group-hover:text-gray-600"}`} />
+              {item.label}
+            </Link>
+          );
+        })}
       </nav>
 
-      {/* User Session Footer */}
-      <div className="p-4 border-t border-gray-100 flex flex-col gap-3">
-        <div className="flex items-center">
-          <div className="h-8 w-8 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-[13px] font-semibold mr-3">
-            {initials}
+      {/* Footer */}
+      <div className="p-4 border-t border-gray-100">
+        <div className={`flex items-center mb-4 ${isRTL ? "flex-row-reverse" : ""}`}>
+          <div className={`h-8 w-8 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-[12px] font-bold overflow-hidden ${isRTL ? "ml-3" : "mr-3"}`}>
+            {session?.user?.image ? (
+              <Image 
+                src={session.user.image} 
+                alt={displayName} 
+                width={32} 
+                height={32} 
+                className="h-full w-full object-cover"
+                unoptimized
+              />
+            ) : (
+              initials
+            )}
           </div>
-          <div className="flex-1 min-w-0">
+          <div className="min-w-0">
             <p className="text-[13px] font-medium text-gray-900 truncate">{displayName}</p>
-            <div className="inline-flex px-1.5 py-0.5 rounded bg-gray-100 text-[10px] font-medium text-gray-500 uppercase">
-              {role}
-            </div>
+            <p className="text-[10px] text-gray-500 uppercase tracking-wider">{role}</p>
           </div>
         </div>
-
-        <button
+        
+        <button 
           onClick={() => setIsLogoutDialogOpen(true)}
-          className="flex items-center w-full h-[36px] px-3 text-[13px] text-red-600 hover:bg-red-50 rounded transition-colors cursor-pointer"
+          className={`flex items-center w-full h-[36px] px-3 text-[13px] text-gray-500 hover:text-red-600 hover:bg-red-50 rounded transition-colors cursor-pointer ${isRTL ? "flex-row-reverse" : ""}`}
         >
-          <LogOut className="mr-3 h-[16px] w-[16px]" />
+          <LogOut className={`${isRTL ? "ml-3" : "mr-3"} h-[18px] w-[18px]`} />
           Logout
         </button>
       </div>
@@ -177,8 +161,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ role, logoUrl }) => {
         isOpen={isLogoutDialogOpen}
         onClose={() => setIsLogoutDialogOpen(false)}
         onConfirm={() => signOut({ callbackUrl: "/" })}
-        title="Confirm Logout"
-        description="Are you sure you want to sign out of the PFE Management Portal? Any unsaved changes may be lost."
+        title="Sign Out"
+        description="Are you sure you want to sign out?"
         confirmLabel="Logout"
         variant="danger"
       />

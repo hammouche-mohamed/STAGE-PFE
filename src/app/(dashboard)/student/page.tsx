@@ -1,151 +1,263 @@
 "use client";
 
-import React from "react";
-import { StatsCard } from "@/components/dashboard/StatsCard";
-import { InternshipTimeline } from "@/components/internship/InternshipTimeline";
-import { StatusBadge } from "@/components/ui/StatusBadge";
+import React, { useEffect, useState } from "react";
+import { 
+  LayoutDashboard, 
+  Briefcase, 
+  Users, 
+  FileText, 
+  MessageSquare, 
+  Calendar,
+  ChevronRight,
+  ChevronLeft,
+  AlertCircle,
+  CheckCircle2
+} from "lucide-react";
+import Link from "next/link";
 import { format } from "date-fns";
-import { Clock, MessageSquare, AlertCircle } from "lucide-react";
+import { useSession } from "next-auth/react";
+import { StatusBadge } from "@/components/ui/StatusBadge";
+import { UserProfileModal } from "@/components/ui/UserProfileModal";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
+
+interface Internship {
+  id: string;
+  status: string;
+  topic: {
+    title: string;
+    description: string;
+  };
+  teacher: {
+    id: string;
+    name: string;
+  };
+  students: {
+    isLeader: boolean;
+    student: {
+      id: string;
+      name: string;
+    };
+  }[];
+  startDate: string | null;
+  endDate: string | null;
+  internshipType: string;
+  midtermDeadline: string | null;
+  finalDeadline: string | null;
+  _count: {
+    documents: number;
+  };
+}
+
+interface Deadline {
+  id: string;
+  label: string;
+  dueDate: string;
+}
+
+interface Message {
+  id: string;
+  content: string;
+  sentAt: string;
+  sender: {
+    name: string;
+  };
+}
 
 export default function StudentDashboard() {
-  // Mock data for initial UI build
-  const stats = {
-    status: "IN_PROGRESS",
-    nextDeadline: "2024-11-20T17:00:00Z",
-    deadlineTitle: "Mid-term Report",
-    docsSubmitted: 2,
-    totalDocs: 4,
-  };
+  const { data: session } = useSession();
+  const { t, isRTL } = useTranslation();
+  const [internship, setInternship] = useState<Internship | null>(null);
+  const [deadlines, setDeadlines] = useState<Deadline[]>([]);
+  const [recentMessages, setRecentMessages] = useState<Message[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [viewUserId, setViewUserId] = useState<string | null>(null);
 
-  const timelineSteps = [
-    { 
-      id: "1", 
-      name: "Topic Proposal Submitted", 
-      status: "completed", 
-      actor: "Salim (Student)", 
-      timestamp: "Oct 12, 10:30",
-      description: "Topic: Design of a microservices-based student portal."
-    },
-    { 
-      id: "2", 
-      name: "Admin Review & Validation", 
-      status: "completed", 
-      actor: "Admin (Academic)", 
-      timestamp: "Oct 14, 09:15",
-      description: "Proposed topic meets university standards."
-    },
-    { 
-      id: "3", 
-      name: "Agreement Document Exchange", 
-      status: "completed", 
-      actor: "Salim (Student)", 
-      timestamp: "Oct 15, 14:00",
-      description: "Signed internship agreement uploaded and approved by Admin."
-    },
-    { 
-      id: "4", 
-      name: "Teacher Acceptance", 
-      status: "current", 
-      actor: "Dr. Benali (Teacher)", 
-      description: "Waiting for teacher to formally accept co-supervision (Expected within 48h)."
-    },
-    { 
-      id: "5", 
-      name: "Final Administrative Approval", 
-      status: "pending",
-    },
-    { 
-      id: "6", 
-      name: "Internship Started", 
-      status: "pending",
-    },
-  ];
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const res = await fetch("/api/internships");
+        if (res.ok) {
+          const data = await res.json();
+          const active = (data.data as Internship[] || []).find(
+            (i) => !["CANCELLED", "COMPLETED"].includes(i.status)
+          );
+          if (active) setInternship(active);
+        }
 
-  const deadlines = [
-    { title: "Mid-term Report Submission", date: "Nov 20, 2024", urgent: true },
-    { title: "3rd Mini-presentation", date: "Dec 05, 2024", urgent: false },
-    { title: "Final Report Draft", date: "Jan 12, 2025", urgent: false },
-  ];
+        const msgRes = await fetch("/api/messages/recent");
+        if (msgRes.ok) {
+          const data = await msgRes.json();
+          setRecentMessages(data.data || []);
+        }
 
-  const recentMessages = [
-    { sender: "Admin", content: "Please ensure your insurance certificate is included...", time: "2h ago" },
-    { sender: "System", content: "Reminder: Mini-presentation #2 scheduled for tomorrow.", time: "5h ago" },
-  ];
+        const deadlineRes = await fetch("/api/deadlines");
+        if (deadlineRes.ok) {
+          const data = await deadlineRes.json();
+          setDeadlines(data.data || []);
+        }
+      } catch (error) {
+        console.error("Dashboard load failed", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    load();
+  }, []);
+
+  const daysUntil = (date: string) =>
+    Math.ceil((new Date(date).getTime() - Date.now()) / 86400000);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-24 text-gray-400 text-[13px]">
+        {t("common.loading")}
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
-      {/* Top Row: Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <StatsCard 
-          label="Current Status" 
-          value="In Progress" 
-          badge={<StatusBadge status={stats.status} />}
-        />
-        <StatsCard 
-          label="Next Deadline" 
-          value="In 4 days" 
-          subValue={stats.deadlineTitle}
-          subValueColor="red"
-          icon={Clock}
-        />
-        <StatsCard 
-          label="Documents Progress" 
-          value={`${stats.docsSubmitted} / ${stats.totalDocs}`} 
-          subValue="50% Uploaded"
-        />
+      {/* ── Welcome Header ────────────────────────────────────────── */}
+      <div className={`flex items-center justify-between ${isRTL ? "flex-row-reverse" : ""}`}>
+        <div>
+          <h1 className="text-[17px] font-semibold text-gray-900">
+            {t("dashboard.welcome")}, {session?.user?.name}! 👋
+          </h1>
+          <p className="text-[13px] text-gray-500 mt-0.5">ESST PFE Management Portal</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="h-[36px] px-4 bg-white border border-gray-200 rounded flex items-center gap-2 text-[12px] text-gray-600">
+            <Calendar className="h-4 w-4 text-gray-400" />
+            {format(new Date(), "MMMM d, yyyy")}
+          </div>
+        </div>
       </div>
 
-      {/* Main Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-        {/* Left Column: Timeline (65%) */}
-        <div className="lg:col-span-2 space-y-6">
-          <InternshipTimeline steps={timelineSteps as any} />
+      {/* ── Status Row ─────────────────────────────────────────────── */}
+      <div className={`grid grid-cols-1 md:grid-cols-3 gap-4 ${isRTL ? "flex-row-reverse" : ""}`}>
+        {/* Status */}
+        <div className="bg-white border border-gray-200 rounded-md p-5">
+          <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2">Current Status</p>
+          {internship ? (
+            <>
+              <StatusBadge status={internship.status} />
+              <p className="text-[12px] text-gray-500 mt-2 truncate">{internship.topic.title}</p>
+            </>
+          ) : (
+            <p className="text-[13px] text-gray-400">{t("dashboard.noInternship")}</p>
+          )}
         </div>
 
-        {/* Right Column: Sidebar info (35%) */}
-        <div className="space-y-6">
-          {/* Upcoming Deadlines */}
-          <div className="bg-white border border-gray-200 rounded-md p-5 shadow-sm">
-            <h3 className="text-[13px] font-semibold text-gray-900 uppercase tracking-wider mb-4 flex items-center">
-              <AlertCircle className="h-4 w-4 mr-2 text-indigo-600" />
-              Deadlines
-            </h3>
-            <div className="space-y-4">
-              {deadlines.map((d, i) => (
-                <div key={i} className={`flex flex-col p-2.5 rounded border ${d.urgent ? "bg-red-50 border-red-100" : "bg-gray-50 border-gray-100"}`}>
-                  <span className={`text-[11px] font-mono ${d.urgent ? "text-red-700" : "text-gray-500"}`}>{d.date}</span>
-                  <span className="text-[13px] font-medium text-gray-800 mt-0.5">{d.title}</span>
-                </div>
-              ))}
-            </div>
-            <button className="w-full mt-4 text-[11px] font-semibold text-indigo-600 hover:text-indigo-700 uppercase tracking-widest text-center">
-              View All Deadlines →
-            </button>
+        {/* Deadlines */}
+        <div className="bg-white border border-gray-200 rounded-md p-5">
+          <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2">Deadlines</p>
+          {deadlines.length > 0 ? (
+            <>
+              <p className="text-[20px] font-bold text-gray-900">
+                {daysUntil(deadlines[0].dueDate)} days left
+              </p>
+              <p className="text-[12px] text-red-500 font-medium mt-1">{deadlines[0].label}</p>
+            </>
+          ) : (
+            <p className="text-[13px] text-gray-400">No upcoming deadlines</p>
+          )}
+        </div>
+
+        {/* Documents */}
+        <div className="bg-white border border-gray-200 rounded-md p-5">
+          <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2">Documents</p>
+          {internship ? (
+            <>
+              <p className="text-[20px] font-bold text-gray-900">{internship._count.documents} uploaded</p>
+              <Link href="/student/documents" className="text-[12px] text-indigo-600 font-medium hover:underline mt-1 block">
+                Manage files →
+              </Link>
+            </>
+          ) : (
+            <p className="text-[13px] text-gray-400">—</p>
+          )}
+        </div>
+      </div>
+
+      {/* ── Main Dashboard Content ─────────────────────────────────── */}
+      <div className={`grid grid-cols-1 lg:grid-cols-3 gap-6 ${isRTL ? "flex-row-reverse" : ""}`}>
+        {/* Internship Details */}
+        <div className="lg:col-span-2 bg-white border border-gray-200 rounded-md p-6">
+          <div className={`flex items-center justify-between mb-6 ${isRTL ? "flex-row-reverse" : ""}`}>
+            <h2 className="text-[14px] font-semibold text-gray-900 flex items-center gap-2">
+              <Briefcase className="h-4 w-4 text-indigo-600" />
+              {t("dashboard.activeInternship")}
+            </h2>
+            {internship && (
+              <Link href="/student/internship" className="text-[12px] text-indigo-600 hover:underline">
+                {isRTL ? "التفاصيل" : "Full details"}
+              </Link>
+            )}
           </div>
 
-          {/* Recent Messages */}
-          <div className="bg-white border border-gray-200 rounded-md p-5 shadow-sm">
-            <h3 className="text-[13px] font-semibold text-gray-900 uppercase tracking-wider mb-4 flex items-center">
-              <MessageSquare className="h-4 w-4 mr-2 text-indigo-600" />
-              Messages
-            </h3>
-            <div className="space-y-4">
-              {recentMessages.map((m, i) => (
-                <div key={i} className="flex flex-col border-b border-gray-50 pb-3 last:border-0 last:pb-0">
-                  <div className="flex justify-between items-center mb-1">
-                    <span className="text-[11px] font-semibold text-gray-900">{m.sender}</span>
-                    <span className="text-[10px] text-gray-400">{m.time}</span>
+          {!internship ? (
+            <div className="text-center py-10">
+              <Briefcase className="h-10 w-10 text-gray-100 mx-auto mb-3" />
+              <p className="text-[13px] text-gray-400">{t("dashboard.noInternship")}</p>
+              <Link href="/student/topics" className="text-[12px] text-indigo-600 hover:underline mt-2 block">
+                {t("dashboard.browseTopics")}
+              </Link>
+            </div>
+          ) : (
+            <div className={`space-y-6 ${isRTL ? "text-right" : ""}`}>
+              <div className="bg-gray-50 rounded p-4">
+                <p className="text-[14px] font-semibold text-gray-900">{internship.topic.title}</p>
+                <p className="text-[13px] text-gray-500 mt-1">{internship.topic.description}</p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-6 text-[13px]">
+                <div>
+                  <p className="text-gray-400 font-medium mb-1">Supervisor</p>
+                  <p className="text-gray-900 font-medium">{internship.teacher.name}</p>
+                </div>
+                <div>
+                  <p className="text-gray-400 font-medium mb-1">Team Members</p>
+                  <div className={`flex items-center gap-2 ${isRTL ? "flex-row-reverse" : ""}`}>
+                    {internship.students.map((s, i) => (
+                      <div key={`${s.student.id}-${i}`} className="h-7 w-7 rounded-full bg-indigo-100 flex items-center justify-center text-[11px] font-bold text-indigo-700">
+                        {s.student.name[0]}
+                      </div>
+                    ))}
                   </div>
-                  <p className="text-[13px] text-gray-600 line-clamp-1">{m.content}</p>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Recent Messages */}
+        <div className="bg-white border border-gray-200 rounded-md p-6">
+          <h2 className={`text-[14px] font-semibold text-gray-900 flex items-center gap-2 mb-6 ${isRTL ? "flex-row-reverse" : ""}`}>
+            <MessageSquare className="h-4 w-4 text-indigo-600" />
+            Recent Messages
+          </h2>
+          {recentMessages.length === 0 ? (
+            <p className="text-[13px] text-gray-400">{isRTL ? "لا توجد رسائل" : "No recent messages."}</p>
+          ) : (
+            <div className="space-y-4">
+              {recentMessages.map((m) => (
+                <div key={m.id} className="text-[13px]">
+                  <p className="font-semibold text-gray-800">{m.sender.name}</p>
+                  <p className="text-gray-600 truncate">{m.content}</p>
+                  <p className="text-[11px] text-gray-400 mt-1">
+                    {format(new Date(m.sentAt), "MMM d, HH:mm")}
+                  </p>
                 </div>
               ))}
+              <Link href="/student/messages" className="text-[12px] text-indigo-600 hover:underline mt-4 block">
+                Open messages →
+              </Link>
             </div>
-            <button className="w-full mt-4 text-[11px] font-semibold text-indigo-600 hover:text-indigo-700 uppercase tracking-widest text-center">
-              Open Chat →
-            </button>
-          </div>
+          )}
         </div>
       </div>
+
+      <UserProfileModal userId={viewUserId} onClose={() => setViewUserId(null)} />
     </div>
   );
 }

@@ -1,110 +1,81 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import Link from "next/link";
+import { Bell, LogOut, Search, User } from "lucide-react";
 import { usePathname } from "next/navigation";
-import { useBreadcrumbs } from "@/lib/contexts/BreadcrumbContext";
-import { Bell, User as UserIcon, LogOut } from "lucide-react";
+import Link from "next/link";
 import { signOut, useSession } from "next-auth/react";
-import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
+import { Language } from "@/lib/i18n/translations";
 
 export const Topbar: React.FC = () => {
   const pathname = usePathname();
-  const { labels } = useBreadcrumbs();
   const { data: session } = useSession();
+  const { t, language, setLanguage, isRTL } = useTranslation();
+  
   const [unreadCount, setUnreadCount] = useState(0);
-  const [isLogoutDialogOpen, setIsLogoutDialogOpen] = useState(false);
 
   useEffect(() => {
-    const fetchCount = async () => {
+    const fetchUnread = async () => {
       try {
-        const res = await fetch("/api/notifications?count=true");
-        if (!res.ok) {
-          throw new Error(`Failed to fetch notifications: ${res.status}`);
+        const res = await fetch("/api/notifications/unread/count");
+        if (res.ok) {
+          const data = await res.json();
+          setUnreadCount(data.count || 0);
         }
-        const text = await res.text();
-        if (!text) {
-          setUnreadCount(0);
-          return;
-        }
-        const data = JSON.parse(text);
-        setUnreadCount(data.count ?? 0);
-      } catch (error) {
-        console.error("Failed to load notification count", error);
-        setUnreadCount(0);
-      }
+      } catch (error) {}
     };
-    fetchCount();
+    fetchUnread();
   }, []);
 
-  const paths = pathname.split("/").filter(Boolean);
-  const getCurrentTitle = () => {
-    const lastSegment = paths[paths.length - 1];
-    if (labels[lastSegment]) return labels[lastSegment];
-    return lastSegment?.charAt(0).toUpperCase() + lastSegment?.slice(1).replace(/-/g, " ") || "Dashboard";
+  const getBreadcrumbs = () => {
+    const parts = pathname.split("/").filter(Boolean);
+    return parts.map((part, i) => ({
+      label: part.charAt(0).toUpperCase() + part.slice(1),
+      href: "/" + parts.slice(0, i + 1).join("/"),
+    }));
   };
 
-  const displayName = session?.user?.name ?? "John Doe";
-  const email = session?.user?.email ?? "john.doe@esst-sup.com";
-  const avatarUrl = session?.user?.image;
-  const initials = displayName
-    .split(" ")
-    .map((segment: string) => segment[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
+  const breadcrumbs = getBreadcrumbs();
 
   return (
-    <header className="h-[56px] fixed top-0 right-0 left-[240px] bg-white border-b border-gray-200 z-40 flex items-center justify-between px-6">
-      <div className="flex flex-col">
-        <h1 className="text-[15px] font-medium text-gray-900 leading-tight">
-          {getCurrentTitle()}
-        </h1>
-        <div className="flex items-center text-[11px] text-gray-400 mt-0.5">
-          <span>Home</span>
-          {paths.map((p, i) => (
-            <React.Fragment key={p}>
-              <span className="mx-1.5">/</span>
-              <span className={i === paths.length - 1 ? "text-gray-500" : ""}>
-                {labels[p] || (p.charAt(0).toUpperCase() + p.slice(1).replace(/-/g, " "))}
-              </span>
-            </React.Fragment>
-          ))}
+    <header className="h-[56px] bg-white border-b border-gray-200 sticky top-0 z-40 px-6 flex items-center justify-between">
+      <div className={`flex items-center gap-4 ${isRTL ? "flex-row-reverse" : ""}`}>
+        <div className={`flex flex-col ${isRTL ? "text-right" : "text-left"}`}>
+          <h1 className="text-[14px] font-bold text-gray-900 leading-tight">
+            {breadcrumbs[breadcrumbs.length - 1]?.label || "Dashboard"}
+          </h1>
+          <div className="flex items-center gap-1 text-[11px] text-gray-400">
+            <span>Home</span>
+            {breadcrumbs.map((b, i) => (
+              <React.Fragment key={b.href}>
+                <span>/</span>
+                <span className={i === breadcrumbs.length - 1 ? "text-gray-600 font-medium" : ""}>{b.label}</span>
+              </React.Fragment>
+            ))}
+          </div>
         </div>
       </div>
 
-      <div className="flex items-center space-x-5">
-        <Link href="/notifications" className="relative text-gray-400 hover:text-gray-600 transition-colors">
-          <Bell className="h-[20px] w-[20px]" />
-          {unreadCount > 0 && (
-            <span className="absolute -top-1 -right-1 h-4 min-w-[16px] px-[3px] bg-red-600 text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-white">
-              {unreadCount > 9 ? "9+" : unreadCount}
-            </span>
-          )}
-        </Link>
-
-        <div className="h-[32px] w-px bg-gray-200 mx-2" />
-
-        <div className="flex items-center">
-          <button 
-            onClick={() => setIsLogoutDialogOpen(true)}
-            className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-all cursor-pointer"
-            title="Logout"
+      <div className={`flex items-center gap-6 ${isRTL ? "flex-row-reverse" : ""}`}>
+        <div className={`flex items-center gap-4 ${isRTL ? "flex-row-reverse" : ""}`}>
+          <Link href="/notifications" className="relative text-gray-400 hover:text-gray-600 transition-colors">
+            <Bell className="h-5 w-5" />
+            {unreadCount > 0 && (
+              <span className="absolute -top-1 -right-1 h-4 w-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-white">
+                {unreadCount}
+              </span>
+            )}
+          </Link>
+          
+          <button
+            onClick={() => signOut({ callbackUrl: "/" })}
+            className="text-gray-400 hover:text-red-500 transition-colors"
           >
-            <LogOut className="h-[18px] w-[18px]" />
+            <LogOut className="h-5 w-5" />
           </button>
         </div>
       </div>
-
-      <ConfirmDialog
-        isOpen={isLogoutDialogOpen}
-        onClose={() => setIsLogoutDialogOpen(false)}
-        onConfirm={() => signOut({ callbackUrl: "/" })}
-        title="Confirm Logout"
-        description="Are you sure you want to sign out? Any unsaved changes on the current page may be lost."
-        confirmLabel="Logout"
-        variant="danger"
-      />
     </header>
   );
 };

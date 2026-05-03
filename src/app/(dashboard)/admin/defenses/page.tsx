@@ -105,7 +105,7 @@ export default function AdminDefensesPage() {
       toast.success("Defense scheduled successfully");
       setIsModalOpen(false);
       fetchDefenses();
-      setFormData({ internshipId: "", scheduledAt: "", timeSlot: "", room: "" });
+      setFormData({ internshipId: "", scheduledAt: "", timeSlot: "", startTime: "09:00", endTime: "10:30", room: "" });
       setJury([
         { userId: "", role: "PRESIDENT", isAdvisory: false },
         { userId: "", role: "RAPPORTEUR", isAdvisory: false },

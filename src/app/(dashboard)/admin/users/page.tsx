@@ -12,12 +12,14 @@ import {
   GraduationCap, 
   Building2,
   Mail,
+  User as UserIcon,
   MoreHorizontal,
   Edit,
   Eye,
   Key,
   Trash2
 } from "lucide-react";
+import Image from "next/image";
 import { Button } from "@/components/ui/Button";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
@@ -32,6 +34,7 @@ interface User {
   email: string;
   role: "ADMIN" | "TEACHER" | "STUDENT" | "COMPANY";
   isActive: boolean;
+  avatarUrl?: string | null;
   createdAt: string;
 }
 
@@ -270,8 +273,19 @@ export default function AdminUsersPage() {
                 <tr key={user.id} className="admin-table-row">
                   <td>
                     <div className="flex items-center gap-3">
-                      <div className="h-8 w-8 rounded-full bg-gray-100 flex items-center justify-center text-[12px] font-bold text-gray-600">
-                        {user.name.charAt(0)}
+                      <div className="h-8 w-8 rounded-full bg-indigo-50 text-indigo-700 flex items-center justify-center text-[12px] font-bold overflow-hidden">
+                        {user.avatarUrl ? (
+                          <Image 
+                            src={user.avatarUrl} 
+                            alt={user.name} 
+                            width={32} 
+                            height={32} 
+                            className="h-full w-full object-cover"
+                            unoptimized
+                          />
+                        ) : (
+                          user.name.charAt(0)
+                        )}
                       </div>
                       <div className="flex flex-col">
                         <span className="font-medium text-gray-900">{user.name}</span>
@@ -404,8 +418,19 @@ export default function AdminUsersPage() {
         {userToView && (
           <div className="space-y-6 py-2">
             <div className="flex items-center gap-4 border-b border-gray-50 pb-4">
-              <div className="h-16 w-16 rounded-full bg-indigo-50 flex items-center justify-center text-[24px] font-bold text-indigo-600">
-                {userToView.name.charAt(0)}
+              <div className="h-16 w-16 rounded-full bg-indigo-50 flex items-center justify-center text-[24px] font-bold text-indigo-700 overflow-hidden">
+                {userToView.avatarUrl ? (
+                  <Image 
+                    src={userToView.avatarUrl} 
+                    alt={userToView.name} 
+                    width={64} 
+                    height={64} 
+                    className="h-full w-full object-cover"
+                    unoptimized
+                  />
+                ) : (
+                  userToView.name.charAt(0)
+                )}
               </div>
               <div>
                 <h3 className="text-[18px] font-bold text-gray-900">{userToView.name}</h3>

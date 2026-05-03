@@ -1,66 +1,97 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { 
-  Search, 
-  Filter, 
-  BookOpen, 
-  Building2, 
-  User, 
-  ChevronRight,
-  Info,
-  CheckCircle2
+import {
+  Search, Filter, Building2, CheckCircle2, Loader2,
+  X, AlertCircle, Users, Calendar, Tag, ChevronRight, User
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { toast } from "sonner";
-import { StatusBadge } from "@/components/ui/StatusBadge";
 
 interface Topic {
   id: string;
   title: string;
   description: string;
   type: string;
-  proposedBy: { name: string };
+  internshipType: string;
+  requiredSkills?: string | null;
   maxStudents: number;
+  academicYear: string;
+  proposedBy: { name: string };
+  assignedTeacher?: { name: string } | null;
 }
 
 export default function StudentTopicsPage() {
   const [topics, setTopics] = useState<Topic[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [applying, setApplying] = useState<string | null>(null);
+  const [applied, setApplied] = useState<Set<string>>(new Set());
+  // Topic detail panel
+  const [selectedTopic, setSelectedTopic] = useState<Topic | null>(null);
+  // Already-in-internship modal
+  const [alreadyModal, setAlreadyModal] = useState<{ show: boolean; message: string }>({
+    show: false,
+    message: "",
+  });
 
-  const fetchTopics = async () => {
+  useEffect(() => {
+    fetch("/api/topics")
+      .then((r) => r.json())
+      .then((d) => setTopics(d.data || []))
+      .catch(() => toast.error("Failed to load topics"))
+      .finally(() => setIsLoading(false));
+  }, []);
+
+  const handleApply = async (topicId: string, e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    setApplying(topicId);
     try {
-      const res = await fetch("/api/topics");
+      const res = await fetch("/api/applications", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ topicId }),
+      });
       const data = await res.json();
-      setTopics(data.data || []);
-    } catch (error) {
-      toast.error("Failed to load topics");
+
+      if (res.status === 409 && data.error === "ALREADY_IN_INTERNSHIP") {
+        setAlreadyModal({ show: true, message: data.message });
+        return;
+      }
+      if (!res.ok) {
+        toast.error(data.error || "Failed to apply");
+        return;
+      }
+
+      setApplied((prev) => new Set(prev).add(topicId));
+      setSelectedTopic(null);
+      toast.success("Application submitted! The company will review it shortly.");
+    } catch {
+      toast.error("Network error — please try again.");
     } finally {
-      setIsLoading(false);
+      setApplying(null);
     }
   };
 
-  useEffect(() => {
-    fetchTopics();
-  }, []);
-
-  const handleApply = async (topicId: string) => {
-    toast.info("Application feature coming soon. Please contact the administrator.");
-  };
-
-  const filteredTopics = topics.filter(t => 
-    t.title.toLowerCase().includes(search.toLowerCase()) || 
-    t.proposedBy.name.toLowerCase().includes(search.toLowerCase())
+  const filteredTopics = topics.filter(
+    (t) =>
+      t.title.toLowerCase().includes(search.toLowerCase()) ||
+      t.proposedBy.name.toLowerCase().includes(search.toLowerCase()) ||
+      t.description?.toLowerCase().includes(search.toLowerCase())
   );
+
+  const skills = (t: Topic) =>
+    t.requiredSkills
+      ? t.requiredSkills.split(/[,;]+/).map((s) => s.trim()).filter(Boolean)
+      : [];
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-[17px] font-semibold text-gray-900">Available PFE Topics</h1>
-          <p className="text-[13px] text-gray-500 mt-0.5">Explore project proposals from companies and professors.</p>
-        </div>
+      <div>
+        <h1 className="text-[17px] font-semibold text-gray-900">Available Topics</h1>
+        <p className="text-[13px] text-gray-500 mt-0.5">
+          Explore project proposals from companies and professors.
+        </p>
       </div>
 
       <div className="flex flex-col sm:flex-row gap-4">
@@ -68,69 +99,244 @@ export default function StudentTopicsPage() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
           <input
             type="text"
-            placeholder="Search topics by keywords, technology, or company..."
+            placeholder="Search by title, company, or description…"
             className="admin-input pl-10"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-        <Button variant="outline" className="h-[36px]">
-          <Filter className="h-4 w-4 mr-2" />
-          Filter by Specialty
-        </Button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {isLoading ? (
-          <div className="col-span-full text-center py-12 text-gray-400">Loading topics...</div>
+          <div className="col-span-full text-center py-12 text-gray-400">Loading topics…</div>
         ) : filteredTopics.length === 0 ? (
-          <div className="col-span-full text-center py-12 text-gray-400">No topics found matching your search.</div>
+          <div className="col-span-full text-center py-12 text-gray-400">
+            No topics found matching your search.
+          </div>
         ) : (
-          filteredTopics.map((topic) => (
-            <div key={topic.id} className="bg-white border border-gray-200 rounded-md p-6 flex flex-col justify-between hover:border-indigo-400 transition-all shadow-sm group">
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="px-2 py-0.5 bg-indigo-50 text-indigo-700 text-[10px] font-bold uppercase rounded">
-                      {topic.type === "COMPANY_PROPOSED" ? "Company" : "Professor"}
-                    </span>
+          filteredTopics.map((topic) => {
+            const isApplied = applied.has(topic.id);
+            const isApplying = applying === topic.id;
+            const topicSkills = skills(topic);
+            return (
+              <div
+                key={topic.id}
+                onClick={() => setSelectedTopic(topic)}
+                className="bg-white border border-gray-200 rounded-xl p-6 flex flex-col justify-between hover:border-indigo-300 hover:shadow-md transition-all group cursor-pointer"
+              >
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="px-2 py-0.5 bg-indigo-50 text-indigo-700 text-[10px] font-bold uppercase rounded-full">
+                        {topic.type === "COMPANY_PROPOSED" ? "Company" : "Professor"}
+                      </span>
+                      <span className={`px-2 py-0.5 text-[10px] font-bold uppercase rounded-full ${
+                        topic.internshipType === "PFE"
+                          ? "bg-purple-50 text-purple-700"
+                          : "bg-emerald-50 text-emerald-700"
+                      }`}>
+                        {topic.internshipType}
+                      </span>
+                    </div>
+                    <ChevronRight className="h-4 w-4 text-gray-300 group-hover:text-indigo-400 transition-colors" />
                   </div>
-                  <span className="text-[12px] text-gray-400 font-medium">Cap: {topic.maxStudents} students</span>
-                </div>
-                
-                <h3 className="text-[15px] font-bold text-gray-900 group-hover:text-indigo-600 transition-colors">
-                  {topic.title}
-                </h3>
-                
-                <p className="text-[12px] text-gray-500 line-clamp-3 leading-relaxed">
-                  {topic.description}
-                </p>
 
-                <div className="flex items-center gap-4 pt-2">
-                   <div className="flex items-center text-[12px] text-gray-600">
-                     <Building2 className="h-3.5 w-3.5 mr-1.5 text-gray-400" />
-                     {topic.proposedBy.name}
-                   </div>
+                  <h3 className="text-[14px] font-bold text-gray-900 group-hover:text-indigo-700 transition-colors leading-snug">
+                    {topic.title}
+                  </h3>
+
+                  <p className="text-[12px] text-gray-500 line-clamp-2 leading-relaxed">
+                    {topic.description}
+                  </p>
+
+                  {topicSkills.length > 0 && (
+                    <div className="flex flex-wrap gap-1">
+                      {topicSkills.slice(0, 3).map((s) => (
+                        <span key={s} className="px-1.5 py-0.5 bg-gray-100 text-gray-600 text-[10px] rounded">
+                          {s}
+                        </span>
+                      ))}
+                      {topicSkills.length > 3 && (
+                        <span className="px-1.5 py-0.5 text-gray-400 text-[10px]">+{topicSkills.length - 3} more</span>
+                      )}
+                    </div>
+                  )}
+
+                  <div className="flex items-center justify-between text-[12px] text-gray-500 pt-1">
+                    <div className="flex items-center gap-1.5">
+                      <Building2 className="h-3.5 w-3.5 text-gray-400" />
+                      {topic.proposedBy.name}
+                    </div>
+                    <div className="flex items-center gap-1 text-gray-400">
+                      <Users className="h-3.5 w-3.5" />
+                      {topic.maxStudents} student{topic.maxStudents !== 1 ? "s" : ""}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-5 pt-4 border-t border-gray-100 flex items-center justify-end" onClick={(e) => e.stopPropagation()}>
+                  {isApplied ? (
+                    <span className="flex items-center gap-1.5 text-[12px] font-semibold text-emerald-600">
+                      <CheckCircle2 className="h-4 w-4" /> Application Sent
+                    </span>
+                  ) : (
+                    <Button onClick={(e) => handleApply(topic.id, e)} size="sm" className="px-6" disabled={isApplying}>
+                      {isApplying
+                        ? <><Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />Applying…</>
+                        : "Apply Now"}
+                    </Button>
+                  )}
                 </div>
               </div>
-
-              <div className="mt-6 pt-4 border-t border-gray-50 flex items-center justify-between">
-                <button className="text-[12px] font-semibold text-gray-500 flex items-center hover:text-gray-900">
-                  <Info className="h-4 w-4 mr-1.5" />
-                  View Details
-                </button>
-                <Button 
-                  onClick={() => handleApply(topic.id)}
-                  size="sm" 
-                  className="px-6"
-                >
-                  Apply Now
-                </Button>
-              </div>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
+
+      {/* ── TOPIC DETAIL MODAL ─────────────────────────────────────────────── */}
+      {selectedTopic && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4" onClick={() => setSelectedTopic(null)}>
+          <div
+            className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="p-6 border-b border-gray-100 flex items-start justify-between gap-4 bg-gray-50/50">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="px-2.5 py-0.5 bg-indigo-50 text-indigo-700 text-[10px] font-bold uppercase rounded-full">
+                    {selectedTopic.type === "COMPANY_PROPOSED" ? "Company" : "Professor"}
+                  </span>
+                  <span className={`px-2.5 py-0.5 text-[10px] font-bold uppercase rounded-full ${
+                    selectedTopic.internshipType === "PFE"
+                      ? "bg-purple-50 text-purple-700"
+                      : "bg-emerald-50 text-emerald-700"
+                  }`}>
+                    {selectedTopic.internshipType}
+                  </span>
+                </div>
+                <h2 className="text-[18px] font-bold text-gray-900 leading-snug">{selectedTopic.title}</h2>
+              </div>
+              <button onClick={() => setSelectedTopic(null)}
+                className="mt-1 h-8 w-8 rounded-full hover:bg-gray-200 flex items-center justify-center text-gray-400 flex-shrink-0 transition-colors">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="flex-1 p-6 space-y-6 overflow-y-auto">
+              {/* Description */}
+              <div>
+                <h3 className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2">Project Description</h3>
+                <p className="text-[14px] text-gray-700 leading-relaxed whitespace-pre-wrap">{selectedTopic.description}</p>
+              </div>
+
+              {/* Meta info */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="bg-gray-50 border border-gray-100 rounded-xl p-3.5">
+                  <p className="text-[10px] font-semibold text-gray-400 uppercase mb-1.5">Proposed By</p>
+                  <div className="flex items-center gap-2">
+                    <Building2 className="h-4 w-4 text-indigo-500" />
+                    <p className="text-[13px] font-medium text-gray-800">{selectedTopic.proposedBy.name}</p>
+                  </div>
+                </div>
+                <div className="bg-gray-50 border border-gray-100 rounded-xl p-3.5">
+                  <p className="text-[10px] font-semibold text-gray-400 uppercase mb-1.5">Student Capacity</p>
+                  <div className="flex items-center gap-2">
+                    <Users className="h-4 w-4 text-indigo-500" />
+                    <p className="text-[13px] font-medium text-gray-800">{selectedTopic.maxStudents} student{selectedTopic.maxStudents !== 1 ? "s" : ""}</p>
+                  </div>
+                </div>
+                <div className="bg-gray-50 border border-gray-100 rounded-xl p-3.5">
+                  <p className="text-[10px] font-semibold text-gray-400 uppercase mb-1.5">Academic Year</p>
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-4 w-4 text-indigo-500" />
+                    <p className="text-[13px] font-medium text-gray-800">{selectedTopic.academicYear}</p>
+                  </div>
+                </div>
+                {selectedTopic.assignedTeacher && (
+                  <div className="bg-gray-50 border border-gray-100 rounded-xl p-3.5">
+                    <p className="text-[10px] font-semibold text-gray-400 uppercase mb-1.5">Assigned Supervisor</p>
+                    <div className="flex items-center gap-2">
+                      <User className="h-4 w-4 text-indigo-500" />
+                      <p className="text-[13px] font-medium text-gray-800">{selectedTopic.assignedTeacher.name}</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Skills */}
+              {skills(selectedTopic).length > 0 && (
+                <div>
+                  <h3 className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
+                    <Tag className="h-3.5 w-3.5" /> Required Technical Skills
+                  </h3>
+                  <div className="flex flex-wrap gap-2">
+                    {skills(selectedTopic).map((s) => (
+                      <span key={s} className="px-3 py-1 bg-indigo-50 text-indigo-700 text-[12px] font-medium rounded-lg border border-indigo-100">
+                        {s}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Footer CTA */}
+            <div className="p-6 border-t border-gray-100 bg-gray-50/30 flex justify-end">
+              {applied.has(selectedTopic.id) ? (
+                <div className="flex items-center justify-center gap-2 px-6 h-11 bg-emerald-50 text-emerald-700 rounded-xl font-semibold text-[13px] border border-emerald-100">
+                  <CheckCircle2 className="h-4 w-4" /> Application Already Sent
+                </div>
+              ) : (
+                <div className="flex gap-3">
+                  <Button
+                    variant="outline"
+                    className="h-11 px-6 rounded-xl"
+                    onClick={() => setSelectedTopic(null)}
+                  >
+                    Close
+                  </Button>
+                  <Button
+                    className="min-w-[160px] h-11 text-[14px] rounded-xl shadow-lg shadow-indigo-100"
+                    onClick={(e) => handleApply(selectedTopic.id, e)}
+                    disabled={applying === selectedTopic.id}
+                  >
+                    {applying === selectedTopic.id
+                      ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Applying…</>
+                      : "Apply for this Project"}
+                  </Button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+
+      {/* ── ALREADY IN INTERNSHIP MODAL ────────────────────────────────────── */}
+      {alreadyModal.show && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden">
+            <div className="px-6 pt-6 pb-4 flex flex-col items-center text-center">
+              <div className="h-14 w-14 rounded-full bg-amber-100 flex items-center justify-center mb-4">
+                <AlertCircle className="h-7 w-7 text-amber-500" />
+              </div>
+              <h3 className="text-[16px] font-bold text-gray-900">Already Enrolled</h3>
+              <p className="text-[13px] text-gray-500 mt-2 leading-relaxed">{alreadyModal.message}</p>
+            </div>
+            <div className="px-6 pb-6">
+              <button
+                onClick={() => setAlreadyModal({ show: false, message: "" })}
+                className="w-full h-11 rounded-xl bg-indigo-600 text-white text-[13px] font-semibold hover:bg-indigo-700 transition-colors"
+              >
+                Got it
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

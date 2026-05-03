@@ -4,9 +4,10 @@ import React, { useEffect, useState, Suspense } from "react";
 import { DocumentList } from "@/components/documents/DocumentList";
 import { UploadDocumentSection } from "@/components/documents/UploadDocumentSection";
 import { toast } from "sonner";
-import { Info, ChevronLeft } from "lucide-react";
+import { Info, ChevronLeft, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 
 function DocumentsContent() {
   const searchParams = useSearchParams();
@@ -15,14 +16,19 @@ function DocumentsContent() {
   const [documents, setDocuments] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [internshipId, setInternshipId] = useState<string | null>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const fetchInternshipAndDocs = async () => {
     try {
       const intRes = await fetch("/api/internships");
       const intData = await intRes.json();
       
-      if (intData.data && intData.data.length > 0) {
-        const activeIntId = intData.data[0].id;
+      const internships = intData.data || [];
+      const activeInternship = internships.find((i: any) => i.status !== "CANCELLED");
+
+      if (activeInternship) {
+        const activeIntId = activeInternship.id;
         setInternshipId(activeIntId);
 
         const docRes = await fetch(`/api/documents?internshipId=${activeIntId}`);
@@ -39,6 +45,24 @@ function DocumentsContent() {
   useEffect(() => {
     fetchInternshipAndDocs();
   }, []);
+
+  const handleDelete = async () => {
+    if (!deleteId) return;
+    setIsDeleting(true);
+    try {
+      const res = await fetch(`/api/documents/${deleteId}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) throw new Error("Failed to delete document");
+      toast.success("Document deleted successfully");
+      fetchInternshipAndDocs();
+    } catch (error) {
+      toast.error("Error deleting document");
+    } finally {
+      setIsDeleting(false);
+      setDeleteId(null);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -70,6 +94,7 @@ function DocumentsContent() {
             <DocumentList 
               documents={documents} 
               canReview={false}
+              onDelete={(id) => setDeleteId(id)}
             />
           </div>
 
@@ -93,6 +118,15 @@ function DocumentsContent() {
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        isOpen={!!deleteId}
+        onClose={() => setDeleteId(null)}
+        onConfirm={handleDelete}
+        title="Delete Document"
+        description="Are you sure you want to delete this document? This action cannot be undone."
+        isLoading={isDeleting}
+      />
     </div>
   );
 }
