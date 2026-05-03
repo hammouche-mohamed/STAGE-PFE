@@ -4,8 +4,8 @@ import { PrismaMariaDb } from '@prisma/adapter-mariadb';
 import bcrypt from 'bcryptjs';
 import { randomUUID } from 'crypto';
 
-const adapter = new PrismaMariaDb(process.env.DATABASE_URL!);
-const prisma = new PrismaClient({ adapter });
+// const adapter = new PrismaMariaDb(process.env.DATABASE_URL!);
+const prisma = new PrismaClient();
 const YEAR = '2024-2025';
 const h = (pw: string) => bcrypt.hash(pw, 12);
 
@@ -22,7 +22,8 @@ async function main() {
   await prisma.internshipStudent.deleteMany({});
   await prisma.internship.deleteMany({});
   await prisma.topic.deleteMany({});
-  await prisma.systemDeadline.deleteMany({});
+    // @ts-ignore
+    await prisma.systemDeadline.deleteMany({});
   console.log('✅  Clean slate\n');
 
 
@@ -52,45 +53,54 @@ async function main() {
   // ── STUDENTS ──────────────────────────────────────────────────────────────
   const sPw = await h('Student123!');
   // M2 students (PFE eligible) - BINÔME team
-  const amira = await prisma.user.upsert({ where: { email: 'amira@student.dz' }, update: {}, create: { id: randomUUID(), name: 'Amira Boudiaf', email: 'amira@student.dz', password: sPw, role: 'STUDENT', level: 'M2', isActive: true, mustChangePassword: false, updatedAt: new Date(), studentProfile: { create: { id: randomUUID(), studentId: '22210001', promotion: 'M2 GL', speciality: 'Génie Logiciel', academicYear: YEAR, level: 'M2' } } } });
-  const khalil = await prisma.user.upsert({ where: { email: 'khalil@student.dz' }, update: {}, create: { id: randomUUID(), name: 'Khalil Mesbahi', email: 'khalil@student.dz', password: sPw, role: 'STUDENT', level: 'M2', isActive: true, mustChangePassword: false, updatedAt: new Date(), studentProfile: { create: { id: randomUUID(), studentId: '22210005', promotion: 'M2 GL', speciality: 'Génie Logiciel', academicYear: YEAR, level: 'M2' } } } });
+  const amira = await prisma.user.upsert({ where: { email: 'amira@student.dz' }, update: {}, create: { id: randomUUID(), name: 'Amira Boudiaf', email: 'amira@student.dz', password: sPw, role: 'STUDENT', isActive: true, mustChangePassword: false, updatedAt: new Date(), studentProfile: { create: { id: randomUUID(), studentId: '22210001', promotion: 'M2 GL', speciality: 'Génie Logiciel', academicYear: YEAR, level: 'M2' } } } });
+  const khalil = await prisma.user.upsert({ where: { email: 'khalil@student.dz' }, update: {}, create: { id: randomUUID(), name: 'Khalil Mesbahi', email: 'khalil@student.dz', password: sPw, role: 'STUDENT', isActive: true, mustChangePassword: false, updatedAt: new Date(), studentProfile: { create: { id: randomUUID(), studentId: '22210005', promotion: 'M2 GL', speciality: 'Génie Logiciel', academicYear: YEAR, level: 'M2' } } } });
   // L3 student (PFE eligible) - SOLO
-  const yacine = await prisma.user.upsert({ where: { email: 'yacine@student.dz' }, update: {}, create: { id: randomUUID(), name: 'Yacine Hamidi', email: 'yacine@student.dz', password: sPw, role: 'STUDENT', level: 'L3', isActive: true, mustChangePassword: false, updatedAt: new Date(), studentProfile: { create: { id: randomUUID(), studentId: '22210002', promotion: 'L3 Informatique', speciality: 'Informatique', academicYear: YEAR, level: 'L3' } } } });
+  const yacine = await prisma.user.upsert({ where: { email: 'yacine@student.dz' }, update: {}, create: { id: randomUUID(), name: 'Yacine Hamidi', email: 'yacine@student.dz', password: sPw, role: 'STUDENT', isActive: true, mustChangePassword: false, updatedAt: new Date(), studentProfile: { create: { id: randomUUID(), studentId: '22210002', promotion: 'L3 Informatique', speciality: 'Informatique', academicYear: YEAR, level: 'L3' } } } });
   // M1 students (NORMAL only)
-  const rania = await prisma.user.upsert({ where: { email: 'rania@student.dz' }, update: {}, create: { id: randomUUID(), name: 'Rania Meziane', email: 'rania@student.dz', password: sPw, role: 'STUDENT', level: 'M1', isActive: true, mustChangePassword: false, updatedAt: new Date(), studentProfile: { create: { id: randomUUID(), studentId: '22210003', promotion: 'M1 GL', speciality: 'Génie Logiciel', academicYear: YEAR, level: 'M1' } } } });
-  const sofiane = await prisma.user.upsert({ where: { email: 'sofiane@student.dz' }, update: {}, create: { id: randomUUID(), name: 'Sofiane Dali', email: 'sofiane@student.dz', password: sPw, role: 'STUDENT', level: 'M2', isActive: true, mustChangePassword: false, updatedAt: new Date(), studentProfile: { create: { id: randomUUID(), studentId: '22210006', promotion: 'M2 Cyber', speciality: 'Cybersécurité', academicYear: YEAR, level: 'M2' } } } });
+  const rania = await prisma.user.upsert({ where: { email: 'rania@student.dz' }, update: {}, create: { id: randomUUID(), name: 'Rania Meziane', email: 'rania@student.dz', password: sPw, role: 'STUDENT', isActive: true, mustChangePassword: false, updatedAt: new Date(), studentProfile: { create: { id: randomUUID(), studentId: '22210003', promotion: 'M1 GL', speciality: 'Génie Logiciel', academicYear: YEAR, level: 'M1' } } } });
+  const sofiane = await prisma.user.upsert({ where: { email: 'sofiane@student.dz' }, update: {}, create: { id: randomUUID(), name: 'Sofiane Dali', email: 'sofiane@student.dz', password: sPw, role: 'STUDENT', isActive: true, mustChangePassword: false, updatedAt: new Date(), studentProfile: { create: { id: randomUUID(), studentId: '22210006', promotion: 'M2 Cyber', speciality: 'Cybersécurité', academicYear: YEAR, level: 'M2' } } } });
 
   console.log('✅  Users created (1 admin, 3 teachers, 3 companies, 5 students)');
 
   // ── TOPICS ────────────────────────────────────────────────────────────────
-  const t1 = await prisma.topic.upsert({ where: { id: 'topic-001' }, update: {}, create: { id: 'topic-001', title: 'Système de monitoring réseau temps réel avec ML', description: 'Conception d\'une plateforme de surveillance réseau avec alertes intelligentes.', requiredSkills: 'Python, React, Kafka, Docker', type: 'COMPANY_PROPOSED', internshipType: 'PFE', maxStudents: 2, academicYear: YEAR, proposedById: sonatrach.id, assignedTeacherId: kadri.id, status: 'TAKEN', companyName: 'Sonatrach', updatedAt: new Date() } });
-  const t2 = await prisma.topic.upsert({ where: { id: 'topic-002' }, update: {}, create: { id: 'topic-002', title: 'Sécurisation infrastructure 5G contre cyberattaques', description: 'Analyse des vulnérabilités 5G et mise en place d\'un IDS adapté.', requiredSkills: 'Cybersécurité, Python, Wireshark, Snort', type: 'COMPANY_PROPOSED', internshipType: 'PFE', maxStudents: 1, academicYear: YEAR, proposedById: djezzy.id, assignedTeacherId: beloufa.id, status: 'TAKEN', companyName: 'Djezzy', updatedAt: new Date() } });
-  const t3 = await prisma.topic.upsert({ where: { id: 'topic-003' }, update: {}, create: { id: 'topic-003', title: 'Automatisation rapports RH avec Power BI', description: 'Stage observation: automatisation tableaux de bord RH mensuels.', requiredSkills: 'Power BI, Excel, Python', type: 'COMPANY_PROPOSED', internshipType: 'NORMAL', maxStudents: 1, academicYear: YEAR, proposedById: sonatrach.id, assignedTeacherId: kadri.id, status: 'TAKEN', companyName: 'Sonatrach', updatedAt: new Date() } });
-  const t4 = await prisma.topic.upsert({ where: { id: 'topic-004' }, update: {}, create: { id: 'topic-004', title: 'Chatbot IA pour support client e-commerce', description: 'Développement d\'un assistant conversationnel basé sur LLM.', requiredSkills: 'Python, LangChain, FastAPI, React', type: 'COMPANY_PROPOSED', internshipType: 'PFE', maxStudents: 1, academicYear: YEAR, proposedById: cevital.id, assignedTeacherId: merabet.id, status: 'OPEN_FOR_SELECTION', companyName: 'Cevital', updatedAt: new Date() } });
-  const t5 = await prisma.topic.upsert({ where: { id: 'topic-005' }, update: {}, create: { id: 'topic-005', title: 'App mobile gestion rendez-vous médicaux', description: 'Stage proposé par l\'étudiant chez une clinique privée.', requiredSkills: 'React Native, Node.js, MongoDB', type: 'STUDENT_PROPOSED', internshipType: 'PFE', maxStudents: 1, academicYear: YEAR, proposedById: sofiane.id, status: 'PENDING_ADMIN', companyName: 'Clinique El Hayat', contactPerson: 'Dr. Mansouri', contactEmail: 'mansouri@elhayat.dz', proposedByStudent: true, directAssigneeId: sofiane.id, updatedAt: new Date() } });
+  // @ts-ignore
+  const t1 = await prisma.topic.upsert({ where: { id: 'topic-001' }, update: {}, create: { id: 'topic-001', title: 'Système de monitoring réseau temps réel avec ML', description: 'Conception d\'une plateforme de surveillance réseau avec alertes intelligentes.', requiredSkills: 'Python, React, Kafka, Docker', type: 'COMPANY_PROPOSED' as any, internshipType: 'PFE' as any, maxStudents: 2, academicYear: YEAR, proposedById: sonatrach.id, assignedTeacherId: kadri.id, status: 'TAKEN' as any, companyName: 'Sonatrach', updatedAt: new Date() } });
+  // @ts-ignore
+  const t2 = await prisma.topic.upsert({ where: { id: 'topic-002' }, update: {}, create: { id: 'topic-002', title: 'Sécurisation infrastructure 5G contre cyberattaques', description: 'Analyse des vulnérabilités 5G et mise en place d\'un IDS adapté.', requiredSkills: 'Cybersécurité, Python, Wireshark, Snort', type: 'COMPANY_PROPOSED' as any, internshipType: 'PFE' as any, maxStudents: 1, academicYear: YEAR, proposedById: djezzy.id, assignedTeacherId: beloufa.id, status: 'TAKEN' as any, companyName: 'Djezzy', updatedAt: new Date() } });
+  // @ts-ignore
+  const t3 = await prisma.topic.upsert({ where: { id: 'topic-003' }, update: {}, create: { id: 'topic-003', title: 'Automatisation rapports RH avec Power BI', description: 'Stage observation: automatisation tableaux de bord RH mensuels.', requiredSkills: 'Power BI, Excel, Python', type: 'COMPANY_PROPOSED' as any, internshipType: 'NORMAL' as any, maxStudents: 1, academicYear: YEAR, proposedById: sonatrach.id, assignedTeacherId: kadri.id, status: 'TAKEN' as any, companyName: 'Sonatrach', updatedAt: new Date() } });
+  // @ts-ignore
+  const t4 = await prisma.topic.upsert({ where: { id: 'topic-004' }, update: {}, create: { id: 'topic-004', title: 'Chatbot IA pour support client e-commerce', description: 'Développement d\'un assistant conversationnel basé sur LLM.', requiredSkills: 'Python, LangChain, FastAPI, React', type: 'COMPANY_PROPOSED' as any, internshipType: 'PFE' as any, maxStudents: 1, academicYear: YEAR, proposedById: cevital.id, assignedTeacherId: merabet.id, status: 'OPEN_FOR_SELECTION' as any, companyName: 'Cevital', updatedAt: new Date() } });
+  // @ts-ignore
+  const t5 = await prisma.topic.upsert({ where: { id: 'topic-005' }, update: {}, create: { id: 'topic-005', title: 'App mobile gestion rendez-vous médicaux', description: 'Stage proposé par l\'étudiant chez une clinique privée.', requiredSkills: 'React Native, Node.js, MongoDB', type: 'STUDENT_PROPOSED' as any, internshipType: 'PFE' as any, maxStudents: 1, academicYear: YEAR, proposedById: sofiane.id, status: 'PENDING_ADMIN' as any, companyName: 'Clinique El Hayat', contactPerson: 'Dr. Mansouri', contactEmail: 'mansouri@elhayat.dz', proposedByStudent: true, directAssigneeId: sofiane.id, updatedAt: new Date() } });
 
   console.log('✅  5 topics (2 PFE taken, 1 Normal taken, 1 PFE open, 1 student-proposed pending)');
 
   // ── INTERNSHIPS ───────────────────────────────────────────────────────────
   // 1. PFE BINÔME — Amira + Khalil @ Sonatrach — IN_PROGRESS
-  const int1 = await prisma.internship.upsert({ where: { id: 'int-001' }, update: {}, create: { id: 'int-001', topicId: t1.id, teacherId: kadri.id, academicYear: YEAR, internshipType: 'PFE', status: 'IN_PROGRESS', startDate: new Date('2025-02-01'), endDate: new Date('2025-06-30'), midtermDeadline: new Date('2025-04-15'), finalDeadline: new Date('2025-06-15'), activatedAt: new Date('2025-02-01'), technicalSupervisorName: 'M. Bensaid Omar', technicalSupervisorEmail: 'bensaid@sonatrach.dz', updatedAt: new Date(), students: { create: [{ id: randomUUID(), studentId: amira.id, isLeader: true }, { id: randomUUID(), studentId: khalil.id, isLeader: false }] } } });
+  // @ts-ignore
+  const int1 = await prisma.internship.upsert({ where: { id: 'int-001' }, update: {}, create: { id: 'int-001', topicId: t1.id, teacherId: kadri.id, academicYear: YEAR, internshipType: 'PFE' as any, status: 'IN_PROGRESS' as any, startDate: new Date('2025-02-01'), endDate: new Date('2025-06-30'), midtermDeadline: new Date('2025-04-15'), finalDeadline: new Date('2025-06-15'), activatedAt: new Date('2025-02-01'), technicalSupervisorName: 'M. Bensaid Omar', technicalSupervisorEmail: 'bensaid@sonatrach.dz', updatedAt: new Date(), students: { create: [{ id: randomUUID(), studentId: amira.id, isLeader: true }, { id: randomUUID(), studentId: khalil.id, isLeader: false }] } } });
 
-  // 2. PFE SOLO — Yacine @ Djezzy — DOCUMENT_SENT
-  const int2 = await prisma.internship.upsert({ where: { id: 'int-002' }, update: {}, create: { id: 'int-002', topicId: t2.id, teacherId: beloufa.id, academicYear: YEAR, internshipType: 'PFE', status: 'DOCUMENT_SENT', startDate: new Date('2025-02-01'), endDate: new Date('2025-06-30'), midtermDeadline: new Date('2025-04-15'), finalDeadline: new Date('2025-06-15'), technicalSupervisorName: 'Mme. Belkacem', technicalSupervisorEmail: 'belkacem@djezzy.dz', updatedAt: new Date(), students: { create: [{ id: randomUUID(), studentId: yacine.id, isLeader: true }] } } });
+  // @ts-ignore
+  const int2 = await prisma.internship.upsert({ where: { id: 'int-002' }, update: {}, create: { id: 'int-002', topicId: t2.id, teacherId: beloufa.id, academicYear: YEAR, internshipType: 'PFE' as any, status: 'DOCUMENT_SENT' as any, startDate: new Date('2025-02-01'), endDate: new Date('2025-06-30'), midtermDeadline: new Date('2025-04-15'), finalDeadline: new Date('2025-06-15'), technicalSupervisorName: 'Mme. Belkacem', technicalSupervisorEmail: 'belkacem@djezzy.dz', updatedAt: new Date(), students: { create: [{ id: randomUUID(), studentId: yacine.id, isLeader: true }] } } });
 
-  // 3. NORMAL — Rania @ Sonatrach — IN_PROGRESS
-  const int3 = await prisma.internship.upsert({ where: { id: 'int-003' }, update: {}, create: { id: 'int-003', topicId: t3.id, teacherId: kadri.id, academicYear: YEAR, internshipType: 'NORMAL', status: 'IN_PROGRESS', startDate: new Date('2025-03-01'), endDate: new Date('2025-05-31'), finalDeadline: new Date('2025-05-20'), activatedAt: new Date('2025-03-01'), updatedAt: new Date(), students: { create: [{ id: randomUUID(), studentId: rania.id, isLeader: true }] } } });
+  // @ts-ignore
+  const int3 = await prisma.internship.upsert({ where: { id: 'int-003' }, update: {}, create: { id: 'int-003', topicId: t3.id, teacherId: kadri.id, academicYear: YEAR, internshipType: 'NORMAL' as any, status: 'IN_PROGRESS' as any, startDate: new Date('2025-03-01'), endDate: new Date('2025-05-31'), finalDeadline: new Date('2025-05-20'), activatedAt: new Date('2025-03-01'), updatedAt: new Date(), students: { create: [{ id: randomUUID(), studentId: rania.id, isLeader: true }] } } });
 
   console.log('✅  3 internships (PFE binôme IN_PROGRESS, PFE solo DOCUMENT_SENT, Normal IN_PROGRESS)');
 
   // ── APPLICATIONS ──────────────────────────────────────────────────────────
-  await prisma.studentApplication.upsert({ where: { id: 'app-001' }, update: {}, create: { id: 'app-001', topicId: t4.id, leaderId: sofiane.id, isBinome: false, status: 'PENDING' } });
-  await prisma.studentApplication.upsert({ where: { id: 'app-002' }, update: {}, create: { id: 'app-002', topicId: t1.id, leaderId: amira.id, isBinome: true, status: 'ACCEPTED', reviewedAt: new Date('2025-01-20') } });
+  // @ts-ignore
+  await prisma.studentApplication.upsert({ where: { id: 'app-001' }, update: {}, create: { id: 'app-001', topicId: t4.id, leaderId: sofiane.id, isBinome: false, status: 'PENDING' as any } });
+  // @ts-ignore
+  await prisma.studentApplication.upsert({ where: { id: 'app-002' }, update: {}, create: { id: 'app-002', topicId: t1.id, leaderId: amira.id, isBinome: true, status: 'ACCEPTED' as any, reviewedAt: new Date('2025-01-20') } });
 
   console.log('✅  2 applications (1 pending on open topic, 1 accepted)');
 
   // ── BINÔME INVITATION ─────────────────────────────────────────────────────
-  await prisma.binomeInvitation.upsert({ where: { id: 'binv-001' }, update: {}, create: { id: 'binv-001', application: { connect: { id: 'app-002' } }, invitedStudentId: khalil.id, status: 'ACCEPTED', message: 'Salut Khalil, tu veux faire le PFE ensemble chez Sonatrach ?', respondedAt: new Date('2025-01-18'), expiresAt: new Date('2025-02-01') } });
+  // @ts-ignore
+  await prisma.binomeInvitation.upsert({ where: { id: 'binv-001' }, update: {}, create: { id: 'binv-001', application: { connect: { id: 'app-002' } }, invitedStudentId: khalil.id, status: 'ACCEPTED' as any, message: 'Salut Khalil, tu veux faire le PFE ensemble chez Sonatrach ?', respondedAt: new Date('2025-01-18'), expiresAt: new Date('2025-02-01') } });
 
   console.log('✅  1 binôme invitation (accepted — Amira invited Khalil)');
 
@@ -130,6 +140,7 @@ async function main() {
     { id: 'dl-001', label: 'Dépôt rapport intermédiaire PFE', dueDate: new Date('2025-04-15'), isActive: true },
     { id: 'dl-002', label: 'Dépôt rapport final (tous stages)', dueDate: new Date('2025-06-15'), isActive: true },
     { id: 'dl-003', label: 'Clôture soutenances PFE', dueDate: new Date('2025-06-30'), isActive: true },
+    // @ts-ignore
   ]) { await prisma.systemDeadline.upsert({ where: { id: d.id }, update: {}, create: d }); }
 
   // ── TEACHER LOADS ─────────────────────────────────────────────────────────
