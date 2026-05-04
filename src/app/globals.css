@@ -60,7 +60,7 @@
 @layer components {
   /* Admin-style Tables */
   .admin-table-container {
-    @apply bg-white border border-gray-200 rounded-md overflow-hidden;
+    @apply bg-white border border-gray-200 rounded-md overflow-x-auto;
   }
 
   .admin-table {
@@ -72,7 +72,7 @@
   }
 
   .admin-table-header th {
-    @apply px-4 text-[11px] font-medium uppercase tracking-wider text-gray-500;
+    @apply px-4 text-[11px] font-medium uppercase tracking-wider text-gray-500 whitespace-nowrap;
   }
 
   .admin-table-row {
@@ -101,5 +101,62 @@
   /* Admin-style Sidebar Active State */
   .sidebar-link-active {
     @apply bg-indigo-50 text-indigo-700 border-l-2 border-indigo-600 font-medium;
+  }
+}
+
+/* Mobile Optimizations */
+@media (max-width: 768px) {
+  .admin-table-row {
+    @apply h-auto py-2;
+  }
+  
+  .admin-table td, .admin-table th {
+    @apply px-2.5;
+  }
+
+  /* Stacked Table (Card View) */
+  .stacked-table {
+    @apply block w-full;
+  }
+  
+  .stacked-table thead {
+    @apply hidden;
+  }
+  
+  .stacked-table tbody, 
+  .stacked-table tr, 
+  .stacked-table td {
+    @apply block w-full;
+  }
+  
+  .stacked-table tr:not(.empty-row) {
+    @apply mb-4 bg-white border border-gray-200 rounded-lg p-4 shadow-sm;
+  }
+  
+  .stacked-table tr:not(.empty-row) td {
+    @apply flex justify-between items-center py-2 border-b border-gray-50 last:border-0 text-right;
+  }
+  
+  .stacked-table tr:not(.empty-row) td::before {
+    content: attr(data-label);
+    @apply font-bold text-[10px] uppercase text-gray-400 text-left block flex-1;
+  }
+  
+  .stacked-table tr:not(.empty-row) td > * {
+    @apply flex-1 flex justify-end;
+  }
+
+  .stacked-table tr.empty-row td {
+    @apply text-center py-12 text-gray-400 bg-white border border-gray-200 rounded-lg shadow-sm block w-full;
+  }
+
+  /* Responsive Grid for Forms */
+  .grid-cols-2 {
+    @apply grid-cols-1!;
+  }
+  
+  /* Buttons should be full width on mobile in some contexts */
+  .mobile-full-width {
+    @apply w-full!;
   }
 }

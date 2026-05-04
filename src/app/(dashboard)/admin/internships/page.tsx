@@ -105,8 +105,8 @@ export default function AdminInternshipsPage() {
       </div>
 
       {/* Internships List */}
-      <div className="admin-table-container">
-        <table className="admin-table">
+      <div className="admin-table-container sm:bg-white sm:border sm:border-gray-200 sm:rounded-md">
+        <table className="admin-table stacked-table">
           <thead className="admin-table-header">
             <tr>
               <th>Students & Topic</th>
@@ -118,53 +118,53 @@ export default function AdminInternshipsPage() {
           </thead>
           <tbody>
             {isLoading ? (
-              <tr>
+              <tr className="empty-row">
                 <td colSpan={5} className="text-center py-12 text-gray-400">Loading internships...</td>
               </tr>
             ) : filteredInternships.length === 0 ? (
-              <tr>
+              <tr className="empty-row">
                 <td colSpan={5} className="text-center py-12 text-gray-400">No active internships found.</td>
               </tr>
             ) : (
               filteredInternships.map((internship) => (
                 <tr key={internship.id} className="admin-table-row">
-                  <td className="py-4">
-                    <div className="flex flex-col max-w-[400px]">
-                      <div className="flex items-center gap-1 mb-1">
+                  <td data-label="Internship" className="py-4">
+                    <div className="flex flex-col max-w-[400px] items-start">
+                      <div className="flex flex-wrap items-center gap-1 mb-1">
                         {internship.students.map((s, idx) => (
                           <span key={s.student.email} className="text-[13px] font-semibold text-gray-900">
                             {s.student.name}{idx < internship.students.length - 1 ? ", " : ""}
                           </span>
                         ))}
                       </div>
-                      <span className="text-[12px] text-indigo-600 font-medium line-clamp-1">
+                      <span className="text-[12px] text-indigo-600 font-medium line-clamp-2 text-left">
                         {internship.topic.title}
                       </span>
                     </div>
                   </td>
-                  <td>
+                  <td data-label="Supervisor">
                     <div className="flex items-center gap-2">
                       <GraduationCap className="h-4 w-4 text-gray-400" />
                       <span className="text-[13px] text-gray-600">{internship.teacher.name}</span>
                     </div>
                   </td>
-                  <td>
+                  <td data-label="Progress">
                     <div className="flex items-center gap-4">
                       <div className="flex items-center gap-1.5" title="Documents uploaded">
                         <FileText className="h-3.5 w-3.5 text-gray-400" />
-                        <span className="text-[12px] font-medium text-gray-600">{internship._count.documents}</span>
+                        <span className="text-[12px] font-medium text-gray-600">{internship._count.documents} docs</span>
                       </div>
                       <div className="flex items-center gap-1.5" title="Messages exchanged">
                         <MessageSquare className="h-3.5 w-3.5 text-gray-400" />
-                        <span className="text-[12px] font-medium text-gray-600">{internship._count.messages}</span>
+                        <span className="text-[12px] font-medium text-gray-600">{internship._count.messages} msg</span>
                       </div>
                     </div>
                   </td>
-                  <td>
+                  <td data-label="Status">
                     <StatusBadge status={internship.status} />
                   </td>
-                  <td className="text-right">
-                    <Link href={`/admin/internships/${internship.id}`} className="inline-flex p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition-colors" aria-label={`View internship ${internship.topic.title}`}>
+                  <td data-label="View" className="text-right">
+                    <Link href={`/admin/internships/${internship.id}`} className="inline-flex p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition-colors">
                       <ExternalLink className="h-4 w-4" />
                     </Link>
                   </td>

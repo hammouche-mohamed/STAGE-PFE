@@ -96,11 +96,11 @@ export default function TeacherEvaluationsPage() {
         {title}
       </h2>
       <div
-        className={`admin-table-container ${
+        className={`admin-table-container sm:bg-white sm:border sm:border-gray-200 sm:rounded-md ${
           isCompleted ? "opacity-60 grayscale-[0.3]" : ""
         }`}
       >
-        <table className="admin-table">
+        <table className="admin-table stacked-table">
           <thead className="admin-table-header">
             <tr>
               <th>Topic</th>
@@ -113,29 +113,33 @@ export default function TeacherEvaluationsPage() {
           <tbody>
             {data.map((def: any) => (
               <tr key={def.id} className="admin-table-row">
-                <td className="font-medium text-gray-900 truncate max-w-[300px]">
+                <td data-label="Topic" className="font-medium text-gray-900 text-left sm:truncate sm:max-w-[300px]">
                   {def.internship.topic.title}
                 </td>
-                <td className="text-[12px]">
-                  {def.internship.students
-                    .map((s: any) => s.student.name)
-                    .join(", ")}
+                <td data-label="Student" className="text-[12px]">
+                  <div className="text-right sm:text-left">
+                    {def.internship.students
+                      .map((s: any) => s.student.name)
+                      .join(", ")}
+                  </div>
                 </td>
-                <td>
+                <td data-label="Schedule">
                   <span className="text-[12px]">
                     {formatDateTime(def.scheduledAt)} - {def.room}
                   </span>
                 </td>
-                <td>
-                  <span className="text-[12px] font-medium text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded">
-                    {def.juryMembers.find(
-                      (m: any) => m.userId === "current-user-id",
-                    )?.role || "Jury Member"}
-                  </span>
+                <td data-label="Role">
+                  <div className="flex justify-end sm:justify-start">
+                    <span className="text-[12px] font-medium text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded">
+                      {def.juryMembers.find(
+                        (m: any) => m.userId === "current-user-id",
+                      )?.role || "Jury Member"}
+                    </span>
+                  </div>
                 </td>
-                <td className="text-right">
-                  <Button size="sm" onClick={() => setSelectedDefense(def)}>
-                    {isCompleted ? "Update Grade" : "Grade Session"}
+                <td data-label="Evaluation" className="text-right">
+                  <Button size="sm" onClick={() => setSelectedDefense(def)} className="w-full sm:w-auto">
+                    {isCompleted ? "Update" : "Grade"}
                   </Button>
                 </td>
               </tr>

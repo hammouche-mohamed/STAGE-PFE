@@ -118,33 +118,34 @@ export default function AuditLogsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-[17px] font-semibold text-gray-900 flex items-center">
+          <h1 className="text-[16px] sm:text-[17px] font-semibold text-gray-900 flex items-center">
             <ClipboardList className="h-5 w-5 mr-2 text-indigo-600" />
             System Audit logs
           </h1>
-          <p className="text-[13px] text-gray-500 mt-0.5">Track all administrative actions and system events for security and transparency.</p>
+          <p className="text-[12px] sm:text-[13px] text-gray-500 mt-0.5">Track all administrative actions and system events.</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 w-full sm:w-auto">
           <Button 
             variant="outline" 
             size="sm" 
             onClick={downloadCSV}
+            className="flex-1 sm:flex-none"
             disabled={isLoading || logs.length === 0}
           >
-            <Download className="h-4 w-4 mr-2" />
-            Download CSV
+            <Download className="h-4 w-4 mr-1 md:mr-2" />
+            <span className="text-[11px] md:text-[13px]">Download CSV</span>
           </Button>
           <Button 
             variant="ghost" 
             size="sm" 
-            className="text-red-600 hover:bg-red-50"
+            className="flex-1 sm:flex-none text-red-600 hover:bg-red-50"
             onClick={handleManualCleanup}
             isLoading={isCleaning}
           >
-            <Trash2 className="h-4 w-4 mr-2" />
-            Cleanup Logs
+            <Trash2 className="h-4 w-4 mr-1 md:mr-2" />
+            <span className="text-[11px] md:text-[13px]">Cleanup</span>
           </Button>
         </div>
       </div>
@@ -166,8 +167,8 @@ export default function AuditLogsPage() {
         </Button>
       </div>
 
-      <div className="admin-table-container">
-        <table className="admin-table">
+      <div className="admin-table-container sm:bg-white sm:border sm:border-gray-200 sm:rounded-md">
+        <table className="admin-table stacked-table">
           <thead className="admin-table-header">
             <tr>
               <th>Timestamp</th>
@@ -189,34 +190,34 @@ export default function AuditLogsPage() {
             ) : (
               filteredLogs.map((log) => (
                 <tr key={log.id} className="admin-table-row">
-                  <td className="whitespace-nowrap">
-                    <div className="flex items-center text-gray-500 text-[12px]">
-                      <Calendar className="h-3 w-3 mr-1.5" />
-                      {format(new Date(log.createdAt), "MMM d, yyyy HH:mm")}
+                  <td data-label="Time" className="whitespace-nowrap py-3 sm:py-0">
+                    <div className="flex items-center text-gray-500 text-[11px] sm:text-[12px]">
+                      <Calendar className="h-3 w-3 mr-1.5 flex-shrink-0" />
+                      {format(new Date(log.createdAt), "MMM d, HH:mm")}
                     </div>
                   </td>
-                  <td>
+                  <td data-label="Admin">
                     <div className="flex items-center gap-2">
-                      <div className="h-6 w-6 rounded-full bg-indigo-50 flex items-center justify-center text-[10px] font-bold text-indigo-600">
+                      <div className="h-6 w-6 rounded-full bg-indigo-50 flex items-center justify-center text-[10px] font-bold text-indigo-600 flex-shrink-0">
                         {log.user.name.charAt(0)}
                       </div>
-                      <div className="flex flex-col">
-                        <span className="text-[13px] font-medium text-gray-900">{log.user.name}</span>
-                        <span className="text-[10px] text-gray-500">{log.user.email}</span>
+                      <div className="flex flex-col min-w-0 items-start">
+                        <span className="text-[12px] sm:text-[13px] font-medium text-gray-900 truncate">{log.user.name}</span>
+                        <span className="text-[10px] text-gray-500 truncate">{log.user.email}</span>
                       </div>
                     </div>
                   </td>
-                  <td>
-                    <span className="text-[12px] font-bold text-gray-700 bg-gray-50 px-2 py-0.5 rounded border border-gray-100 italic">
+                  <td data-label="Action">
+                    <span className="text-[10px] sm:text-[12px] font-bold text-gray-700 bg-gray-50 px-2 py-0.5 rounded border border-gray-100 italic whitespace-nowrap">
                        {log.action.replace(/_/g, " ")}
                     </span>
                   </td>
-                  <td>
+                  <td data-label="Target">
                     <span className="text-[13px] font-medium text-gray-900">
                       {log.targetId}
                     </span>
                   </td>
-                  <td>
+                  <td data-label="Type">
                     <div className="flex items-center text-[12px] text-gray-500">
                       <Activity className="h-3.5 w-3.5 mr-1.5 text-gray-400" />
                       {log.targetType}

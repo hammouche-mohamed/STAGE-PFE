@@ -144,8 +144,8 @@ export default function StudentProposalsPage() {
         />
       </div>
 
-      <div className="admin-table-container">
-        <table className="admin-table">
+      <div className="admin-table-container sm:bg-white sm:border sm:border-gray-200 sm:rounded-md">
+        <table className="admin-table stacked-table">
           <thead className="admin-table-header">
             <tr>
               <th>Student</th>
@@ -173,32 +173,32 @@ export default function StudentProposalsPage() {
             ) : (
               filtered.map((p) => (
                 <tr key={p.id} className="admin-table-row">
-                  <td>
-                    <div className="flex flex-col">
+                  <td data-label="Student">
+                    <div className="flex flex-col items-start">
                       <span className="font-medium text-gray-900 text-[13px]">
                         {p.proposedBy.name}
                       </span>
                       <span className="text-[11px] text-gray-400">{p.proposedBy.email}</span>
                     </div>
                   </td>
-                  <td className="max-w-[180px]">
-                    <p className="text-[13px] font-medium text-gray-900 truncate">{p.title}</p>
+                  <td data-label="Topic">
+                    <p className="text-[13px] font-medium text-gray-900 text-left sm:truncate sm:max-w-[180px]">{p.title}</p>
                   </td>
-                  <td>
-                    <div className="flex flex-col">
+                  <td data-label="Company">
+                    <div className="flex flex-col items-start">
                       <span className="text-[13px] font-medium text-gray-800">
                         {p.companyName ?? "—"}
                       </span>
                       <span className="text-[11px] text-gray-400">{p.companySector ?? ""}</span>
                     </div>
                   </td>
-                  <td>
+                  <td data-label="Type">
                     <InternshipTypeBadge type={p.internshipType} />
                   </td>
-                  <td className="text-[12px] text-gray-500">
+                  <td data-label="Date" className="text-[12px] text-gray-500">
                     {format(new Date(p.createdAt), "MMM d, yyyy")}
                   </td>
-                  <td>
+                  <td data-label="Doc">
                     {p.supportingDocUrl ? (
                       <a
                         href={p.supportingDocUrl}
@@ -212,12 +212,12 @@ export default function StudentProposalsPage() {
                       <span className="text-gray-300 text-[11px]">—</span>
                     )}
                   </td>
-                  <td className="text-right">
-                    <div className="flex items-center justify-end gap-2">
+                  <td data-label="Actions" className="text-right">
+                    <div className="flex items-center justify-end gap-2 flex-wrap sm:flex-nowrap">
                       <Button
                         size="sm"
                         onClick={() => openModal(p, "approve")}
-                        className="bg-emerald-600 hover:bg-emerald-700 text-white text-[11px]"
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] sm:text-[11px] px-2"
                       >
                         <CheckCircle className="h-3.5 w-3.5 mr-1" />
                         Approve
@@ -226,7 +226,7 @@ export default function StudentProposalsPage() {
                         size="sm"
                         variant="outline"
                         onClick={() => openModal(p, "reject")}
-                        className="text-red-600 border-red-200 hover:bg-red-50 text-[11px]"
+                        className="text-red-600 border-red-200 hover:bg-red-50 text-[10px] sm:text-[11px] px-2"
                       >
                         <XCircle className="h-3.5 w-3.5 mr-1" />
                         Reject

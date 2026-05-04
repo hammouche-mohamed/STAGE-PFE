@@ -62,8 +62,8 @@ export default function CompanyApplicationsPage() {
         </div>
       </div>
 
-      <div className="admin-table-container">
-        <table className="admin-table">
+      <div className="admin-table-container sm:bg-white sm:border sm:border-gray-200 sm:rounded-md">
+        <table className="admin-table stacked-table">
           <thead className="admin-table-header">
             <tr>
               <th>Applicant Group</th>
@@ -81,22 +81,24 @@ export default function CompanyApplicationsPage() {
             ) : (
               applications.map((app) => (
                 <tr key={app.id} className="admin-table-row">
-                  <td>
-                    <div className="flex items-center gap-2">
+                  <td data-label="Group">
+                    <div className="flex items-center gap-2 justify-end sm:justify-start">
                        <User className="h-4 w-4 text-gray-400" />
                        <span className="font-medium text-gray-900">Group {app.id.slice(-4)}</span>
                     </div>
                   </td>
-                  <td className="max-w-[250px] truncate">
-                    <span className="text-[13px] text-indigo-600 font-medium">{app.topic.title}</span>
+                  <td data-label="Topic">
+                    <span className="text-[13px] text-indigo-600 font-medium text-right sm:text-left sm:max-w-[250px] sm:truncate block">
+                      {app.topic.title}
+                    </span>
                   </td>
-                  <td>
+                  <td data-label="Date">
                     <span className="text-[12px] text-gray-500">{format(new Date(app.appliedAt), "MMM d, yyyy")}</span>
                   </td>
-                  <td>
+                  <td data-label="Status">
                     <StatusBadge status={app.status} />
                   </td>
-                  <td className="text-right">
+                  <td data-label="Review" className="text-right">
                     <div className="flex items-center justify-end gap-1">
                       <button 
                         onClick={() => handleAction(app.id, "ACCEPTED")}

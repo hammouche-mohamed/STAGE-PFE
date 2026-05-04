@@ -138,8 +138,8 @@ export default function AdminMessagesPage() {
       </div>
 
       {/* Thread List */}
-      <div className="admin-table-container">
-        <table className="admin-table">
+      <div className="admin-table-container sm:bg-white sm:border sm:border-gray-200 sm:rounded-md">
+        <table className="admin-table stacked-table">
           <thead className="admin-table-header">
             <tr>
               <th>Topic / Team</th>
@@ -166,15 +166,17 @@ export default function AdminMessagesPage() {
             ) : (
               threads.map((t) => (
                 <tr key={t.internshipId} className="admin-table-row">
-                  <td>
-                    <p className="font-medium text-gray-900 text-[13px] truncate max-w-[260px]">
-                      {t.topic}
-                    </p>
-                    <p className="text-[11px] text-gray-400 mt-0.5">
-                      {t.students.join(" & ")}
-                    </p>
+                  <td data-label="Topic / Team">
+                    <div className="text-left">
+                      <p className="font-medium text-gray-900 text-[13px] sm:truncate sm:max-w-[260px]">
+                        {t.topic}
+                      </p>
+                      <p className="text-[11px] text-gray-400 mt-0.5">
+                        {t.students.join(" & ")}
+                      </p>
+                    </div>
                   </td>
-                  <td>
+                  <td data-label="Type">
                     <span
                       className={`text-[11px] font-bold px-2 py-0.5 rounded uppercase ${
                         t.internshipType === "PFE"
@@ -185,12 +187,12 @@ export default function AdminMessagesPage() {
                       {t.internshipType || "—"}
                     </span>
                   </td>
-                  <td className="text-[12px] text-gray-500">{t.academicYear}</td>
-                  <td className="text-[12px] text-gray-700">{t.teacher}</td>
-                  <td className="text-center">
+                  <td data-label="Year" className="text-[12px] text-gray-500">{t.academicYear}</td>
+                  <td data-label="Teacher" className="text-[12px] text-gray-700">{t.teacher}</td>
+                  <td data-label="Total" className="text-center">
                     <span className="text-[13px] font-bold text-indigo-700">{t.totalMessages}</span>
                   </td>
-                  <td className="text-[12px] text-gray-500">
+                  <td data-label="Last" className="text-[12px] text-gray-500">
                     {t.lastSentAt
                       ? format(new Date(t.lastSentAt), "MMM d, yyyy HH:mm")
                       : "—"}

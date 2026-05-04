@@ -209,10 +209,10 @@ export default function AdminUsersPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-[17px] font-semibold text-gray-900">User Management</h1>
-          <p className="text-[13px] text-gray-500 mt-0.5">View and manage all platform users and their access levels.</p>
+          <h1 className="text-[16px] sm:text-[17px] font-semibold text-gray-900">User Management</h1>
+          <p className="text-[12px] sm:text-[13px] text-gray-500 mt-0.5">View and manage all platform users.</p>
         </div>
       </div>
 
@@ -248,8 +248,8 @@ export default function AdminUsersPage() {
       </div>
 
       {/* Users Table */}
-      <div className="admin-table-container">
-        <table className="admin-table">
+      <div className="admin-table-container sm:bg-white sm:border sm:border-gray-200 sm:rounded-md">
+        <table className="admin-table stacked-table">
           <thead className="admin-table-header">
             <tr>
               <th>User</th>
@@ -261,19 +261,19 @@ export default function AdminUsersPage() {
           </thead>
           <tbody>
             {isLoading ? (
-              <tr>
+              <tr className="empty-row">
                 <td colSpan={5} className="text-center py-12 text-gray-400">Loading users...</td>
               </tr>
             ) : filteredUsers.length === 0 ? (
-              <tr>
+              <tr className="empty-row">
                 <td colSpan={5} className="text-center py-12 text-gray-400">No users found matching your filters.</td>
               </tr>
             ) : (
               filteredUsers.map((user, index) => (
                 <tr key={user.id} className="admin-table-row">
-                  <td>
+                  <td data-label="User" className="py-3 sm:py-0">
                     <div className="flex items-center gap-3">
-                      <div className="h-8 w-8 rounded-full bg-indigo-50 text-indigo-700 flex items-center justify-center text-[12px] font-bold overflow-hidden">
+                      <div className="h-8 w-8 rounded-full bg-indigo-50 text-indigo-700 flex items-center justify-center text-[12px] font-bold overflow-hidden flex-shrink-0">
                         {user.avatarUrl ? (
                           <Image 
                             src={user.avatarUrl} 
@@ -287,35 +287,35 @@ export default function AdminUsersPage() {
                           user.name.charAt(0)
                         )}
                       </div>
-                      <div className="flex flex-col">
-                        <span className="font-medium text-gray-900">{user.name}</span>
-                        <span className="text-[11px] text-gray-400 flex items-center">
-                          <Mail className="h-3 w-3 mr-1" />
-                          {user.email}
+                      <div className="flex flex-col min-w-0 items-start">
+                        <span className="font-medium text-gray-900 truncate">{user.name}</span>
+                        <span className="text-[11px] text-gray-400 flex items-center truncate">
+                          <Mail className="h-3 w-3 mr-1 flex-shrink-0" />
+                          <span className="truncate">{user.email}</span>
                         </span>
                       </div>
                     </div>
                   </td>
-                  <td>
+                  <td data-label="Role">
                     <div className="flex items-center gap-2">
-                      {roleIcons[user.role]}
-                      <span className="text-[12px] font-medium text-gray-600 uppercase tracking-tight">{user.role}</span>
+                      <span className="flex-shrink-0">{roleIcons[user.role]}</span>
+                      <span className="text-[11px] sm:text-[12px] font-medium text-gray-600 uppercase tracking-tight">{user.role}</span>
                     </div>
                   </td>
-                  <td>
+                  <td data-label="Status">
                     <div className="flex items-center">
-                      <div className={`h-1.5 w-1.5 rounded-full mr-2 ${user.isActive ? "bg-green-500" : "bg-red-500"}`} />
-                      <span className={`text-[12px] font-medium ${user.isActive ? "text-green-700" : "text-red-700"}`}>
+                      <div className={`h-1.5 w-1.5 rounded-full mr-1.5 flex-shrink-0 ${user.isActive ? "bg-green-500" : "bg-red-500"}`} />
+                      <span className={`text-[11px] sm:text-[12px] font-medium ${user.isActive ? "text-green-700" : "text-red-700"}`}>
                         {user.isActive ? "Active" : "Inactive"}
                       </span>
                     </div>
                   </td>
-                  <td>
+                  <td data-label="Created">
                     <span className="text-[12px] text-gray-500">
                       {format(new Date(user.createdAt), "MMM d, yyyy")}
                     </span>
                   </td>
-                  <td className="text-right">
+                  <td data-label="Actions" className="text-right">
                     <div className="flex items-center justify-end space-x-2">
                       <button 
                         onClick={() => toggleUserStatus(user)}

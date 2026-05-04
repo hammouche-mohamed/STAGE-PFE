@@ -132,8 +132,8 @@ export default function AdminDefensesPage() {
          <div className={`h-2 w-2 rounded-full mr-2 ${isCompleted ? 'bg-gray-300' : 'bg-green-500'}`} />
          {title}
       </h2>
-      <div className={`admin-table-container ${isCompleted ? 'opacity-60 grayscale-[0.3]' : ''}`}>
-        <table className="admin-table">
+      <div className={`admin-table-container sm:bg-white sm:border sm:border-gray-200 sm:rounded-md ${isCompleted ? 'opacity-60 grayscale-[0.3]' : ''}`}>
+        <table className="admin-table stacked-table">
           <thead className="admin-table-header">
             <tr>
               <th>Internship / Topic</th>
@@ -148,16 +148,16 @@ export default function AdminDefensesPage() {
           <tbody>
             {data.map((def: any) => (
               <tr key={def.id} className="admin-table-row">
-                <td className="max-w-[200px] truncate font-medium text-gray-900">
+                <td data-label="Topic" className="font-medium text-gray-900 text-left sm:max-w-[200px] sm:truncate">
                   {def.internship.topic.title}
                 </td>
-                <td>
-                  <div className="text-[12px]">
+                <td data-label="Student">
+                  <div className="text-[12px] sm:text-[13px] text-right sm:text-left">
                     {def.internship.students.map((s: any) => s.student.name).join(" & ")}
                   </div>
                 </td>
-                <td>
-                  <div className="flex flex-col">
+                <td data-label="Schedule">
+                  <div className="flex flex-col items-end sm:items-start">
                     <span className="text-[13px] font-medium">{formatDateTime(def.scheduledAt).split(" ")[0]}</span>
                     <span className="text-[11px] text-gray-400 flex items-center">
                       <Calendar className="h-3 w-3 mr-1" />
@@ -165,19 +165,19 @@ export default function AdminDefensesPage() {
                     </span>
                   </div>
                 </td>
-                <td>
-                  <div className="flex items-center text-[13px] text-gray-600">
+                <td data-label="Location">
+                  <div className="flex items-center justify-end sm:justify-start text-[13px] text-gray-600">
                     <MapPin className="h-4 w-4 mr-1 text-gray-400" />
                     {def.room}
                   </div>
                 </td>
-                <td>
-                  <div className="group relative cursor-help">
+                <td data-label="Jury">
+                  <div className="group relative cursor-help flex justify-end sm:justify-start">
                     <div className="flex items-center text-[12px] text-indigo-600 font-medium">
                       <Users className="h-3 w-3 mr-1" />
                       {def.juryMembers.length} Members
                     </div>
-                    <div className="absolute left-0 bottom-full mb-2 w-48 bg-white border border-gray-200 rounded shadow-lg p-2 z-50 opacity-0 group-hover:opacity-100 transition pointer-events-none">
+                    <div className="absolute right-0 sm:left-0 bottom-full mb-2 w-48 bg-white border border-gray-200 rounded shadow-lg p-2 z-50 opacity-0 group-hover:opacity-100 transition pointer-events-none text-left">
                       {def.juryMembers.map((m: any) => (
                         <div key={m.id} className="text-[11px] py-0.5 border-b border-gray-50 last:border-0">
                           <span className="font-semibold">{m.role}:</span> {m.user.name}
@@ -186,10 +186,10 @@ export default function AdminDefensesPage() {
                     </div>
                   </div>
                 </td>
-                <td>
+                <td data-label="Status">
                   <StatusBadge status={def.status} />
                 </td>
-                <td className="text-right">
+                <td data-label="Manage" className="text-right">
                   <button className="text-indigo-600 hover:text-indigo-700 text-[12px] font-medium">
                     Manage
                   </button>

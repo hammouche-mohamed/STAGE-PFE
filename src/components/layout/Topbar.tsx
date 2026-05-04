@@ -1,19 +1,23 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { Bell, LogOut, Search, User } from "lucide-react";
+import { Bell, LogOut, Menu, Search, User } from "lucide-react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { signOut, useSession } from "next-auth/react";
 import { useTranslation } from "@/lib/i18n/LanguageContext";
 import { Language } from "@/lib/i18n/translations";
+import { useSidebar } from "@/lib/contexts/SidebarContext";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 
 export const Topbar: React.FC = () => {
   const pathname = usePathname();
   const { data: session } = useSession();
   const { t, language, setLanguage, isRTL } = useTranslation();
+  const { toggle } = useSidebar();
   
   const [unreadCount, setUnreadCount] = useState(0);
+  const [isLogoutDialogOpen, setIsLogoutDialogOpen] = useState(false);
 
   useEffect(() => {
     const fetchUnread = async () => {
@@ -39,13 +43,21 @@ export const Topbar: React.FC = () => {
   const breadcrumbs = getBreadcrumbs();
 
   return (
-    <header className="h-[56px] bg-white border-b border-gray-200 sticky top-0 z-40 px-6 flex items-center justify-between">
-      <div className={`flex items-center gap-4 ${isRTL ? "flex-row-reverse" : ""}`}>
+    <header className="h-[56px] bg-white border-b border-gray-200 sticky top-0 z-40 px-5 md:px-6 flex items-center justify-between">
+      <div className={`flex items-center gap-2 md:gap-4 ${isRTL ? "flex-row-reverse" : ""}`}>
+        {/* Mobile Menu Toggle */}
+        <button 
+          onClick={toggle}
+          className="md:hidden p-2 text-gray-500 hover:bg-gray-100 rounded-md transition-colors"
+        >
+          <Menu className="h-5 w-5" />
+        </button>
+
         <div className={`flex flex-col ${isRTL ? "text-right" : "text-left"}`}>
-          <h1 className="text-[14px] font-bold text-gray-900 leading-tight">
+          <h1 className="text-[13px] md:text-[14px] font-bold text-gray-900 leading-tight">
             {breadcrumbs[breadcrumbs.length - 1]?.label || "Dashboard"}
           </h1>
-          <div className="flex items-center gap-1 text-[11px] text-gray-400">
+          <div className="hidden md:flex items-center gap-1 text-[11px] text-gray-400">
             <span>Home</span>
             {breadcrumbs.map((b, i) => (
               <React.Fragment key={b.href}>
@@ -69,13 +81,23 @@ export const Topbar: React.FC = () => {
           </Link>
           
           <button
-            onClick={() => signOut({ callbackUrl: "/" })}
+            onClick={() => setIsLogoutDialogOpen(true)}
             className="text-gray-400 hover:text-red-500 transition-colors"
           >
             <LogOut className="h-5 w-5" />
           </button>
         </div>
       </div>
+
+      <ConfirmDialog
+        isOpen={isLogoutDialogOpen}
+        onClose={() => setIsLogoutDialogOpen(false)}
+        onConfirm={() => signOut({ callbackUrl: "/" })}
+        title="Sign Out"
+        description="Are you sure you want to sign out?"
+        confirmLabel="Logout"
+        variant="danger"
+      />
     </header>
   );
 };

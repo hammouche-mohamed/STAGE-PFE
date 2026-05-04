@@ -314,11 +314,11 @@ export default function RegisterPage() {
           </div>
 
           <div className="flex flex-col gap-4 pt-4 border-t border-gray-100">
-            <div className="flex items-center justify-between">
-              <Link href="/login" className="text-[13px] text-indigo-600 hover:text-indigo-700 font-medium">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <Link href="/login" className="text-[13px] text-indigo-600 hover:text-indigo-700 font-medium text-center sm:text-left">
                 Already have an account? Login here
               </Link>
-              <Button type="submit" isLoading={isLoading}>
+              <Button type="submit" isLoading={isLoading} className="w-full sm:w-auto">
                 Submit Registration Request
               </Button>
             </div>

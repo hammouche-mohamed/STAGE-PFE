@@ -272,8 +272,8 @@ export default function AdminDeadlinesPage() {
               Active & Upcoming Deadlines
             </h2>
             
-            <div className="admin-table-container">
-              <table className="admin-table">
+            <div className="admin-table-container sm:bg-white sm:border sm:border-gray-200 sm:rounded-md">
+              <table className="admin-table stacked-table">
                 <thead className="admin-table-header">
                   <tr>
                     <th>Event & Type</th>
@@ -294,21 +294,21 @@ export default function AdminDeadlinesPage() {
                   ) : (
                     upcomingDeadlines.map((deadline) => (
                       <tr key={deadline.id} className="admin-table-row group">
-                        <td>
+                        <td data-label="Event">
                           <div className="flex items-center gap-3">
-                            <div className="p-2 bg-gray-50 rounded border border-gray-100 group-hover:bg-white group-hover:border-indigo-100 transition-colors">
+                            <div className="p-2 bg-gray-50 rounded border border-gray-100 group-hover:bg-white group-hover:border-indigo-100 transition-colors flex-shrink-0">
                               {getDeadlineIcon(deadline.type)}
                             </div>
-                            <div className="flex flex-col">
-                              <span className="font-bold text-gray-900">{deadline.title}</span>
+                            <div className="flex flex-col items-start">
+                              <span className="font-bold text-gray-900 text-left">{deadline.title}</span>
                               <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">
                                 {deadline.type.replace(/_/g, " ")}
                               </span>
                             </div>
                           </div>
                         </td>
-                        <td>
-                          <div className="flex flex-col">
+                        <td data-label="Due Date">
+                          <div className="flex flex-col items-end sm:items-start">
                             <span className="text-[13px] font-bold text-gray-700">
                               {format(new Date(deadline.dueDate), "MMMM dd, yyyy")}
                             </span>
@@ -317,14 +317,14 @@ export default function AdminDeadlinesPage() {
                             </span>
                           </div>
                         </td>
-                        <td>
+                        <td data-label="Scope">
                           <span className={`inline-flex px-2 py-0.5 rounded text-[10px] font-bold ${
                             deadline.isGlobal ? "bg-indigo-50 text-indigo-700" : "bg-gray-50 text-gray-700"
                           }`}>
                             {deadline.isGlobal ? "GLOBAL" : "LOCAL"}
                           </span>
                         </td>
-                        <td className="text-right">
+                        <td data-label="Remove" className="text-right">
                           <button 
                             onClick={() => handleDelete(deadline.id)}
                             className="p-1.5 text-gray-300 hover:text-red-600 transition-colors"
@@ -339,7 +339,7 @@ export default function AdminDeadlinesPage() {
               </table>
             </div>
           </section>
-
+  
           {/* Passed Deadlines */}
           <section className="space-y-4">
             <h2 className="text-[14px] font-bold text-gray-400 border-b border-gray-100 pb-2 flex items-center">
@@ -347,33 +347,33 @@ export default function AdminDeadlinesPage() {
               Passed Deadlines
             </h2>
             
-            <div className="admin-table-container opacity-60 grayscale-[0.2]">
-              <table className="admin-table">
+            <div className="admin-table-container opacity-60 grayscale-[0.2] sm:bg-white sm:border sm:border-gray-200 sm:rounded-md">
+              <table className="admin-table stacked-table">
                 <tbody>
                   {passedDeadlines.map((deadline) => (
                     <tr key={deadline.id} className="admin-table-row">
-                      <td className="w-[45%]">
+                      <td data-label="Event">
                         <div className="flex items-center gap-3">
-                          <div className="p-2 bg-gray-50 rounded border border-gray-100">
+                          <div className="p-2 bg-gray-50 rounded border border-gray-100 flex-shrink-0">
                             {getDeadlineIcon(deadline.type)}
                           </div>
-                          <div className="flex flex-col">
-                            <span className="font-medium text-gray-700">{deadline.title}</span>
+                          <div className="flex flex-col items-start">
+                            <span className="font-medium text-gray-700 text-left">{deadline.title}</span>
                             <span className="text-[10px] text-gray-400 font-medium uppercase tracking-wider">
                               {deadline.type.replace(/_/g, " ")}
                             </span>
                           </div>
                         </div>
                       </td>
-                      <td className="w-[30%]">
+                      <td data-label="Ended">
                         <span className="text-[13px] text-gray-500">
                           Ended {format(new Date(deadline.dueDate), "MMM dd, yyyy")}
                         </span>
                       </td>
-                      <td className="w-[15%]">
+                      <td data-label="Year">
                          <span className="text-[10px] font-medium text-gray-400">{deadline.academicYear}</span>
                       </td>
-                      <td className="text-right w-[10%]">
+                      <td data-label="Status" className="text-right">
                         <StatusBadge status="COMPLETED" />
                       </td>
                     </tr>

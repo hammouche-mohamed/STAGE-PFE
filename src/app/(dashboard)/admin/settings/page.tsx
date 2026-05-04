@@ -112,9 +112,9 @@ export default function AdminSettingsPage() {
 
       <div className="grid grid-cols-1 gap-6">
         {/* Academic Year */}
-        <div className="bg-white border border-gray-200 rounded-md p-6 flex items-center justify-between shadow-sm">
+        <div className="bg-white border border-gray-200 rounded-md p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
           <div className="flex items-center space-x-4">
-            <div className="p-3 bg-indigo-50 rounded-md text-indigo-600">
+            <div className="p-3 bg-indigo-50 rounded-md text-indigo-600 flex-shrink-0">
               <Calendar className="h-5 w-5" />
             </div>
             <div>
@@ -122,9 +122,9 @@ export default function AdminSettingsPage() {
               <p className="text-[12px] text-gray-500">Topics and internships will be labeled with this year.</p>
             </div>
           </div>
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-3 w-full sm:w-auto">
             <input 
-              className="admin-input w-[120px] text-center font-mono" 
+              className="admin-input flex-1 sm:w-[120px] text-center font-mono" 
               value={settings.currentAcademicYear || "2024-2025"}
               onChange={(e) => setSettings({...settings, currentAcademicYear: e.target.value})}
             />
@@ -139,9 +139,9 @@ export default function AdminSettingsPage() {
         </div>
 
         {/* Public Registration */}
-        <div className="bg-white border border-gray-200 rounded-md p-6 flex items-center justify-between shadow-sm">
+        <div className="bg-white border border-gray-200 rounded-md p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
           <div className="flex items-center space-x-4">
-            <div className={`p-3 rounded-md ${settings.registrationOpen === "true" ? "bg-green-50 text-green-600" : "bg-red-50 text-red-600"}`}>
+            <div className={`p-3 rounded-md flex-shrink-0 ${settings.registrationOpen === "true" ? "bg-green-50 text-green-600" : "bg-red-50 text-red-600"}`}>
               {settings.registrationOpen === "true" ? <Unlock className="h-5 w-5" /> : <Lock className="h-5 w-5" />}
             </div>
             <div>
@@ -149,8 +149,9 @@ export default function AdminSettingsPage() {
               <p className="text-[12px] text-gray-500">Allow users to submit new registration requests.</p>
             </div>
           </div>
-          <div>
+          <div className="w-full sm:w-auto">
             <Button 
+              className="w-full sm:w-auto"
               variant={settings.registrationOpen === "true" ? "danger" : "primary"}
               isLoading={loadingKey === "registrationOpen"}
               onClick={() => handleUpdate("registrationOpen", settings.registrationOpen === "true" ? "false" : "true")}
@@ -161,20 +162,20 @@ export default function AdminSettingsPage() {
         </div>
 
         {/* Rejection Limits */}
-        <div className="bg-white border border-gray-200 rounded-md p-6 flex items-center justify-between shadow-sm">
+        <div className="bg-white border border-gray-200 rounded-md p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
           <div className="flex items-center space-x-4">
-            <div className="p-3 bg-amber-50 rounded-md text-amber-600">
+            <div className="p-3 bg-amber-50 rounded-md text-amber-600 flex-shrink-0">
               <Settings className="h-5 w-5" />
             </div>
             <div>
               <h3 className="text-[14px] font-semibold text-gray-900">Max Topic Rejections</h3>
-              <p className="text-[12px] text-gray-500">Limit how many times a topic can be rejected before requiring a new one.</p>
+              <p className="text-[12px] text-gray-500">Limit how many times a topic can be rejected.</p>
             </div>
           </div>
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-3 w-full sm:w-auto">
             <input 
               type="number"
-              className="admin-input w-[80px] text-center" 
+              className="admin-input flex-1 sm:w-[80px] text-center" 
               value={settings.maxResubmissions || "3"}
               onChange={(e) => setSettings({...settings, maxResubmissions: e.target.value})}
             />
@@ -318,15 +319,16 @@ function SettingsList({ title, description, value, onUpdate, isLoading, icon, co
           {items.length === 0 && <span className="text-gray-400 text-[12px]">No items configured</span>}
         </div>
 
-        <div className="flex items-center space-x-3">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
           <Input 
             placeholder="Add new item..." 
             value={newItem}
             onChange={(e) => setNewItem(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && addItem()}
-            containerClassName="flex-1"
+            containerClassName="w-full sm:flex-1"
           />
           <Button 
+            className="w-full sm:w-auto"
             size="sm" 
             onClick={addItem}
             isLoading={isLoading}

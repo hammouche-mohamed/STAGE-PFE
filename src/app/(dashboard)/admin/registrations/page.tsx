@@ -68,15 +68,15 @@ export default function AdminRegistrationsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-[17px] font-semibold text-gray-900">Registration Requests</h1>
-          <p className="text-[13px] text-gray-500 mt-0.5">Manage new student and company account requests.</p>
+          <h1 className="text-[16px] sm:text-[17px] font-semibold text-gray-900">Registration Requests</h1>
+          <p className="text-[12px] sm:text-[13px] text-gray-500 mt-0.5">Manage student and company account requests.</p>
         </div>
       </div>
 
-      <div className="admin-table-container">
-        <table className="admin-table">
+      <div className="admin-table-container sm:bg-white sm:border sm:border-gray-200 sm:rounded-md">
+        <table className="admin-table stacked-table">
           <thead className="admin-table-header">
             <tr>
               <th>Applicant</th>
@@ -88,32 +88,32 @@ export default function AdminRegistrationsPage() {
           </thead>
           <tbody>
             {isLoading ? (
-              <tr>
+              <tr className="empty-row">
                 <td colSpan={5} className="text-center py-8 text-gray-400">Loading requests...</td>
               </tr>
             ) : requests.length === 0 ? (
-              <tr>
+              <tr className="empty-row">
                 <td colSpan={5} className="text-center py-8 text-gray-400">No pending requests found.</td>
               </tr>
             ) : (
               requests.map((req) => (
                 <tr key={req.id} className="admin-table-row">
-                  <td>
-                    <div className="flex flex-col">
-                      <span className="font-medium text-gray-900">{req.name}</span>
-                      <span className="text-[11px] text-gray-400">{req.email}</span>
+                  <td data-label="Applicant" className="py-3 sm:py-0">
+                    <div className="flex flex-col min-w-0 items-start">
+                      <span className="font-medium text-gray-900 truncate">{req.name}</span>
+                      <span className="text-[11px] text-gray-400 truncate">{req.email}</span>
                     </div>
                   </td>
-                  <td>
-                    <span className="text-[13px]">{req.role}</span>
+                  <td data-label="Role">
+                    <span className="text-[12px] sm:text-[13px]">{req.role}</span>
                   </td>
-                  <td>
-                    <span className="text-[13px]">{format(new Date(req.createdAt), "MMM d, yyyy HH:mm")}</span>
+                  <td data-label="Date">
+                    <span className="text-[13px]">{format(new Date(req.createdAt), "MMM d, yyyy")}</span>
                   </td>
-                  <td>
+                  <td data-label="Status">
                     <StatusBadge status={req.status} />
                   </td>
-                  <td className="text-right">
+                  <td data-label="Actions" className="text-right">
                     <button 
                       onClick={() => setSelectedRequest(req)}
                       className="p-1 text-gray-400 hover:bg-gray-50 rounded" 
