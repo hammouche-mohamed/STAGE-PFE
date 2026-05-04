@@ -27,7 +27,7 @@ export default async function TeacherInternshipDetailPage({ params }: { params: 
       .replace(/^-+|-+$/g, "")
       .toLowerCase();
 
-  const normalizedSlug = normalizeSlug(decodedSlug);
+  const normalizedSlug = normalizeSlug(decodedId);
 
   const internships = await prisma.internship.findMany({
     include: {

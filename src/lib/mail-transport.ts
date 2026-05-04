@@ -18,7 +18,7 @@ if (process.env.SMTP_USER && process.env.SMTP_PASS) {
     if (error) {
       console.error("SMTP Connection Error:", error);
     } else {
-      console.log("SMTP Server is ready to take our messages");
+      // SMTP ready
     }
   });
 } else {

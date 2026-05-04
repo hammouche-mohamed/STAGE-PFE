@@ -17,6 +17,7 @@ import {
 import { BarChart2, TrendingUp, Clock, CheckCircle, Users } from "lucide-react";
 import { StatsCard } from "@/components/dashboard/StatsCard";
 import { toast } from "sonner";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
 
 interface StatsData {
   academicYear: string;
@@ -35,6 +36,7 @@ const TYPE_COLORS: Record<string, string> = {
 };
 
 export default function StatisticsPage() {
+  const { t } = useTranslation();
   const [stats, setStats] = useState<StatsData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [typeFilter, setTypeFilter] = useState<"" | "PFE" | "NORMAL">("");
@@ -66,7 +68,7 @@ export default function StatisticsPage() {
         <div>
           <h1 className="text-[17px] font-semibold text-gray-900 flex items-center gap-2">
             <BarChart2 className="h-5 w-5 text-indigo-600" />
-            Internship Statistics
+            {t("common.internships")}
           </h1>
           <p className="text-[13px] text-gray-500 mt-0.5">
             {stats ? `Academic Year: ${stats.academicYear}` : "Loading…"}
@@ -99,16 +101,16 @@ export default function StatisticsPage() {
           {/* KPI cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <StatsCard
-              label="Active Internships"
+              label={t("dashboard.activeInternships")}
               value={stats.totalActive}
               icon={TrendingUp}
-              subValue="Currently in progress"
+              subValue={t("status.IN_PROGRESS")}
             />
             <StatsCard
-              label="Completed"
+              label={t("status.COMPLETED")}
               value={stats.totalCompleted}
               icon={CheckCircle}
-              subValue="Archived successfully"
+              subValue={t("status.COMPLETED")}
               subValueColor="green"
             />
             <StatsCard
@@ -155,7 +157,7 @@ export default function StatisticsPage() {
                         />
                       ))}
                     </Pie>
-                    <Tooltip formatter={(value) => [`${value} internships`]} />
+                    <Tooltip formatter={(value: any) => [`${value} internships`]} />
                     <Legend />
                   </PieChart>
                 </ResponsiveContainer>
@@ -185,7 +187,7 @@ export default function StatisticsPage() {
                       width={110}
                       tick={{ fontSize: 11 }}
                     />
-                    <Tooltip formatter={(v) => [`${v} intern(s)`]} />
+                    <Tooltip formatter={(v: any) => [`${v} intern(s)`]} />
                     <Bar dataKey="internshipCount" fill="#4f46e5" radius={[0, 4, 4, 0]} />
                   </BarChart>
                 </ResponsiveContainer>

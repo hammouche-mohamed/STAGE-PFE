@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   MapPin,
   Users,
@@ -15,29 +15,27 @@ import { format, parseISO } from "date-fns";
 
 import { Modal } from "@/components/ui/Modal";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
 
 export default function AdminMilestonesPage() {
-  // ... (existing state)
-  const [milestones, setMilestones] = useState([
-    {
-      id: "1",
-      title: "First Mini-Presentation (Context & Scope)",
-      internship: { topic: { title: "AI-powered Medical Diagnosis" } },
-      students: [{ student: { name: "Anis Rahmani" } }],
-      scheduledAt: new Date(2024, 4, 15, 10, 0),
-      room: "Room 101B",
-      status: "SCHEDULED"
-    },
-    {
-      id: "2",
-      title: "Second Mini-Presentation (Design & Arch)",
-      internship: { topic: { title: "Blockchain for Supply Chain" } },
-      students: [{ student: { name: "Lydia Mansouri" } }],
-      scheduledAt: new Date(2024, 4, 16, 14, 30),
-      room: "Room 205",
-      status: "PENDING"
-    }
-  ]);
+  const { t } = useTranslation();
+  const [milestones, setMilestones] = useState<any[]>([]);
+  const [isLoadingMilestones, setIsLoadingMilestones] = useState(true);
+
+  useEffect(() => {
+    const fetchMilestones = async () => {
+      try {
+        const res = await fetch("/api/milestones");
+        const data = await res.json();
+        setMilestones(data.data || []);
+      } catch {
+        // milestones API may not exist yet — silently ignore
+      } finally {
+        setIsLoadingMilestones(false);
+      }
+    };
+    fetchMilestones();
+  }, []);
 
   const [showScheduleForm, setShowScheduleForm] = useState(false);
   const [editingMilestoneId, setEditingMilestoneId] = useState<string | null>(null);
@@ -125,13 +123,13 @@ export default function AdminMilestonesPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-[17px] font-semibold text-gray-900">Milestones Management</h1>
-          <p className="text-[13px] text-gray-500 mt-0.5">Schedule and monitor mini-presentations for all student groups.</p>
+          <h1 className="text-[17px] font-semibold text-gray-900">{t("common.milestones")}</h1>
+          <p className="text-[13px] text-gray-500 mt-0.5">{t("dashboard.recentActivity")}</p>
         </div>
         <div>
           <Button size="sm" onClick={() => { resetForm(); setShowScheduleForm(true); }}>
             <Plus className="h-4 w-4 mr-2" />
-            Schedule Session
+            {t("common.scheduleSession")}
           </Button>
         </div>
       </div>
@@ -142,9 +140,7 @@ export default function AdminMilestonesPage() {
         title={editingMilestoneId ? "Edit Milestone Session" : "New Milestone Session"}
         footer={
           <>
-            <Button size="sm" variant="outline" onClick={handleCancel}>
-              Cancel
-            </Button>
+            <Button size="sm" variant="outline" onClick={handleCancel}>{t("common.cancel")}</Button>
             <Button size="sm" onClick={handleSaveMilestone}>
               {editingMilestoneId ? "Update session" : "Save session"}
             </Button>
@@ -232,11 +228,9 @@ export default function AdminMilestonesPage() {
                         </div>
                      </div>
                      <div className="mt-4 flex flex-wrap gap-2">
-                       <Button size="sm" variant="outline" onClick={() => handleEditMilestone(ms)}>
-                         Edit
-                       </Button>
+                       <Button size="sm" variant="outline" onClick={() => handleEditMilestone(ms)}>{t("common.edit")}</Button>
                        <Button size="sm" variant="danger" onClick={() => handleDeleteMilestone(ms.id)}>
-                         Delete
+                         {t("common.delete")}
                        </Button>
                      </div>
                   </div>
@@ -302,8 +296,8 @@ export default function AdminMilestonesPage() {
         isOpen={!!milestoneToDelete}
         onClose={() => setMilestoneToDelete(null)}
         onConfirm={confirmDeleteMilestone}
-        title="Delete Milestone Session"
-        description="Are you sure you want to delete this session? This action cannot be undone and students will no longer see this scheduled event."
+        title={t("common.delete")}
+        description={t("errors.serverError")}
         isLoading={isDeleting}
       />
     </div>

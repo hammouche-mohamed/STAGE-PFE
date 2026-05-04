@@ -58,7 +58,7 @@ export async function POST(req: NextRequest) {
       userId: user.id // Returning userId safely to help the next steps in frontend
     });
 
-  } catch (error: any) {
+  } catch (error) {
     console.error("Forgot password failed:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }

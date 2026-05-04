@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { Bell, LogOut, Menu, Search, User } from "lucide-react";
+import { Bell, LogOut, Menu } from "lucide-react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { signOut, useSession } from "next-auth/react";
@@ -9,6 +9,12 @@ import { useTranslation } from "@/lib/i18n/LanguageContext";
 import { Language } from "@/lib/i18n/translations";
 import { useSidebar } from "@/lib/contexts/SidebarContext";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+
+const LANGS: { code: Language; label: string }[] = [
+  { code: "en", label: "EN" },
+  { code: "fr", label: "FR" },
+  { code: "ar", label: "ع" },
+];
 
 export const Topbar: React.FC = () => {
   const pathname = usePathname();
@@ -69,7 +75,30 @@ export const Topbar: React.FC = () => {
         </div>
       </div>
 
-      <div className={`flex items-center gap-6 ${isRTL ? "flex-row-reverse" : ""}`}>
+      <div className={`flex items-center gap-3 md:gap-5 ${isRTL ? "flex-row-reverse" : ""}`}>
+
+        {/* ── Language Switcher ───────────────────────────────────── */}
+        <div className="flex items-center bg-gray-100 rounded-full p-0.5 gap-0.5">
+          {LANGS.map(({ code, label }) => (
+            <button
+              key={code}
+              onClick={() => setLanguage(code)}
+              title={code === "en" ? "English" : code === "fr" ? "Français" : "العربية"}
+              className={`
+                h-7 px-2.5 rounded-full text-[11px] font-bold transition-all duration-200
+                ${language === code
+                  ? "bg-white text-indigo-700 shadow-sm shadow-indigo-100 ring-1 ring-indigo-200"
+                  : "text-gray-500 hover:text-gray-800"
+                }
+                ${code === "ar" ? "font-arabic text-[13px]" : ""}
+              `}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {/* ── Action Icons ─────────────────────────────────────────── */}
         <div className={`flex items-center gap-4 ${isRTL ? "flex-row-reverse" : ""}`}>
           <Link href="/notifications" className="relative text-gray-400 hover:text-gray-600 transition-colors">
             <Bell className="h-5 w-5" />
@@ -101,3 +130,4 @@ export const Topbar: React.FC = () => {
     </header>
   );
 };
+

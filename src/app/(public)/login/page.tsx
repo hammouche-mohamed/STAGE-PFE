@@ -10,7 +10,9 @@ import { Input } from "@/components/ui/Input";
 import { toast } from "sonner";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { ShieldCheck, ArrowLeft } from "lucide-react";
+import { ShieldCheck, ArrowLeft, Globe } from "lucide-react";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
+import { Language } from "@/lib/i18n/translations";
 
 const loginSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -19,11 +21,18 @@ const loginSchema = z.object({
 
 type LoginInput = z.infer<typeof loginSchema>;
 
+const LANGS: { code: Language; label: string }[] = [
+  { code: "en", label: "EN" },
+  { code: "fr", label: "FR" },
+  { code: "ar", label: "ع" },
+];
+
 export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
   const error = searchParams.get("error");
+  const { t, language, setLanguage, isRTL } = useTranslation();
 
   const { register, handleSubmit, formState: { errors } } = useForm<LoginInput>({
     resolver: zodResolver(loginSchema),
@@ -34,43 +43,51 @@ export default function LoginPage() {
     setIsLoading(true);
     setAuthError(null);
     try {
-      const result = await signIn("credentials", {
-        ...data,
-        redirect: false,
-      });
-
+      const result = await signIn("credentials", { ...data, redirect: false });
       if (result?.error) {
-        setAuthError("Invalid email or password. Please verify your credentials and try again.");
+        setAuthError(t("errors.unauthorized"));
         return;
       }
-
-      toast.success("Logged in successfully");
-      router.refresh(); // Middleware will redirect based on role
-    } catch (error: any) {
-      toast.error("An unexpected error occurred");
+      toast.success(t("auth.login"));
+      router.refresh();
+    } catch {
+      toast.error(t("errors.serverError"));
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-6">
+    <div className={`min-h-screen bg-gray-50 flex flex-col items-center justify-center p-6 ${isRTL ? "rtl" : "ltr"}`}>
+      {/* Language switcher top-right */}
+      <div className={`fixed top-4 ${isRTL ? "left-4" : "right-4"} z-50 flex items-center bg-white border border-gray-200 rounded-full p-0.5 gap-0.5 shadow-sm`}>
+        {LANGS.map(({ code, label }) => (
+          <button
+            key={code}
+            onClick={() => setLanguage(code)}
+            className={`h-7 px-2.5 rounded-full text-[11px] font-bold transition-all duration-200
+              ${language === code ? "bg-indigo-600 text-white shadow-sm" : "text-gray-500 hover:text-gray-800"}`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
       <div className="w-full max-w-[400px]">
-        {/* Branding header */}
         <div className="text-center mb-8">
           <div className="h-12 w-12 bg-indigo-600 rounded-md mx-auto mb-4 flex items-center justify-center shadow-sm">
             <ShieldCheck className="h-7 w-7 text-white" />
           </div>
           <h1 className="text-[17px] font-semibold text-gray-900 uppercase tracking-tight">ESST</h1>
-          <p className="text-[11px] text-gray-400 uppercase tracking-widest font-medium mt-1">PFE Management System</p>
+          <p className="text-[11px] text-gray-400 uppercase tracking-widest font-medium mt-1">{t("common.appSubtitle")}</p>
         </div>
 
         <div className="bg-white border border-gray-200 rounded-md p-8 shadow-sm">
-          <h2 className="text-[15px] font-medium text-gray-900 mb-6">Account Login</h2>
+          <h2 className="text-[15px] font-medium text-gray-900 mb-6">{t("auth.login")}</h2>
 
           {error && (
             <div className="mb-4 p-3 bg-red-50 border-l-2 border-red-600 text-[11px] text-red-700 font-medium rounded-r">
-              Session error: {error}
+              {t("errors.serverError")}: {error}
             </div>
           )}
 
@@ -83,7 +100,7 @@ export default function LoginPage() {
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
             <Input
-              label="University Email"
+              label={t("common.email")}
               type="email"
               placeholder="e.g. salim@example.com"
               {...register("email")}
@@ -91,10 +108,10 @@ export default function LoginPage() {
             />
 
             <div className="space-y-1">
-              <div className="flex justify-between">
-                <label className="admin-form-label" htmlFor="password">Password</label>
-                <Link href="/forgot-password" title="Recover account" className="text-[11px] text-indigo-600 hover:text-indigo-700">
-                  Forgot?
+              <div className={`flex justify-between ${isRTL ? "flex-row-reverse" : ""}`}>
+                <label className="admin-form-label" htmlFor="password">{t("common.password")}</label>
+                <Link href="/forgot-password" className="text-[11px] text-indigo-600 hover:text-indigo-700">
+                  {t("auth.forgotPassword")}
                 </Link>
               </div>
               <Input
@@ -107,23 +124,23 @@ export default function LoginPage() {
             </div>
 
             <Button type="submit" className="w-full" isLoading={isLoading} size="lg">
-              Sign In
+              {t("auth.login")}
             </Button>
 
             <Link
               href="/"
               className="flex items-center justify-center gap-2 w-full py-2 text-[13px] text-gray-500 hover:text-indigo-600 font-medium transition-colors"
             >
-              <ArrowLeft className="h-4 w-4" />
-              Back to Welcome Page
+              <ArrowLeft className={`h-4 w-4 ${isRTL ? "rotate-180" : ""}`} />
+              {t("common.back")}
             </Link>
           </form>
 
           <div className="mt-8 pt-6 border-t border-gray-100 text-center">
             <p className="text-[13px] text-gray-500">
-              Don't have an account?{" "}
+              {t("auth.register")}?{" "}
               <Link href="/register" className="text-indigo-600 font-medium hover:text-indigo-700">
-                Register request
+                {t("common.registrations")}
               </Link>
             </p>
           </div>

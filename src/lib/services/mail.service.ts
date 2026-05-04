@@ -26,7 +26,6 @@ export class MailService {
         html,
       });
 
-      console.log("Email sent: %s", info.messageId);
       return info;
     } catch (error) {
       console.error("MailService Error:", error);

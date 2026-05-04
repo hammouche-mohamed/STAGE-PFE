@@ -12,9 +12,11 @@ import { topicSchema } from "@/lib/validations/topic.schema";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { useEffect } from "react";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
 
 export default function NewTopicPage() {
   const router = useRouter();
+  const { t } = useTranslation();
   const [isLoading, setIsLoading] = useState(false);
 
   const { register, handleSubmit, formState: { errors }, reset } = useForm<any>({
@@ -51,10 +53,10 @@ export default function NewTopicPage() {
       const result = await res.json();
       if (!res.ok) throw new Error(result.error);
 
-      toast.success("Topic proposed successfully! Waiting for Admin approval.");
+      toast.success(t("toast.topicProposed"));
       router.push("/company/topics");
-    } catch (error: any) {
-      toast.error(error.message || "Failed to submit topic");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to submit topic");
     } finally {
       setIsLoading(false);
     }
@@ -67,8 +69,8 @@ export default function NewTopicPage() {
           <ArrowLeft className="h-5 w-5" />
         </Link>
         <div>
-          <h1 className="text-[17px] font-semibold text-gray-900">Propose New Internship Topic</h1>
-          <p className="text-[13px] text-gray-500 mt-0.5">Fill out the details of the PFE you want to propose to the university.</p>
+          <h1 className="text-[17px] font-semibold text-gray-900">{t("topics.propose")}</h1>
+          <p className="text-[13px] text-gray-500 mt-0.5">{t("common.appSubtitle")}</p>
         </div>
       </div>
 

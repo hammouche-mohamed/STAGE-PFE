@@ -14,6 +14,7 @@ import {
 import { Button } from "@/components/ui/Button";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
 
 interface AuditLog {
   id: string;
@@ -31,6 +32,7 @@ interface AuditLog {
 }
 
 export default function AuditLogsPage() {
+  const { t } = useTranslation();
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -109,8 +111,8 @@ export default function AuditLogsPage() {
       } else {
         throw new Error(result.error);
       }
-    } catch (error: any) {
-      toast.error(error.message || "Cleanup failed");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Cleanup failed");
     } finally {
       setIsCleaning(false);
     }
@@ -124,7 +126,7 @@ export default function AuditLogsPage() {
             <ClipboardList className="h-5 w-5 mr-2 text-indigo-600" />
             System Audit logs
           </h1>
-          <p className="text-[12px] sm:text-[13px] text-gray-500 mt-0.5">Track all administrative actions and system events.</p>
+          <p className="text-[12px] sm:text-[13px] text-gray-500 mt-0.5">{t("nav.audit")}</p>
         </div>
         <div className="flex gap-2 w-full sm:w-auto">
           <Button 
@@ -181,11 +183,11 @@ export default function AuditLogsPage() {
           <tbody>
             {isLoading ? (
               <tr>
-                <td colSpan={5} className="text-center py-12 text-gray-400 italic">Fetching system records...</td>
+                <td colSpan={5} className="text-center py-12 text-gray-400 italic">{t("common.loading")}</td>
               </tr>
             ) : filteredLogs.length === 0 ? (
               <tr>
-                <td colSpan={5} className="text-center py-12 text-gray-400">No logs found matching your criteria.</td>
+                <td colSpan={5} className="text-center py-12 text-gray-400">{t("common.noData")}</td>
               </tr>
             ) : (
               filteredLogs.map((log) => (

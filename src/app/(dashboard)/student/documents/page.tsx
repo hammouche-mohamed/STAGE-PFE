@@ -8,9 +8,11 @@ import { Info, ChevronLeft, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
 
 function DocumentsContent() {
   const searchParams = useSearchParams();
+  const { t, isRTL } = useTranslation();
   const backUrl = searchParams.get("back") || "/student/internship";
   
   const [documents, setDocuments] = useState([]);
@@ -36,7 +38,7 @@ function DocumentsContent() {
         setDocuments(docData.data || []);
       }
     } catch (error) {
-      toast.error("Failed to load documents");
+      toast.error(t("toast.loadDocumentsFailed"));
     } finally {
       setIsLoading(false);
     }
@@ -54,10 +56,10 @@ function DocumentsContent() {
         method: "DELETE",
       });
       if (!res.ok) throw new Error("Failed to delete document");
-      toast.success("Document deleted successfully");
+      toast.success(t("toast.documentDeleted"));
       fetchInternshipAndDocs();
     } catch (error) {
-      toast.error("Error deleting document");
+      toast.error(t("toast.documentDeleteFailed"));
     } finally {
       setIsDeleting(false);
       setDeleteId(null);
@@ -72,12 +74,12 @@ function DocumentsContent() {
           className="flex items-center text-[12px] text-indigo-600 hover:text-indigo-800 font-medium transition-colors w-fit bg-indigo-50 px-3 py-1 rounded-full"
         >
           <ChevronLeft className="h-4 w-4 mr-1" />
-          Back to Internship
+          {t("common.back")}
         </Link>
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-[17px] font-semibold text-gray-900">Internship Documents</h1>
-            <p className="text-[13px] text-gray-500 mt-0.5">Upload and manage your PFE reports and attachments.</p>
+            <h1 className="text-[17px] font-semibold text-gray-900">{t("documents.title")}</h1>
+            <p className="text-[13px] text-gray-500 mt-0.5">{t("common.documents")}</p>
           </div>
         </div>
       </div>
@@ -85,8 +87,8 @@ function DocumentsContent() {
       {!internshipId && !isLoading ? (
         <div className="p-8 bg-amber-50 border border-amber-200 rounded-md flex flex-col items-center justify-center text-center">
           <Info className="h-8 w-8 text-amber-500 mb-2" />
-          <p className="text-[14px] font-medium text-amber-800">No active internship found.</p>
-          <p className="text-[12px] text-amber-600 mt-1">You must have an approved internship to manage documents.</p>
+          <p className="text-[14px] font-medium text-amber-800">{t("dashboard.noInternship")}</p>
+          <p className="text-[12px] text-amber-600 mt-1">{t("internship.noInternship")}</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 items-start">
@@ -123,8 +125,8 @@ function DocumentsContent() {
         isOpen={!!deleteId}
         onClose={() => setDeleteId(null)}
         onConfirm={handleDelete}
-        title="Delete Document"
-        description="Are you sure you want to delete this document? This action cannot be undone."
+        title={t("common.delete") + " " + t("common.documents")}
+        description={t("messages.deleteConfirm")}
         isLoading={isDeleting}
       />
     </div>
@@ -133,7 +135,7 @@ function DocumentsContent() {
 
 export default function StudentDocumentsPage() {
   return (
-    <Suspense fallback={<div className="p-8 text-center text-gray-400">Loading documents...</div>}>
+    <Suspense fallback={<div className="p-8 text-center text-gray-400">Loading…</div>}>
       <DocumentsContent />
     </Suspense>
   );

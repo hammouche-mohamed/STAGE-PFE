@@ -61,9 +61,9 @@ export default function ProfilePage() {
       if (updateSession) {
         await updateSession({ user: { ...(session?.user ?? {}), image: result.url } });
       }
-      toast.success("Profile picture updated successfully");
-    } catch (error: any) {
-      toast.error(error.message || "Failed to upload avatar");
+      toast.success(t("toast.profilePictureUpdated"));
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : t("errors.serverError"));
     } finally {
       setIsUploadingAvatar(false);
     }
@@ -76,7 +76,7 @@ export default function ProfilePage() {
       if (json.data) setProfile(json.data);
     } catch (error) {
       console.error(error);
-      toast.error("Unable to load profile");
+      toast.error(t("toast.loadProfileFailed"));
     }
   };
 
@@ -104,9 +104,9 @@ export default function ProfilePage() {
       if (updateSession) {
         await updateSession({ user: { ...(session?.user ?? {}), name: json.data.name, email: json.data.email } });
       }
-      toast.success("Profile updated successfully");
-    } catch (error: any) {
-      toast.error(error?.message ?? "Failed to update profile");
+      toast.success(t("toast.profileUpdated"));
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : t("errors.serverError"));
     } finally {
       setSaving(false);
     }
@@ -114,7 +114,7 @@ export default function ProfilePage() {
 
   const handlePasswordUpdate = async () => {
     if (!passwords.currentPassword || !passwords.newPassword) {
-      toast.error("Please fill both password fields");
+      toast.error(t("toast.fillBothPasswords"));
       return;
     }
     setSaving(true);
@@ -130,7 +130,7 @@ export default function ProfilePage() {
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Failed to change password");
       setPasswords({ currentPassword: "", newPassword: "" });
-      toast.success("Password updated successfully");
+      toast.success(t("toast.passwordUpdated"));
     } catch (error: any) {
       toast.error(error?.message ?? "Failed to change password");
     } finally {
@@ -157,7 +157,7 @@ export default function ProfilePage() {
         await updateSession({ user: { ...(session?.user ?? {}), image: null } });
       }
       
-      toast.success("Profile picture removed");
+      toast.success(t("toast.profilePictureRemoved"));
       setShowConfirmRemoveAvatar(false);
     } catch (error: any) {
       toast.error(error?.message ?? "Failed to remove profile picture");

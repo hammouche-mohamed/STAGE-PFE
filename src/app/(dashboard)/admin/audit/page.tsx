@@ -4,8 +4,10 @@ import React, { useEffect, useState } from "react";
 import { formatDateTime } from "@/lib/utils/formatDate";
 import { History, Search, Filter } from "lucide-react";
 import { toast } from "sonner";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
 
 export default function AdminAuditPage() {
+  const { t } = useTranslation();
   const [logs, setLogs] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -28,8 +30,8 @@ export default function AdminAuditPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-[17px] font-semibold text-gray-900">Security & Audit Logs</h1>
-          <p className="text-[13px] text-gray-500 mt-0.5">Track all administrative actions, data changes, and security events.</p>
+          <h1 className="text-[17px] font-semibold text-gray-900">{t("nav.audit")}</h1>
+          <p className="text-[13px] text-gray-500 mt-0.5">{t("common.appSubtitle")}</p>
         </div>
       </div>
 
@@ -63,9 +65,9 @@ export default function AdminAuditPage() {
           </thead>
           <tbody>
             {isLoading ? (
-              <tr><td colSpan={5} className="text-center py-8 text-gray-400">Loading history...</td></tr>
+              <tr><td colSpan={5} className="text-center py-8 text-gray-400">{t("common.loading")}</td></tr>
             ) : logs.length === 0 ? (
-              <tr><td colSpan={5} className="text-center py-8 text-gray-400">No audit records found.</td></tr>
+              <tr><td colSpan={5} className="text-center py-8 text-gray-400">{t("common.noData")}</td></tr>
             ) : (
               logs.map((log: any) => (
                 <tr key={log.id} className="admin-table-row">

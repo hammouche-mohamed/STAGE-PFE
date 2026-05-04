@@ -10,16 +10,9 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { toast } from "sonner";
 import {
-  Building2,
-  FileText,
-  User,
-  Mail,
-  Phone,
-  MapPin,
-  AlertCircle,
-  Upload,
-  Info,
+  Building2, FileText, User, Mail, Phone, MapPin, AlertCircle, Upload, Info,
 } from "lucide-react";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
 
 const proposalSchema = z.object({
   title: z.string().min(5, "Title must be at least 5 characters"),
@@ -41,6 +34,7 @@ type ProposalFormData = z.infer<typeof proposalSchema>;
 export default function ProposeTopicPage() {
   const { data: session } = useSession();
   const router = useRouter();
+  const { t } = useTranslation();
   const [isLoading, setIsLoading] = useState(false);
 
   // L1/L2/M1 can only propose NORMAL; L3/M2 can choose
@@ -83,7 +77,7 @@ export default function ProposeTopicPage() {
       const result = await res.json();
       if (!res.ok) throw new Error(result.error || "Submission failed");
 
-      toast.success("Proposal submitted! Admin will review it shortly.");
+      toast.success(t("toast.proposalSubmitted"));
       router.push("/student");
     } catch (error: unknown) {
       toast.error(error instanceof Error ? error.message : "Submission failed");
@@ -98,7 +92,7 @@ export default function ProposeTopicPage() {
       <div>
         <h1 className="text-[17px] font-semibold text-gray-900 flex items-center gap-2">
           <FileText className="h-5 w-5 text-indigo-600" />
-          Propose Your Own Internship Topic
+          {t("topics.propose")}
         </h1>
         <p className="text-[13px] text-gray-500 mt-1">
           Found a company independently? Submit your topic and company details for admin approval.
@@ -131,7 +125,7 @@ export default function ProposeTopicPage() {
         <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm space-y-4">
           <h2 className="text-[13px] font-semibold text-gray-900 uppercase tracking-wider flex items-center gap-2">
             <FileText className="h-4 w-4 text-indigo-600" />
-            Topic Information
+            {t("topics.title")}
           </h2>
 
           {/* Internship Type */}
@@ -301,11 +295,9 @@ export default function ProposeTopicPage() {
             onClick={() => router.back()}
             className="text-[13px] text-gray-500 hover:text-gray-700"
           >
-            ← Cancel
+            {t("common.cancel")}
           </button>
-          <Button type="submit" isLoading={isLoading}>
-            Submit Proposal for Review
-          </Button>
+          <Button type="submit" isLoading={isLoading}>{t("topics.propose")}</Button>
         </div>
       </form>
     </div>

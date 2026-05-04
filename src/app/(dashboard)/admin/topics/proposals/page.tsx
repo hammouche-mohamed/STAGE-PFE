@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { InternshipTypeBadge } from "@/components/ui/InternshipTypeBadge";
 import { toast } from "sonner";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
 
 interface Proposal {
   id: string;
@@ -29,6 +30,7 @@ interface Teacher {
 }
 
 export default function StudentProposalsPage() {
+  const { t, isRTL } = useTranslation();
   const [proposals, setProposals] = useState<Proposal[]>([]);
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -122,14 +124,14 @@ export default function StudentProposalsPage() {
         <div>
           <h1 className="text-[17px] font-semibold text-gray-900 flex items-center gap-2">
             <FileText className="h-5 w-5 text-indigo-600" />
-            Student Proposals
+            {t("nav.studentProposals")}
           </h1>
           <p className="text-[13px] text-gray-500 mt-0.5">
-            Review PATH B proposals — students who found their own host company.
+            {t("topics.pendingApproval")}
           </p>
         </div>
         <span className="px-3 py-1.5 bg-amber-100 text-amber-800 text-[12px] font-semibold rounded-full">
-          {proposals.length} pending
+          {proposals.length} {t("common.pending")}
         </span>
       </div>
 
@@ -148,13 +150,13 @@ export default function StudentProposalsPage() {
         <table className="admin-table stacked-table">
           <thead className="admin-table-header">
             <tr>
-              <th>Student</th>
-              <th>Topic</th>
-              <th>Company</th>
-              <th>Type</th>
-              <th>Submitted</th>
-              <th>Doc</th>
-              <th className="text-right">Actions</th>
+              <th>{t("common.users")}</th>
+              <th>{t("topics.title")}</th>
+              <th>{t("internship.company")}</th>
+              <th>{t("topics.type")}</th>
+              <th>{t("common.date")}</th>
+              <th>{t("common.documents")}</th>
+              <th className="text-right">{t("common.actions")}</th>
             </tr>
           </thead>
           <tbody>
@@ -220,7 +222,7 @@ export default function StudentProposalsPage() {
                         className="bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] sm:text-[11px] px-2"
                       >
                         <CheckCircle className="h-3.5 w-3.5 mr-1" />
-                        Approve
+                        {t("status.APPROVED")}
                       </Button>
                       <Button
                         size="sm"
@@ -229,7 +231,7 @@ export default function StudentProposalsPage() {
                         className="text-red-600 border-red-200 hover:bg-red-50 text-[10px] sm:text-[11px] px-2"
                       >
                         <XCircle className="h-3.5 w-3.5 mr-1" />
-                        Reject
+                        {t("status.REJECTED")}
                       </Button>
                     </div>
                   </td>
@@ -290,9 +292,7 @@ export default function StudentProposalsPage() {
             )}
 
             <div className="flex justify-end gap-3 pt-2">
-              <Button variant="outline" size="sm" onClick={closeModal}>
-                Cancel
-              </Button>
+              <Button variant="outline" size="sm" onClick={closeModal}>{t("common.cancel")}</Button>
               <Button
                 size="sm"
                 isLoading={acting === selected.id}

@@ -147,7 +147,7 @@ export default function AdminInternshipDetailPage() {
 
           <div className="bg-white border border-gray-200 rounded-md p-6 shadow-sm">
              <h2 className="text-[14px] font-bold text-gray-900 mb-6 flex items-center">
-                <Users className="h-4 w-4 mr-2 text-indigo-500" />
+                <User className="h-4 w-4 mr-2 text-indigo-500" />
                 Assigned Students
              </h2>
              <div className="space-y-4">

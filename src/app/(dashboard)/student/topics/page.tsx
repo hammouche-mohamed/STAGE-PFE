@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { toast } from "sonner";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
 
 interface Topic {
   id: string;
@@ -23,6 +24,7 @@ interface Topic {
 
 export default function StudentTopicsPage() {
   const [topics, setTopics] = useState<Topic[]>([]);
+  const { t, isRTL } = useTranslation();
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [applying, setApplying] = useState<string | null>(null);
@@ -39,7 +41,7 @@ export default function StudentTopicsPage() {
     fetch("/api/topics")
       .then((r) => r.json())
       .then((d) => setTopics(d.data || []))
-      .catch(() => toast.error("Failed to load topics"))
+      .catch(() => toast.error(t("toast.loadTopicsFailed")))
       .finally(() => setIsLoading(false));
   }, []);
 
@@ -65,9 +67,9 @@ export default function StudentTopicsPage() {
 
       setApplied((prev) => new Set(prev).add(topicId));
       setSelectedTopic(null);
-      toast.success("Application submitted! The company will review it shortly.");
+      toast.success(t("toast.applicationSubmitted"));
     } catch {
-      toast.error("Network error — please try again.");
+      toast.error(t("toast.networkError"));
     } finally {
       setApplying(null);
     }
@@ -88,10 +90,8 @@ export default function StudentTopicsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-[17px] font-semibold text-gray-900">Available Topics</h1>
-        <p className="text-[13px] text-gray-500 mt-0.5">
-          Explore project proposals from companies and professors.
-        </p>
+        <h1 className="text-[17px] font-semibold text-gray-900">{t("topics.title")}</h1>
+        <p className="text-[13px] text-gray-500 mt-0.5">{t("topics.pendingApproval")}</p>
       </div>
 
       <div className="flex flex-col sm:flex-row gap-4">
@@ -99,7 +99,7 @@ export default function StudentTopicsPage() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
           <input
             type="text"
-            placeholder="Search by title, company, or description…"
+            placeholder={t("common.search")}
             className="admin-input pl-10"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -109,11 +109,9 @@ export default function StudentTopicsPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {isLoading ? (
-          <div className="col-span-full text-center py-12 text-gray-400">Loading topics…</div>
+          <div className="col-span-full text-center py-12 text-gray-400">{t("common.loading")}</div>
         ) : filteredTopics.length === 0 ? (
-          <div className="col-span-full text-center py-12 text-gray-400">
-            No topics found matching your search.
-          </div>
+          <div className="col-span-full text-center py-12 text-gray-400">{t("topics.noTopics")}</div>
         ) : (
           filteredTopics.map((topic) => {
             const isApplied = applied.has(topic.id);
@@ -178,13 +176,12 @@ export default function StudentTopicsPage() {
                 <div className="mt-5 pt-4 border-t border-gray-100 flex items-center justify-end" onClick={(e) => e.stopPropagation()}>
                   {isApplied ? (
                     <span className="flex items-center gap-1.5 text-[12px] font-semibold text-emerald-600">
-                      <CheckCircle2 className="h-4 w-4" /> Application Sent
+                      <CheckCircle2 className="h-4 w-4" />
+                      {t("status.APPROVED")}
                     </span>
                   ) : (
                     <Button onClick={(e) => handleApply(topic.id, e)} size="sm" className="px-6" disabled={isApplying}>
-                      {isApplying
-                        ? <><Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />Applying…</>
-                        : "Apply Now"}
+                        {isApplying ? <><Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />{t("common.loading")}</> : t("common.apply")}
                     </Button>
                   )}
                 </div>
@@ -228,7 +225,7 @@ export default function StudentTopicsPage() {
             <div className="flex-1 p-6 space-y-6 overflow-y-auto">
               {/* Description */}
               <div>
-                <h3 className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2">Project Description</h3>
+                <h3 className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2">{t("topics.internshipType")}</h3>
                 <p className="text-[14px] text-gray-700 leading-relaxed whitespace-pre-wrap">{selectedTopic.description}</p>
               </div>
 
@@ -270,7 +267,7 @@ export default function StudentTopicsPage() {
               {skills(selectedTopic).length > 0 && (
                 <div>
                   <h3 className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
-                    <Tag className="h-3.5 w-3.5" /> Required Technical Skills
+                    <Tag className="h-3.5 w-3.5" /> {t("topics.skills")}
                   </h3>
                   <div className="flex flex-wrap gap-2">
                     {skills(selectedTopic).map((s) => (
@@ -291,12 +288,8 @@ export default function StudentTopicsPage() {
                 </div>
               ) : (
                 <div className="flex gap-3">
-                  <Button
-                    variant="outline"
-                    className="h-11 px-6 rounded-xl"
-                    onClick={() => setSelectedTopic(null)}
-                  >
-                    Close
+                  <Button variant="outline" className="h-11 px-6 rounded-xl" onClick={() => setSelectedTopic(null)}>
+                    {t("common.close")}
                   </Button>
                   <Button
                     className="min-w-[160px] h-11 text-[14px] rounded-xl shadow-lg shadow-indigo-100"
@@ -304,8 +297,8 @@ export default function StudentTopicsPage() {
                     disabled={applying === selectedTopic.id}
                   >
                     {applying === selectedTopic.id
-                      ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Applying…</>
-                      : "Apply for this Project"}
+                      ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />{t("common.loading")}</>
+                      : t("common.apply")}
                   </Button>
                 </div>
               )}

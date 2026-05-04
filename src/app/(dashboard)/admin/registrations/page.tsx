@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { Check, X, Eye } from "lucide-react";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
 
 interface RegistrationRequest {
   id: string;
@@ -26,6 +27,7 @@ interface RegistrationRequest {
 }
 
 export default function AdminRegistrationsPage() {
+  const { t } = useTranslation();
   const [requests, setRequests] = useState<RegistrationRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedRequest, setSelectedRequest] = useState<RegistrationRequest | null>(null);
@@ -70,8 +72,8 @@ export default function AdminRegistrationsPage() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-[16px] sm:text-[17px] font-semibold text-gray-900">Registration Requests</h1>
-          <p className="text-[12px] sm:text-[13px] text-gray-500 mt-0.5">Manage student and company account requests.</p>
+          <h1 className="text-[16px] sm:text-[17px] font-semibold text-gray-900">{t("common.registrations")}</h1>
+          <p className="text-[12px] sm:text-[13px] text-gray-500 mt-0.5">{t("settings.subtitle")}</p>
         </div>
       </div>
 
@@ -79,21 +81,21 @@ export default function AdminRegistrationsPage() {
         <table className="admin-table stacked-table">
           <thead className="admin-table-header">
             <tr>
-              <th>Applicant</th>
-              <th>Role</th>
-              <th>Submitted At</th>
-              <th>Status</th>
-              <th className="text-right">Actions</th>
+              <th>{t("common.name")}</th>
+              <th>{t("common.role")}</th>
+              <th>{t("common.date")}</th>
+              <th>{t("common.status")}</th>
+              <th className="text-right">{t("common.actions")}</th>
             </tr>
           </thead>
           <tbody>
             {isLoading ? (
               <tr className="empty-row">
-                <td colSpan={5} className="text-center py-8 text-gray-400">Loading requests...</td>
+                <td colSpan={5} className="text-center py-8 text-gray-400">{t("common.loading")}</td>
               </tr>
             ) : requests.length === 0 ? (
               <tr className="empty-row">
-                <td colSpan={5} className="text-center py-8 text-gray-400">No pending requests found.</td>
+                <td colSpan={5} className="text-center py-8 text-gray-400">{t("common.noData")}</td>
               </tr>
             ) : (
               requests.map((req) => (
@@ -134,7 +136,7 @@ export default function AdminRegistrationsPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 overflow-y-auto">
           <div className="bg-white rounded-md shadow-xl w-full max-w-lg mt-10 mb-10">
             <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between sticky top-0 bg-white rounded-t-lg">
-              <h2 className="text-[15px] font-semibold text-gray-900">Registration Details</h2>
+              <h2 className="text-[15px] font-semibold text-gray-900">{t("common.registrations")}</h2>
               <button onClick={() => setSelectedRequest(null)} className="text-gray-400 hover:text-gray-600">
                 <X className="h-5 w-5" />
               </button>
@@ -143,15 +145,15 @@ export default function AdminRegistrationsPage() {
             <div className="p-6 space-y-4 text-[13px]">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-gray-400 block mb-1">Full Name</label>
+                  <label className="text-gray-400 block mb-1">{t("common.name")}</label>
                   <p className="font-medium text-gray-900">{selectedRequest.name}</p>
                 </div>
                 <div>
-                  <label className="text-gray-400 block mb-1">Role</label>
+                  <label className="text-gray-400 block mb-1">{t("common.role")}</label>
                   <p className="font-medium text-gray-900 capitalize">{selectedRequest.role.toLowerCase()}</p>
                 </div>
                 <div className="col-span-2">
-                  <label className="text-gray-400 block mb-1">Email</label>
+                  <label className="text-gray-400 block mb-1">{t("common.email")}</label>
                   <p className="font-medium text-gray-900">{selectedRequest.email}</p>
                 </div>
               </div>
@@ -226,7 +228,7 @@ export default function AdminRegistrationsPage() {
                       setSelectedRequest(null);
                     }}
                   >
-                    Reject
+                    {t("common.reject")}
                   </Button>
                   <Button 
                     variant="primary" 
@@ -236,13 +238,11 @@ export default function AdminRegistrationsPage() {
                       setSelectedRequest(null);
                     }}
                   >
-                    Approve Request
+                    {t("common.approve")}
                   </Button>
                 </>
               )}
-              <Button variant="outline" size="sm" onClick={() => setSelectedRequest(null)}>
-                Close
-              </Button>
+              <Button variant="outline" size="sm" onClick={() => setSelectedRequest(null)}>{t("common.close")}</Button>
             </div>
           </div>
         </div>

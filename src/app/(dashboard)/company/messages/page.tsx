@@ -5,6 +5,7 @@ import { Send, Paperclip, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { useSession } from "next-auth/react";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
 
 interface Message {
   id: string;
@@ -25,6 +26,7 @@ interface Internship {
 
 export default function CompanyMessagesPage() {
   const { data: session } = useSession();
+  const { t, isRTL } = useTranslation();
   const [internships, setInternships] = useState<Internship[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -44,7 +46,7 @@ export default function CompanyMessagesPage() {
         setInternships(active);
         if (active.length > 0) setSelectedId(active[0].id);
       } catch {
-        toast.error("Failed to load internships");
+        toast.error(t("toast.loadInternshipsFailed"));
       } finally {
         setIsLoading(false);
       }
@@ -58,7 +60,7 @@ export default function CompanyMessagesPage() {
       const data = await res.json();
       setMessages(data.data || []);
     } catch {
-      toast.error("Failed to load messages");
+      toast.error(t("toast.loadMessagesFailed"));
     }
   };
 
@@ -85,7 +87,7 @@ export default function CompanyMessagesPage() {
       setMessages((prev) => [...prev, data.data]);
       setNewMessage("");
     } catch {
-      toast.error("Failed to send message");
+      toast.error(t("toast.messageSendFailed"));
     } finally {
       setIsSending(false);
     }

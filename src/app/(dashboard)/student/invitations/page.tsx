@@ -7,6 +7,7 @@ import { format, formatDistanceToNow } from "date-fns";
 import { Bell, CheckCircle, XCircle, Clock, BookOpen, User } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { InternshipTypeBadge } from "@/components/ui/InternshipTypeBadge";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
 
 interface Invitation {
   id: string;
@@ -22,6 +23,7 @@ interface Invitation {
 
 export default function InvitationsPage() {
   const { data: session } = useSession();
+  const { t, isRTL } = useTranslation();
   const [invitations, setInvitations] = useState<Invitation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [responding, setResponding] = useState<string | null>(null);
@@ -33,7 +35,7 @@ export default function InvitationsPage() {
       const data = await res.json();
       setInvitations(data.data || []);
     } catch {
-      toast.error("Failed to load invitations");
+      toast.error(t("toast.loadInvitationsFailed"));
     } finally {
       setIsLoading(false);
     }

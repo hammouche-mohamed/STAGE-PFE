@@ -54,7 +54,7 @@ export class AuditService {
           },
         },
       });
-      console.log(`Audit cleanup: Removed ${deleted.count} old log entries.`);
+      // silent cleanup — count returned to caller
       return deleted.count;
     } catch (error) {
       console.error("Audit cleanup failed:", error);

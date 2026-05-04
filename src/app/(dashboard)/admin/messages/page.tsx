@@ -5,6 +5,7 @@ import { format } from "date-fns";
 import { MessageSquare, Download, Filter, Archive } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { toast } from "sonner";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
 
 interface MessageThread {
   internshipId: string;
@@ -19,6 +20,7 @@ interface MessageThread {
 }
 
 export default function AdminMessagesPage() {
+  const { t, isRTL } = useTranslation();
   const [threads, setThreads] = useState<MessageThread[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedYear, setSelectedYear] = useState<string>("all");
@@ -26,7 +28,12 @@ export default function AdminMessagesPage() {
   const [exportType, setExportType] = useState<string>("all");
   const [isExporting, setIsExporting] = useState(false);
 
-  const years = ["2024-2025", "2023-2024", "2022-2023"];
+  // Generate last 3 academic years dynamically
+  const currentYear = new Date().getFullYear();
+  const years = Array.from({ length: 3 }, (_, i) => {
+    const y = currentYear - i;
+    return `${y}-${y + 1}`;
+  });
 
   useEffect(() => {
     const fetchThreads = async () => {
@@ -75,7 +82,7 @@ export default function AdminMessagesPage() {
         <div>
           <h1 className="text-[17px] font-semibold text-gray-900 flex items-center gap-2">
             <MessageSquare className="h-5 w-5 text-indigo-600" />
-            Message History & Export
+            {t("nav.messages")}
           </h1>
           <p className="text-[13px] text-gray-500 mt-0.5">
             Oversight of all internship communication threads. Download records per academic year.
@@ -104,7 +111,7 @@ export default function AdminMessagesPage() {
           </select>
           <Button size="sm" onClick={handleExport} isLoading={isExporting}>
             <Download className="h-4 w-4 mr-1.5" />
-            Download CSV
+            {t("common.export")}
           </Button>
         </div>
       </div>
@@ -154,13 +161,13 @@ export default function AdminMessagesPage() {
             {isLoading ? (
               <tr>
                 <td colSpan={6} className="text-center py-12 text-gray-400 text-[13px]">
-                  Loading threads…
+                  {t("common.loading")}
                 </td>
               </tr>
             ) : threads.length === 0 ? (
               <tr>
                 <td colSpan={6} className="text-center py-12 text-gray-400 text-[13px]">
-                  No message threads found.
+                  {t("common.noData")}
                 </td>
               </tr>
             ) : (

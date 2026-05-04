@@ -47,42 +47,42 @@ export const Sidebar: React.FC<SidebarProps> = ({ role: initialRole, logoUrl }) 
     switch (role) {
       case "ADMIN":
         return [
-          { label: "Dashboard", icon: LayoutDashboard, href: "/admin", active: pathname === "/admin" },
-          { label: "Registrations", icon: UserIcon, href: "/admin/registrations", active: pathname === "/admin/registrations" },
-          { label: "Users", icon: Users, href: "/admin/users", active: pathname === "/admin/users" },
-          { label: "Topics", icon: Briefcase, href: "/admin/topics", active: pathname === "/admin/topics" },
-          { label: "Internships", icon: ShieldCheck, href: "/admin/internships", active: pathname === "/admin/internships" },
+          { label: t("common.dashboard"), icon: LayoutDashboard, href: "/admin", active: pathname === "/admin" },
+          { label: t("common.registrations"), icon: UserIcon, href: "/admin/registrations", active: pathname === "/admin/registrations" },
+          { label: t("common.users"), icon: Users, href: "/admin/users", active: pathname === "/admin/users" },
+          { label: t("common.topics"), icon: Briefcase, href: "/admin/topics", active: pathname === "/admin/topics" },
+          { label: t("common.internships"), icon: ShieldCheck, href: "/admin/internships", active: pathname === "/admin/internships" },
           { label: "Audit Logs", icon: FileText, href: "/admin/audit-logs", active: pathname === "/admin/audit-logs" },
-          { label: "Settings", icon: Settings, href: "/admin/settings", active: pathname === "/admin/settings" },
-          { label: "Profile", icon: UserIcon, href: "/profile", active: pathname === "/profile" },
+          { label: t("common.settings"), icon: Settings, href: "/admin/settings", active: pathname === "/admin/settings" },
+          { label: t("common.profile"), icon: UserIcon, href: "/profile", active: pathname === "/profile" },
         ];
       case "TEACHER":
         return [
-          { label: "Dashboard", icon: LayoutDashboard, href: "/teacher", active: pathname === "/teacher" },
-          { label: "Topics", icon: Briefcase, href: "/teacher/topics", active: pathname === "/teacher/topics" },
-          { label: "Supervisions", icon: ShieldCheck, href: "/teacher/internships", active: pathname === "/teacher/internships" },
-          { label: "Documents", icon: FileText, href: "/teacher/documents", active: pathname === "/teacher/documents" },
-          { label: "Messages", icon: MessageSquare, href: "/teacher/messages", active: pathname === "/teacher/messages" },
-          { label: "Profile", icon: UserIcon, href: "/profile", active: pathname === "/profile" },
+          { label: t("common.dashboard"), icon: LayoutDashboard, href: "/teacher", active: pathname === "/teacher" },
+          { label: t("nav.myTopics"), icon: Briefcase, href: "/teacher/topics", active: pathname === "/teacher/topics" },
+          { label: t("nav.supervision"), icon: ShieldCheck, href: "/teacher/internships", active: pathname === "/teacher/internships" },
+          { label: t("common.documents"), icon: FileText, href: "/teacher/documents", active: pathname === "/teacher/documents" },
+          { label: t("common.messages"), icon: MessageSquare, href: "/teacher/messages", active: pathname === "/teacher/messages" },
+          { label: t("common.profile"), icon: UserIcon, href: "/profile", active: pathname === "/profile" },
         ];
       case "COMPANY":
         return [
-          { label: "Dashboard", icon: LayoutDashboard, href: "/company", active: pathname === "/company" },
-          { label: "Topics", icon: Briefcase, href: "/company/topics", active: pathname === "/company/topics" },
-          { label: "Applications", icon: Users, href: "/company/applications", active: pathname === "/company/applications" },
-          { label: "Internships", icon: ShieldCheck, href: "/company/internships", active: pathname === "/company/internships" },
-          { label: "Messages", icon: MessageSquare, href: "/company/messages", active: pathname === "/company/messages" },
-          { label: "Profile", icon: UserIcon, href: "/profile", active: pathname === "/profile" },
+          { label: t("common.dashboard"), icon: LayoutDashboard, href: "/company", active: pathname === "/company" },
+          { label: t("nav.myTopic"), icon: Briefcase, href: "/company/topics", active: pathname === "/company/topics" },
+          { label: t("nav.applications"), icon: Users, href: "/company/applications", active: pathname === "/company/applications" },
+          { label: t("common.internships"), icon: ShieldCheck, href: "/company/internships", active: pathname === "/company/internships" },
+          { label: t("common.messages"), icon: MessageSquare, href: "/company/messages", active: pathname === "/company/messages" },
+          { label: t("common.profile"), icon: UserIcon, href: "/profile", active: pathname === "/profile" },
         ];
       default: // STUDENT
         return [
-          { label: "Dashboard", icon: LayoutDashboard, href: "/student", active: pathname === "/student" },
-          { label: "Topics", icon: Briefcase, href: "/student/topics", active: pathname === "/student/topics" },
-          { label: "My Internship", icon: ShieldCheck, href: "/student/internship", active: pathname === "/student/internship" },
-          { label: "Documents", icon: FileText, href: "/student/documents", active: pathname === "/student/documents" },
-          { label: "Messages", icon: MessageSquare, href: "/student/messages", active: pathname === "/student/messages" },
-          { label: "Invitations", icon: Users, href: "/student/invitations", active: pathname === "/student/invitations" },
-          { label: "Profile", icon: UserIcon, href: "/profile", active: pathname === "/profile" },
+          { label: t("common.dashboard"), icon: LayoutDashboard, href: "/student", active: pathname === "/student" },
+          { label: t("common.topics"), icon: Briefcase, href: "/student/topics", active: pathname === "/student/topics" },
+          { label: t("common.internship"), icon: ShieldCheck, href: "/student/internship", active: pathname === "/student/internship" },
+          { label: t("common.documents"), icon: FileText, href: "/student/documents", active: pathname === "/student/documents" },
+          { label: t("common.messages"), icon: MessageSquare, href: "/student/messages", active: pathname === "/student/messages" },
+          { label: t("common.invitations"), icon: Users, href: "/student/invitations", active: pathname === "/student/invitations" },
+          { label: t("common.profile"), icon: UserIcon, href: "/profile", active: pathname === "/profile" },
         ];
     }
   };
@@ -175,7 +175,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ role: initialRole, logoUrl }) 
             className={`flex items-center w-full h-[36px] px-3 text-[13px] text-gray-500 hover:text-red-600 hover:bg-red-50 rounded transition-colors cursor-pointer ${isRTL ? "flex-row-reverse" : ""}`}
           >
             <LogOut className={`${isRTL ? "ml-3" : "mr-3"} h-[18px] w-[18px]`} />
-            Logout
+            {t("common.logout")}
           </button>
         </div>
 

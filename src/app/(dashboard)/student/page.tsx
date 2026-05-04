@@ -123,7 +123,7 @@ export default function StudentDashboard() {
           <h1 className="text-[17px] font-semibold text-gray-900">
             {t("dashboard.welcome")}, {session?.user?.name}! 👋
           </h1>
-          <p className="text-[13px] text-gray-500 mt-0.5">ESST PFE Management Portal</p>
+          <p className="text-[13px] text-gray-500 mt-0.5">{t("common.appSubtitle")}</p>
         </div>
         <div className="flex items-center gap-3">
           <div className="h-[36px] px-4 bg-white border border-gray-200 rounded flex items-center gap-2 text-[12px] text-gray-600">
@@ -137,7 +137,7 @@ export default function StudentDashboard() {
       <div className={`grid grid-cols-1 md:grid-cols-3 gap-4 ${isRTL ? "flex-row-reverse" : ""}`}>
         {/* Status */}
         <div className="bg-white border border-gray-200 rounded-md p-5">
-          <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2">Current Status</p>
+          <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2">{t("common.status")}</p>
           {internship ? (
             <>
               <StatusBadge status={internship.status} />
@@ -150,27 +150,27 @@ export default function StudentDashboard() {
 
         {/* Deadlines */}
         <div className="bg-white border border-gray-200 rounded-md p-5">
-          <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2">Deadlines</p>
+          <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2">{t("common.deadlines")}</p>
           {deadlines.length > 0 ? (
             <>
               <p className="text-[20px] font-bold text-gray-900">
-                {daysUntil(deadlines[0].dueDate)} days left
+                {daysUntil(deadlines[0].dueDate)} {t("common.deadlines")}
               </p>
               <p className="text-[12px] text-red-500 font-medium mt-1">{deadlines[0].label}</p>
             </>
           ) : (
-            <p className="text-[13px] text-gray-400">No upcoming deadlines</p>
+            <p className="text-[13px] text-gray-400">{t("common.noData")}</p>
           )}
         </div>
 
         {/* Documents */}
         <div className="bg-white border border-gray-200 rounded-md p-5">
-          <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2">Documents</p>
+          <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2">{t("common.documents")}</p>
           {internship ? (
             <>
               <p className="text-[20px] font-bold text-gray-900">{internship._count.documents} uploaded</p>
               <Link href="/student/documents" className="text-[12px] text-indigo-600 font-medium hover:underline mt-1 block">
-                Manage files →
+                {t("documents.upload")} →
               </Link>
             </>
           ) : (
@@ -190,7 +190,7 @@ export default function StudentDashboard() {
             </h2>
             {internship && (
               <Link href="/student/internship" className="text-[12px] text-indigo-600 hover:underline">
-                {isRTL ? "التفاصيل" : "Full details"}
+                {t("common.view")}
               </Link>
             )}
           </div>
@@ -212,11 +212,11 @@ export default function StudentDashboard() {
 
               <div className="grid grid-cols-2 gap-6 text-[13px]">
                 <div>
-                  <p className="text-gray-400 font-medium mb-1">Supervisor</p>
+                  <p className="text-gray-400 font-medium mb-1">{t("dashboard.supervisor")}</p>
                   <p className="text-gray-900 font-medium">{internship.teacher.name}</p>
                 </div>
                 <div>
-                  <p className="text-gray-400 font-medium mb-1">Team Members</p>
+                  <p className="text-gray-400 font-medium mb-1">{t("dashboard.team")}</p>
                   <div className={`flex items-center gap-2 ${isRTL ? "flex-row-reverse" : ""}`}>
                     {internship.students.map((s, i) => (
                       <div key={`${s.student.id}-${i}`} className="h-7 w-7 rounded-full bg-indigo-100 flex items-center justify-center text-[11px] font-bold text-indigo-700">
@@ -234,10 +234,10 @@ export default function StudentDashboard() {
         <div className="bg-white border border-gray-200 rounded-md p-6">
           <h2 className={`text-[14px] font-semibold text-gray-900 flex items-center gap-2 mb-6 ${isRTL ? "flex-row-reverse" : ""}`}>
             <MessageSquare className="h-4 w-4 text-indigo-600" />
-            Recent Messages
+            {t("common.messages")}
           </h2>
           {recentMessages.length === 0 ? (
-            <p className="text-[13px] text-gray-400">{isRTL ? "لا توجد رسائل" : "No recent messages."}</p>
+            <p className="text-[13px] text-gray-400">{t("messages.noMessages")}</p>
           ) : (
             <div className="space-y-4">
               {recentMessages.map((m) => (
@@ -250,7 +250,7 @@ export default function StudentDashboard() {
                 </div>
               ))}
               <Link href="/student/messages" className="text-[12px] text-indigo-600 hover:underline mt-4 block">
-                Open messages →
+                {t("nav.messages")} →
               </Link>
             </div>
           )}

@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/Button";
 import { toast } from "sonner";
 import Link from "next/link";
 import { format } from "date-fns";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
 
 interface Internship {
   id: string;
@@ -32,6 +33,7 @@ interface Internship {
 }
 
 export default function CompanyInternshipsPage() {
+  const { t, isRTL } = useTranslation();
   const [internships, setInternships] = useState<Internship[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -41,7 +43,7 @@ export default function CompanyInternshipsPage() {
       const data = await res.json();
       setInternships(data.data || []);
     } catch (error) {
-      toast.error("Failed to load internships");
+      toast.error(t("toast.loadInternshipsFailed"));
     } finally {
       setIsLoading(false);
     }
@@ -55,17 +57,17 @@ export default function CompanyInternshipsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-[17px] font-semibold text-gray-900">Ongoing Company Internships</h1>
-          <p className="text-[13px] text-gray-500 mt-0.5">Track all students currently conducting their PFE within your organization.</p>
+          <h1 className="text-[17px] font-semibold text-gray-900">{t("common.internships")}</h1>
+          <p className="text-[13px] text-gray-500 mt-0.5">{t("dashboard.activeInternships")}</p>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {isLoading ? (
-          <div className="col-span-full text-center py-12 text-gray-400">Loading internships...</div>
+          <div className="col-span-full text-center py-12 text-gray-400">{t("common.loading")}</div>
         ) : internships.length === 0 ? (
           <div className="col-span-full text-center py-12 text-gray-400 bg-white border border-gray-200 rounded-md">
-            No active internships found for your company.
+            {t("common.noData")}
           </div>
         ) : (
           internships.map((internship) => (
@@ -88,12 +90,12 @@ export default function CompanyInternshipsPage() {
                 <div className="space-y-3 pt-2">
                   <div className="flex items-center text-[12px] text-gray-600">
                     <Users className="h-4 w-4 mr-2 text-indigo-400" />
-                    <span className="font-semibold mr-1">Interns:</span>
+                    <span className="font-semibold mr-1">{t("common.users")}:</span>
                     {internship.students.map(s => s.student.name).join(", ")}
                   </div>
                   <div className="flex items-center text-[12px] text-gray-600">
                     <GraduationCap className="h-4 w-4 mr-2 text-gray-400" />
-                    <span className="font-semibold mr-1">Supervisor:</span>
+                    <span className="font-semibold mr-1">{t("dashboard.supervisor")}:</span>
                     {internship.teacher.name}
                   </div>
                   <div className="flex items-center text-[12px] text-gray-600">
@@ -106,12 +108,12 @@ export default function CompanyInternshipsPage() {
 
               <div className="mt-8 pt-4 border-t border-gray-50 flex items-center justify-between">
                 <button className="text-[11px] font-bold text-indigo-600 uppercase tracking-wide flex items-center hover:underline">
-                  Manage Track
+                  {t("common.view")}
                   <ArrowRight className="ml-1 h-3 w-3" />
                 </button>
                 <Link href="/company/messages">
                    <Button size="sm" variant="outline" className="h-8">
-                     Chat with Team
+                     {t("nav.messages")}
                    </Button>
                 </Link>
               </div>

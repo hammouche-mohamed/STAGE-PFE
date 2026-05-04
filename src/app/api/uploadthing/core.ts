@@ -18,8 +18,6 @@ export const ourFileRouter = {
       return { userId: session.user.id };
     })
     .onUploadComplete(async ({ metadata, file }) => {
-      console.log("Upload complete for userId:", metadata.userId);
-      console.log("file url", file.url);
       return { uploadedBy: metadata.userId };
     }),
   avatarUploader: f({ image: { maxFileSize: "16MB" } })
@@ -42,7 +40,6 @@ export const ourFileRouter = {
       return { userId: session.user.id };
     })
     .onUploadComplete(async ({ metadata, file }) => {
-      console.log("Branding upload complete:", file.url);
       // Persist directly to DB server-side — most reliable path
       const { randomUUID } = await import("crypto");
       await prisma.systemSettings.upsert({

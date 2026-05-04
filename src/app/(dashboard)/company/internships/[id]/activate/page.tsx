@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { toast } from "sonner";
 import { Calendar, User, Mail, CheckCircle } from "lucide-react";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
 
 const activateSchema = z.object({
   startDate: z.string().min(1, "Start date is required"),
@@ -25,6 +26,7 @@ export default function ActivateInternshipPage({
   params: { id: string };
 }) {
   const router = useRouter();
+  const { t } = useTranslation();
   const [isLoading, setIsLoading] = useState(false);
 
   const {
@@ -74,7 +76,7 @@ export default function ActivateInternshipPage({
       <div>
         <h1 className="text-[17px] font-semibold text-gray-900 flex items-center gap-2">
           <Calendar className="h-5 w-5 text-indigo-600" />
-          Confirm Internship Dates
+          {t("status.IN_PROGRESS")}
         </h1>
         <p className="text-[13px] text-gray-500 mt-1">
           Provide the official start/end dates and your technical supervisor's information.
@@ -137,11 +139,11 @@ export default function ActivateInternshipPage({
             onClick={() => router.back()}
             className="text-[13px] text-gray-500 hover:text-gray-700"
           >
-            ← Cancel
+            {t("common.cancel")}
           </button>
           <Button type="submit" isLoading={isLoading}>
             <CheckCircle className="h-4 w-4 mr-1.5" />
-            Confirm & Activate Internship
+            {t("common.confirm")}
           </Button>
         </div>
       </form>

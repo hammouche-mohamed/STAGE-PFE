@@ -24,6 +24,7 @@ import { StatusBadge } from "@/components/ui/StatusBadge";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Modal } from "@/components/ui/Modal";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
 
 interface Deadline {
   id: string;
@@ -36,6 +37,7 @@ interface Deadline {
 
 export default function AdminDeadlinesPage() {
   const router = useRouter();
+  const { t, isRTL } = useTranslation();
   const [deadlines, setDeadlines] = useState<Deadline[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
@@ -170,16 +172,16 @@ export default function AdminDeadlinesPage() {
           className="flex items-center text-[12px] text-indigo-600 hover:text-indigo-800 font-medium transition-colors w-fit border border-indigo-100 bg-indigo-50/50 px-3 py-1 rounded-full"
         >
           <ChevronLeft className="h-4 w-4 mr-1" />
-          Back to Overview
+          {t("common.back")}
         </Link>
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-[17px] font-semibold text-gray-900">Academic Deadlines</h1>
-            <p className="text-[13px] text-gray-500 mt-0.5">Define system-wide dates for report submissions and defenses.</p>
+            <h1 className="text-[17px] font-semibold text-gray-900">{t("common.deadlines")}</h1>
+            <p className="text-[13px] text-gray-500 mt-0.5">{t("common.appSubtitle")}</p>
           </div>
           <Button size="sm" onClick={() => setShowAddForm(!showAddForm)}>
             <Plus className="h-4 w-4 mr-2" />
-            {showAddForm ? "Cancel" : "Set New Deadline"}
+            {showAddForm ? t("common.cancel") : t("common.deadlines")}
           </Button>
         </div>
       </div>
@@ -187,19 +189,19 @@ export default function AdminDeadlinesPage() {
       <Modal
         isOpen={showAddForm}
         onClose={() => setShowAddForm(false)}
-        title="Configure New System Deadline"
+        title={t("common.deadlines")}
         size="lg"
         footer={
           <>
-            <Button variant="outline" size="sm" onClick={() => setShowAddForm(false)}>Cancel</Button>
-            <Button size="sm" onClick={handleSaveDeadline} isLoading={isSaving}>Activate Deadline</Button>
+            <Button variant="outline" size="sm" onClick={() => setShowAddForm(false)}>{t("common.cancel")}</Button>
+            <Button size="sm" onClick={handleSaveDeadline} isLoading={isSaving}>{t("common.confirm")}</Button>
           </>
         }
       >
         <div className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
-              <label className="text-[12px] font-bold text-gray-500 uppercase tracking-tight">Event Title</label>
+              <label className="text-[12px] font-bold text-gray-500 uppercase tracking-tight">{t("common.name")}</label>
               <Input 
                 placeholder="e.g. Final PFE Report Submission" 
                 value={formData.title}
@@ -208,7 +210,7 @@ export default function AdminDeadlinesPage() {
             </div>
 
             <div className="space-y-2">
-              <label className="text-[12px] font-bold text-gray-500 uppercase tracking-tight">Deadline Type</label>
+              <label className="text-[12px] font-bold text-gray-500 uppercase tracking-tight">{t("topics.type")}</label>
               <select 
                 className="admin-input"
                 value={formData.type}
@@ -223,7 +225,7 @@ export default function AdminDeadlinesPage() {
             </div>
 
             <div className="space-y-2">
-              <label className="text-[12px] font-bold text-gray-500 uppercase tracking-tight">Academic Year</label>
+              <label className="text-[12px] font-bold text-gray-500 uppercase tracking-tight">{t("common.registrations")}</label>
               <Input 
                 value={formData.academicYear}
                 onChange={(e) => setFormData({...formData, academicYear: e.target.value})}
@@ -231,7 +233,7 @@ export default function AdminDeadlinesPage() {
             </div>
 
             <div className="space-y-2">
-              <label className="text-[12px] font-bold text-gray-500 uppercase tracking-tight">Due Date</label>
+              <label className="text-[12px] font-bold text-gray-500 uppercase tracking-tight">{t("common.date")}</label>
               <Input 
                 type="date"
                 value={formData.date}
@@ -276,10 +278,10 @@ export default function AdminDeadlinesPage() {
               <table className="admin-table stacked-table">
                 <thead className="admin-table-header">
                   <tr>
-                    <th>Event & Type</th>
-                    <th>Due Date</th>
-                    <th>Scope</th>
-                    <th className="text-right">Action</th>
+                    <th>{t("common.name")}</th>
+                    <th>{t("common.date")}</th>
+                    <th>{t("common.status")}</th>
+                    <th className="text-right">{t("common.actions")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -436,8 +438,8 @@ export default function AdminDeadlinesPage() {
         isOpen={!!deleteConfirmId}
         onClose={() => setDeleteConfirmId(null)}
         onConfirm={executeDelete}
-        title="Remove Deadline"
-        description="Are you sure you want to remove this deadline? This will affect tracking and notifications for all students and teachers."
+        title={t("common.delete")}
+        description={t("errors.serverError")}
         isLoading={isDeleting}
       />
     </div>

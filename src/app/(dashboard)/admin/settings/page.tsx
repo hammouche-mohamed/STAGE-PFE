@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -7,9 +7,11 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { toast } from "sonner";
 import { Settings, Lock, Unlock, Calendar, Palette } from "lucide-react";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
 
 export default function AdminSettingsPage() {
   const router = useRouter();
+  const { t, isRTL } = useTranslation();
   const { data: session, status } = useSession();
 
   // All hooks must be declared unconditionally (Rules of Hooks)

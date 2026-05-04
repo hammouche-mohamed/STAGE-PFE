@@ -16,9 +16,11 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
 
 function MilestonesContent() {
   const searchParams = useSearchParams();
+  const { t, isRTL } = useTranslation();
   const backUrl = searchParams.get("back") || "/student/internship";
 
   const [milestones, setMilestones] = useState([
@@ -48,12 +50,12 @@ function MilestonesContent() {
           className="flex items-center text-[12px] text-indigo-600 hover:text-indigo-800 font-medium transition-colors w-fit bg-indigo-50 px-3 py-1 rounded-full"
         >
           <ChevronLeft className="h-4 w-4 mr-1" />
-          Back to Internship
+          {t("common.back")}
         </Link>
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-[17px] font-semibold text-gray-900">My Milestones</h1>
-            <p className="text-[13px] text-gray-500 mt-0.5">Track your progress and upcoming mini-presentation sessions.</p>
+            <h1 className="text-[17px] font-semibold text-gray-900">{t("common.milestones")}</h1>
+            <p className="text-[13px] text-gray-500 mt-0.5">{t("dashboard.recentActivity")}</p>
           </div>
         </div>
       </div>
@@ -153,7 +155,7 @@ function MilestonesContent() {
       <div className="bg-amber-50 border border-amber-100 rounded-md p-4 flex items-start gap-3">
          <Info className="h-5 w-5 text-amber-500 flex-shrink-0 mt-0.5" />
          <div>
-            <p className="text-[13px] font-bold text-amber-900">About Milestones</p>
+            <p className="text-[13px] font-bold text-amber-900">{t("common.milestones")}</p>
             <p className="text-[12px] text-amber-700 leading-relaxed mt-1">
                Milestones are mandatory progress checks where you present your project status to a small committee. 
                Attendance is required to validate your final defense eligibility.

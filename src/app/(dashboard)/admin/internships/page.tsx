@@ -2,14 +2,14 @@
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
-import { 
-  Briefcase, 
-  Search, 
-  Filter, 
-  GraduationCap, 
-  Users, 
-  Clock, 
-  CheckCircle2, 
+import {
+  Briefcase,
+  Search,
+  Filter,
+  GraduationCap,
+  Users,
+  Clock,
+  CheckCircle2,
   XCircle,
   MoreVertical,
   ExternalLink,
@@ -19,6 +19,7 @@ import {
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
 
 const slugify = (value: string) =>
   value
@@ -40,6 +41,7 @@ interface Internship {
 }
 
 export default function AdminInternshipsPage() {
+  const { t, isRTL } = useTranslation();
   const [internships, setInternships] = useState<Internship[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -72,8 +74,8 @@ export default function AdminInternshipsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-[17px] font-semibold text-gray-900">Internship Monitoring</h1>
-          <p className="text-[13px] text-gray-500 mt-0.5">Global tracking of all active PFE tracks, documents, and progress.</p>
+          <h1 className="text-[17px] font-semibold text-gray-900">{t("common.internships")}</h1>
+          <p className="text-[13px] text-gray-500 mt-0.5">{t("common.appSubtitle")}</p>
         </div>
       </div>
 
@@ -83,7 +85,7 @@ export default function AdminInternshipsPage() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
           <input
             type="text"
-            placeholder="Search by student or topic title..."
+            placeholder={t("common.search")}
             className="admin-input pl-10"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -95,15 +97,15 @@ export default function AdminInternshipsPage() {
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
           >
-            <option value="ALL">All Statuses</option>
-            <option value="REQUESTED">Requested</option>
-            <option value="DOCUMENT_SENT">Document Sent</option>
-            <option value="IN_PROGRESS">In Progress</option>
-            <option value="NEEDS_REVISION">Needs Revision</option>
-            <option value="FINAL_REPORT_SUBMITTED">Report Submitted</option>
-            <option value="PENDING_ADMIN_CONFIRMATION">Awaiting Admin Confirmation</option>
-            <option value="COMPLETED">Completed</option>
-            <option value="CANCELLED">Cancelled</option>
+            <option value="ALL">{t("common.all")}</option>
+            <option value="REQUESTED">{t("status.REQUESTED")}</option>
+            <option value="DOCUMENT_SENT">{t("status.DOCUMENT_SENT")}</option>
+            <option value="IN_PROGRESS">{t("status.IN_PROGRESS")}</option>
+            <option value="NEEDS_REVISION">{t("status.NEEDS_REVISION")}</option>
+            <option value="FINAL_REPORT_SUBMITTED">{t("status.FINAL_REPORT_SUBMITTED")}</option>
+            <option value="PENDING_ADMIN_CONFIRMATION">{t("status.PENDING_ADMIN_CONFIRMATION")}</option>
+            <option value="COMPLETED">{t("status.COMPLETED")}</option>
+            <option value="CANCELLED">{t("status.CANCELLED")}</option>
           </select>
         </div>
       </div>
@@ -113,21 +115,21 @@ export default function AdminInternshipsPage() {
         <table className="admin-table stacked-table">
           <thead className="admin-table-header">
             <tr>
-              <th>Students & Topic</th>
-              <th>Supervisor</th>
-              <th>Progress</th>
-              <th>Status</th>
-              <th className="text-right">Action</th>
+              <th>{t("common.users")} & {t("topics.title")}</th>
+              <th>{t("dashboard.supervisor")}</th>
+              <th>{t("common.milestones")}</th>
+              <th>{t("common.status")}</th>
+              <th className="text-right">{t("common.actions")}</th>
             </tr>
           </thead>
           <tbody>
             {isLoading ? (
               <tr className="empty-row">
-                <td colSpan={5} className="text-center py-12 text-gray-400">Loading internships...</td>
+                <td colSpan={5} className="text-center py-12 text-gray-400">{t("common.loading")}</td>
               </tr>
             ) : filteredInternships.length === 0 ? (
               <tr className="empty-row">
-                <td colSpan={5} className="text-center py-12 text-gray-400">No active internships found.</td>
+                <td colSpan={5} className="text-center py-12 text-gray-400">{t("common.noData")}</td>
               </tr>
             ) : (
               filteredInternships.map((internship) => (

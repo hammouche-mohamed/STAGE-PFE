@@ -2,11 +2,14 @@
 
 import React, { useEffect, useState } from "react";
 import { DocumentList } from "@/components/documents/DocumentList";
+import { Button } from "@/components/ui/Button";
 import { toast } from "sonner";
 import { Search } from "lucide-react";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
 
 export default function TeacherDocumentsPage() {
   const [documents, setDocuments] = useState([]);
+  const { t, isRTL } = useTranslation();
   const [internships, setInternships] = useState([]);
   const [selectedInternshipId, setSelectedInternshipId] = useState("");
   const [isLoading, setIsLoading] = useState(true);
@@ -21,7 +24,7 @@ export default function TeacherDocumentsPage() {
           setSelectedInternshipId(data.data[0].id);
         }
       } catch (error) {
-        toast.error("Failed to load internships");
+        toast.error(t("toast.loadInternshipsFailed"));
       } finally {
         setIsLoading(false);
       }
@@ -36,7 +39,7 @@ export default function TeacherDocumentsPage() {
       const docData = await docRes.json();
       setDocuments(docData.data || []);
     } catch (error) {
-      toast.error("Failed to load documents");
+      toast.error(t("toast.loadDocumentsFailed"));
     }
   };
 
@@ -57,7 +60,7 @@ export default function TeacherDocumentsPage() {
       toast.success(`Document ${status.toLowerCase()}`);
       fetchDocs(selectedInternshipId);
     } catch (error) {
-      toast.error("Failed to update status");
+      toast.error(t("toast.documentStatusFailed"));
     }
   };
 
@@ -65,8 +68,8 @@ export default function TeacherDocumentsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-[17px] font-semibold text-gray-900">Document Reviews</h1>
-          <p className="text-[13px] text-gray-500 mt-0.5">Review and approve reports submitted by your students.</p>
+          <h1 className="text-[17px] font-semibold text-gray-900">{t("documents.title")}</h1>
+          <p className="text-[13px] text-gray-500 mt-0.5">{t("documents.noDocuments")}</p>
         </div>
       </div>
 
@@ -85,7 +88,7 @@ export default function TeacherDocumentsPage() {
             ))}
           </select>
           <Button variant="outline" className="shrink-0" onClick={() => fetchDocs(selectedInternshipId)}>
-            Refresh
+            {t("common.update")}
           </Button>
         </div>
       </div>
@@ -99,14 +102,3 @@ export default function TeacherDocumentsPage() {
   );
 }
 
-// Simple Button proxy since I didn't export it globally yet or just use raw HTML
-function Button({ children, variant, className, onClick }: any) {
-  return (
-    <button 
-      onClick={onClick}
-      className={`h-[36px] px-4 text-[13px] font-medium rounded-md transition ${variant === "outline" ? "border border-gray-300 bg-white hover:bg-gray-50 text-gray-700" : "bg-indigo-600 text-white hover:bg-indigo-700"} ${className}`}
-    >
-      {children}
-    </button>
-  );
-}

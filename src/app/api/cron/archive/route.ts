@@ -56,17 +56,6 @@ export async function GET(req: NextRequest) {
       });
       results.documents = docs.count;
 
-      // Evaluations (via defense)
-      const defenses = await prisma.defense.findMany({
-        where: { internshipId: { in: internshipIds } },
-        select: { id: true },
-      });
-      const defenseIds = defenses.map((d) => d.id);
-      if (defenseIds.length > 0) {
-        await prisma.evaluation.deleteMany({ where: { defenseId: { in: defenseIds } } });
-        await prisma.juryMember.deleteMany({ where: { defenseId: { in: defenseIds } } });
-        await prisma.defense.deleteMany({ where: { id: { in: defenseIds } } });
-      }
 
       // Deadlines (internship-level)
       await prisma.deadline.deleteMany({ where: { internshipId: { in: internshipIds } } });

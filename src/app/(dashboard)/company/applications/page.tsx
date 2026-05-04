@@ -1,12 +1,12 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { 
-  Users, 
-  Search, 
-  CheckCircle2, 
-  XCircle, 
-  Eye, 
+import {
+  Users,
+  Search,
+  CheckCircle2,
+  XCircle,
+  Eye,
   ArrowRight,
   Filter,
   User
@@ -14,6 +14,7 @@ import {
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
 
 interface Application {
   id: string;
@@ -25,6 +26,7 @@ interface Application {
 }
 
 export default function CompanyApplicationsPage() {
+  const { t, isRTL } = useTranslation();
   const [applications, setApplications] = useState<Application[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -34,7 +36,7 @@ export default function CompanyApplicationsPage() {
       const data = await res.json();
       setApplications(data.data || []);
     } catch (error) {
-      toast.error("Failed to load applications");
+      toast.error(t("toast.loadApplicationsFailed"));
     } finally {
       setIsLoading(false);
     }
@@ -49,7 +51,7 @@ export default function CompanyApplicationsPage() {
       // In a real app we'd have a specific patch route for applications
       toast.info(`Application ${status.toLowerCase()} (Ready for next step)`);
     } catch (error) {
-      toast.error("Action failed");
+      toast.error(t("toast.actionFailed"));
     }
   };
 
@@ -57,8 +59,8 @@ export default function CompanyApplicationsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-[17px] font-semibold text-gray-900">Student Applications</h1>
-          <p className="text-[13px] text-gray-500 mt-0.5">Review students interested in your proposed PFE topics.</p>
+          <h1 className="text-[17px] font-semibold text-gray-900">{t("nav.applications")}</h1>
+          <p className="text-[13px] text-gray-500 mt-0.5">{t("topics.pendingApproval")}</p>
         </div>
       </div>
 
@@ -66,18 +68,18 @@ export default function CompanyApplicationsPage() {
         <table className="admin-table stacked-table">
           <thead className="admin-table-header">
             <tr>
-              <th>Applicant Group</th>
-              <th>Topic</th>
-              <th>Applied At</th>
-              <th>Status</th>
-              <th className="text-right">Actions</th>
+              <th>{t("common.name")}</th>
+              <th>{t("common.topics")}</th>
+              <th>{t("common.date")}</th>
+              <th>{t("common.status")}</th>
+              <th className="text-right">{t("common.actions")}</th>
             </tr>
           </thead>
           <tbody>
             {isLoading ? (
-              <tr><td colSpan={5} className="text-center py-12 text-gray-400">Loading applications...</td></tr>
+              <tr><td colSpan={5} className="text-center py-12 text-gray-400">{t("common.loading")}</td></tr>
             ) : applications.length === 0 ? (
-              <tr><td colSpan={5} className="text-center py-12 text-gray-400">No applications received yet.</td></tr>
+              <tr><td colSpan={5} className="text-center py-12 text-gray-400">{t("common.noData")}</td></tr>
             ) : (
               applications.map((app) => (
                 <tr key={app.id} className="admin-table-row">

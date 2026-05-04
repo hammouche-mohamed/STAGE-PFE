@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/Button";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import Link from "next/link";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
 
 interface Topic {
   id: string;
@@ -31,6 +32,7 @@ interface Topic {
 }
 
 export default function CompanyTopicsPage() {
+  const { t, isRTL } = useTranslation();
   const [topics, setTopics] = useState<Topic[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [topicToDeleteId, setTopicToDeleteId] = useState<string | null>(null);
@@ -42,7 +44,7 @@ export default function CompanyTopicsPage() {
       const data = await res.json();
       setTopics(data.data || []);
     } catch (error) {
-      toast.error("Failed to load your topics");
+      toast.error(t("toast.loadTopicsFailed"));
     } finally {
       setIsLoading(false);
     }
@@ -68,7 +70,7 @@ export default function CompanyTopicsPage() {
         throw new Error("Failed to delete topic");
       }
 
-      toast.success("Topic proposal deleted successfully");
+      toast.success(t("toast.topicProposalDeleted"));
       setTopics(prev => prev.filter(t => t.id !== topicToDeleteId));
       setTopicToDeleteId(null);
     } catch (error: any) {
@@ -82,26 +84,26 @@ export default function CompanyTopicsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-[17px] font-semibold text-gray-900">My Proposed Topics</h1>
-          <p className="text-[13px] text-gray-500 mt-0.5">Manage the PFE projects you have submitted to the platform.</p>
+          <h1 className="text-[17px] font-semibold text-gray-900">{t("topics.myTopics")}</h1>
+          <p className="text-[13px] text-gray-500 mt-0.5">{t("common.appSubtitle")}</p>
         </div>
         <Link href="/company/topics/new">
           <Button size="sm">
             <Plus className="h-4 w-4 mr-2" />
-            Propose Topic
+            {t("topics.propose")}
           </Button>
         </Link>
       </div>
 
       <div className="grid grid-cols-1 gap-4">
         {isLoading ? (
-          <div className="text-center py-12 text-gray-400 bg-white border border-gray-200 rounded-md">Loading topics...</div>
+          <div className="text-center py-12 text-gray-400 bg-white border border-gray-200 rounded-md">{t("common.loading")}</div>
         ) : topics.length === 0 ? (
           <div className="text-center py-12 text-gray-400 bg-white border border-gray-200 rounded-md">
             <BookOpen className="h-10 w-10 text-gray-200 mx-auto mb-3" />
-            <p>You haven't proposed any topics yet.</p>
+            <p>{t("topics.noTopics")}</p>
             <Link href="/company/topics/new" className="text-indigo-600 text-[13px] font-medium hover:underline mt-2 inline-block">
-              Submit your first topic proposal
+              {t("topics.propose")}
             </Link>
           </div>
         ) : (
@@ -119,11 +121,11 @@ export default function CompanyTopicsPage() {
                   <div className="flex items-center gap-6 mt-4">
                     <div className="flex items-center text-[12px] text-gray-600">
                       <Users className="h-3.5 w-3.5 mr-1.5 text-gray-400" />
-                      <span>Capacity: {topic.maxStudents} {topic.maxStudents > 1 ? "Students" : "Student"}</span>
+                      <span>{t("topics.maxStudents")}: {topic.maxStudents}</span>
                     </div>
                     <div className="flex items-center text-[12px] text-gray-600">
                       <Clock className="h-3.5 w-3.5 mr-1.5 text-gray-400" />
-                      <span>Published: {new Date(topic.createdAt).toLocaleDateString()}</span>
+                      <span>{t("common.date")}: {new Date(topic.createdAt).toLocaleDateString()}</span>
                     </div>
                   </div>
                 </div>
@@ -159,8 +161,8 @@ export default function CompanyTopicsPage() {
         isOpen={!!topicToDeleteId}
         onClose={() => setTopicToDeleteId(null)}
         onConfirm={confirmDeleteTopic}
-        title="Delete Topic Proposal"
-        description="Are you sure you want to delete this topic proposal? This will remove all associated student applications and cannot be undone."
+        title={t("common.delete")}
+        description={t("errors.serverError")}
         isLoading={isDeleting}
       />
     </div>

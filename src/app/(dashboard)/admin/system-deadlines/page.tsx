@@ -9,6 +9,7 @@ import { Bell, Plus, Trash2, Calendar, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { toast } from "sonner";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
 
 interface SystemDeadline {
   id: string;
@@ -27,6 +28,7 @@ const deadlineSchema = z.object({
 type DeadlineForm = z.infer<typeof deadlineSchema>;
 
 export default function SystemDeadlinesPage() {
+  const { t } = useTranslation();
   const [deadlines, setDeadlines] = useState<SystemDeadline[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -83,15 +85,13 @@ export default function SystemDeadlinesPage() {
         <div>
           <h1 className="text-[17px] font-semibold text-gray-900 flex items-center gap-2">
             <Bell className="h-5 w-5 text-indigo-600" />
-            System Deadlines
+            {t("common.deadlines")}
           </h1>
-          <p className="text-[13px] text-gray-500 mt-0.5">
-            Announce university-wide deadlines visible to all users.
-          </p>
+          <p className="text-[13px] text-gray-500 mt-0.5">{t("common.appSubtitle")}</p>
         </div>
         <Button size="sm" onClick={() => setShowForm(!showForm)}>
           <Plus className="h-4 w-4 mr-1.5" />
-          New Deadline
+          {t("common.newDeadline")}
         </Button>
       </div>
 
@@ -126,16 +126,14 @@ export default function SystemDeadlinesPage() {
               </label>
             </div>
             <div className="flex gap-3">
-              <Button type="submit" size="sm" isLoading={isSubmitting}>
-                Create Announcement
-              </Button>
+              <Button type="submit" size="sm" isLoading={isSubmitting}>{t("common.confirm")}</Button>
               <Button
                 type="button"
                 size="sm"
                 variant="outline"
                 onClick={() => { setShowForm(false); reset(); }}
               >
-                Cancel
+                {t("common.cancel")}
               </Button>
             </div>
           </form>
@@ -145,10 +143,10 @@ export default function SystemDeadlinesPage() {
       {/* Deadlines List */}
       <div className="space-y-3">
         {isLoading ? (
-          <div className="text-center py-10 text-gray-400 text-[13px]">Loading…</div>
+          <div className="text-center py-10 text-gray-400 text-[13px]">{t("common.loading")}</div>
         ) : deadlines.length === 0 ? (
           <div className="bg-white border border-gray-200 rounded-lg p-10 text-center text-[13px] text-gray-400">
-            No active system deadlines. Create one above.
+            {t("common.noData")}
           </div>
         ) : (
           deadlines.map((d) => {

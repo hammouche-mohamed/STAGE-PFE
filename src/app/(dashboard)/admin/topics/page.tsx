@@ -1,12 +1,12 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { 
-  BookOpen, 
-  Search, 
-  Filter, 
-  CheckCircle2, 
-  Clock, 
+import {
+  BookOpen,
+  Search,
+  Filter,
+  CheckCircle2,
+  Clock,
   AlertCircle,
   Tag,
   Building2,
@@ -22,6 +22,7 @@ import { format } from "date-fns";
 import Link from "next/link";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Button } from "@/components/ui/Button";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
 
 interface Topic {
   id: string;
@@ -36,6 +37,7 @@ interface Topic {
 }
 
 export default function AdminTopicsPage() {
+  const { t, isRTL } = useTranslation();
   const [topics, setTopics] = useState<Topic[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -90,8 +92,8 @@ export default function AdminTopicsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-[17px] font-semibold text-gray-900">Topic Repository</h1>
-          <p className="text-[13px] text-gray-500 mt-0.5">Approve and manage PFE topics proposed by teachers, students, and companies.</p>
+          <h1 className="text-[17px] font-semibold text-gray-900">{t("common.topics")}</h1>
+          <p className="text-[13px] text-gray-500 mt-0.5">{t("topics.pendingApproval")}</p>
         </div>
       </div>
 
@@ -101,7 +103,7 @@ export default function AdminTopicsPage() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
           <input
             type="text"
-            placeholder="Search by title or proposer..."
+            placeholder={t("common.search")}
             className="admin-input pl-10"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -113,12 +115,12 @@ export default function AdminTopicsPage() {
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
           >
-            <option value="ALL">All Statuses</option>
-            <option value="PENDING_ADMIN">Waiting Approval</option>
-            <option value="OPEN_FOR_SELECTION">Open</option>
-            <option value="APPROVED">Approved</option>
-            <option value="TAKEN">Assigned</option>
-            <option value="REJECTED">Rejected</option>
+            <option value="ALL">{t("common.all")}</option>
+            <option value="PENDING_ADMIN">{t("status.PENDING_ADMIN")}</option>
+            <option value="OPEN_FOR_SELECTION">{t("status.OPEN_FOR_SELECTION")}</option>
+            <option value="APPROVED">{t("status.APPROVED")}</option>
+            <option value="TAKEN">{t("status.TAKEN")}</option>
+            <option value="REJECTED">{t("status.REJECTED")}</option>
           </select>
         </div>
       </div>
@@ -126,9 +128,9 @@ export default function AdminTopicsPage() {
       {/* Topics List - Using Cards for better detail display */}
       <div className="space-y-3">
         {isLoading ? (
-          <div className="text-center py-12 text-gray-400 bg-white border border-gray-200 rounded-md">Loading topics...</div>
+          <div className="text-center py-12 text-gray-400 bg-white border border-gray-200 rounded-md">{t("common.loading")}</div>
         ) : filteredTopics.length === 0 ? (
-          <div className="text-center py-12 text-gray-400 bg-white border border-gray-200 rounded-md">No topics found.</div>
+          <div className="text-center py-12 text-gray-400 bg-white border border-gray-200 rounded-md">{t("common.noData")}</div>
         ) : (
           filteredTopics.map((topic) => (
             <Link 

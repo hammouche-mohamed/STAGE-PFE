@@ -1,15 +1,15 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { 
-  Users, 
-  Search, 
-  Filter, 
-  MoreVertical, 
-  UserX, 
-  UserCheck, 
-  Shield, 
-  GraduationCap, 
+import {
+  Users,
+  Search,
+  Filter,
+  MoreVertical,
+  UserX,
+  UserCheck,
+  Shield,
+  GraduationCap,
   Building2,
   Mail,
   User as UserIcon,
@@ -27,6 +27,7 @@ import { format } from "date-fns";
 import { Modal } from "@/components/ui/Modal";
 import { Input } from "@/components/ui/Input";
 import { StatusBadge } from "@/components/ui/StatusBadge";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
 
 interface User {
   id: string;
@@ -39,6 +40,7 @@ interface User {
 }
 
 export default function AdminUsersPage() {
+  const { t, isRTL } = useTranslation();
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -59,7 +61,7 @@ export default function AdminUsersPage() {
       const data = await res.json();
       setUsers(data.data || []);
     } catch (error) {
-      toast.error("Failed to load users");
+      toast.error(t("toast.loadUsersFailed"));
     } finally {
       setIsLoading(false);
     }
@@ -100,7 +102,7 @@ export default function AdminUsersPage() {
       setUserToDeactivate(null);
       fetchUsers();
     } catch (error) {
-      toast.error("Failed to update user status");
+      toast.error(t("toast.userStatusFailed"));
     } finally {
       setIsProcessingStatus(false);
     }
@@ -117,11 +119,11 @@ export default function AdminUsersPage() {
       const result = await res.json();
       if (!res.ok) throw new Error(result.error || "Delete failed");
 
-      toast.success("User deleted successfully");
+      toast.success(t("toast.userDeleted"));
       setUserToDelete(null);
       fetchUsers();
-    } catch (error: any) {
-      toast.error(error.message || "Failed to delete user");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to delete user");
     } finally {
       setIsProcessingStatus(false);
     }
@@ -141,7 +143,7 @@ export default function AdminUsersPage() {
       });
       setActiveMenuId(null);
     } catch (error) {
-      toast.error("Could not load user details");
+      toast.error(t("toast.userDetailsFailed"));
     } finally {
       setIsFetchingDetail(false);
     }
@@ -164,11 +166,11 @@ export default function AdminUsersPage() {
 
       if (!res.ok) throw new Error("Update failed");
 
-      toast.success("User updated successfully");
+      toast.success(t("toast.userUpdated"));
       setUserToEdit(null);
       fetchUsers();
     } catch (error) {
-      toast.error("Failed to update user");
+      toast.error(t("toast.saveFailed"));
     } finally {
       setIsProcessingStatus(false);
     }
@@ -177,7 +179,7 @@ export default function AdminUsersPage() {
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     if (resetPasswordValue.length < 6) {
-      toast.error("Password must be at least 6 characters");
+      toast.error(t("toast.passwordTooShort"));
       return;
     }
     setIsProcessingStatus(true);
@@ -194,7 +196,7 @@ export default function AdminUsersPage() {
       setUserToReset(null);
       setResetPasswordValue("");
     } catch (error) {
-      toast.error("Failed to reset password");
+      toast.error(t("toast.passwordResetFailed"));
     } finally {
       setIsProcessingStatus(false);
     }

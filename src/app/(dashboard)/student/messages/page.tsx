@@ -115,7 +115,7 @@ function MessagesContent() {
           await fetchMessages(active.id);
         }
       } catch {
-        toast.error("Failed to load internship");
+        toast.error(t("toast.loadInternshipFailed"));
       } finally {
         setIsLoading(false);
       }
@@ -155,7 +155,7 @@ function MessagesContent() {
       setNewMessage("");
       setReplyTo(null);
     } catch {
-      toast.error("Failed to send message");
+      toast.error(t("toast.messageSendFailed"));
     } finally {
       setIsSending(false);
     }
@@ -201,9 +201,9 @@ function MessagesContent() {
       setMessages((prev) => [...prev, data.data]);
       setNewMessage("");
       setReplyTo(null);
-      toast.success("File sent");
+      toast.success(t("toast.fileSent"));
     } catch {
-      toast.error("Failed to send file");
+      toast.error(t("toast.fileSendFailed"));
     } finally {
       setUploadingFile(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -218,9 +218,9 @@ function MessagesContent() {
       const res = await fetch(`/api/messages/${id}`, { method: "DELETE" });
       if (!res.ok) throw new Error();
       setMessages((prev) => prev.filter((m) => m.id !== id));
-      toast.success("Message deleted");
+      toast.success(t("toast.messageDeleted"));
     } catch {
-      toast.error("Failed to delete");
+      toast.error(t("toast.messageDeleteFailed"));
     }
   };
 

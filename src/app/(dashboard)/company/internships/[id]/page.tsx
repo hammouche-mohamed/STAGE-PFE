@@ -3,20 +3,23 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { 
-  ArrowLeft, 
-  Briefcase, 
-  Users, 
-  CheckCircle2, 
-  Clock, 
+import {
+  ArrowLeft,
+  Briefcase,
+  Users,
+  CheckCircle2,
+  Clock,
   Star,
   FileText,
-  AlertCircle
+  AlertCircle,
+  Calendar,
+  User
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
 
 interface Internship {
   id: string;
@@ -30,6 +33,7 @@ interface Internship {
 
 export default function CompanyInternshipDetailPage() {
   const { id } = useParams();
+  const { t, isRTL } = useTranslation();
   const [internship, setInternship] = useState<Internship | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [evaluationScore, setEvaluationScore] = useState<number>(0);
@@ -71,8 +75,8 @@ export default function CompanyInternshipDetailPage() {
     }
   };
 
-  if (isLoading) return <div className="p-8 text-center text-gray-400">Loading details...</div>;
-  if (!internship) return <div className="p-8 text-center text-gray-400">Internship not found.</div>;
+  if (isLoading) return <div className="p-8 text-center text-gray-400">{t("common.loading")}</div>;
+  if (!internship) return <div className="p-8 text-center text-gray-400">{t("common.noData")}</div>;
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
@@ -82,7 +86,7 @@ export default function CompanyInternshipDetailPage() {
           className="inline-flex items-center gap-2 text-[13px] text-indigo-600 hover:text-indigo-800"
         >
           <ArrowLeft className="h-4 w-4" />
-          Back to list
+          {t("common.back")}
         </Link>
         <StatusBadge status={internship.status} />
       </div>
@@ -96,7 +100,7 @@ export default function CompanyInternshipDetailPage() {
            </span>
            <span className="flex items-center gap-1.5">
               <Users className="h-3.5 w-3.5" />
-              {internship.students.length} Student(s)
+              {internship.students.length} {t("common.users")}
            </span>
         </div>
         <p className="text-[14px] text-gray-600 leading-relaxed">
@@ -108,7 +112,7 @@ export default function CompanyInternshipDetailPage() {
         <div className="bg-white border border-gray-200 rounded-md p-6 shadow-sm">
           <h2 className="text-[15px] font-bold text-gray-900 mb-4 flex items-center">
             <Users className="h-4 w-4 mr-2 text-indigo-500" />
-            Assigned Students
+            {t("dashboard.team")}
           </h2>
           <div className="space-y-4">
             {internship.students.map(s => (
@@ -128,7 +132,7 @@ export default function CompanyInternshipDetailPage() {
         <div className="bg-white border border-gray-200 rounded-md p-6 shadow-sm">
           <h2 className="text-[15px] font-bold text-gray-900 mb-4 flex items-center">
             <Star className="h-4 w-4 mr-2 text-amber-500" />
-            Final Evaluation (FR-C4)
+            {t("dashboard.supervisor")} — {t("status.COMPLETED")}
           </h2>
           <p className="text-[12px] text-gray-500 mb-6 leading-relaxed">
             Please submit the final score for the students you hosted. This score will contribute to their final academic grade.
@@ -153,12 +157,12 @@ export default function CompanyInternshipDetailPage() {
                 className="w-full"
                 disabled={internship.status === "COMPLETED"}
              >
-                Submit Evaluation
+                 {t("common.confirm")}
              </Button>
              {internship.status === "COMPLETED" && (
                 <p className="text-[11px] text-green-600 flex items-center justify-center gap-1.5 mt-2">
                    <CheckCircle2 className="h-3.5 w-3.5" />
-                   Internship finalized
+                    {t("status.COMPLETED")}
                 </p>
              )}
           </div>

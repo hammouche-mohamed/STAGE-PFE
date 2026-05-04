@@ -23,6 +23,7 @@ import { StatusBadge } from "@/components/ui/StatusBadge";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
 
 interface Topic {
   id: string;
@@ -47,6 +48,7 @@ import { useBreadcrumbs } from "@/lib/contexts/BreadcrumbContext";
 export default function AdminTopicDetailPage() {
   const { id } = useParams();
   const router = useRouter();
+  const { t } = useTranslation();
   const { setLabel } = useBreadcrumbs();
   const [topic, setTopic] = useState<Topic | null>(null);
   const [teachers, setTeachers] = useState<Teacher[]>([]);
@@ -143,8 +145,8 @@ export default function AdminTopicDetailPage() {
       
       toast.success("Topic deleted successfully");
       router.push("/admin/topics");
-    } catch (error: any) {
-      toast.error(error.message || "Failed to delete topic");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to delete topic");
     } finally {
       setIsDeleting(false);
     }
@@ -161,7 +163,7 @@ export default function AdminTopicDetailPage() {
           className="inline-flex items-center gap-2 text-[13px] text-indigo-600 hover:text-indigo-800"
         >
           <ArrowLeft className="h-4 w-4" />
-          Back to repository
+          {t("common.back")}
         </Link>
 
         <div className="flex items-center gap-3">
@@ -172,7 +174,7 @@ export default function AdminTopicDetailPage() {
             className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-100"
           >
             <Trash2 className="h-4 w-4 mr-2" />
-            Delete Topic
+            {t("common.delete")}
           </Button>
           <Button 
             onClick={handleUpdate} 
@@ -180,7 +182,7 @@ export default function AdminTopicDetailPage() {
             size="sm"
             className="shadow-md"
           >
-            Save All Changes
+            {t("common.save")}
           </Button>
         </div>
       </div>
@@ -198,7 +200,7 @@ export default function AdminTopicDetailPage() {
             
             <div className="space-y-4">
               <div className="space-y-2">
-                <label className="text-[12px] font-bold text-gray-500 uppercase">Topic Title</label>
+                <label className="text-[12px] font-bold text-gray-500 uppercase">{t("topics.title")}</label>
                 <input 
                   className="admin-input font-semibold text-[16px]" 
                   value={editData.title}
@@ -207,7 +209,7 @@ export default function AdminTopicDetailPage() {
               </div>
 
               <div className="space-y-2">
-                <label className="text-[12px] font-bold text-gray-500 uppercase">Description</label>
+                <label className="text-[12px] font-bold text-gray-500 uppercase">{t("common.name")}</label>
                 <textarea 
                   className="admin-input min-h-[150px] text-[14px] leading-relaxed py-3"
                   value={editData.description}
@@ -225,7 +227,7 @@ export default function AdminTopicDetailPage() {
              
              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
                 <div className="space-y-2">
-                  <label className="text-[12px] font-bold text-gray-700">Topic Status</label>
+                  <label className="text-[12px] font-bold text-gray-700">{t("common.status")}</label>
                   <select 
                     className="admin-input"
                     value={editData.status}
@@ -330,9 +332,9 @@ export default function AdminTopicDetailPage() {
         isOpen={isDeleteDialogOpen}
         onClose={() => setIsDeleteDialogOpen(false)}
         onConfirm={handleDelete}
-        title="Delete Topic Permanently"
-        description={`Are you sure you want to delete "${topic.title}"? This will remove all associated applications and data. This action is irreversible.`}
-        confirmLabel="Delete Topic"
+        title={t("common.delete")}
+        description={`${t("common.delete")} "${topic.title}"?`}
+        confirmLabel={t("common.delete")}
         variant="danger"
         isLoading={isDeleting}
       />

@@ -17,6 +17,7 @@ import {
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
 
 interface Internship {
   id: string;
@@ -27,6 +28,7 @@ interface Internship {
 }
 
 export default function StudentInternshipPage() {
+  const { t, isRTL } = useTranslation();
   const [internship, setInternship] = useState<Internship | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -37,7 +39,7 @@ export default function StudentInternshipPage() {
       // Student typically only has one active internship
       setInternship(data.data?.[0] || null);
     } catch (error) {
-      toast.error("Failed to load internship details");
+      toast.error(t("toast.loadInternshipFailed"));
     } finally {
       setIsLoading(false);
     }
@@ -47,7 +49,7 @@ export default function StudentInternshipPage() {
     fetchInternship();
   }, []);
 
-  if (isLoading) return <div className="text-center py-12 text-gray-400">Loading your internship...</div>;
+  if (isLoading) return <div className="text-center py-12 text-gray-400">{t("common.loading")}</div>;
 
   if (!internship) {
     return (
@@ -55,13 +57,11 @@ export default function StudentInternshipPage() {
         <div className="h-16 w-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto text-gray-400">
           <Briefcase className="h-8 w-8" />
         </div>
-        <h2 className="text-[18px] font-bold text-gray-900">No Active Internship</h2>
-        <p className="text-gray-500 text-[14px]">
-          You haven't been assigned to an internship yet. Browse available topics to start your PFE track.
-        </p>
+        <h2 className="text-[18px] font-bold text-gray-900">{t("internship.noInternship")}</h2>
+        <p className="text-gray-500 text-[14px]">{t("dashboard.browseTopics")}</p>
         <div className="pt-4">
            <a href="/student/topics" className="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-md text-[13px] font-medium hover:bg-indigo-700 transition-colors">
-              Browse Topics
+              {t("topics.title")}
               <ArrowRight className="ml-2 h-4 w-4" />
            </a>
         </div>
@@ -92,7 +92,7 @@ export default function StudentInternshipPage() {
         <div className="lg:col-span-2 space-y-6">
           <div className="bg-white border border-gray-200 rounded-md p-6 shadow-sm">
             <h2 className="text-[14px] font-bold text-gray-900 mb-4 flex items-center">
-               Description du Projet
+               {t("topics.internshipType")}
             </h2>
             <p className="text-[14px] text-gray-600 leading-relaxed">
                {internship.topic.description}
@@ -101,7 +101,7 @@ export default function StudentInternshipPage() {
 
           <div className="bg-white border border-gray-200 rounded-md p-6 shadow-sm">
             <h2 className="text-[14px] font-bold text-gray-900 mb-4 flex items-center">
-               Upcoming Milestones
+               {t("common.milestones")}
             </h2>
             <div className="space-y-4">
                <div className="relative pl-8 pb-4 border-l-2 border-indigo-100 last:pb-0">

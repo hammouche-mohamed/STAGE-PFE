@@ -34,7 +34,6 @@ export async function GET(
               select: {
                 name: true,
                 email: true,
-                studentId: true
               }
             }
           }
