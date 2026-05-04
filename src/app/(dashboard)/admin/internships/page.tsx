@@ -91,13 +91,17 @@ export default function AdminInternshipsPage() {
         </div>
         <div className="flex gap-2">
           <select 
-            className="admin-input min-w-[160px]"
+            className="admin-input min-w-[200px]"
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
           >
             <option value="ALL">All Statuses</option>
-            <option value="APPROVED">Approved</option>
+            <option value="REQUESTED">Requested</option>
+            <option value="DOCUMENT_SENT">Document Sent</option>
             <option value="IN_PROGRESS">In Progress</option>
+            <option value="NEEDS_REVISION">Needs Revision</option>
+            <option value="FINAL_REPORT_SUBMITTED">Report Submitted</option>
+            <option value="PENDING_ADMIN_CONFIRMATION">Awaiting Admin Confirmation</option>
             <option value="COMPLETED">Completed</option>
             <option value="CANCELLED">Cancelled</option>
           </select>

@@ -11,15 +11,19 @@ export async function GET(req: NextRequest) {
 
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
+    // NFR-P2: explicit select — never return the password hash to the client
+    select: {
+      id: true, name: true, email: true, role: true, avatarUrl: true,
+      isActive: true, mustChangePassword: true, createdAt: true, updatedAt: true,
+      studentProfile: true, teacherProfile: true, companyProfile: true,
+    },
   });
 
   if (!user) {
     return NextResponse.json({ error: "Profile not found" }, { status: 404 });
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { password, ...safeUser } = user;
-  return NextResponse.json({ data: safeUser });
+  return NextResponse.json({ data: user });
 }
 
 export async function PUT(req: NextRequest) {
@@ -36,10 +40,21 @@ export async function PUT(req: NextRequest) {
     return NextResponse.json({ error: "Profile not found" }, { status: 404 });
   }
 
+  // NFR-S5: server-side input validation
+  if (name !== undefined && typeof name === 'string' && name.trim().length < 2) {
+    return NextResponse.json({ error: "Name must be at least 2 characters." }, { status: 400 });
+  }
+  if (email !== undefined && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return NextResponse.json({ error: "Please provide a valid email address." }, { status: 400 });
+  }
+  if (newPassword && newPassword.length < 8) {
+    return NextResponse.json({ error: "New password must be at least 8 characters." }, { status: 400 });
+  }
+
   if (email && email !== user.email) {
     const existingEmail = await prisma.user.findUnique({ where: { email } });
     if (existingEmail) {
-      return NextResponse.json({ error: "Email already in use" }, { status: 400 });
+      return NextResponse.json({ error: "This email address is already in use." }, { status: 409 });
     }
   }
 
@@ -63,7 +78,8 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: "Current password is incorrect" }, { status: 400 });
     }
 
-    data.password = await bcrypt.hash(newPassword, 10);
+    // NFR-S1: minimum 12 bcrypt salt rounds on every password write
+    data.password = await bcrypt.hash(newPassword, 12);
     data.mustChangePassword = false;
   }
 

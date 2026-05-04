@@ -23,8 +23,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Invalid or expired session. Please start over." }, { status: 400 });
     }
 
-    // 2. Hash new password
-    const hashedPassword = await bcrypt.hash(password, 10);
+    // 2. Hash new password — NFR-S1: minimum 12 salt rounds
+    const hashedPassword = await bcrypt.hash(password, 12);
 
     // 3. Update user
     await prisma.user.update({

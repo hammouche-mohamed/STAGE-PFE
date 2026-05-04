@@ -7,7 +7,7 @@ import { auth } from '@/lib/auth';
 export async function GET(req: NextRequest) {
   const session = await auth();
   if (!session || session.user.role !== 'ADMIN') {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return NextResponse.json({ error: 'Forbidden' }, { status: session ? 403 : 401 });
   }
 
   const { searchParams } = new URL(req.url);
@@ -30,12 +30,12 @@ export async function GET(req: NextRequest) {
       orderBy: { createdAt: 'desc' },
     });
 
-    const threads = internships.map((i) => ({
+    const threads = internships.map((i: typeof internships[number]) => ({
       internshipId: i.id,
       topic: i.topic.title,
       internshipType: i.internshipType ?? 'N/A',
       academicYear: i.academicYear,
-      students: i.students.map((s) => s.student.name),
+      students: i.students.map((s: { student: { name: string } }) => s.student.name),
       teacher: i.teacher.name,
       totalMessages: i._count.messages,
       lastMessage: i.messages[0]?.content?.substring(0, 60) ?? '',

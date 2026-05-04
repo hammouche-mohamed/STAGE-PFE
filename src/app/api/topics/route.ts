@@ -128,17 +128,22 @@ export async function GET(req: NextRequest) {
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const { searchParams } = new URL(req.url);
-  const typeFilter = searchParams.get('type'); // topic_type: STUDENT_PROPOSED | COMPANY_PROPOSED
-  const internshipTypeFilter = searchParams.get('internshipType'); // PFE | NORMAL
+  const typeFilter = searchParams.get('type');
+  const internshipTypeFilter = searchParams.get('internshipType');
+  const statusFilter = searchParams.get('status');
   const defaultYear = await SettingsService.getCurrentAcademicYear();
   const academicYear = searchParams.get('academicYear') || defaultYear;
+
+  // NFR-SC2: pagination — max 20 records per page
+  const page = Math.max(1, parseInt(searchParams.get('page') ?? '1', 10));
+  const limit = Math.min(20, Math.max(1, parseInt(searchParams.get('limit') ?? '20', 10)));
+  const skip = (page - 1) * limit;
 
   // Determine which internship types this user can see
   let allowedInternshipTypes: string[] | undefined;
 
   if (session.user.role === 'STUDENT') {
-    const studentLevel = (session.user as any).level as StudentLevel | undefined;
-    // L1/L2/M1 can only see NORMAL topics; L3/M2 see both
+    const studentLevel = (session.user as { level?: StudentLevel }).level;
     const normalOnlyLevels: StudentLevel[] = ['L1', 'L2', 'M1'];
     if (studentLevel && normalOnlyLevels.includes(studentLevel)) {
       allowedInternshipTypes = ['NORMAL'];
@@ -146,30 +151,60 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const topics = await prisma.topic.findMany({
-      where: {
-        academicYear,
-        ...(typeFilter && { type: typeFilter as any }),
-        // Apply internship type filter (from query param or level restriction)
-        ...(allowedInternshipTypes
-          ? { internshipType: { in: allowedInternshipTypes as any[] } }
-          : internshipTypeFilter
-          ? { internshipType: internshipTypeFilter as any }
-          : {}),
-        // Students see only published topics; companies see only their own
-        ...(session.user.role === 'STUDENT' && { status: 'OPEN_FOR_SELECTION' }),
-        ...((session.user.role === 'COMPANY' || session.user.role === 'TEACHER') && { proposedById: session.user.id }),
-      },
-      include: {
-        proposedBy: { select: { name: true } },
-        assignedTeacher: { select: { name: true } },
-      },
-      orderBy: { createdAt: 'desc' },
-    });
+    const where: Record<string, unknown> = {
+      academicYear,
+      ...(typeFilter && { type: typeFilter as never }),
+      ...(allowedInternshipTypes
+        ? { internshipType: { in: allowedInternshipTypes as never[] } }
+        : internshipTypeFilter
+        ? { internshipType: internshipTypeFilter as never }
+        : {}),
+      // Role-specific visibility rules
+      ...(session.user.role === 'STUDENT' && { status: 'OPEN_FOR_SELECTION' }),
+      ...((session.user.role === 'COMPANY' || session.user.role === 'TEACHER') && {
+        proposedById: session.user.id,
+      }),
+      // Optional status filter for admin
+      ...(session.user.role === 'ADMIN' && statusFilter && { status: statusFilter as never }),
+    };
 
-    return NextResponse.json({ data: topics });
+    // NFR-P2: explicit field selection
+    const [topics, total] = await Promise.all([
+      prisma.topic.findMany({
+        where,
+        select: {
+          id: true,
+          title: true,
+          description: true,
+          type: true,
+          internshipType: true,
+          status: true,
+          maxStudents: true,
+          academicYear: true,
+          proposedById: true,
+          assignedTeacherId: true,
+          resubmissionCount: true,
+          maxResubmissions: true,
+          rejectionReason: true,
+          createdAt: true,
+          updatedAt: true,
+          proposedBy: { select: { id: true, name: true } },
+          assignedTeacher: { select: { id: true, name: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+        take: limit,
+        skip,
+      }),
+      prisma.topic.count({ where }),
+    ]);
+
+    return NextResponse.json({
+      data: topics,
+      pagination: { page, limit, total, pages: Math.ceil(total / limit) },
+    });
   } catch (error) {
     console.error(error);
-    return NextResponse.json({ error: 'Fetch failed' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to load topics.' }, { status: 500 });
   }
 }
+

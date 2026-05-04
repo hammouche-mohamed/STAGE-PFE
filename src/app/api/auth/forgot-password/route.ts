@@ -2,8 +2,18 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { MailService } from "@/lib/services/mail.service";
 import { randomUUID } from "crypto";
+import { isRateLimited, getClientIp } from "@/lib/utils/rateLimiter";
 
 export async function POST(req: NextRequest) {
+  // NFR-S4: Rate-limit password reset requests — max 5 per IP per minute
+  const ip = getClientIp(req);
+  if (isRateLimited(`forgot-pw:${ip}`, 5, 60_000)) {
+    return NextResponse.json(
+      { error: "Too many requests. Please wait a moment before trying again." },
+      { status: 429 },
+    );
+  }
+
   try {
     const { email } = await req.json();
 

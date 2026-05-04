@@ -2,9 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { InternshipService } from '@/lib/services/internship.service';
 
-// POST /api/internships/[id]/complete
-// Admin confirms the final report after BOTH teacher and company have validated.
-// Status must be PENDING_ADMIN_CONFIRMATION — service enforces this guard.
+// POST /api/internships/[id]/submit-final-report
+// Student submits their final report → status becomes FINAL_REPORT_SUBMITTED
+// This signals to both the teacher and the company that validation is required.
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
@@ -12,20 +12,20 @@ export async function POST(
   const session = await auth();
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  if (session.user.role !== 'ADMIN') {
+  if (session.user.role !== 'STUDENT') {
     return NextResponse.json(
-      { error: 'Only administrators can confirm internship completion.' },
+      { error: 'Only students can submit the final report.' },
       { status: 403 },
     );
   }
 
   try {
     const { id } = await params;
-    await InternshipService.completeInternship(id, session.user.id);
+    await InternshipService.submitFinalReport(id, session.user.id);
 
     return NextResponse.json({
       message:
-        'Internship confirmed as completed. All parties have been notified and the record has been archived.',
+        'Final report submitted successfully. Your supervisor and company have been notified for validation.',
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Internal server error';

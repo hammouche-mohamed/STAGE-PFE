@@ -3,7 +3,13 @@ import prisma from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { AuditService } from "@/lib/services/audit.service";
 import { NotificationService } from "@/lib/services/notification.service";
+import { unlink } from "fs/promises";
+import { join } from "path";
 
+const VALID_REVIEW_STATUSES = new Set(["APPROVED", "REJECTED", "NEEDS_REVISION"]);
+
+// PATCH /api/documents/[id]  — Approve / Reject a document
+// Accessible by: teacher (supervisor), company (topic proposer), or ADMIN
 export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -15,18 +21,36 @@ export async function PATCH(
     const { id } = await params;
     const { status, reviewComment } = await req.json();
 
+    // NFR-S5: validate the review status value
+    if (!VALID_REVIEW_STATUSES.has(status)) {
+      return NextResponse.json(
+        { error: `Invalid status. Allowed values: ${[...VALID_REVIEW_STATUSES].join(", ")}.` },
+        { status: 400 },
+      );
+    }
+
     const document = await prisma.document.findUnique({
       where: { id },
-      include: { internship: true }
+      include: {
+        internship: {
+          select: {
+            teacherId: true,
+            topic: { select: { proposedById: true } },
+          },
+        },
+      },
     });
 
     if (!document) return NextResponse.json({ error: "Document not found" }, { status: 404 });
 
-    // Authorization: Only teacher of internship or Admin can review
+    // Authorization: teacher, company (topic proposer), or admin can review
     const isTeacher = document.internship.teacherId === session.user.id;
+    const isCompany = document.internship.topic?.proposedById === session.user.id;
     const isAdmin = session.user.role === "ADMIN";
 
-    if (!isTeacher && !isAdmin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    if (!isTeacher && !isCompany && !isAdmin) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
 
     const updated = await prisma.document.update({
       where: { id },
@@ -57,7 +81,8 @@ export async function PATCH(
 
     return NextResponse.json({ data: updated });
   } catch (error) {
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    console.error('[documents/[id] PATCH]', error);
+    return NextResponse.json({ error: "Failed to update document. Please try again." }, { status: 500 });
   }
 }
 
@@ -83,11 +108,16 @@ export async function DELETE(
 
     if (!isOwner && !isAdmin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-    // Note: In a production app, we should also delete the file from filesystem/S3 here
-    // For now, we delete the database record
-    await prisma.document.delete({
-      where: { id }
-    });
+    // Delete the physical file from disk
+    try {
+      const filePath = join(process.cwd(), "public", document.fileUrl);
+      await unlink(filePath);
+    } catch {
+      // Non-fatal: log but don't fail the DB deletion
+      console.warn(`[documents] Could not delete file from disk: ${document.fileUrl}`);
+    }
+
+    await prisma.document.delete({ where: { id } });
 
     await AuditService.log({
       userId: session.user.id,
@@ -97,9 +127,9 @@ export async function DELETE(
       details: { type: document.type, version: document.version }
     });
 
-    return NextResponse.json({ message: "Document deleted successfully" });
+    return NextResponse.json({ message: "Document deleted successfully." });
   } catch (error) {
     console.error("Document deletion failed:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json({ error: "Failed to delete document. Please try again." }, { status: 500 });
   }
 }

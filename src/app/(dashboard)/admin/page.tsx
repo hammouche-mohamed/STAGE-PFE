@@ -1,45 +1,50 @@
 import React from "react";
 import { StatsCard } from "@/components/dashboard/StatsCard";
-import { 
-  Users, 
-  UserPlus, 
-  Briefcase, 
-  BookOpen, 
+import {
+  Users,
+  UserPlus,
+  Briefcase,
+  BookOpen,
   ArrowRight,
   ShieldCheck,
-  Calendar,
   Clock,
-  Bell
+  Bell,
+  CheckCircle2,
 } from "lucide-react";
 import Link from "next/link";
 import prisma from "@/lib/prisma";
 import { format } from "date-fns";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { SettingsService } from "@/lib/services/settings.service";
+import { auth } from "@/lib/auth";
 
 export default async function AdminDashboardPage() {
-  // Fetch statistics
-  // Using type assertion to handle potential casing issues between client generations
+  const session = await auth();
+  if (!session || session.user.role !== "ADMIN") return null;
+
+  const currentAcademicYear = await SettingsService.getCurrentAcademicYear();
+
   const [
     studentCount,
     teacherCount,
     companyCount,
     activeInternships,
+    pendingConfirmations,
     pendingRegistrations,
     recentTopics,
-    currentAcademicYear
   ] = await Promise.all([
-    prisma.user.count({ where: { role: "STUDENT" } }),
-    prisma.user.count({ where: { role: "TEACHER" } }),
-    prisma.user.count({ where: { role: "COMPANY" } }),
-    prisma.internship.count({ where: { status: "IN_PROGRESS" } }),
+    prisma.user.count({ where: { role: "STUDENT", isActive: true } }),
+    prisma.user.count({ where: { role: "TEACHER", isActive: true } }),
+    prisma.user.count({ where: { role: "COMPANY", isActive: true } }),
+    prisma.internship.count({ where: { status: "IN_PROGRESS", academicYear: currentAcademicYear } }),
+    prisma.internship.count({ where: { status: "PENDING_ADMIN_CONFIRMATION" } }),
     prisma.registrationRequest.findMany({
       where: { status: "PENDING" },
       orderBy: { createdAt: "desc" },
-      take: 5
+      take: 5,
+      select: { id: true, name: true, email: true, role: true, createdAt: true },
     }),
     prisma.topic.count({ where: { status: "PENDING_ADMIN" } }),
-    SettingsService.getCurrentAcademicYear(),
   ]);
 
   return (
@@ -47,41 +52,28 @@ export default async function AdminDashboardPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-[17px] font-semibold text-gray-900">Platform Overview</h1>
-          <p className="text-[13px] text-gray-500 mt-0.5">Welcome back, Administrator. Here's what's happening today.</p>
+          <p className="text-[13px] text-gray-500 mt-0.5">
+            Welcome back, Administrator. Here&apos;s what&apos;s happening today.
+          </p>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="flex items-center px-3 py-1.5 bg-white border border-gray-200 rounded-md shadow-sm">
-            <Calendar className="h-4 w-4 text-gray-400 mr-2" />
-            <span className="text-[12px] font-medium text-gray-600">Academic Year: {currentAcademicYear}</span>
-          </div>
+        <div className="flex items-center px-3 py-1.5 bg-white border border-gray-200 rounded-md shadow-sm">
+          <Clock className="h-4 w-4 text-gray-400 mr-2" />
+          <span className="text-[12px] font-medium text-gray-600">
+            Academic Year: {currentAcademicYear}
+          </span>
         </div>
       </div>
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatsCard 
-          label="Total Students" 
-          value={studentCount} 
-          icon={Users}
-          subValue="Active profiles"
-        />
-        <StatsCard 
-          label="Total Teachers" 
-          value={teacherCount} 
-          icon={ShieldCheck}
-          subValue="Faculty members"
-        />
-        <StatsCard 
-          label="Partner Companies" 
-          value={companyCount} 
-          icon={Briefcase}
-          subValue="Industrial partners"
-        />
-        <StatsCard 
-          label="Active Internships" 
-          value={activeInternships} 
+        <StatsCard label="Total Students" value={studentCount} icon={Users} subValue="Active profiles" />
+        <StatsCard label="Total Teachers" value={teacherCount} icon={ShieldCheck} subValue="Faculty members" />
+        <StatsCard label="Partner Companies" value={companyCount} icon={Briefcase} subValue="Industrial partners" />
+        <StatsCard
+          label="Active Internships"
+          value={activeInternships}
           icon={Clock}
-          subValue="Currently ongoing"
+          subValue="Currently in progress"
           subValueColor="green"
         />
       </div>
@@ -94,8 +86,8 @@ export default async function AdminDashboardPage() {
               <UserPlus className="h-4 w-4 mr-2 text-indigo-600" />
               Registration Requests
             </h2>
-            <Link 
-              href="/admin/registrations" 
+            <Link
+              href="/admin/registrations"
               className="text-[12px] font-medium text-indigo-600 hover:text-indigo-700 flex items-center"
             >
               View all <ArrowRight className="ml-1 h-3 w-3" />
@@ -115,10 +107,12 @@ export default async function AdminDashboardPage() {
               <tbody>
                 {pendingRegistrations.length === 0 ? (
                   <tr>
-                    <td colSpan={4} className="text-center py-8 text-gray-400">No pending registrations at the moment.</td>
+                    <td colSpan={4} className="text-center py-8 text-gray-400">
+                      No pending registrations at the moment.
+                    </td>
                   </tr>
                 ) : (
-                  pendingRegistrations.map((req) => (
+                   pendingRegistrations.map((req: { id: string; name: string; email: string; role: string; createdAt: Date }) => (
                     <tr key={req.id} className="admin-table-row">
                       <td>
                         <div className="flex flex-col">
@@ -127,13 +121,17 @@ export default async function AdminDashboardPage() {
                         </div>
                       </td>
                       <td>
-                        <span className="text-[12px] font-medium text-gray-600 uppercase tracking-tighter">{req.role}</span>
+                        <span className="text-[12px] font-medium text-gray-600 uppercase tracking-tighter">
+                          {req.role}
+                        </span>
                       </td>
                       <td>
-                        <span className="text-[12px] text-gray-500">{format(new Date(req.createdAt), "MMM d, HH:mm")}</span>
+                        <span className="text-[12px] text-gray-500">
+                          {format(new Date(req.createdAt), "MMM d, HH:mm")}
+                        </span>
                       </td>
                       <td className="text-right">
-                        <Link 
+                        <Link
                           href="/admin/registrations"
                           className="text-[12px] font-medium text-indigo-600 hover:underline"
                         >
@@ -148,36 +146,50 @@ export default async function AdminDashboardPage() {
           </div>
         </div>
 
-        {/* Quick Actions / Alerts */}
+        {/* System Status */}
         <div className="space-y-4">
           <h2 className="text-[14px] font-semibold text-gray-900 flex items-center">
             <Bell className="h-4 w-4 mr-2 text-amber-500" />
             System Status
           </h2>
-          
+
           <div className="bg-white border border-gray-200 rounded-md p-4 space-y-4 shadow-sm">
+            {/* Topics pending admin approval */}
             <div className="flex items-start gap-3 p-3 bg-amber-50 border border-amber-100 rounded-md">
               <div className="p-1.5 bg-amber-100 rounded">
                 <BookOpen className="h-4 w-4 text-amber-700" />
               </div>
               <div>
                 <p className="text-[13px] font-medium text-amber-900">{recentTopics} Topics Pending</p>
-                <p className="text-[11px] text-amber-700 mt-0.5">Admin approval required for company topics.</p>
-                <Link href="/admin/topics" className="text-[11px] font-bold text-amber-800 uppercase mt-2 block hover:underline">
+                <p className="text-[11px] text-amber-700 mt-0.5">
+                  Admin approval required for submitted topics.
+                </p>
+                <Link
+                  href="/admin/topics"
+                  className="text-[11px] font-bold text-amber-800 uppercase mt-2 block hover:underline"
+                >
                   Go to Topics
                 </Link>
               </div>
             </div>
 
+            {/* Final reports awaiting admin confirmation */}
             <div className="flex items-start gap-3 p-3 bg-indigo-50 border border-indigo-100 rounded-md">
               <div className="p-1.5 bg-indigo-100 rounded">
-                <Briefcase className="h-4 w-4 text-indigo-700" />
+                <CheckCircle2 className="h-4 w-4 text-indigo-700" />
               </div>
               <div>
-                <p className="text-[13px] font-medium text-indigo-900">Final Defense Period</p>
-                <p className="text-[11px] text-indigo-700 mt-0.5">Scheduling for June session is open.</p>
-                <Link href="/admin/defenses" className="text-[11px] font-bold text-indigo-800 uppercase mt-2 block hover:underline">
-                  Manage Scheduling
+                <p className="text-[13px] font-medium text-indigo-900">
+                  {pendingConfirmations} Awaiting Confirmation
+                </p>
+                <p className="text-[11px] text-indigo-700 mt-0.5">
+                  Final reports validated by teacher &amp; company — ready for your review.
+                </p>
+                <Link
+                  href="/admin/internships"
+                  className="text-[11px] font-bold text-indigo-800 uppercase mt-2 block hover:underline"
+                >
+                  Confirm Completions
                 </Link>
               </div>
             </div>
@@ -187,5 +199,3 @@ export default async function AdminDashboardPage() {
     </div>
   );
 }
-
-

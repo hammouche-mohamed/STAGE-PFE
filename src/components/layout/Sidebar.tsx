@@ -15,7 +15,6 @@ import {
   ShieldCheck,
   User as UserIcon,
   Settings,
-  Calendar,
   X
 } from "lucide-react";
 import { useSession, signOut } from "next-auth/react";
@@ -53,7 +52,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ role: initialRole, logoUrl }) 
           { label: "Users", icon: Users, href: "/admin/users", active: pathname === "/admin/users" },
           { label: "Topics", icon: Briefcase, href: "/admin/topics", active: pathname === "/admin/topics" },
           { label: "Internships", icon: ShieldCheck, href: "/admin/internships", active: pathname === "/admin/internships" },
-          { label: "Defenses", icon: Calendar, href: "/admin/defenses", active: pathname === "/admin/defenses" },
           { label: "Audit Logs", icon: FileText, href: "/admin/audit-logs", active: pathname === "/admin/audit-logs" },
           { label: "Settings", icon: Settings, href: "/admin/settings", active: pathname === "/admin/settings" },
           { label: "Profile", icon: UserIcon, href: "/profile", active: pathname === "/profile" },

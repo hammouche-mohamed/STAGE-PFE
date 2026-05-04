@@ -45,6 +45,7 @@ model BinomeInvitation {
 
   application StudentApplication @relation(fields: [studentApplicationId], references: [id], map: "BinomeInvitation_applicationId_fkey")
 
+  @@index([status], map: "BinomeInvitation_status_idx")
   @@map("binomeinvitation")
 }
 
@@ -79,27 +80,8 @@ model Deadline {
 
   @@index([createdById], map: "Deadline_createdById_idx")
   @@index([internshipId], map: "Deadline_internshipId_idx")
+  @@index([dueDate], map: "Deadline_dueDate_idx")
   @@map("deadline")
-}
-
-model Defense {
-  id                 String         @id
-  internshipId       String         @unique(map: "Defense_internshipId_key")
-  scheduledAt        DateTime
-  room               String
-  timeSlot           String
-  status             defense_status @default(SCHEDULED)
-  gradesFinalized    Boolean        @default(false)
-  finalGrade         Float?
-  mention            String?
-  adminGradeOverride Float?
-  overrideComment    String?        @db.Text
-
-  internship  Internship   @relation(fields: [internshipId], references: [id], map: "Defense_internshipId_fkey")
-  juryMembers JuryMember[]
-  evaluations Evaluation[]
-
-  @@map("defense")
 }
 
 model Document {
@@ -129,29 +111,10 @@ model Document {
   @@index([internshipId], map: "Document_internshipId_idx")
   @@index([uploadedById], map: "Document_uploadedById_idx")
   @@index([reviewedById], map: "Document_reviewedById_idx")
+  // NFR-P2: index on type for filtered document queries
+  @@index([type], map: "Document_type_idx")
+  @@index([status], map: "Document_status_idx")
   @@map("document")
-}
-
-model Evaluation {
-  id             String   @id
-  defenseId      String
-  evaluatorId    String
-  reportScore    Float?
-  technicalScore Float?
-  oralScore      Float?
-  companyScore   Float?
-  finalGrade     Float?
-  feedback       String?  @db.Text
-  isAdvisory     Boolean  @default(false)
-  submittedAt    DateTime @default(now())
-
-  defense   Defense @relation(fields: [defenseId], references: [id], map: "Evaluation_defenseId_fkey")
-  evaluator User    @relation(fields: [evaluatorId], references: [id], map: "Evaluation_evaluatorId_fkey")
-
-  @@unique([defenseId, evaluatorId], map: "Evaluation_defenseId_evaluatorId_key")
-  @@index([evaluatorId], map: "Evaluation_evaluatorId_idx")
-  @@index([defenseId], map: "Evaluation_defenseId_idx")
-  @@map("evaluation")
 }
 
 model Internship {
@@ -171,6 +134,11 @@ model Internship {
   completedAt              DateTime?
   startDate                DateTime?
   endDate                  DateTime?
+  // Final-report validation tracking (NFR-RDI1: all flags updated in transactions)
+  teacherValidatedFinalReport Boolean        @default(false)
+  teacherValidatedAt          DateTime?
+  companyValidatedFinalReport Boolean        @default(false)
+  companyValidatedAt          DateTime?
   createdAt                DateTime          @default(now())
   updatedAt                DateTime
 
@@ -179,11 +147,14 @@ model Internship {
   students          InternshipStudent[]
   documents         Document[]
   messages          Message[]
-  defense           Defense?
   deadlines         Deadline[]
   miniPresentations MiniPresentation[]
 
   @@index([teacherId], map: "Internship_teacherId_idx")
+  @@index([status], map: "Internship_status_idx")
+  // NFR-P2: indexes on frequently queried filter columns
+  @@index([academicYear], map: "Internship_academicYear_idx")
+  @@index([internshipType], map: "Internship_internshipType_idx")
   @@map("internship")
 }
 
@@ -200,23 +171,6 @@ model InternshipStudent {
   @@index([studentId], map: "InternshipStudent_studentId_idx")
   @@index([internshipId], map: "InternshipStudent_internshipId_idx")
   @@map("internshipstudent")
-}
-
-model JuryMember {
-  id         String          @id
-  defenseId  String
-  userId     String
-  role       jurymember_role
-  isAdvisory Boolean         @default(false)
-  createdAt  DateTime        @default(now())
-
-  defense Defense @relation(fields: [defenseId], references: [id], map: "JuryMember_defenseId_fkey")
-  user    User    @relation(fields: [userId], references: [id], map: "JuryMember_userId_fkey")
-
-  @@unique([defenseId, userId], map: "JuryMember_defenseId_userId_key")
-  @@index([userId], map: "JuryMember_userId_idx")
-  @@index([defenseId], map: "JuryMember_defenseId_idx")
-  @@map("jurymember")
 }
 
 model Message {
@@ -361,6 +315,8 @@ model StudentApplication {
   @@index([topicId], map: "StudentApplication_topicId_idx")
   @@index([leaderId], map: "StudentApplication_leaderId_idx")
   @@index([partnerId], map: "StudentApplication_partnerId_idx")
+  // NFR-P2: index on status for pending-applications filter queries
+  @@index([status], map: "StudentApplication_status_idx")
   @@map("studentapplication")
 }
 
@@ -506,8 +462,6 @@ model User {
   deadlinesCreated         Deadline[]
   validations              Validation[]
   registrationRequest      RegistrationRequest?
-  juryMemberships          JuryMember[]
-  evaluations              Evaluation[]
   uploadedDocuments        Document[]            @relation("UploadedBy")
   reviewedDocuments        Document[]            @relation("ReviewedBy")
   passwordResetTokens      PasswordResetToken[]
@@ -528,6 +482,7 @@ model Validation {
   topic     Topic @relation(fields: [topicId], references: [id], map: "Validation_topicId_fkey")
   validator User  @relation(fields: [validatorId], references: [id], map: "Validation_validatorId_fkey")
 
+  @@unique([topicId, step], map: "Validation_topicId_step_key")
   @@index([topicId], map: "Validation_topicId_idx")
   @@index([validatorId], map: "Validation_validatorId_idx")
   @@map("validation")
@@ -540,7 +495,6 @@ enum deadline_type {
   MID_REPORT
   FINAL_REPORT
   MINI_PRESENTATION
-  DEFENSE
 }
 
 enum notification_type {
@@ -569,9 +523,6 @@ enum notification_type {
   MESSAGE_RECEIVED
   MINI_PRESENTATION_SCHEDULED
   MINI_PRESENTATION_REMINDER
-  DEFENSE_SCHEDULED
-  DEFENSE_UPDATED
-  GRADE_AVAILABLE
   DEADLINE_APPROACHING
   DEADLINE_OVERDUE
   ACCOUNT_CREATED
@@ -583,6 +534,11 @@ enum notification_type {
   STUDENT_TOPIC_REJECTED
   COMPANY_DATES_CONFIRMED
   DEADLINE_REMINDER
+  // Final-report 3-gate workflow notifications
+  FINAL_REPORT_SUBMITTED
+  FINAL_REPORT_TEACHER_VALIDATED
+  FINAL_REPORT_COMPANY_VALIDATED
+  FINAL_REPORT_ADMIN_CONFIRMED
 }
 
 enum binomeinvitation_status {
@@ -597,13 +553,6 @@ enum document_type {
   MID_REPORT
   FINAL_REPORT
   OTHER
-}
-
-enum jurymember_role {
-  PRESIDENT
-  RAPPORTEUR
-  EXAMINATEUR
-  COMPANY_ADVISOR
 }
 
 enum registrationrequest_role {
@@ -625,6 +574,10 @@ enum internship_status {
   IN_PROGRESS
   NEEDS_REVISION
   APPROVED
+  // Student has submitted the final report; awaiting teacher AND company validation
+  FINAL_REPORT_SUBMITTED
+  // Both teacher and company have validated; awaiting admin confirmation
+  PENDING_ADMIN_CONFIRMATION
   COMPLETED
   CANCELLED
 }
@@ -661,6 +614,7 @@ enum teacherapplication_status {
 enum topic_type {
   STUDENT_PROPOSED
   COMPANY_PROPOSED
+  TEACHER_PROPOSED
 }
 
 enum user_role {
@@ -674,13 +628,6 @@ enum validation_status {
   PENDING
   APPROVED
   REJECTED
-}
-
-enum defense_status {
-  SCHEDULED
-  HELD
-  POSTPONED
-  CANCELLED
 }
 
 enum topic_status {

@@ -15,8 +15,14 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const defaultYear = await SettingsService.getCurrentAcademicYear();
   const academicYear = searchParams.get('academicYear') || defaultYear;
-  const internshipType = searchParams.get('internshipType'); // Optional PFE | NORMAL filter
+  const internshipType = searchParams.get('internshipType');
+  const statusFilter = searchParams.get('status');
   const role = session.user.role;
+
+  // NFR-SC2: pagination — max 20 records per page by default
+  const page = Math.max(1, parseInt(searchParams.get('page') ?? '1', 10));
+  const limit = Math.min(20, Math.max(1, parseInt(searchParams.get('limit') ?? '20', 10)));
+  const skip = (page - 1) * limit;
 
   try {
     const where: Record<string, unknown> = { academicYear };
@@ -30,33 +36,51 @@ export async function GET(req: NextRequest) {
     }
     // ADMIN sees all
 
-    // Optional filter by internship type
-    if (internshipType) {
-      where.internshipType = internshipType;
-    }
+    if (internshipType) where.internshipType = internshipType;
+    if (statusFilter) where.status = statusFilter;
 
-    const internships = await prisma.internship.findMany({
-      where,
-      include: {
-        topic: { select: { title: true, type: true, internshipType: true } },
-        teacher: { select: { name: true } },
-        students: { include: { student: { select: { name: true, email: true } } } },
-        _count: { select: { documents: true, messages: true } },
-      },
-      orderBy: { createdAt: 'desc' },
+    // NFR-P2: explicit field selection — never fetch unnecessary columns
+    const [internships, total] = await Promise.all([
+      prisma.internship.findMany({
+        where,
+        select: {
+          id: true,
+          status: true,
+          academicYear: true,
+          internshipType: true,
+          startDate: true,
+          endDate: true,
+          midtermDeadline: true,
+          finalDeadline: true,
+          teacherValidatedFinalReport: true,
+          companyValidatedFinalReport: true,
+          createdAt: true,
+          topic: { select: { title: true, type: true, internshipType: true } },
+          teacher: { select: { id: true, name: true } },
+          students: { include: { student: { select: { id: true, name: true, email: true } } } },
+          _count: { select: { documents: true, messages: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+        take: limit,
+        skip,
+      }),
+      prisma.internship.count({ where }),
+    ]);
+
+    return NextResponse.json({
+      data: internships,
+      pagination: { page, limit, total, pages: Math.ceil(total / limit) },
     });
-
-    return NextResponse.json({ data: internships });
   } catch (error) {
     console.error(error);
-    return NextResponse.json({ error: 'Fetch failed' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to load internships.' }, { status: 500 });
   }
 }
 
 export async function POST(req: NextRequest) {
   const session = await auth();
   if (!session || session.user.role !== 'ADMIN') {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
   try {
@@ -64,13 +88,19 @@ export async function POST(req: NextRequest) {
     const { topicId, teacherId, academicYear, studentIds } = internshipSchema.parse(body);
 
     if (studentIds.length > 2) {
-      return NextResponse.json({ error: 'Maximum 2 students per internship' }, { status: 409 });
+      return NextResponse.json({ error: 'Maximum 2 students per internship.' }, { status: 409 });
     }
 
     // Enforce teacher capacity before creating
-    const teacherProfile = await prisma.teacherProfile.findUnique({ where: { userId: teacherId } });
+    const teacherProfile = await prisma.teacherProfile.findUnique({
+      where: { userId: teacherId },
+      select: { currentLoad: true, maxStudents: true },
+    });
     if (!teacherProfile || teacherProfile.currentLoad >= teacherProfile.maxStudents) {
-      return NextResponse.json({ error: 'Teacher is at full supervision capacity' }, { status: 409 });
+      return NextResponse.json(
+        { error: 'This teacher has reached their maximum supervision capacity.' },
+        { status: 409 },
+      );
     }
 
     // Fetch topic to inherit internship type
@@ -79,6 +109,7 @@ export async function POST(req: NextRequest) {
       select: { internshipType: true },
     });
 
+    // NFR-RDI1: wrap multi-table writes in a transaction
     const internship = await prisma.$transaction(async (tx) => {
       const created = await tx.internship.create({
         data: {
@@ -86,19 +117,20 @@ export async function POST(req: NextRequest) {
           topicId,
           teacherId,
           academicYear,
-          // Inherit internship type from the topic
           internshipType: topic?.internshipType ?? null,
           status: 'REQUESTED',
           updatedAt: new Date(),
           students: {
-            create: studentIds.map((sid, i) => ({
+            create: studentIds.map((sid: string, i: number) => ({
               id: randomUUID(),
               studentId: sid,
               isLeader: i === 0,
             })),
           },
         },
-        include: { students: { include: { student: { select: { id: true, name: true } } } } },
+        include: {
+          students: { include: { student: { select: { id: true, name: true } } } },
+        },
       });
 
       await tx.topic.update({
@@ -109,19 +141,18 @@ export async function POST(req: NextRequest) {
       return created;
     });
 
-    // Increment teacher load
+    // Increment teacher load after successful transaction
     await TeacherLoadService.increment(teacherId);
 
     // Notify all parties
-    const recipientIds = internship.students.map((s) => s.studentId);
-    recipientIds.push(teacherId);
-
+    const recipientIds = [...internship.students.map((s: { studentId: string }) => s.studentId), teacherId];
     for (const uid of recipientIds) {
       await NotificationService.trigger({
         userId: uid,
         type: 'INTERNSHIP_STARTED',
         title: 'Internship Record Created',
-        message: 'Your internship has been officially created and is awaiting document exchange.',
+        message:
+          'Your internship has been officially created and is awaiting document exchange.',
         relatedId: internship.id,
         relatedType: 'Internship',
         link: '/student/internship',
@@ -138,10 +169,16 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ data: internship }, { status: 201 });
   } catch (error: unknown) {
-    if ((error as any)?.name === 'ZodError') {
-      return NextResponse.json({ error: 'Validation failed', details: (error as any).errors }, { status: 400 });
+    if ((error as { name?: string })?.name === 'ZodError') {
+      return NextResponse.json(
+        { error: 'Please check your input and try again.' },
+        { status: 400 },
+      );
     }
     console.error(error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Internship could not be created. Please try again.' },
+      { status: 500 },
+    );
   }
 }

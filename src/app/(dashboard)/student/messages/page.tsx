@@ -127,7 +127,7 @@ function MessagesContent() {
 
   useEffect(() => {
     if (!internship) return;
-    const id = setInterval(() => fetchMessages(internship.id), 15000);
+    const id = setInterval(() => fetchMessages(internship.id), 5000); // NFR-P3: ≤5s polling
     return () => clearInterval(id);
   }, [internship]);
 

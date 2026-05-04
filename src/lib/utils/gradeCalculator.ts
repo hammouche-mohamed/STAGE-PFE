@@ -1,20 +1,13 @@
 /**
- * Computes the individual final grade for a jury member's evaluation.
- * Formula: report*0.40 + technical*0.30 + oral*0.30
+ * Grade computation utilities have been removed from this system.
+ *
+ * Defense sessions, jury grading, and score calculations are no longer part
+ * of the internship lifecycle. Internships now end through the 3-gate
+ * Final Report validation workflow:
+ *   Student submits → Teacher validates → Company validates → Admin confirms → COMPLETED
+ *
+ * This file is retained as an empty module to avoid breaking any residual imports.
+ * Any remaining import of this file should be removed.
  */
-export function computeIndividualGrade(
-  reportScore: number,
-  technicalScore: number,
-  oralScore: number
-): number {
-  return reportScore * 0.4 + technicalScore * 0.3 + oralScore * 0.3;
-}
 
-/**
- * Computes average of all non-advisory jury grades.
- */
-export function computeFinalGrade(individualGrades: number[]): number {
-  if (individualGrades.length === 0) return 0;
-  const sum = individualGrades.reduce((a, b) => a + b, 0);
-  return Math.round((sum / individualGrades.length) * 100) / 100;
-}
+export {};

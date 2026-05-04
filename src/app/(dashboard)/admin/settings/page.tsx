@@ -2,13 +2,17 @@
 
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { toast } from "sonner";
-import { Settings, Lock, Unlock, Calendar, Save, Palette, Upload } from "lucide-react";
+import { Settings, Lock, Unlock, Calendar, Palette } from "lucide-react";
 
 export default function AdminSettingsPage() {
   const router = useRouter();
+  const { data: session, status } = useSession();
+
+  // All hooks must be declared unconditionally (Rules of Hooks)
   const [settings, setSettings] = useState({
     currentAcademicYear: "",
     registrationOpen: "false",
@@ -18,10 +22,22 @@ export default function AdminSettingsPage() {
     availablePromotions: "",
   });
   const [loadingKey, setLoadingKey] = useState<string | null>(null);
-  
   const [brandingFile, setBrandingFile] = useState<File | null>(null);
   const [brandingPreview, setBrandingPreview] = useState<string | null>(null);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
+
+  // NFR-S2: client-side role guard — redirect non-admins immediately
+  useEffect(() => {
+    if (status === "loading") return;
+    if (!session || session.user.role !== "ADMIN") {
+      router.replace("/");
+    }
+  }, [session, status, router]);
+
+  // Block render until session is confirmed
+  if (status === "loading" || !session || session.user.role !== "ADMIN") {
+    return <div className="p-8 text-center text-gray-400 text-sm">Verifying access…</div>;
+  }
 
   const handleBrandingSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];

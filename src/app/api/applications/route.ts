@@ -82,6 +82,8 @@ export async function POST(req: NextRequest) {
         id: randomUUID(),
         topicId,
         leaderId: session.user.id,
+        // Bug fix: persist partnerId so the binôme flow can read it later
+        partnerId: partnerId || null,
         isBinome: !!partnerId,
         status: "PENDING",
       },

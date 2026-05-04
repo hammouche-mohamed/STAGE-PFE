@@ -23,11 +23,12 @@ export async function GET(
       }
     });
 
-    if (!topic) return NextResponse.json({ error: "Topic not found" }, { status: 404 });
+    if (!topic) return NextResponse.json({ error: "Topic not found." }, { status: 404 });
 
     return NextResponse.json({ data: topic });
   } catch (error) {
-    return NextResponse.json({ error: "Fetch failed" }, { status: 500 });
+    console.error('[topics/[id] GET]', error);
+    return NextResponse.json({ error: "Failed to load topic." }, { status: 500 });
   }
 }
 
@@ -37,7 +38,8 @@ export async function PATCH(
 ) {
   const session = await auth();
   if (!session || session.user.role !== "ADMIN") {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    // NFR-S2: return 403 Forbidden for authenticated non-admin, 401 only for unauthenticated
+    return NextResponse.json({ error: "Forbidden" }, { status: session ? 403 : 401 });
   }
 
   try {
@@ -82,23 +84,43 @@ export async function PATCH(
       }
     });
 
-    // Notify proposer
-    await NotificationService.trigger({
-      userId: topic.proposedById,
-      type: status === "APPROVED" ? "TOPIC_APPROVED" : "TOPIC_REJECTED",
-      title: `Topic ${status.toLowerCase()}`,
-      message: `Your topic "${topic.title}" has been ${status.toLowerCase()} by the administration. ${rejectionReason ? `Reason: ${rejectionReason}` : ""}`,
-      relatedId: topic.id,
-      relatedType: "Topic",
-    });
+    // Only notify proposer when the status actually changes to something meaningful
+    if (status && ["OPEN_FOR_SELECTION", "REJECTED", "PENDING_TEACHER"].includes(status)) {
+      const notifType = status === "OPEN_FOR_SELECTION"
+        ? "TOPIC_APPROVED"
+        : status === "REJECTED"
+        ? "TOPIC_REJECTED"
+        : "TOPIC_APPROVED";
 
-    // Notify teacher if assigned
-    if (teacherId && status === "PENDING_TEACHER") {
+      const notifTitle = status === "OPEN_FOR_SELECTION"
+        ? "Topic Approved — Now Open for Selection"
+        : status === "REJECTED"
+        ? "Topic Rejected"
+        : "Topic Updated";
+
+      const notifMessage = status === "OPEN_FOR_SELECTION"
+        ? `Your topic "${topic.title}" has been approved and is now open for student selection.`
+        : status === "REJECTED"
+        ? `Your topic "${topic.title}" was rejected. ${rejectionReason ? `Reason: ${rejectionReason}` : "Please contact administration for details."}`
+        : `Your topic "${topic.title}" has been updated by administration.`;
+
+      await NotificationService.trigger({
+        userId: topic.proposedById,
+        type: notifType,
+        title: notifTitle,
+        message: notifMessage,
+        relatedId: topic.id,
+        relatedType: "Topic",
+      });
+    }
+
+    // Notify teacher if assigned to supervise
+    if (teacherId && teacherId !== topic.assignedTeacherId) {
       await NotificationService.trigger({
         userId: teacherId,
         type: "TEACHER_ASSIGNED",
         title: "New Supervision Request",
-        message: `You have been assigned to supervise the topic: "${topic.title}". Please accept or reject this assignment.`,
+        message: `You have been assigned to supervise the topic: "${topic.title}". Please review and accept or decline.`,
         relatedId: topic.id,
         relatedType: "Topic",
       });
@@ -108,13 +130,14 @@ export async function PATCH(
       userId: session.user.id,
       action: "TOPIC_UPDATED_BY_ADMIN",
       targetType: "Topic",
-      targetId: updated.title,
-      details: { status, teacherId }
+      targetId: updated.id,
+      details: { status, teacherId },
     });
 
     return NextResponse.json({ data: updated });
   } catch (error) {
-    return NextResponse.json({ error: "Update failed" }, { status: 500 });
+    console.error('[topics/[id] PATCH]', error);
+    return NextResponse.json({ error: "Failed to update topic. Please try again." }, { status: 500 });
   }
 }
 
@@ -161,9 +184,9 @@ export async function DELETE(
       details: { title: topic.title }
     });
 
-    return NextResponse.json({ message: "Topic deleted successfully" });
+    return NextResponse.json({ message: "Topic deleted successfully." });
   } catch (error) {
-    console.error("Delete error:", error);
-    return NextResponse.json({ error: "Deletion failed" }, { status: 500 });
+    console.error("Topic delete error:", error);
+    return NextResponse.json({ error: "Failed to delete topic. Please try again." }, { status: 500 });
   }
 }

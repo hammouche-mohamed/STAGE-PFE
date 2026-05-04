@@ -96,5 +96,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     signIn: '/login',
     error: '/login',
   },
-  session: { strategy: 'jwt' },
+  session: {
+    strategy: 'jwt',
+    // NFR-Session: expire after 5 minutes of inactivity
+    maxAge: 5 * 60,      // 300 seconds absolute max
+    updateAge: 60,       // refresh the token every 60 s while active
+  },
 });
