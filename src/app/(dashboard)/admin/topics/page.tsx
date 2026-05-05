@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import {
   BookOpen,
   Search,
@@ -23,6 +23,7 @@ import Link from "next/link";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Button } from "@/components/ui/Button";
 import { useTranslation } from "@/lib/i18n/LanguageContext";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 interface Topic {
   id: string;
@@ -45,17 +46,17 @@ export default function AdminTopicsPage() {
   const [topicToDelete, setTopicToDelete] = useState<Topic | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const fetchTopics = async () => {
+  const fetchTopics = useCallback(async () => {
     try {
       const res = await fetch("/api/topics");
       const data = await res.json();
       setTopics(data.data || []);
     } catch (error) {
-      toast.error("Failed to load topics");
+      toast.error(t("toast.loadFailed"));
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [t]);
 
   const handleDelete = async () => {
     if (!topicToDelete) return;
@@ -79,7 +80,7 @@ export default function AdminTopicsPage() {
 
   useEffect(() => {
     fetchTopics();
-  }, []);
+  }, [fetchTopics]);
 
   const filteredTopics = topics.filter(t => {
     const matchesSearch = t.title.toLowerCase().includes(search.toLowerCase()) || 
@@ -97,31 +98,40 @@ export default function AdminTopicsPage() {
         </div>
       </div>
 
+      {/* Tabs */}
+      <div className="flex border-b border-gray-200">
+        {[
+          { id: "ALL", label: t("common.all") },
+          { id: "PENDING_ADMIN", label: t("status.PENDING_ADMIN") },
+          { id: "APPROVED", label: t("status.APPROVED") },
+          { id: "OPEN_FOR_SELECTION", label: t("status.OPEN_FOR_SELECTION") },
+        ].map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setStatusFilter(tab.id)}
+            className={`px-4 py-2 text-[13px] font-medium transition-colors border-b-2 -mb-px ${
+              statusFilter === tab.id
+                ? "border-indigo-600 text-indigo-700"
+                : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Control Bar */}
       {/* Control Bar */}
       <div className="flex flex-col sm:flex-row gap-4">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <Search className={`absolute ${isRTL ? "right-3" : "left-3"} top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400`} />
           <input
             type="text"
             placeholder={t("common.search")}
-            className="admin-input pl-10"
+            className={`admin-input ${isRTL ? "pr-10" : "pl-10"}`}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
-        </div>
-        <div className="flex gap-2">
-          <select 
-            className="admin-input min-w-[160px]"
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-          >
-            <option value="ALL">{t("common.all")}</option>
-            <option value="PENDING_ADMIN">{t("status.PENDING_ADMIN")}</option>
-            <option value="OPEN_FOR_SELECTION">{t("status.OPEN_FOR_SELECTION")}</option>
-            <option value="APPROVED">{t("status.APPROVED")}</option>
-            <option value="TAKEN">{t("status.TAKEN")}</option>
-            <option value="REJECTED">{t("status.REJECTED")}</option>
-          </select>
         </div>
       </div>
 
@@ -130,7 +140,11 @@ export default function AdminTopicsPage() {
         {isLoading ? (
           <div className="text-center py-12 text-gray-400 bg-white border border-gray-200 rounded-md">{t("common.loading")}</div>
         ) : filteredTopics.length === 0 ? (
-          <div className="text-center py-12 text-gray-400 bg-white border border-gray-200 rounded-md">{t("common.noData")}</div>
+          <EmptyState 
+            icon={BookOpen}
+            title={t("common.noData")}
+            description="We couldn't find any topics matching your current filter or search criteria."
+          />
         ) : (
           filteredTopics.map((topic) => (
             <Link 
@@ -179,7 +193,9 @@ export default function AdminTopicsPage() {
                     >
                       <Trash2 className="h-4 w-4" />
                     </button>
-                    <ChevronRight className="h-5 w-5 text-gray-300 group-hover:text-indigo-500 group-hover:translate-x-1 transition-all" />
+                    <ChevronRight className={`h-5 w-5 text-gray-300 group-hover:text-indigo-500 transition-all ${
+                      isRTL ? "rotate-180 group-hover:-translate-x-1" : "group-hover:translate-x-1"
+                    }`} />
                   </div>
                 </div>
               </div>

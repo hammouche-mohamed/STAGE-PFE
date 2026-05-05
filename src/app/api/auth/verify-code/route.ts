@@ -1,33 +1,30 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 
-export async function POST(req: NextRequest) {
+export async function POST(req: Request) {
   try {
-    const { userId, code } = await req.json();
+    const { email, code } = await req.json();
 
-    if (!userId || !code) {
-      return NextResponse.json({ error: "User ID and code are required" }, { status: 400 });
+    if (!email || !code) {
+      return NextResponse.json({ error: "Email and code are required" }, { status: 400 });
     }
 
     const token = await prisma.passwordResetToken.findFirst({
-      where: { 
-        userId, 
+      where: {
+        email,
         code,
-        expiresAt: { gt: new Date() }
-      }
+        expiresAt: { gt: new Date() },
+      },
+      orderBy: { createdAt: "desc" },
     });
 
     if (!token) {
-      return NextResponse.json({ error: "Invalid or expired verification code." }, { status: 400 });
+      return NextResponse.json({ error: "Invalid or expired code" }, { status: 400 });
     }
 
-    return NextResponse.json({ 
-      message: "Code verified successfully.",
-      success: true 
-    });
-
-  } catch (error: any) {
-    console.error("Code verification failed:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json({ message: "Code verified successfully", valid: true });
+  } catch (error) {
+    console.error("Verify code error:", error);
+    return NextResponse.json({ error: "Verification failed" }, { status: 500 });
   }
 }

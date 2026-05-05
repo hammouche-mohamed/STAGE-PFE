@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, Suspense } from "react";
+import React, { useEffect, useState, useCallback, Suspense } from "react";
 import { DocumentList } from "@/components/documents/DocumentList";
 import { UploadDocumentSection } from "@/components/documents/UploadDocumentSection";
 import { toast } from "sonner";
@@ -9,19 +9,20 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { useTranslation } from "@/lib/i18n/LanguageContext";
+import { InternshipDocument } from "@/types/document";
 
 function DocumentsContent() {
   const searchParams = useSearchParams();
   const { t, isRTL } = useTranslation();
   const backUrl = searchParams.get("back") || "/student/internship";
   
-  const [documents, setDocuments] = useState([]);
+  const [documents, setDocuments] = useState<InternshipDocument[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [internshipId, setInternshipId] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const fetchInternshipAndDocs = async () => {
+  const fetchInternshipAndDocs = useCallback(async () => {
     try {
       const intRes = await fetch("/api/internships");
       const intData = await intRes.json();
@@ -42,11 +43,11 @@ function DocumentsContent() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [t]);
 
   useEffect(() => {
     fetchInternshipAndDocs();
-  }, []);
+  }, [fetchInternshipAndDocs]);
 
   const handleDelete = async () => {
     if (!deleteId) return;
@@ -73,7 +74,7 @@ function DocumentsContent() {
           href={backUrl} 
           className="flex items-center text-[12px] text-indigo-600 hover:text-indigo-800 font-medium transition-colors w-fit bg-indigo-50 px-3 py-1 rounded-full"
         >
-          <ChevronLeft className="h-4 w-4 mr-1" />
+          <ChevronLeft className={`h-4 w-4 ${isRTL ? "ml-1 rotate-180" : "mr-1"}`} />
           {t("common.back")}
         </Link>
         <div className="flex items-center justify-between">

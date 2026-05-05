@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { Bell, LogOut, Menu } from "lucide-react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
@@ -25,18 +25,19 @@ export const Topbar: React.FC = () => {
   const [unreadCount, setUnreadCount] = useState(0);
   const [isLogoutDialogOpen, setIsLogoutDialogOpen] = useState(false);
 
-  useEffect(() => {
-    const fetchUnread = async () => {
-      try {
-        const res = await fetch("/api/notifications/unread/count");
-        if (res.ok) {
-          const data = await res.json();
-          setUnreadCount(data.count || 0);
-        }
-      } catch (error) {}
-    };
-    fetchUnread();
+  const fetchUnread = useCallback(async () => {
+    try {
+      const res = await fetch("/api/notifications/unread/count");
+      if (res.ok) {
+        const data = await res.json();
+        setUnreadCount(data.count || 0);
+      }
+    } catch (error) {}
   }, []);
+
+  useEffect(() => {
+    fetchUnread();
+  }, [fetchUnread]);
 
   const getBreadcrumbs = () => {
     const parts = pathname.split("/").filter(Boolean);

@@ -1,33 +1,18 @@
 "use client";
 
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import { Send, Paperclip, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { useSession } from "next-auth/react";
 import { useTranslation } from "@/lib/i18n/LanguageContext";
 
-interface Message {
-  id: string;
-  content: string;
-  sender: { name: string };
-  senderId: string;
-  sentAt: string;
-  attachmentName?: string | null;
-  attachmentUrl?: string | null;
-}
-
-interface Internship {
-  id: string;
-  topic: { title: string };
-  students: { student: { name: string } }[];
-  teacher: { name: string };
-}
+import { Message, InternshipThread } from "@/types/message";
 
 export default function CompanyMessagesPage() {
   const { data: session } = useSession();
   const { t, isRTL } = useTranslation();
-  const [internships, setInternships] = useState<Internship[]>([]);
+  const [internships, setInternships] = useState<InternshipThread[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
@@ -35,26 +20,27 @@ export default function CompanyMessagesPage() {
   const [isSending, setIsSending] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const res = await fetch("/api/internships");
-        const data = await res.json();
-        const active = (data.data || []).filter(
-          (i: any) => !["CANCELLED", "REQUESTED"].includes(i.status)
-        );
-        setInternships(active);
-        if (active.length > 0) setSelectedId(active[0].id);
-      } catch {
-        toast.error(t("toast.loadInternshipsFailed"));
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    load();
-  }, []);
+  const loadInternships = useCallback(async () => {
+    try {
+      const res = await fetch("/api/internships");
+      const data = await res.json();
+      const active = (data.data || []).filter(
+        (i: any) => !["CANCELLED", "REQUESTED"].includes(i.status)
+      );
+      setInternships(active);
+      if (active.length > 0 && !selectedId) setSelectedId(active[0].id);
+    } catch {
+      toast.error(t("toast.loadInternshipsFailed"));
+    } finally {
+      setIsLoading(false);
+    }
+  }, [t, selectedId]);
 
-  const fetchMessages = async (id: string) => {
+  useEffect(() => {
+    loadInternships();
+  }, [loadInternships]);
+
+  const fetchMessages = useCallback(async (id: string) => {
     try {
       const res = await fetch(`/api/messages/${id}`);
       const data = await res.json();
@@ -62,9 +48,9 @@ export default function CompanyMessagesPage() {
     } catch {
       toast.error(t("toast.loadMessagesFailed"));
     }
-  };
+  }, [t]);
 
-  useEffect(() => { if (selectedId) fetchMessages(selectedId); }, [selectedId]);
+  useEffect(() => { if (selectedId) fetchMessages(selectedId); }, [selectedId, fetchMessages]);
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
   useEffect(() => {
     if (!selectedId) return;
@@ -132,7 +118,7 @@ export default function CompanyMessagesPage() {
             </div>
             {selected && (
               <span className="text-[11px] text-gray-400">
-                Supervisor: {selected.teacher.name}
+                Supervisor: {selected.teacher?.name}
               </span>
             )}
           </div>

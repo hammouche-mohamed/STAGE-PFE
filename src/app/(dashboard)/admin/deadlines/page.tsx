@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { 
   Calendar, 
   Clock, 
@@ -55,7 +55,7 @@ export default function AdminDeadlinesPage() {
     academicYear: "" // populated from settings
   });
 
-  const fetchSettings = async () => {
+  const fetchSettings = useCallback(async () => {
     try {
       const res = await fetch("/api/settings/public");
       const data = await res.json();
@@ -63,26 +63,30 @@ export default function AdminDeadlinesPage() {
         setFormData(prev => ({ ...prev, academicYear: data.data.currentAcademicYear }));
       }
     } catch {
-      setFormData(prev => ({ ...prev, academicYear: "2024-2025" }));
+      // Use a dynamic fallback based on current date if DB is unreachable
+      const now = new Date();
+      const currentYear = now.getFullYear();
+      const nextYear = currentYear + 1;
+      setFormData(prev => ({ ...prev, academicYear: `${currentYear}-${nextYear}` }));
     }
-  };
+  }, []);
 
-  const fetchDeadlines = async () => {
+  const fetchDeadlines = useCallback(async () => {
     try {
       const res = await fetch("/api/deadlines");
       const data = await res.json();
       setDeadlines(data.data || []);
     } catch (error) {
-      toast.error("Failed to load deadlines");
+      toast.error(t("toast.loadFailed"));
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [t]);
 
   useEffect(() => {
     fetchDeadlines();
     fetchSettings();
-  }, []);
+  }, [fetchDeadlines, fetchSettings]);
 
   const handleSaveDeadline = async () => {
     if (!formData.title || !formData.date || !formData.time) {

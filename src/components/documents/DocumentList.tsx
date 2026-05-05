@@ -5,22 +5,11 @@ import { formatShortDate } from "@/lib/utils/formatDate";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { FileIcon, Download, Check, X, MessageSquare, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { InternshipDocument } from "@/types/document";
 
-interface Document {
-  id: string;
-  type: string;
-  fileName: string;
-  fileUrl: string;
-  fileSize: number;
-  version: number;
-  status: string;
-  uploadedAt: string;
-  uploadedBy: { name: string };
-  reviewComment?: string | null;
-}
 
 interface DocumentListProps {
-  documents: Document[];
+  documents: InternshipDocument[];
   onReview?: (id: string, status: "APPROVED" | "REJECTED", comment: string) => void;
   onDelete?: (id: string) => void;
   canReview?: boolean;
@@ -67,7 +56,7 @@ export const DocumentList: React.FC<DocumentListProps> = ({ documents, onReview,
                   </td>
                   <td>
                     <div className="flex flex-col">
-                      <span className="text-[13px]">{doc.uploadedBy.name}</span>
+                      <span className="text-[13px]">{doc.uploadedBy?.name || "N/A"}</span>
                       <span className="text-[11px] text-gray-400">{formatShortDate(doc.uploadedAt)}</span>
                     </div>
                   </td>

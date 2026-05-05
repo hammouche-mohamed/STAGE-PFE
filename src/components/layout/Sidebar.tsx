@@ -166,7 +166,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ role: initialRole, logoUrl }) 
             </div>
             <div className="min-w-0">
               <p className="text-[13px] font-medium text-gray-900 truncate">{displayName}</p>
-              <p className="text-[10px] text-gray-500 uppercase tracking-wider">{role}</p>
+              <p className="text-[10px] text-gray-500 uppercase tracking-wider">{t(`roles.${role}` as any)}</p>
             </div>
           </div>
           

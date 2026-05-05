@@ -1,38 +1,40 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { DocumentList } from "@/components/documents/DocumentList";
 import { Button } from "@/components/ui/Button";
 import { toast } from "sonner";
 import { Search } from "lucide-react";
 import { useTranslation } from "@/lib/i18n/LanguageContext";
+import { InternshipDocument } from "@/types/document";
 
 export default function TeacherDocumentsPage() {
-  const [documents, setDocuments] = useState([]);
+  const [documents, setDocuments] = useState<InternshipDocument[]>([]);
   const { t, isRTL } = useTranslation();
-  const [internships, setInternships] = useState([]);
+  const [internships, setInternships] = useState<any[]>([]);
   const [selectedInternshipId, setSelectedInternshipId] = useState("");
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchInternships = async () => {
-      try {
-        const res = await fetch("/api/internships");
-        const data = await res.json();
-        setInternships(data.data || []);
-        if (data.data && data.data.length > 0) {
-          setSelectedInternshipId(data.data[0].id);
-        }
-      } catch (error) {
-        toast.error(t("toast.loadInternshipsFailed"));
-      } finally {
-        setIsLoading(false);
+  const loadInternships = useCallback(async () => {
+    try {
+      const res = await fetch("/api/internships");
+      const data = await res.json();
+      setInternships(data.data || []);
+      if (data.data && data.data.length > 0) {
+        setSelectedInternshipId(data.data[0].id);
       }
-    };
-    fetchInternships();
-  }, []);
+    } catch (error) {
+      toast.error(t("toast.loadInternshipsFailed"));
+    } finally {
+      setIsLoading(false);
+    }
+  }, [t]);
 
-  const fetchDocs = async (id: string) => {
+  useEffect(() => {
+    loadInternships();
+  }, [loadInternships]);
+
+  const fetchDocs = useCallback(async (id: string) => {
     if (!id) return;
     try {
       const docRes = await fetch(`/api/documents?internshipId=${id}`);
@@ -41,11 +43,11 @@ export default function TeacherDocumentsPage() {
     } catch (error) {
       toast.error(t("toast.loadDocumentsFailed"));
     }
-  };
+  }, [t]);
 
   useEffect(() => {
     fetchDocs(selectedInternshipId);
-  }, [selectedInternshipId]);
+  }, [selectedInternshipId, fetchDocs]);
 
   const handleReview = async (id: string, status: "APPROVED" | "REJECTED", comment: string) => {
     try {

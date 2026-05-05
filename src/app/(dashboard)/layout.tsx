@@ -4,6 +4,13 @@ import { BreadcrumbProvider } from "@/lib/contexts/BreadcrumbContext";
 import { SidebarProvider } from "@/lib/contexts/SidebarContext";
 import { auth } from "@/lib/auth";
 import prisma from "@/lib/prisma";
+import { cache } from "react";
+
+const getUniversityLogo = cache(async () => {
+  return prisma.systemSettings.findUnique({
+    where: { key: "universityLogo" }
+  });
+});
 
 export const dynamic = "force-dynamic";
 
@@ -15,12 +22,10 @@ export default async function DashboardLayout({
   const session = await auth();
   const role = (session?.user?.role as "ADMIN" | "STUDENT" | "TEACHER" | "COMPANY") ?? "ADMIN";
 
-  const logoSetting = await prisma.systemSettings.findUnique({
-    where: { key: "universityLogo" }
-  });
+  const logoSetting = await getUniversityLogo();
   const baseLogoUrl = logoSetting?.value || "";
   const routedLogoUrl = baseLogoUrl.startsWith("/uploads/") ? `/api${baseLogoUrl}` : baseLogoUrl;
-  const logoUrl = routedLogoUrl ? `${routedLogoUrl}?v=${Date.now()}` : "";
+  const logoUrl = routedLogoUrl ? `${routedLogoUrl}?v=${logoSetting?.updatedAt?.getTime() || Date.now()}` : "";
 
   return (
     <SidebarProvider>

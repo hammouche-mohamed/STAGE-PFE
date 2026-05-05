@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/Input";
 
 import { useSession } from "next-auth/react";
 import { toast } from "sonner";
-import { Lock, Save, User as UserIcon, Languages, Check } from "lucide-react";
+import { Lock, Save, User as UserIcon } from "lucide-react";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { useTranslation } from "@/lib/i18n/LanguageContext";
 import { Language } from "@/lib/i18n/translations";
@@ -248,42 +248,6 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        {/* Language Selection */}
-        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm space-y-6">
-          <div className="flex items-center gap-3">
-            <Languages className="h-5 w-5 text-indigo-600" />
-            <h2 className="text-sm font-semibold text-gray-900">Language Preference</h2>
-          </div>
-          
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            {[
-              { code: "en", name: "English", flag: "🇺🇸" },
-              { code: "fr", name: "Français", flag: "🇫🇷" },
-              { code: "ar", name: "العربية", flag: "🇩🇿" },
-            ].map((lang) => (
-              <button
-                key={lang.code}
-                onClick={() => setLanguage(lang.code as Language)}
-                className={`flex items-center gap-3 p-3 rounded-lg border transition-all ${
-                  language === lang.code
-                    ? "border-indigo-600 bg-indigo-50 ring-2 ring-indigo-50"
-                    : "border-gray-100 bg-white hover:border-gray-200 hover:bg-gray-50"
-                }`}
-              >
-                <span className="text-xl">{lang.flag}</span>
-                <div className="flex-1 text-left">
-                  <p className={`text-[13px] font-bold ${language === lang.code ? "text-indigo-900" : "text-gray-700"}`}>
-                    {lang.name}
-                  </p>
-                  <p className="text-[10px] text-gray-400 uppercase font-medium">{lang.code}</p>
-                </div>
-                {language === lang.code && (
-                  <Check className="h-4 w-4 text-indigo-600" />
-                )}
-              </button>
-            ))}
-          </div>
-        </div>
 
         <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm space-y-6">
           <div>

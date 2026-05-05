@@ -1,52 +1,49 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 
-export async function POST(req: NextRequest) {
+export async function POST(req: Request) {
   try {
-    const { userId, code, password } = await req.json();
+    const { email, code, newPassword } = await req.json();
 
-    if (!userId || !code || !password) {
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+    if (!email || !code || !newPassword) {
+      return NextResponse.json({ error: "All fields are required" }, { status: 400 });
     }
 
-    // 1. Verify token again for security
+    // Double check token again for security
     const token = await prisma.passwordResetToken.findFirst({
-      where: { 
-        userId, 
+      where: {
+        email,
         code,
-        expiresAt: { gt: new Date() }
-      }
+        expiresAt: { gt: new Date() },
+      },
+      orderBy: { createdAt: "desc" },
     });
 
     if (!token) {
-      return NextResponse.json({ error: "Invalid or expired session. Please start over." }, { status: 400 });
+      return NextResponse.json({ error: "Invalid or expired session" }, { status: 400 });
     }
 
-    // 2. Hash new password — NFR-S1: minimum 12 salt rounds
-    const hashedPassword = await bcrypt.hash(password, 12);
+    // Hash new password
+    const hashedPassword = await bcrypt.hash(newPassword, 12);
 
-    // 3. Update user
-    await prisma.user.update({
-      where: { id: userId },
-      data: { 
-        password: hashedPassword,
-        updatedAt: new Date()
-      }
-    });
+    // Update user password and delete used token
+    await prisma.$transaction([
+      prisma.user.update({
+        where: { id: token.userId },
+        data: { 
+          password: hashedPassword,
+          mustChangePassword: false // Assuming they changed it now
+        },
+      }),
+      prisma.passwordResetToken.deleteMany({
+        where: { userId: token.userId },
+      }),
+    ]);
 
-    // 4. Delete token
-    await prisma.passwordResetToken.delete({
-      where: { id: token.id }
-    });
-
-    return NextResponse.json({ 
-      message: "Password reset successfully. You can now login with your new password.",
-      success: true 
-    });
-
-  } catch (error: any) {
-    console.error("Password reset failed:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json({ message: "Password reset successful" });
+  } catch (error) {
+    console.error("Reset password error:", error);
+    return NextResponse.json({ error: "Failed to reset password" }, { status: 500 });
   }
 }

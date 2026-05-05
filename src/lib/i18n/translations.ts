@@ -53,6 +53,12 @@ export const translations = {
       newDeadline: "New Deadline",
       scheduleSession: "Schedule Session",
     },
+    roles: {
+      STUDENT: "Student",
+      TEACHER: "Supervisor",
+      COMPANY: "Company",
+      ADMIN: "Administrator",
+    },
     nav: {
       overview: "Overview",
       myInternship: "My Internship",
@@ -308,6 +314,12 @@ export const translations = {
       newDeadline: "Nouvelle Échéance",
       scheduleSession: "Planifier une Séance",
     },
+    roles: {
+      STUDENT: "Étudiant",
+      TEACHER: "Encadrant",
+      COMPANY: "Entreprise",
+      ADMIN: "Administrateur",
+    },
     nav: {
       overview: "Aperçu",
       myInternship: "Mon Stage",
@@ -550,6 +562,12 @@ export const translations = {
       export: "تصدير CSV",
       newDeadline: "موعد نهائي جديد",
       scheduleSession: "جدولة جلسة",
+    },
+    roles: {
+      STUDENT: "طالب",
+      TEACHER: "مشرف",
+      COMPANY: "مؤسسة",
+      ADMIN: "مدير النظام",
     },
     nav: {
       overview: "نظرة عامة",
