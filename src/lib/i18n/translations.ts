@@ -260,6 +260,46 @@ export const translations = {
       // Company topics
       topicProposalDeleted: "Topic proposal deleted successfully.",
     },
+    landing: {
+      hero: {
+        title: "ESST Internship Portal",
+        subtitle: "The official community platform for students, teachers, and partners to collaborate on next-generation technological innovation.",
+        getStarted: "Get Started",
+        learnMore: "Learn More",
+      },
+      preview: {
+        title: "Platform Preview",
+      },
+      topics: {
+        title: "Explore top collaborative topics and proposals",
+        subtitle: "Connect with students and teachers to build the next generation of technological innovation at ESST.",
+        seeAll: "See All Topics",
+        robotics: {
+          title: "Robotics",
+          desc: "Innovating with hardware and intelligent control systems.",
+        },
+        cyber: {
+          title: "Cyber Security",
+          desc: "Securing digital assets and infrastructure.",
+        },
+        bigdata: {
+          title: "Big Data",
+          desc: "Extracting insights from massive datasets.",
+        },
+        chemistry: {
+          title: "Chemistry",
+          desc: "Advancing material science and molecular research.",
+        },
+      },
+      cta: {
+        title: "Ready to take the next step in your professional journey?",
+        join: "Join ESST Community",
+      },
+      footer: {
+        desc: "The official career and internship management platform for the École Supérieure des Sciences et Technologies. Connecting ESST's brightest minds with industry leaders to foster innovation and professional excellence.",
+        status: "System Status: Optimal",
+      }
+    }
   },
 
   fr: {
@@ -509,6 +549,46 @@ export const translations = {
       fillBothPasswords: "Veuillez remplir les deux champs de mot de passe.",
       topicProposalDeleted: "Proposition de sujet supprimée avec succès.",
     },
+    landing: {
+      hero: {
+        title: "Portail des Stages ESST",
+        subtitle: "La plateforme communautaire officielle pour les étudiants, les enseignants et les partenaires pour collaborer sur l'innovation technologique de nouvelle génération.",
+        getStarted: "Commencer",
+        learnMore: "En savoir plus",
+      },
+      preview: {
+        title: "Aperçu de la Plateforme",
+      },
+      topics: {
+        title: "Explorez les meilleurs sujets et propositions de collaboration",
+        subtitle: "Connectez-vous avec des étudiants et des enseignants pour construire la prochaine génération d'innovation technologique à l'ESST.",
+        seeAll: "Voir tous les sujets",
+        robotics: {
+          title: "Robotique",
+          desc: "Innover avec du matériel et des systèmes de contrôle intelligents.",
+        },
+        cyber: {
+          title: "Cybersécurité",
+          desc: "Sécurisation des actifs et des infrastructures numériques.",
+        },
+        bigdata: {
+          title: "Big Data",
+          desc: "Extraire des informations de jeux de données massifs.",
+        },
+        chemistry: {
+          title: "Chimie",
+          desc: "Faire progresser la science des matériaux et la recherche moléculaire.",
+        },
+      },
+      cta: {
+        title: "Prêt à franchir la prochaine étape de votre parcours professionnel ?",
+        join: "Rejoindre la communauté ESST",
+      },
+      footer: {
+        desc: "La plateforme officielle de gestion des carrières et des stages de l'École Supérieure des Sciences et Technologies. Connecter les esprits les plus brillants de l'ESST avec les leaders de l'industrie pour favoriser l'innovation et l'excellence professionnelle.",
+        status: "État du système : Optimal",
+      }
+    }
   },
 
   ar: {
@@ -758,5 +838,45 @@ export const translations = {
       fillBothPasswords: "يرجى ملء حقلي كلمة المرور.",
       topicProposalDeleted: "تم حذف اقتراح الموضوع بنجاح.",
     },
+    landing: {
+      hero: {
+        title: "بوابة التربصات ESST",
+        subtitle: "المنصة المجتمعية الرسمية للطلاب والأساتذة والشركاء للتعاون في ابتكارات تكنولوجية من الجيل القادم.",
+        getStarted: "ابدأ الآن",
+        learnMore: "اكتشف المزيد",
+      },
+      preview: {
+        title: "معاينة المنصة",
+      },
+      topics: {
+        title: "استكشف أفضل المواضيع والمقترحات التعاونية",
+        subtitle: "تواصل مع الطلاب والأساتذة لبناء الجيل القادم من الابتكار التكنولوجي في ESST.",
+        seeAll: "عرض جميع المواضيع",
+        robotics: {
+          title: "الروبوتات",
+          desc: "الابتكار في الأجهزة وأنظمة التحكم الذكية.",
+        },
+        cyber: {
+          title: "الأمن السيبراني",
+          desc: "تأمين الأصول الرقمية والبنية التحتية.",
+        },
+        bigdata: {
+          title: "البيانات الضخمة",
+          desc: "استخراج الأفكار من مجموعات البيانات الضخمة.",
+        },
+        chemistry: {
+          title: "الكيمياء",
+          desc: "تطوير علوم المواد والبحوث الجزيئية.",
+        },
+      },
+      cta: {
+        title: "هل أنت مستعد لاتخاذ الخطوة التالية في مسيرتك المهنية؟",
+        join: "انضم إلى مجتمع ESST",
+      },
+      footer: {
+        desc: "المنصة الرسمية لإدارة المهن والتربصات في المدرسة العليا للعلوم والتكنولوجيات. ربط ألمع العقول في ESST مع قادة الصناعة لتعزيز الابتكار والتميز المهني.",
+        status: "حالة النظام: مثالية",
+      }
+    }
   },
 };

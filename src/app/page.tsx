@@ -1,5 +1,5 @@
 import prisma from "@/lib/prisma";
-import { LandingClient } from "./_components/LandingClient";
+import LandingClient from "./_components/LandingClient";
 import { cache } from "react";
 
 const getSystemSettings = cache(async () => {
