@@ -65,23 +65,6 @@ export default function LandingClient({ logoUrl, academicYear }: Props) {
 
       <main className="pt-24 pb-0 overflow-hidden relative bg-white">
         <section className="max-w-7xl mx-auto px-6 py-20 flex flex-col items-start relative min-h-[500px]">
-          {/* Node Network Background */}
-          <div className="absolute inset-0 pointer-events-none z-0">
-             <div className="absolute top-20 right-[15%] h-3 w-3 bg-brand-purple rounded-full shadow-[0_0_15px_rgba(126,34,206,0.3)] opacity-40 animate-float" />
-             <div className="absolute top-40 right-[35%] h-2 w-2 bg-brand-pink rounded-full shadow-[0_0_10px_rgba(241,77,145,0.2)] opacity-40 animate-float-slow" />
-             <div className="absolute bottom-40 right-[25%] h-2 w-2 bg-brand-purple rounded-full opacity-40 animate-float" style={{ animationDelay: '3s' }} />
-             <div className="absolute bottom-20 right-[10%] h-4 w-4 border-2 border-brand-deep rounded-full flex items-center justify-center opacity-40 animate-float-slow">
-                <div className="h-1.5 w-1.5 bg-brand-deep rounded-full" />
-             </div>
-             <div className="absolute top-1/2 right-[5%] h-2 w-2 bg-brand-accent rounded-full opacity-40 animate-float" style={{ animationDelay: '1.5s' }} />
-
-             <svg className="absolute inset-0 w-full h-full opacity-20 animate-pulse">
-                <line x1="85%" y1="20%" x2="65%" y2="40%" stroke="currentColor" strokeWidth="1" className="text-brand-purple" />
-                <line x1="65%" y1="40%" x2="75%" y2="60%" stroke="currentColor" strokeWidth="1" className="text-brand-pink" />
-                <line x1="75%" y1="60%" x2="90%" y2="80%" stroke="currentColor" strokeWidth="1" className="text-brand-deep" />
-                <line x1="90%" y1="80%" x2="95%" y2="50%" stroke="currentColor" strokeWidth="1" className="text-brand-accent" />
-             </svg>
-          </div>
 
           <div className="lg:w-3/5 text-left z-10">
             <h1 className="text-[48px] md:text-[64px] text-brand-deep font-black leading-[1] tracking-tight mb-6">
@@ -162,9 +145,6 @@ export default function LandingClient({ logoUrl, academicYear }: Props) {
 
         {/* Join CTA */}
         <section className="bg-[#f1f2ee] pt-24 pb-12 relative overflow-hidden">
-          <div className="absolute top-10 left-10 opacity-30 h-2 w-2 bg-brand-purple rounded-full animate-float" />
-          <div className="absolute bottom-10 right-10 opacity-30 h-2 w-2 bg-brand-pink rounded-full animate-float-slow" />
-          <div className="absolute top-1/2 left-20 opacity-30 h-1.5 w-1.5 bg-brand-accent rounded-full animate-float" style={{ animationDelay: '1s' }} />
           
            <div className="max-w-4xl mx-auto px-6 text-center relative z-10">
               <h2 className="text-[42px] font-light text-gray-800 mb-8">{t("landing.cta.title")}</h2>
