@@ -10,10 +10,12 @@
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
+    "@prisma/adapter-mariadb": "^7.8.0",
     "@prisma/client": "^7.8.0",
     "bcryptjs": "^3.0.3",
     "date-fns": "^4.1.0",
     "lucide-react": "^1.8.0",
+    "mariadb": "^3.5.2",
     "next": "16.2.4",
     "next-auth": "5.0.0-beta.25",
     "nodemailer": "^8.0.7",

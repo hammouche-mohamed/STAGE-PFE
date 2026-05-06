@@ -77,9 +77,6 @@ export default function LandingClient({ logoUrl, academicYear }: Props) {
                <Link href="/login" className="px-8 py-3 bg-brand-deep text-white rounded-full text-[16px] font-bold hover:bg-black transition-all shadow-md">
                   {t("landing.hero.getStarted")}
                </Link>
-               <button className="px-8 py-3 border border-gray-300 text-[16px] font-bold hover:bg-gray-50 transition-all text-gray-900">
-                  {t("landing.hero.learnMore")}
-               </button>
             </div>
           </div>
         </section>
@@ -175,20 +172,21 @@ export default function LandingClient({ logoUrl, academicYear }: Props) {
               <div>
                 <h5 className="text-gray-900 font-bold mb-4">{t("common.registrations")}</h5>
                 <ul className="space-y-2">
-                  <li><a href="#" className="hover:text-brand-deep transition-colors">{t("auth.register")}</a></li>
-                  <li><a href="#" className="hover:text-brand-deep transition-colors">{t("common.loading")}</a></li>
+                  <li><Link href="/register" className="hover:text-brand-deep transition-colors">{t("auth.register")}</Link></li>
+                  <li><Link href="/login" className="hover:text-brand-deep transition-colors">{t("auth.login")}</Link></li>
                 </ul>
               </div>
               <div>
-                <h5 className="text-gray-900 font-bold mb-4">{t("common.search")}</h5>
+                <h5 className="text-gray-900 font-bold mb-4">{t("nav.topics")}</h5>
                 <ul className="space-y-2">
-                  <li><a href="#" className="hover:text-brand-deep transition-colors">{t("nav.topics")}</a></li>
+                  <li><Link href="/login" className="hover:text-brand-deep transition-colors">{t("topics.title")}</Link></li>
+                  <li><Link href="/login" className="hover:text-brand-deep transition-colors">{t("topics.propose")}</Link></li>
                 </ul>
               </div>
             </div>
           </div>
           <div className="mt-12 pt-8 border-t border-gray-200 flex flex-col md:flex-row justify-between items-center text-[11px] text-gray-400 gap-4">
-             <p>© {new Date().getFullYear()} ESST</p>
+             <p>© {new Date().getFullYear()} ESST - École Supérieure des Sciences et Technologies</p>
           </div>
         </div>
       </footer>

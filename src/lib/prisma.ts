@@ -1,7 +1,17 @@
 import { PrismaClient } from "@prisma/client";
+import { PrismaMariaDb } from "@prisma/adapter-mariadb";
+import pool from "mariadb";
 
 const prismaClientSingleton = () => {
-  return new PrismaClient();
+  if (!process.env.DATABASE_URL) {
+    throw new Error("DATABASE_URL is not defined");
+  }
+
+  // Create a connection pool for MariaDB/MySQL
+  // This is required for middleware/proxy support in Next.js
+  const adapter = new PrismaMariaDb(process.env.DATABASE_URL);
+
+  return new PrismaClient({ adapter });
 };
 
 declare global {
