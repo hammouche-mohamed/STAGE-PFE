@@ -82,12 +82,6 @@ export default function TeacherTopicsPage() {
           <h1 className="text-[17px] font-semibold text-gray-900">{t("topics.myTopics")}</h1>
           <p className="text-[13px] text-gray-500 mt-0.5">{t("dashboard.activeInternships")}</p>
         </div>
-        <Link href="/teacher/topics/new">
-          <Button size="sm">
-            <Plus className="h-4 w-4 mr-2" />
-            {t("topics.propose")}
-          </Button>
-        </Link>
       </div>
 
       <div className="grid grid-cols-1 gap-4">

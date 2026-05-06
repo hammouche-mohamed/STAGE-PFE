@@ -614,7 +614,6 @@ enum teacherapplication_status {
 enum topic_type {
   STUDENT_PROPOSED
   COMPANY_PROPOSED
-  TEACHER_PROPOSED
 }
 
 enum user_role {
