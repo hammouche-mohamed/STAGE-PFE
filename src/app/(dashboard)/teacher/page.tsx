@@ -62,15 +62,6 @@ export default async function TeacherDashboardPage() {
             Welcome back, {teacher.name}. Monitor your student supervisions and academic progress.
           </p>
         </div>
-        <div className="flex items-center gap-3">
-          <Link
-            href="/teacher/topics/new"
-            className="px-3 py-1.5 bg-indigo-600 text-white rounded-md text-[12px] font-medium flex items-center hover:bg-indigo-700 transition-colors"
-          >
-            <Plus className="h-4 w-4 mr-1" />
-            Propose Topic
-          </Link>
-        </div>
       </div>
 
       {/* Teacher Stats */}

@@ -250,7 +250,6 @@ export default function AdminTopicDetailPage() {
                   >
                     <option value="STUDENT_PROPOSED">Student Initiative</option>
                     <option value="COMPANY_PROPOSED">Company Partnership</option>
-                    <option value="TEACHER_PROPOSED">Faculty Proposed</option>
                   </select>
                 </div>
 

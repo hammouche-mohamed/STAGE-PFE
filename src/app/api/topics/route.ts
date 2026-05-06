@@ -15,10 +15,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  // Students, Teachers and Companies can propose topics
-  if (session.user.role === 'ADMIN') {
+  // Only Students and Companies can propose topics
+  if (session.user.role === 'ADMIN' || session.user.role === 'TEACHER') {
+    const errorMsg = session.user.role === 'ADMIN' 
+      ? 'Admins manage topics, they do not propose them'
+      : 'Teachers are not authorized to propose topics';
     return NextResponse.json(
-      { error: 'Admins manage topics, they do not propose them' },
+      { error: errorMsg },
       { status: 403 },
     );
   }
