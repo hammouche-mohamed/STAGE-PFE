@@ -16,8 +16,7 @@ export async function POST(req: Request) {
     });
 
     if (!user) {
-      // For security, don't reveal if user exists
-      return NextResponse.json({ message: "If an account exists with this email, you will receive a code." });
+      return NextResponse.json({ error: "No account found with this email address" }, { status: 404 });
     }
 
     // Generate 6-digit code

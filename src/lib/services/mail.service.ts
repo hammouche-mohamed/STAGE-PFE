@@ -1,107 +1,145 @@
-import nodemailer from "nodemailer";
+import { transporter } from "../mail-transport";
 
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST,
-  port: parseInt(process.env.SMTP_PORT || "587"),
-  secure: process.env.SMTP_PORT === "465",
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
-  },
-});
+const APP_NAME = "ESST Internship portal";
+const NAVY = "#1e293b";    // Slate 800
+const ACCENT = "#4f46e5";  // Indigo 600
+const TEXT_GRAY = "#475569"; // Slate 600
 
 export class MailService {
-  static async sendPasswordResetCode(email: string, code: string) {
-    const mailOptions = {
-      from: `"ESST Portal" <${process.env.SMTP_USER}>`,
-      to: email,
-      subject: "Password Reset Verification Code",
-      html: `
-        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; rounded: 8px;">
-          <h2 style="color: #4f46e5; text-align: center;">ESST Portal</h2>
-          <p>Hello,</p>
-          <p>You requested to reset your password. Please use the verification code below to proceed:</p>
-          <div style="background-color: #f8fafc; padding: 20px; text-align: center; font-size: 32px; font-weight: bold; letter-spacing: 5px; color: #1e293b; margin: 20px 0; border-radius: 8px;">
-            ${code}
-          </div>
-          <p style="color: #64748b; font-size: 14px;">This code will expire in 5 minutes. If you did not request this, please ignore this email.</p>
-          <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 20px 0;" />
-          <p style="font-size: 12px; color: #94a3b8; text-align: center;">© 2024 ESST — École Supérieure des Sciences et Technologies</p>
-        </div>
-      `,
-    };
+  private static getEmailLayout(content: string) {
+    return `
+      <div style="margin: 0; padding: 40px 0; width: 100%; background-color: #f1f5f9; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+        <table align="center" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; border: 1px solid #e2e8f0;">
+          <!-- Classic Academic Header -->
+          <tr>
+            <td style="padding: 60px 40px 45px; border-bottom: 2px solid #f1f5f9; text-align: center;">
+              <h1 style="color: ${NAVY}; margin: 0; font-size: 24px; font-weight: 700; letter-spacing: 0.02em; font-family: 'Times New Roman', Times, serif; text-transform: none;">
+                ${APP_NAME}
+              </h1>
+              <div style="height: 1px; width: 60px; background-color: ${ACCENT}; margin: 15px auto;"></div>
+              <p style="color: ${TEXT_GRAY}; margin: 0; font-size: 14px; letter-spacing: 0.05em; font-weight: 400; font-family: 'Times New Roman', Times, serif; text-transform: uppercase;">
+                École Supérieure des Sciences et Technologies
+              </p>
+            </td>
+          </tr>
+          <!-- Main Content -->
+          <tr>
+            <td style="padding: 48px 40px;">
+              ${content}
+            </td>
+          </tr>
+          <!-- Footer -->
+          <tr>
+            <td style="padding: 32px 40px 60px; background-color: #f8fafc; border-top: 1px solid #e2e8f0; text-align: center;">
+              <p style="margin: 0; font-size: 13px; color: ${TEXT_GRAY}; line-height: 1.5;">
+                © ${new Date().getFullYear()} ESST — Internship Management Portal<br>
+                <span style="font-size: 11px; color: #94a3b8;">This is an official communication from the administration.</span>
+              </p>
+            </td>
+          </tr>
+        </table>
+      </div>
+    `;
+  }
 
-    return transporter.sendMail(mailOptions);
+  static async sendPasswordResetCode(email: string, code: string) {
+    const html = this.getEmailLayout(`
+      <h2 style="color: ${NAVY}; margin: 0 0 20px; font-size: 24px; font-weight: 600;">Authorization Code</h2>
+      <p style="color: ${TEXT_GRAY}; line-height: 1.6; font-size: 16px; margin: 0 0 32px;">
+        A request has been made to reset your portal password. Please use the following code to verify your identity:
+      </p>
+      <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 24px; text-align: center; margin-bottom: 32px;">
+        <span style="font-size: 32px; font-weight: 700; letter-spacing: 10px; color: ${ACCENT}; font-family: monospace;">${code}</span>
+      </div>
+      <p style="color: #64748b; font-size: 14px; margin: 0; text-align: center;">
+        This code is valid for 5 minutes. If you did not initiate this request, please secure your account immediately.
+      </p>
+    `);
+
+    return transporter.sendMail({
+      from: `"${APP_NAME}" <${process.env.SMTP_USER}>`,
+      to: email,
+      subject: `Verification Code: ${code}`,
+      html,
+    });
   }
 
   static async sendNotification(email: string, title: string, message: string, link?: string) {
-    const mailOptions = {
-      from: `"ESST Portal" <${process.env.SMTP_USER}>`,
+    const html = this.getEmailLayout(`
+      <h2 style="color: ${NAVY}; margin: 0 0 20px; font-size: 24px; font-weight: 600;">${title}</h2>
+      <p style="color: ${TEXT_GRAY}; line-height: 1.6; font-size: 16px; margin: 0 0 40px;">
+        ${message}
+      </p>
+      ${link ? `
+        <div style="text-align: left;">
+          <a href="${process.env.NEXT_PUBLIC_APP_URL}${link}" 
+             style="display: inline-block; background-color: ${ACCENT}; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 15px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+            Open Portal Application
+          </a>
+        </div>
+      ` : ""}
+    `);
+
+    return transporter.sendMail({
+      from: `"${APP_NAME}" <${process.env.SMTP_USER}>`,
       to: email,
       subject: title,
-      html: `
-        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; rounded: 8px;">
-          <h2 style="color: #4f46e5; text-align: center;">ESST Portal</h2>
-          <h3 style="color: #1e293b;">${title}</h3>
-          <p style="line-height: 1.6; color: #334155;">${message}</p>
-          ${link ? `
-            <div style="text-align: center; margin-top: 30px;">
-              <a href="${process.env.NEXT_PUBLIC_APP_URL}${link}" style="background-color: #4f46e5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">View Details</a>
-            </div>
-          ` : ""}
-          <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 30px 0;" />
-          <p style="font-size: 12px; color: #94a3b8; text-align: center;">© 2024 ESST — École Supérieure des Sciences et Technologies</p>
-        </div>
-      `,
-    };
-
-    return transporter.sendMail(mailOptions);
+      html,
+    });
   }
 
   static async sendEmail({ to, subject, html, text }: { to: string; subject: string; html: string; text?: string }) {
-    const mailOptions = {
-      from: `"ESST Portal" <${process.env.SMTP_USER}>`,
+    const styledHtml = this.getEmailLayout(html);
+
+    return transporter.sendMail({
+      from: `"${APP_NAME}" <${process.env.SMTP_USER}>`,
       to,
       subject,
-      html,
+      html: styledHtml,
       text,
-    };
-
-    return transporter.sendMail(mailOptions);
+    });
   }
 
   static async sendStatusUpdate(email: string, name: string, status: string, comment?: string | null) {
     const isApproved = status === 'APPROVED';
-    const subject = `Registration ${isApproved ? 'Approved' : 'Rejected'} - ESST Portal`;
+    const statusColor = isApproved ? '#059669' : '#dc2626';
+    
+    const html = this.getEmailLayout(`
+      <h2 style="color: ${NAVY}; margin: 0 0 8px; font-size: 22px; font-weight: 600;">Dear ${name},</h2>
+      <p style="color: ${TEXT_GRAY}; font-size: 16px; margin: 0 0 32px;">This is an update regarding your registration request.</p>
+      
+      <div style="border-radius: 8px; background-color: ${isApproved ? '#f0fdf4' : '#fef2f2'}; padding: 24px; margin-bottom: 32px; border-left: 4px solid ${statusColor};">
+        <p style="color: ${NAVY}; font-weight: 700; margin: 0 0 12px; font-size: 14px; text-transform: uppercase; letter-spacing: 0.05em;">
+          Registration Status: <span style="color: ${statusColor};">${status}</span>
+        </p>
+        <p style="color: ${TEXT_GRAY}; line-height: 1.6; margin: 0; font-size: 15px;">
+          ${isApproved 
+            ? "We are pleased to inform you that your registration has been approved. You may now access the full features of the portal." 
+            : "We regret to inform you that your registration was not approved at this time."}
+        </p>
+        ${comment ? `
+          <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid ${isApproved ? '#dcfce7' : '#fee2e2'};">
+            <p style="margin: 0; font-size: 14px; color: ${NAVY};">
+              <strong>Official Remark:</strong><br>
+              <span style="color: ${TEXT_GRAY}; font-style: italic;">"${comment}"</span>
+            </p>
+          </div>
+        ` : ""}
+      </div>
+      
+      <div style="text-align: center;">
+        <a href="${process.env.NEXT_PUBLIC_APP_URL}/login" 
+           style="display: inline-block; background-color: ${NAVY}; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 15px;">
+          Sign In to Portal
+        </a>
+      </div>
+    `);
 
-    const mailOptions = {
-      from: `"ESST Portal" <${process.env.SMTP_USER}>`,
+    return transporter.sendMail({
+      from: `"${APP_NAME}" <${process.env.SMTP_USER}>`,
       to: email,
-      subject,
-      html: `
-        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;">
-          <h2 style="color: #4f46e5; text-align: center;">ESST Portal</h2>
-          <p>Hello ${name},</p>
-          <p>Your registration request has been <strong>${status.toLowerCase()}</strong> by the administration.</p>
-          ${comment ? `
-            <div style="background-color: #f8fafc; padding: 15px; border-left: 4px solid ${isApproved ? '#10b981' : '#ef4444'}; margin: 20px 0;">
-              <p style="margin: 0; font-size: 14px; color: #475569;"><strong>Admin Comment:</strong> ${comment}</p>
-            </div>
-          ` : ""}
-          ${isApproved ? `
-            <p>You can now log in to the portal using your credentials.</p>
-            <div style="text-align: center; margin-top: 30px;">
-              <a href="${process.env.NEXT_PUBLIC_APP_URL}/login" style="background-color: #4f46e5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">Login to Portal</a>
-            </div>
-          ` : `
-            <p>If you have any questions, please contact the administration.</p>
-          `}
-          <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 30px 0;" />
-          <p style="font-size: 12px; color: #94a3b8; text-align: center;">© 2024 ESST — École Supérieure des Sciences et Technologies</p>
-        </div>
-      `,
-    };
-
-    return transporter.sendMail(mailOptions);
+      subject: `Portal Update: Registration ${status}`,
+      html,
+    });
   }
 }
