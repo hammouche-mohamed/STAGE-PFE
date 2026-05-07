@@ -20,14 +20,19 @@ import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import Link from "next/link";
 import { useTranslation } from "@/lib/i18n/LanguageContext";
+import { Modal } from "@/components/ui/Modal";
+import { Input } from "@/components/ui/Input";
+
 
 interface Topic {
   id: string;
   title: string;
+  description: string;
   status: string;
   academicYear: string;
   maxStudents: number;
   createdAt: string;
+  requiredSkills?: string;
   _count?: { applications: number };
 }
 
@@ -37,6 +42,13 @@ export default function CompanyTopicsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [topicToDeleteId, setTopicToDeleteId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [topicToEdit, setTopicToEdit] = useState<Topic | null>(null);
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [editForm, setEditForm] = useState({
+    title: "",
+    description: "",
+    requiredSkills: ""
+  });
 
   const fetchTopics = async () => {
     try {
@@ -77,6 +89,39 @@ export default function CompanyTopicsPage() {
       toast.error(error.message || "An error occurred while deleting the topic");
     } finally {
       setIsDeleting(false);
+    }
+  };
+
+  const handleStartEdit = async (topic: Topic) => {
+    setTopicToEdit(topic);
+    setEditForm({
+      title: topic.title,
+      description: topic.description || "",
+      requiredSkills: topic.requiredSkills || ""
+    });
+  };
+
+  const handleEditRequest = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!topicToEdit) return;
+    
+    setIsUpdating(true);
+    try {
+      const res = await fetch(`/api/topics/${topicToEdit.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(editForm),
+      });
+
+      if (!res.ok) throw new Error("Failed to submit edit request");
+
+      toast.success("Edit request submitted for admin approval");
+      setTopicToEdit(null);
+      fetchTopics();
+    } catch (error) {
+      toast.error("Failed to submit request. Please try again.");
+    } finally {
+      setIsUpdating(false);
     }
   };
 
@@ -132,7 +177,11 @@ export default function CompanyTopicsPage() {
                 
                 <div className="flex flex-col items-end gap-4">
                    <div className="flex items-center gap-2">
-                      <button className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-gray-50 rounded-md transition-all">
+                      <button 
+                        onClick={() => handleStartEdit(topic)}
+                        className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-gray-50 rounded-md transition-all"
+                        title="Request edit"
+                      >
                         <Edit className="h-4 w-4" />
                       </button>
                        <button 
@@ -165,6 +214,54 @@ export default function CompanyTopicsPage() {
         description={t("errors.serverError")}
         isLoading={isDeleting}
       />
+
+      <Modal
+        isOpen={!!topicToEdit}
+        onClose={() => setTopicToEdit(null)}
+        title="Request Topic Edit"
+        size="lg"
+      >
+        <form onSubmit={handleEditRequest} className="space-y-6 py-2">
+           <div className="bg-amber-50 border border-amber-100 p-4 rounded-lg flex items-start gap-3">
+              <AlertCircle className="h-5 w-5 text-amber-600 mt-0.5" />
+              <div className="text-[13px] text-amber-800 leading-relaxed">
+                <p className="font-bold">Information Management Note</p>
+                <p>Changes to validated topics are not immediate. Your request will be reviewed by an administrator. You will be notified once the changes are approved or rejected.</p>
+              </div>
+           </div>
+
+           <div className="space-y-4">
+              <Input 
+                label="New Title"
+                value={editForm.title}
+                onChange={(e) => setEditForm({...editForm, title: e.target.value})}
+                required
+              />
+
+              <div className="space-y-2">
+                <label className="text-[12px] font-bold text-gray-700 uppercase tracking-tight">New Description</label>
+                <textarea 
+                  className="admin-input min-h-[150px] py-3 leading-relaxed"
+                  value={editForm.description}
+                  onChange={(e) => setEditForm({...editForm, description: e.target.value})}
+                  required
+                />
+              </div>
+
+              <Input 
+                label="Required Skills (Optional)"
+                value={editForm.requiredSkills}
+                onChange={(e) => setEditForm({...editForm, requiredSkills: e.target.value})}
+                placeholder="React, Node.js, SQL..."
+              />
+           </div>
+
+           <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
+              <Button type="button" variant="outline" onClick={() => setTopicToEdit(null)}>Cancel</Button>
+              <Button type="submit" isLoading={isUpdating}>Submit Request</Button>
+           </div>
+        </form>
+      </Modal>
     </div>
   );
 }

@@ -1,31 +1,29 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 
-// Public keys anyone can read (non-sensitive settings)
-const PUBLIC_KEYS = ["currentAcademicYear", "registrationOpen", "availableSpecialities", "availablePromotions"];
+// Safe public settings that any (even unauthenticated) page can read
+const PUBLIC_KEYS = ["proposalFormTemplateUrl", "currentAcademicYear"];
 
-export async function GET(req: NextRequest) {
+// NFR-P2: cache public settings for 5 minutes
+let cachedPublicSettings: { data: Record<string, string>; expiry: number } | null = null;
+const CACHE_TTL = 5 * 60 * 1000;
+
+export async function GET() {
+  if (cachedPublicSettings && cachedPublicSettings.expiry > Date.now()) {
+    return NextResponse.json({ data: cachedPublicSettings.data });
+  }
 
   try {
     const settings = await prisma.systemSettings.findMany({
       where: { key: { in: PUBLIC_KEYS } },
+      select: { key: true, value: true },
     });
+    const result: Record<string, string> = {};
+    for (const s of settings) result[s.key] = s.value;
 
-    const settingMap = settings.reduce((acc: Record<string, string>, curr) => {
-      acc[curr.key] = curr.value;
-      return acc;
-    }, {});
-
-    // Fallback defaults
-    const result = {
-      currentAcademicYear: settingMap.currentAcademicYear || "2024-2025",
-      registrationOpen: settingMap.registrationOpen || "false",
-      availableSpecialities: settingMap.availableSpecialities || "Computer Science,Artificial Intelligence,Software Engineering,Cybersecurity",
-      availablePromotions: settingMap.availablePromotions || "M1 Génie Logiciel,M2 Génie Logiciel,M1 SI,M2 SI",
-    };
-
+    cachedPublicSettings = { data: result, expiry: Date.now() + CACHE_TTL };
     return NextResponse.json({ data: result });
-  } catch (error) {
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  } catch {
+    return NextResponse.json({ data: {} });
   }
 }

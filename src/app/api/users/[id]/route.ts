@@ -46,21 +46,17 @@ export async function PATCH(
   try {
     const { id } = await params;
     const body = await req.json();
-    const { isActive, name, email, role, password, profileData } = body;
+    const { isActive, name, email, role, password, profileData, notifyUser } = body;
 
     const user = await prisma.user.findUnique({
       where: { id },
-      include: {
-        studentProfile: true,
-        teacherProfile: true,
-        companyProfile: true,
-      }
+      include: { studentProfile: true, teacherProfile: true, companyProfile: true },
     });
 
     if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
-    const updateData: any = {};
-    if (typeof isActive === 'boolean') updateData.isActive = isActive;
+    const updateData: any = { updatedAt: new Date() };
+    if (typeof isActive === "boolean") updateData.isActive = isActive;
     if (name) updateData.name = name;
     if (email) updateData.email = email;
     if (role) updateData.role = role;
@@ -69,7 +65,6 @@ export async function PATCH(
       updateData.mustChangePassword = true;
     }
 
-    // Handle nested profile updates if provided
     if (profileData) {
       if (user.role === "STUDENT" && user.studentProfile) {
         updateData.studentProfile = { update: profileData };
@@ -80,20 +75,28 @@ export async function PATCH(
       }
     }
 
-    const updatedUser = await prisma.user.update({
-      where: { id },
-      data: updateData,
-    });
+    const updatedUser = await prisma.user.update({ where: { id }, data: updateData });
+
+    // Send in-app notification to the modified user
+    if (notifyUser) {
+      const { NotificationService } = await import("@/lib/services/notification.service");
+      await NotificationService.trigger({
+        userId: id,
+        type: "ACCOUNT_MODIFIED",
+        title: "Your Account Was Updated",
+        message: "An administrator has modified your account information. Please review your profile. Contact administration if you have concerns.",
+        relatedId: id,
+        relatedType: "User",
+        link: "/profile",
+      });
+    }
 
     await AuditService.log({
       userId: session.user.id,
       action: "USER_UPDATED_BY_ADMIN",
       targetType: "User",
       targetId: updatedUser.name,
-      details: { 
-        fieldsChanged: Object.keys(body),
-        newStatus: isActive 
-      }
+      details: { fieldsChanged: Object.keys(body), newStatus: isActive },
     });
 
     return NextResponse.json({ data: updatedUser });

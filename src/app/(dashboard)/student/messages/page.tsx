@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useRef, Suspense } from "react";
-import { Send, Paperclip, FileText, ChevronLeft, Trash2, CornerUpLeft, X, AlertTriangle, Search, Users } from "lucide-react";
+import { Send, Paperclip, FileText, ChevronLeft, Trash2, CornerUpLeft, X, AlertTriangle, Search, Users, Archive } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { useSearchParams } from "next/navigation";
@@ -34,6 +34,8 @@ interface Internship {
   teacher: { name: string; email: string };
   students: { student: { name: string; email: string }; isLeader: boolean }[];
   status: string;
+  archivedAt?: string | null;
+  chatArchivedAt?: string | null;
 }
 
 function MessagesContent() {
@@ -279,10 +281,26 @@ function MessagesContent() {
     )
     : messages;
 
+  const isChatLocked = !!(internship?.chatArchivedAt && new Date(internship.chatArchivedAt) < new Date());
+  const isChatGrace = !!(internship?.archivedAt && !isChatLocked);
+
   return (
     <>
       <div className="-mt-4 md:-mt-6 h-[calc(100vh-115px)] flex flex-col space-y-3 overflow-hidden">
-        {/* Header Area */}
+        {/* Archive banners */}
+        {isChatLocked && (
+          <div className="flex items-center gap-2 px-4 py-2 bg-gray-800 text-gray-300 rounded-xl text-[12px] font-medium">
+            <Archive className="h-4 w-4 text-gray-400 flex-shrink-0" />
+            This internship has been archived. The chat is now read-only.
+          </div>
+        )}
+        {isChatGrace && !isChatLocked && (
+          <div className="flex items-center gap-2 px-4 py-2 bg-amber-50 border border-amber-200 rounded-xl text-[12px] text-amber-800">
+            <Archive className="h-4 w-4 text-amber-500 flex-shrink-0" />
+            This internship is archived. Chat will close on{" "}
+            <strong>{internship?.chatArchivedAt ? new Date(internship.chatArchivedAt).toLocaleDateString() : "—"}</strong>.
+          </div>
+        )}
         <div className="flex flex-col gap-2 flex-shrink-0">
           <div className={`flex items-center justify-between ${isRTL ? "flex-row-reverse" : ""}`}>
             <div className={`flex items-center gap-2 md:gap-3 ${isRTL ? "flex-row-reverse" : ""}`}>
@@ -458,6 +476,12 @@ function MessagesContent() {
 
             {/* Input */}
             <form onSubmit={handleSend} className={`p-4 border-t border-gray-100 bg-white ${replyTo ? "rounded-t-none" : ""}`}>
+              {isChatLocked ? (
+                <div className="flex items-center justify-center gap-2 py-2 text-[12px] text-gray-400">
+                  <Archive className="h-4 w-4" /> Chat is archived and read-only.
+                </div>
+              ) : (
+              <>
               <input
                 ref={fileInputRef}
                 type="file"
@@ -468,7 +492,7 @@ function MessagesContent() {
               <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  disabled={!internship || uploadingFile}
+                  disabled={!internship || uploadingFile || isChatLocked}
                   onClick={() => fileInputRef.current?.click()}
                   className="p-2 text-gray-400 hover:text-indigo-600 transition-colors disabled:opacity-40 flex-shrink-0"
                   title="Attach file">
@@ -479,19 +503,21 @@ function MessagesContent() {
                 <input
                   ref={inputRef}
                   type="text"
-                  placeholder={internship ? t("messages.typeMessage") : "No active internship"}
-                  disabled={!internship || isSending}
+                  placeholder={internship ? (isChatLocked ? "Chat is archived" : t("messages.typeMessage")) : "No active internship"}
+                  disabled={!internship || isSending || isChatLocked}
                   className={`flex-1 h-11 bg-gray-50 border border-gray-200 rounded-full px-5 text-[13.5px] focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 focus:bg-white transition-all disabled:opacity-50 ${isRTL ? "text-right" : "text-left"}`}
                   value={newMessage}
                   onChange={(e) => setNewMessage(e.target.value)}
                 />
                 <button
                   type="submit"
-                  disabled={!internship || isSending || !newMessage.trim()}
+                  disabled={!internship || isSending || !newMessage.trim() || isChatLocked}
                   className={`h-11 w-11 bg-indigo-600 text-white rounded-full flex items-center justify-center hover:bg-indigo-700 active:scale-95 transition-all shadow-md shadow-indigo-200 disabled:opacity-40 flex-shrink-0 ${isRTL ? "rotate-180" : ""}`}>
                   <Send className="h-4 w-4" />
                 </button>
               </div>
+              </>
+              )}
             </form>
           </div>
 

@@ -7,6 +7,7 @@ datasource db {
   provider = "mysql"
 }
 
+
 model AdminProfile {
   id           String  @id
   userId       String  @unique(map: "AdminProfile_userId_key")
@@ -139,6 +140,9 @@ model Internship {
   teacherValidatedAt          DateTime?
   companyValidatedFinalReport Boolean        @default(false)
   companyValidatedAt          DateTime?
+  // Auto-archiving after finalDeadline
+  archivedAt               DateTime?
+  chatArchivedAt           DateTime?  // chat locked 3 days after archivedAt
   createdAt                DateTime          @default(now())
   updatedAt                DateTime
 
@@ -293,6 +297,9 @@ model RegistrationRequest {
 
   user User? @relation(fields: [userId], references: [id], map: "RegistrationRequest_userId_fkey")
 
+  @@index([userId], map: "RegistrationRequest_userId_idx")
+  @@index([status], map: "RegistrationRequest_status_idx")
+  @@index([name], map: "RegistrationRequest_name_idx")
   @@map("registrationrequest")
 }
 
@@ -413,11 +420,18 @@ model Topic {
   contactEmail             String?
   contactPhone             String?
   supportingDocUrl         String?
+  // Filière + level targeting (set by admin on approval)
+  filiereId                String?
+  targetLevels             String?      // comma-separated: "L1,L2,M2"
+  // Company pending edit request
+  pendingEditData          String?      @db.LongText  // JSON of requested changes
+  pendingEditRequestedAt   DateTime?
   createdAt                DateTime     @default(now())
   updatedAt                DateTime
 
   proposedBy          User                 @relation("ProposedTopics", fields: [proposedById], references: [id], map: "Topic_proposedById_fkey")
   assignedTeacher     User?                @relation("SupervisedTopics", fields: [assignedTeacherId], references: [id], map: "Topic_assignedTeacherId_fkey")
+  filiere             Filiere?             @relation(fields: [filiereId], references: [id], map: "Topic_filiereId_fkey")
   internship          Internship?
   applications        StudentApplication[]
   teacherApplications TeacherApplication[]
@@ -425,6 +439,7 @@ model Topic {
 
   @@index([assignedTeacherId], map: "Topic_assignedTeacherId_idx")
   @@index([proposedById], map: "Topic_proposedById_idx")
+  @@index([filiereId], map: "Topic_filiereId_idx")
   @@map("topic")
 }
 
@@ -466,6 +481,8 @@ model User {
   reviewedDocuments        Document[]            @relation("ReviewedBy")
   passwordResetTokens      PasswordResetToken[]
 
+  @@index([name], map: "User_name_idx")
+  @@index([role], map: "User_role_idx")
   @@map("user")
 }
 
@@ -486,6 +503,17 @@ model Validation {
   @@index([topicId], map: "Validation_topicId_idx")
   @@index([validatorId], map: "Validation_validatorId_idx")
   @@map("validation")
+}
+
+model Filiere {
+  id        String   @id
+  name      String   @unique
+  code      String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  topics    Topic[]
+
+  @@map("filiere")
 }
 
 // ─── ENUMS ───────────────────────────────────────────────────────────────────
@@ -527,6 +555,7 @@ enum notification_type {
   DEADLINE_OVERDUE
   ACCOUNT_CREATED
   PASSWORD_RESET
+  ACCOUNT_MODIFIED
   // Dual-track additions
   REVISION_REQUESTED
   STUDENT_TOPIC_SUBMITTED

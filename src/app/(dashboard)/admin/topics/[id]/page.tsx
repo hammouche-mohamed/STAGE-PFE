@@ -25,6 +25,19 @@ import { format } from "date-fns";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { useTranslation } from "@/lib/i18n/LanguageContext";
 
+const Badge = ({ children, className = "" }: { children: React.ReactNode; className?: string }) => (
+  <span className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold uppercase tracking-wider ${className}`}>
+    {children}
+  </span>
+);
+
+interface Filiere {
+  id: string;
+  name: string;
+  code: string;
+}
+
+
 interface Topic {
   id: string;
   title: string;
@@ -36,6 +49,11 @@ interface Topic {
   proposedBy: { id: string; name: string; email: string };
   assignedTeacher?: { id: string; name: string } | null;
   rejectionReason?: string;
+  filiereId?: string | null;
+  targetLevels?: string | null;
+  filiere?: Filiere | null;
+  pendingEditData?: string | null;
+  pendingEditRequestedAt?: string | null;
 }
 
 interface Teacher {
@@ -64,25 +82,34 @@ export default function AdminTopicDetailPage() {
     status: "",
     type: "",
     maxStudents: 1,
-    teacherId: ""
+    teacherId: "",
+    filiereId: "",
+    targetLevels: ""
   });
+  const [filieres, setFilieres] = useState<Filiere[]>([]);
+  const [selectedLevels, setSelectedLevels] = useState<string[]>([]);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [topicRes, teachersRes] = await Promise.all([
+        const [topicRes, teachersRes, filieresRes] = await Promise.all([
           fetch(`/api/topics/${id}`).then(r => r.json()),
-          fetch("/api/users?role=TEACHER").then(r => r.json())
+          fetch("/api/users?role=TEACHER").then(r => r.json()),
+          fetch("/api/filieres").then(r => r.json())
         ]);
         
         const data = topicRes.data || topicRes;
         setTopic(data);
         setTeachers(teachersRes.data || []);
+        setFilieres(filieresRes.data || []);
         
         // Register breadcrumb label
         if (data?.title && id) {
           setLabel(id as string, data.title);
         }
+
+        const levels = data.targetLevels ? data.targetLevels.split(",").filter(Boolean) : [];
+        setSelectedLevels(levels);
 
         setEditData({
           title: data.title,
@@ -90,7 +117,9 @@ export default function AdminTopicDetailPage() {
           status: data.status,
           type: data.type,
           maxStudents: data.maxStudents,
-          teacherId: data.assignedTeacherId || ""
+          teacherId: data.assignedTeacherId || "",
+          filiereId: data.filiereId || "",
+          targetLevels: data.targetLevels || ""
         });
       } catch (error) {
         toast.error("Failed to load topic details");
@@ -101,22 +130,31 @@ export default function AdminTopicDetailPage() {
     fetchData();
   }, [id, setLabel]);
 
-  const handleUpdate = async () => {
+  useEffect(() => {
+    setEditData(prev => ({ ...prev, targetLevels: selectedLevels.join(",") }));
+  }, [selectedLevels]);
+
+  const handleUpdate = async (overrideData?: any) => {
     setIsUpdating(true);
     try {
       const res = await fetch(`/api/topics/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(editData),
+        body: JSON.stringify(overrideData || editData),
       });
 
       if (!res.ok) throw new Error("Update failed");
       
-      toast.success("Topic updated successfully");
+      const result = await res.json();
+      toast.success(overrideData ? "Action processed successfully" : "Topic updated successfully");
       
-      // Update local breadcrumb if title changed
-      if (editData.title && id) {
-        setLabel(id as string, editData.title);
+      if (!overrideData) {
+        // Update local breadcrumb if title changed
+        if (editData.title && id) {
+          setLabel(id as string, editData.title);
+        }
+      } else {
+        setTopic(result.data);
       }
       
       router.refresh();
@@ -130,6 +168,14 @@ export default function AdminTopicDetailPage() {
       setIsUpdating(false);
     }
   };
+
+  const toggleLevel = (level: string) => {
+    setSelectedLevels(prev => 
+      prev.includes(level) ? prev.filter(l => l !== level) : [...prev, level]
+    );
+  };
+
+  const studyLevels = ["L1", "L2", "L3", "M1", "M2"];
 
   const handleDelete = async () => {
     setIsDeleting(true);
@@ -225,7 +271,7 @@ export default function AdminTopicDetailPage() {
                 Advanced Moderation Controls
              </h3>
              
-             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
                 <div className="space-y-2">
                   <label className="text-[12px] font-bold text-gray-700">{t("common.status")}</label>
                   <select 
@@ -276,6 +322,40 @@ export default function AdminTopicDetailPage() {
                     ))}
                   </select>
                 </div>
+
+                <div className="space-y-2">
+                  <label className="text-[12px] font-bold text-gray-700">Filière Assignment</label>
+                  <select 
+                    className="admin-input"
+                    value={editData.filiereId}
+                    onChange={(e) => setEditData({...editData, filiereId: e.target.value})}
+                  >
+                    <option value="">Select Filière...</option>
+                    {filieres.map(f => (
+                      <option key={f.id} value={f.id}>{f.name} ({f.code})</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[12px] font-bold text-gray-700">Target Study Levels</label>
+                  <div className="flex flex-wrap gap-2 mt-1">
+                    {studyLevels.map(level => (
+                      <button
+                        key={level}
+                        type="button"
+                        onClick={() => toggleLevel(level)}
+                        className={`px-3 py-1.5 rounded-md text-[12px] font-bold transition-all ${
+                          selectedLevels.includes(level)
+                            ? "bg-indigo-600 text-white shadow-sm ring-2 ring-indigo-500/20"
+                            : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                        }`}
+                      >
+                        {level}
+                      </button>
+                    ))}
+                  </div>
+                </div>
              </div>
 
              {editData.status === "REJECTED" && (
@@ -291,6 +371,51 @@ export default function AdminTopicDetailPage() {
                      readOnly
                    />
                 </div>
+             )}
+
+             {topic.pendingEditData && (
+               <div className="mt-8 pt-8 border-t border-gray-200">
+                  <div className="flex items-center justify-between mb-4">
+                    <h4 className="text-[13px] font-bold text-amber-700 flex items-center">
+                      <AlertCircle className="h-4 w-4 mr-2" />
+                      Pending Edit Request from Proposer
+                    </h4>
+                    <span className="text-[10px] text-gray-400 font-bold uppercase">
+                      Requested {topic.pendingEditRequestedAt ? format(new Date(topic.pendingEditRequestedAt), "MMM d, HH:mm") : "Recently"}
+                    </span>
+                  </div>
+
+                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-5 space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {Object.entries(JSON.parse(topic.pendingEditData)).map(([key, value]) => (
+                        <div key={key} className="space-y-1">
+                          <p className="text-[10px] font-bold text-amber-800 uppercase tracking-tighter">{key}</p>
+                          <p className="text-[13px] text-gray-700 bg-white/50 px-2 py-1 rounded border border-amber-100 min-h-[1.5rem]">
+                            {typeof value === 'string' ? value : JSON.stringify(value)}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="flex gap-3 pt-2">
+                      <Button 
+                        size="sm" 
+                        onClick={() => handleUpdate({ approvePendingEdit: true })}
+                        className="bg-green-600 hover:bg-green-700 shadow-sm"
+                      >
+                        Approve Changes
+                      </Button>
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        onClick={() => handleUpdate({ rejectPendingEdit: true })}
+                        className="text-red-600 border-red-100 hover:bg-red-50"
+                      >
+                        Reject Changes
+                      </Button>
+                    </div>
+                  </div>
+               </div>
              )}
           </div>
         </div>

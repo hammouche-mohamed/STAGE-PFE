@@ -7,6 +7,7 @@ import { BookOpen, Users, Briefcase, CheckCircle2, UserPlus, Clock, Plus } from 
 import { useTranslation } from "@/lib/i18n/LanguageContext";
 import { Language } from "@/lib/i18n/translations";
 import DashboardVisual from "./DashboardVisual";
+import { useSession } from "next-auth/react";
 
 const LANGS: { code: Language; label: string }[] = [
   { code: "en", label: "EN" },
@@ -21,6 +22,8 @@ interface Props {
 
 export default function LandingClient({ logoUrl, academicYear }: Props) {
   const { t, language, setLanguage, isRTL } = useTranslation();
+  const { data: session } = useSession();
+  const dashboardUrl = session?.user?.role ? `/${session.user.role.toLowerCase()}` : "/login";
 
   return (
     <div className={`min-h-screen bg-white font-sans text-gray-900 ${isRTL ? "rtl" : "ltr"} relative overflow-hidden`}>
@@ -55,8 +58,8 @@ export default function LandingClient({ logoUrl, academicYear }: Props) {
                 ))}
               </div>
               
-              <Link href="/login" className="px-6 py-2 border border-brand-deep text-brand-deep text-[16px] font-bold rounded-full hover:bg-gray-50 transition-all">
-                {t("auth.login")}
+              <Link href={dashboardUrl} className="px-6 py-2 border border-brand-deep text-brand-deep text-[16px] font-bold rounded-full hover:bg-gray-50 transition-all">
+                {session ? t("nav.dashboard") : t("auth.login")}
               </Link>
             </div>
           </div>
@@ -74,8 +77,8 @@ export default function LandingClient({ logoUrl, academicYear }: Props) {
               {t("landing.hero.subtitle")}
             </p>
             <div className="flex gap-4">
-               <Link href="/login" className="px-8 py-3 bg-brand-deep text-white rounded-full text-[16px] font-bold hover:bg-black transition-all shadow-md">
-                  {t("landing.hero.getStarted")}
+               <Link href={dashboardUrl} className="px-8 py-3 bg-brand-deep text-white rounded-full text-[16px] font-bold hover:bg-black transition-all shadow-md">
+                  {session ? t("nav.dashboard") : t("landing.hero.getStarted")}
                </Link>
             </div>
           </div>

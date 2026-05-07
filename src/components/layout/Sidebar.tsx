@@ -15,7 +15,9 @@ import {
   ShieldCheck,
   User as UserIcon,
   Settings,
-  X
+  X,
+  Archive,
+  GraduationCap
 } from "lucide-react";
 import { useSession, signOut } from "next-auth/react";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
@@ -52,6 +54,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ role: initialRole, logoUrl }) 
           { label: t("common.users"), icon: Users, href: "/admin/users", active: pathname === "/admin/users" },
           { label: t("common.topics"), icon: Briefcase, href: "/admin/topics", active: pathname === "/admin/topics" },
           { label: t("common.internships"), icon: ShieldCheck, href: "/admin/internships", active: pathname === "/admin/internships" },
+          { label: "Filières", icon: GraduationCap, href: "/admin/filieres", active: pathname === "/admin/filieres" },
+          { label: "Archives", icon: Archive, href: "/admin/archives", active: pathname === "/admin/archives" },
           { label: "Audit Logs", icon: FileText, href: "/admin/audit-logs", active: pathname === "/admin/audit-logs" },
           { label: t("common.settings"), icon: Settings, href: "/admin/settings", active: pathname === "/admin/settings" },
           { label: t("common.profile"), icon: UserIcon, href: "/profile", active: pathname === "/profile" },
@@ -76,11 +80,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ role: initialRole, logoUrl }) 
       default: // STUDENT
         return [
           { label: t("common.dashboard"), icon: LayoutDashboard, href: "/student", active: pathname === "/student" },
-          { label: t("common.topics"), icon: Briefcase, href: "/student/topics", active: pathname === "/student/topics" },
+          { label: t("common.topics"), icon: Briefcase, href: "/student/topics", active: pathname.startsWith("/student/topics") },
           { label: t("common.internship"), icon: ShieldCheck, href: "/student/internship", active: pathname === "/student/internship" },
           { label: t("common.documents"), icon: FileText, href: "/student/documents", active: pathname === "/student/documents" },
           { label: t("common.messages"), icon: MessageSquare, href: "/student/messages", active: pathname === "/student/messages" },
           { label: t("common.invitations"), icon: Users, href: "/student/invitations", active: pathname === "/student/invitations" },
+          { label: "Archives", icon: Archive, href: "/student/archives", active: pathname === "/student/archives" },
           { label: t("common.profile"), icon: UserIcon, href: "/profile", active: pathname === "/profile" },
         ];
     }

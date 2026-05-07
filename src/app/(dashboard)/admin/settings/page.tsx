@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -6,7 +6,7 @@ import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { toast } from "sonner";
-import { Settings, Lock, Unlock, Calendar, Palette } from "lucide-react";
+import { Settings, Lock, Unlock, Calendar, Palette, FileText } from "lucide-react";
 import { useTranslation } from "@/lib/i18n/LanguageContext";
 
 export default function AdminSettingsPage() {
@@ -22,11 +22,13 @@ export default function AdminSettingsPage() {
     universityLogo: "",
     availableSpecialities: "",
     availablePromotions: "",
+    proposalFormTemplateUrl: "",
   });
   const [loadingKey, setLoadingKey] = useState<string | null>(null);
   const [brandingFile, setBrandingFile] = useState<File | null>(null);
   const [brandingPreview, setBrandingPreview] = useState<string | null>(null);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
+  const [isUploadingTemplate, setIsUploadingTemplate] = useState(false);
 
   // NFR-S2: client-side role guard — redirect non-admins immediately
   useEffect(() => {
@@ -73,6 +75,34 @@ export default function AdminSettingsPage() {
       toast.error(error.message || "Failed to upload logo");
     } finally {
       setIsUploadingLogo(false);
+    }
+  };
+
+  const handleTemplateSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploadingTemplate(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const res = await fetch("/api/upload/template", {
+        method: "POST",
+        body: formData,
+      });
+
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error || "Upload failed");
+
+      toast.success("Proposal form template updated");
+      await fetchSettings();
+    } catch (error: any) {
+      toast.error(error.message || "Failed to upload template");
+    } finally {
+      setIsUploadingTemplate(false);
+      // Reset input
+      if (e.target) e.target.value = "";
     }
   };
 
@@ -271,6 +301,43 @@ export default function AdminSettingsPage() {
                    </Button>
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+
+        {/* Topic Form Template */}
+        <div className="bg-white border border-gray-200 rounded-md p-6 shadow-sm">
+          <div className="flex items-center space-x-4 mb-6">
+            <div className="p-3 bg-blue-50 rounded-md text-blue-600">
+              <FileText className="h-5 w-5" />
+            </div>
+            <div>
+              <h3 className="text-[14px] font-semibold text-gray-900">Topic Proposal Template</h3>
+              <p className="text-[12px] text-gray-500">Official form template for students and companies.</p>
+            </div>
+          </div>
+          
+          <div className="p-4 bg-gray-50 rounded-md border border-gray-200 border-dashed">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                 <div className="h-10 w-10 bg-white rounded border border-gray-200 flex items-center justify-center">
+                    <FileText className="h-5 w-5 text-gray-400" />
+                 </div>
+                 <div>
+                    <p className="text-[13px] font-medium text-gray-900">Official Proposal Form</p>
+                    {settings.proposalFormTemplateUrl ? (
+                      <a href={`/api${settings.proposalFormTemplateUrl}`} target="_blank" className="text-[11px] text-indigo-600 hover:underline">Download current template</a>
+                    ) : (
+                      <p className="text-[11px] text-gray-500">No template uploaded yet.</p>
+                    )}
+                 </div>
+              </div>
+              <div>
+                 <input type="file" id="template-upload" className="hidden" accept=".pdf,.doc,.docx" onChange={handleTemplateSelect} />
+                 <label htmlFor="template-upload" className={`cursor-pointer inline-flex items-center justify-center bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 text-[12px] font-semibold h-9 px-4 rounded-md shadow-sm transition-all ${isUploadingTemplate ? "opacity-50 cursor-not-allowed" : ""}`}>
+                   {isUploadingTemplate ? "Uploading..." : "Upload New Template"}
+                 </label>
+              </div>
             </div>
           </div>
         </div>

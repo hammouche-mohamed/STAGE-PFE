@@ -1,10 +1,14 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
+import NextAuth from "next-auth";
+import { authConfig } from "@/lib/auth.config";
 
 /**
  * NFR-S1: Route-level authentication and role-based access control.
  * Next.js 16.2+ "proxy" convention (replaces middleware.ts).
+ * We use a lightweight auth instance here that is Edge-compatible.
  */
+const { auth } = NextAuth(authConfig);
+
 export const proxy = auth((req) => {
   const { nextUrl } = req;
   const isLoggedIn = !!req.auth;
@@ -24,15 +28,16 @@ export const proxy = auth((req) => {
   if (isApiAuthRoute || isApiPublicRoute) return NextResponse.next();
 
   // 2. Handle Entry Point (/) and Public Routes
-  if (isPublicRoute || nextUrl.pathname === "/") {
+  if (isPublicRoute) {
     if (isLoggedIn) {
       const role = session?.user?.role;
       return NextResponse.redirect(new URL(`/${role?.toLowerCase() || ""}`, nextUrl));
     }
-    // Allow the landing page to render
-    if (nextUrl.pathname === "/") {
-      return NextResponse.next();
-    }
+    return NextResponse.next();
+  }
+
+  // Allow the landing page to render for everyone
+  if (nextUrl.pathname === "/") {
     return NextResponse.next();
   }
 

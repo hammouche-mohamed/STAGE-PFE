@@ -17,6 +17,8 @@ export async function GET(req: NextRequest) {
   const academicYear = searchParams.get('academicYear') || defaultYear;
   const internshipType = searchParams.get('internshipType');
   const statusFilter = searchParams.get('status');
+  const archivedOnly = searchParams.get('archived') === 'true';
+  const showAll = searchParams.get('all') === 'true';
   const role = session.user.role;
 
   // NFR-SC2: pagination — max 20 records per page by default
@@ -25,7 +27,9 @@ export async function GET(req: NextRequest) {
   const skip = (page - 1) * limit;
 
   try {
-    const where: Record<string, unknown> = { academicYear };
+    const where: Record<string, unknown> = archivedOnly
+      ? { archivedAt: { not: null } }
+      : { academicYear };
 
     if (role === 'STUDENT') {
       where.students = { some: { studentId: session.user.id } };
@@ -33,6 +37,8 @@ export async function GET(req: NextRequest) {
       where.teacherId = session.user.id;
     } else if (role === 'COMPANY') {
       where.topic = { proposedById: session.user.id };
+    } else if (role === 'ADMIN' && showAll) {
+      delete where.academicYear;
     }
     // ADMIN sees all
 
@@ -52,10 +58,12 @@ export async function GET(req: NextRequest) {
           endDate: true,
           midtermDeadline: true,
           finalDeadline: true,
+          archivedAt: true,
+          chatArchivedAt: true,
           teacherValidatedFinalReport: true,
           companyValidatedFinalReport: true,
           createdAt: true,
-          topic: { select: { title: true, type: true, internshipType: true } },
+          topic: { select: { title: true, type: true, internshipType: true, companyName: true } },
           teacher: { select: { id: true, name: true, email: true } },
           students: { include: { student: { select: { id: true, name: true, email: true } } } },
           _count: { select: { documents: true, messages: true } },

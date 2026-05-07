@@ -152,6 +152,9 @@ export const translations = {
       skills: "Required Skills",
       noTopics: "No topics available at the moment.",
       pendingApproval: "Pending Admin Approval",
+      filiere: "Department (Filière)",
+      targetLevels: "Target Levels",
+      notEligible: "Not eligible for your level",
     },
     internship: {
       title: "My Internship",
@@ -739,6 +742,9 @@ export const translations = {
       skills: "المهارات المطلوبة",
       noTopics: "لا توجد مواضيع متاحة في الوقت الحالي.",
       pendingApproval: "في انتظار موافقة المسؤول",
+      filiere: "القسم (التخصص)",
+      targetLevels: "المستويات المستهدفة",
+      notEligible: "غير مؤهل لمستواك",
     },
     internship: {
       title: "تربصي",

@@ -9,6 +9,10 @@ import { isEligibleForType } from '@/types/internship';
 import type { StudentLevel, InternshipType } from '@/types/internship';
 import { randomUUID } from 'crypto';
 
+// NFR-P2: cache academic year for 1 minute
+let cachedYear: { year: string; expiry: number } | null = null;
+const YEAR_CACHE_TTL = 60 * 1000;
+
 export async function POST(req: NextRequest) {
   const session = await auth();
   if (!session) {
@@ -41,7 +45,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const result = await prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction(async (tx: any) => {
       // 1. Create Topic
       const topic = await tx.topic.create({
         data: {
@@ -133,9 +137,18 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const typeFilter = searchParams.get('type');
   const internshipTypeFilter = searchParams.get('internshipType');
+  const filiereFilter = searchParams.get('filiereId');
   const statusFilter = searchParams.get('status');
-  const defaultYear = await SettingsService.getCurrentAcademicYear();
-  const academicYear = searchParams.get('academicYear') || defaultYear;
+
+  let academicYear = searchParams.get('academicYear');
+  if (!academicYear) {
+    if (cachedYear && cachedYear.expiry > Date.now()) {
+      academicYear = cachedYear.year;
+    } else {
+      academicYear = await SettingsService.getCurrentAcademicYear();
+      cachedYear = { year: academicYear, expiry: Date.now() + YEAR_CACHE_TTL };
+    }
+  }
 
   // NFR-SC2: pagination — max 20 records per page
   const page = Math.max(1, parseInt(searchParams.get('page') ?? '1', 10));
@@ -156,6 +169,7 @@ export async function GET(req: NextRequest) {
   try {
     const where: Record<string, unknown> = {
       academicYear,
+      ...(filiereFilter && { filiereId: filiereFilter }),
       ...(typeFilter && { type: typeFilter as never }),
       ...(allowedInternshipTypes
         ? { internshipType: { in: allowedInternshipTypes as never[] } }

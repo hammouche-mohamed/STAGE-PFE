@@ -9,25 +9,23 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await auth();
-  if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   try {
     const { id } = await params;
     const topic = await prisma.topic.findUnique({
       where: { id },
-      include: { 
+      include: {
         proposedBy: { select: { id: true, name: true, email: true } },
-        assignedTeacher: { select: { id: true, name: true } }
-      }
+        assignedTeacher: { select: { id: true, name: true } },
+        filiere: { select: { id: true, name: true, code: true } },
+      },
     });
 
     if (!topic) return NextResponse.json({ error: "Topic not found." }, { status: 404 });
-
     return NextResponse.json({ data: topic });
   } catch (error) {
-    console.error('[topics/[id] GET]', error);
+    console.error("[topics/[id] GET]", error);
     return NextResponse.json({ error: "Failed to load topic." }, { status: 500 });
   }
 }
@@ -37,72 +35,140 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await auth();
-  if (!session || session.user.role !== "ADMIN") {
-    // NFR-S2: return 403 Forbidden for authenticated non-admin, 401 only for unauthenticated
-    return NextResponse.json({ error: "Forbidden" }, { status: session ? 403 : 401 });
-  }
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   try {
     const { id } = await params;
-    const { teacherId, status, rejectionReason, title, description, type, maxStudents } = await req.json();
+    const body = await req.json();
 
     const topic = await prisma.topic.findUnique({
       where: { id },
-      include: { proposedBy: true }
+      include: { proposedBy: true },
     });
-
     if (!topic) return NextResponse.json({ error: "Topic not found" }, { status: 404 });
 
-    // FR-T3: Check teacher load if being assigned
-    if (teacherId && teacherId !== topic.assignedTeacherId) {
-      const teacherProfile = await prisma.teacherProfile.findUnique({
-        where: { userId: teacherId }
+    // ── COMPANY: request a pending edit ────────────────────────────────────
+    if (session.user.role === "COMPANY") {
+      if (topic.proposedById !== session.user.id) {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      }
+      if (["TAKEN", "REJECTED"].includes(topic.status)) {
+        return NextResponse.json({ error: "Cannot request edits on this topic" }, { status: 400 });
+      }
+
+      const { title, description, requiredSkills, companyName, companySector, contactPerson, contactEmail, contactPhone } = body;
+      const pendingEditData = JSON.stringify({
+        ...(title !== undefined && { title }),
+        ...(description !== undefined && { description }),
+        ...(requiredSkills !== undefined && { requiredSkills }),
+        ...(companyName !== undefined && { companyName }),
+        ...(companySector !== undefined && { companySector }),
+        ...(contactPerson !== undefined && { contactPerson }),
+        ...(contactEmail !== undefined && { contactEmail }),
+        ...(contactPhone !== undefined && { contactPhone }),
       });
 
+      await prisma.topic.update({
+        where: { id },
+        data: { pendingEditData, pendingEditRequestedAt: new Date() },
+      });
+
+      return NextResponse.json({ message: "Edit request submitted. Awaiting admin approval." });
+    }
+
+    // ── ADMIN: direct edit or approve/reject pending company edit ──────────
+    if (session.user.role !== "ADMIN") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    const {
+      teacherId, status, rejectionReason,
+      title, description, type, maxStudents, requiredSkills, internshipType,
+      filiereId, targetLevels,
+      approvePendingEdit, rejectPendingEdit,
+    } = body;
+
+    // Approve the company's pending edit
+    if (approvePendingEdit && topic.pendingEditData) {
+      const pendingChanges = JSON.parse(topic.pendingEditData);
+      const updated = await prisma.topic.update({
+        where: { id },
+        data: { ...pendingChanges, pendingEditData: null, pendingEditRequestedAt: null, updatedAt: new Date() },
+      });
+      await NotificationService.trigger({
+        userId: topic.proposedById,
+        type: "TOPIC_APPROVED",
+        title: "Edit Request Approved",
+        message: `Your edit request for "${topic.title}" has been approved.`,
+        relatedId: topic.id,
+        relatedType: "Topic",
+      });
+      return NextResponse.json({ data: updated });
+    }
+
+    // Reject the company's pending edit
+    if (rejectPendingEdit) {
+      const updated = await prisma.topic.update({
+        where: { id },
+        data: { pendingEditData: null, pendingEditRequestedAt: null, updatedAt: new Date() },
+      });
+      await NotificationService.trigger({
+        userId: topic.proposedById,
+        type: "TOPIC_REJECTED",
+        title: "Edit Request Rejected",
+        message: `Your edit request for "${topic.title}" was rejected by the administrator.`,
+        relatedId: topic.id,
+        relatedType: "Topic",
+      });
+      return NextResponse.json({ data: updated });
+    }
+
+    // Check teacher load before assigning
+    if (teacherId && teacherId !== topic.assignedTeacherId) {
+      const teacherProfile = await prisma.teacherProfile.findUnique({ where: { userId: teacherId } });
       if (teacherProfile && teacherProfile.currentLoad >= teacherProfile.maxStudents) {
-        return NextResponse.json({ 
-          error: `Teacher has reached maximum supervision load (${teacherProfile.maxStudents}).` 
-        }, { status: 400 });
+        return NextResponse.json(
+          { error: `Teacher has reached maximum supervision load (${teacherProfile.maxStudents}).` },
+          { status: 400 }
+        );
       }
     }
 
-    // logic for teacher assignment or topic rejection
+    // General admin update
     const updated = await prisma.topic.update({
       where: { id },
       data: {
-        ...(teacherId && { assignedTeacherId: teacherId }),
+        ...(teacherId !== undefined && { assignedTeacherId: teacherId }),
         ...(status && { status }),
         ...(title && { title }),
         ...(description && { description }),
         ...(type && { type }),
         ...(maxStudents && { maxStudents: parseInt(maxStudents.toString()) }),
-        ...(rejectionReason && { 
+        ...(requiredSkills !== undefined && { requiredSkills }),
+        ...(internshipType !== undefined && { internshipType }),
+        ...(filiereId !== undefined && { filiereId: filiereId || null }),
+        ...(targetLevels !== undefined && { targetLevels: targetLevels || null }),
+        ...(rejectionReason && {
           rejectionReason,
-          // Track rejection count if applicable
-          ...(status === "REJECTED" && { supervisorRejectionCount: { increment: 1 } })
+          ...(status === "REJECTED" && { supervisorRejectionCount: { increment: 1 } }),
         }),
-      }
+        updatedAt: new Date(),
+      },
     });
 
-    // Only notify proposer when the status actually changes to something meaningful
+    // Notify proposer on status change
     if (status && ["OPEN_FOR_SELECTION", "REJECTED", "PENDING_TEACHER"].includes(status)) {
-      const notifType = status === "OPEN_FOR_SELECTION"
-        ? "TOPIC_APPROVED"
-        : status === "REJECTED"
-        ? "TOPIC_REJECTED"
-        : "TOPIC_APPROVED";
-
-      const notifTitle = status === "OPEN_FOR_SELECTION"
-        ? "Topic Approved — Now Open for Selection"
-        : status === "REJECTED"
-        ? "Topic Rejected"
+      const notifType = status === "REJECTED" ? "TOPIC_REJECTED" : "TOPIC_APPROVED";
+      const notifTitle =
+        status === "OPEN_FOR_SELECTION" ? "Topic Approved — Now Open for Selection"
+        : status === "REJECTED" ? "Topic Rejected"
         : "Topic Updated";
-
-      const notifMessage = status === "OPEN_FOR_SELECTION"
-        ? `Your topic "${topic.title}" has been approved and is now open for student selection.`
-        : status === "REJECTED"
-        ? `Your topic "${topic.title}" was rejected. ${rejectionReason ? `Reason: ${rejectionReason}` : "Please contact administration for details."}`
-        : `Your topic "${topic.title}" has been updated by administration.`;
+      const notifMessage =
+        status === "OPEN_FOR_SELECTION"
+          ? `Your topic "${topic.title}" has been approved and is now open for student selection.`
+          : status === "REJECTED"
+          ? `Your topic "${topic.title}" was rejected. ${rejectionReason ? `Reason: ${rejectionReason}` : ""}`
+          : `Your topic "${topic.title}" has been updated.`;
 
       await NotificationService.trigger({
         userId: topic.proposedById,
@@ -114,13 +180,13 @@ export async function PATCH(
       });
     }
 
-    // Notify teacher if assigned to supervise
+    // Notify teacher if newly assigned
     if (teacherId && teacherId !== topic.assignedTeacherId) {
       await NotificationService.trigger({
         userId: teacherId,
         type: "TEACHER_ASSIGNED",
         title: "New Supervision Request",
-        message: `You have been assigned to supervise the topic: "${topic.title}". Please review and accept or decline.`,
+        message: `You have been assigned to supervise: "${topic.title}". Please review and accept or decline.`,
         relatedId: topic.id,
         relatedType: "Topic",
       });
@@ -131,13 +197,13 @@ export async function PATCH(
       action: "TOPIC_UPDATED_BY_ADMIN",
       targetType: "Topic",
       targetId: updated.id,
-      details: { status, teacherId },
+      details: { status, teacherId, filiereId, targetLevels },
     });
 
     return NextResponse.json({ data: updated });
   } catch (error) {
-    console.error('[topics/[id] PATCH]', error);
-    return NextResponse.json({ error: "Failed to update topic. Please try again." }, { status: 500 });
+    console.error("[topics/[id] PATCH]", error);
+    return NextResponse.json({ error: "Failed to update topic." }, { status: 500 });
   }
 }
 
@@ -146,47 +212,43 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await auth();
-  if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   try {
     const { id } = await params;
-    const topic = await prisma.topic.findUnique({
-      where: { id },
-    });
+    const topic = await prisma.topic.findUnique({ where: { id } });
 
-    if (!topic) {
-      return NextResponse.json({ error: "Topic not found" }, { status: 404 });
+    if (!topic) return NextResponse.json({ error: "Topic not found" }, { status: 404 });
+
+    if (session.user.role === "ADMIN") {
+      // Admin can always delete
+    } else if (session.user.role === "STUDENT") {
+      // Student can only delete their own PENDING_ADMIN student-proposed topics
+      if (topic.directAssigneeId !== session.user.id || !topic.proposedByStudent) {
+        return NextResponse.json({ error: "You can only delete your own proposed topics" }, { status: 403 });
+      }
+      if (topic.status !== "PENDING_ADMIN") {
+        return NextResponse.json({
+          error: "Cannot delete a topic that has already been validated. Contact the admin.",
+        }, { status: 400 });
+      }
+    } else {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    // Only Admin or the Proposer can delete the topic
-    if (session.user.role !== "ADMIN" && topic.proposedById !== session.user.id) {
-      return NextResponse.json({ error: "Unauthorized to delete this topic" }, { status: 403 });
-    }
-
-    // Check if the topic is already assigned or in progress (can't delete if so)
-    if (["APPROVED", "TAKEN", "IN_PROGRESS"].includes(topic.status)) {
-      return NextResponse.json({ 
-        error: "Cannot delete an approved or assigned topic. Please contact administration for cancellation." 
-      }, { status: 400 });
-    }
-
-    await prisma.topic.delete({
-      where: { id }
-    });
+    await prisma.topic.delete({ where: { id } });
 
     await AuditService.log({
       userId: session.user.id,
       action: "TOPIC_DELETED",
       targetType: "Topic",
       targetId: topic.title,
-      details: { title: topic.title }
+      details: { title: topic.title },
     });
 
     return NextResponse.json({ message: "Topic deleted successfully." });
   } catch (error) {
     console.error("Topic delete error:", error);
-    return NextResponse.json({ error: "Failed to delete topic. Please try again." }, { status: 500 });
+    return NextResponse.json({ error: "Failed to delete topic." }, { status: 500 });
   }
 }

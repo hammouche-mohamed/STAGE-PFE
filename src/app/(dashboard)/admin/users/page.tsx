@@ -54,6 +54,7 @@ export default function AdminUsersPage() {
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
   const [isProcessingStatus, setIsProcessingStatus] = useState(false);
   const [isFetchingDetail, setIsFetchingDetail] = useState(false);
+  const [showEditConfirm, setShowEditConfirm] = useState(false);
 
   const fetchUsers = async () => {
     try {
@@ -151,6 +152,11 @@ export default function AdminUsersPage() {
 
   const handleUpdateUser = async (e: React.FormEvent) => {
     e.preventDefault();
+    // Show confirmation before saving
+    setShowEditConfirm(true);
+  };
+
+  const executeUpdateUser = async () => {
     setIsProcessingStatus(true);
     try {
       const res = await fetch(`/api/users/${userToEdit.id}`, {
@@ -160,13 +166,15 @@ export default function AdminUsersPage() {
           name: userToEdit.name,
           email: userToEdit.email,
           role: userToEdit.role,
-          profileData: userToEdit.profileData
+          profileData: userToEdit.profileData,
+          notifyUser: true,
         }),
       });
 
       if (!res.ok) throw new Error("Update failed");
 
       toast.success(t("toast.userUpdated"));
+      setShowEditConfirm(false);
       setUserToEdit(null);
       fetchUsers();
     } catch (error) {
@@ -624,6 +632,18 @@ export default function AdminUsersPage() {
           </form>
         )}
       </Modal>
+
+      {/* Edit Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={showEditConfirm}
+        onClose={() => setShowEditConfirm(false)}
+        onConfirm={executeUpdateUser}
+        title="Confirm Account Modification"
+        description={`You are about to modify the account of "${userToEdit?.name}". The user will receive an email and in-app notification informing them of this change. Are you sure?`}
+        confirmLabel="Yes, Save Changes"
+        variant="warning"
+        isLoading={isProcessingStatus}
+      />
     </div>
   );
 }
