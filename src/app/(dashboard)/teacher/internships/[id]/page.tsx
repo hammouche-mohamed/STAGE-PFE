@@ -126,6 +126,33 @@ export default async function TeacherInternshipDetailPage({ params }: { params: 
               </div>
             </div>
           </section>
+
+          {(internship.midtermDeadline || internship.finalDeadline) && (
+            <section className="bg-white border border-gray-200 rounded-md p-6 shadow-sm">
+              <div className="flex items-center gap-2 mb-4">
+                <Calendar className="h-5 w-5 text-indigo-600" />
+                <h2 className="text-[15px] font-semibold text-gray-900">Key Deadlines</h2>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {internship.midtermDeadline && (
+                  <div className="bg-amber-50 border border-amber-100 rounded-lg p-4">
+                    <p className="text-[11px] font-bold text-amber-700 uppercase tracking-widest">Midterm Report</p>
+                    <p className="text-[14px] font-semibold text-gray-900 mt-1">
+                      {format(new Date(internship.midtermDeadline), "MMMM d, yyyy")}
+                    </p>
+                  </div>
+                )}
+                {internship.finalDeadline && (
+                  <div className="bg-indigo-50 border border-indigo-100 rounded-lg p-4">
+                    <p className="text-[11px] font-bold text-indigo-700 uppercase tracking-widest">Final Report</p>
+                    <p className="text-[14px] font-semibold text-gray-900 mt-1">
+                      {format(new Date(internship.finalDeadline), "MMMM d, yyyy")}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </section>
+          )}
         </div>
 
         <aside className="space-y-4">

@@ -59,7 +59,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ role: initialRole, logoUrl }) 
       case "TEACHER":
         return [
           { label: t("common.dashboard"), icon: LayoutDashboard, href: "/teacher", active: pathname === "/teacher" },
-          { label: t("nav.myTopics"), icon: Briefcase, href: "/teacher/topics", active: pathname === "/teacher/topics" },
           { label: t("nav.supervision"), icon: ShieldCheck, href: "/teacher/internships", active: pathname === "/teacher/internships" },
           { label: t("common.documents"), icon: FileText, href: "/teacher/documents", active: pathname === "/teacher/documents" },
           { label: t("common.messages"), icon: MessageSquare, href: "/teacher/messages", active: pathname === "/teacher/messages" },
@@ -184,10 +183,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ role: initialRole, logoUrl }) 
         isOpen={isLogoutDialogOpen}
         onClose={() => setIsLogoutDialogOpen(false)}
         onConfirm={() => signOut({ callbackUrl: "/" })}
-        title="Sign Out"
-        description="Are you sure you want to sign out?"
+        title="Logout Confirmation"
+        description="Are you sure you want to log out? You will need to sign in again to access your dashboard."
         confirmLabel="Logout"
-        variant="danger"
+        cancelLabel="Cancel"
+        variant="warning"
       />
     </>
   );

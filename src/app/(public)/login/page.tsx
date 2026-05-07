@@ -127,13 +127,14 @@ export default function LoginPage() {
               {t("auth.login")}
             </Button>
 
-            <Link
-              href="/"
-              className="flex items-center justify-center gap-2 w-full py-2 text-[13px] text-gray-500 hover:text-indigo-600 font-medium transition-colors"
+            <button
+              type="button"
+              onClick={() => router.back()}
+              className="flex items-center justify-center gap-2 w-full py-2 text-[13px] text-gray-500 hover:text-indigo-600 font-medium transition-colors cursor-pointer"
             >
               <ArrowLeft className={`h-4 w-4 ${isRTL ? "rotate-180" : ""}`} />
               {t("common.back")}
-            </Link>
+            </button>
           </form>
 
           <div className="mt-8 pt-6 border-t border-gray-100 text-center">

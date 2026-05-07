@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useRef, Suspense } from "react";
-import { Send, Paperclip, FileText, ChevronLeft, Trash2, CornerUpLeft, X, AlertTriangle, Search } from "lucide-react";
+import { Send, Paperclip, FileText, ChevronLeft, Trash2, CornerUpLeft, X, AlertTriangle, Search, Users } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { useSearchParams } from "next/navigation";
@@ -31,8 +31,8 @@ interface SharedFile {
 interface Internship {
   id: string;
   topic: { title: string };
-  teacher: { name: string };
-  students: { student: { name: string }; isLeader: boolean }[];
+  teacher: { name: string; email: string };
+  students: { student: { name: string; email: string }; isLeader: boolean }[];
   status: string;
 }
 
@@ -55,10 +55,20 @@ function MessagesContent() {
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [showFiles, setShowFiles] = useState(false);
+  const [sidebarTab, setSidebarTab] = useState<"files" | "participants">("files");
   const [sharedFiles, setSharedFiles] = useState<SharedFile[]>([]);
   const bottomRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const toggleSidebar = (tab: "files" | "participants") => {
+    if (showFiles && sidebarTab === tab) {
+      setShowFiles(false);
+    } else {
+      setSidebarTab(tab);
+      setShowFiles(true);
+    }
+  };
 
   const fetchMessages = async (internshipId: string) => {
     try {
@@ -137,24 +147,39 @@ function MessagesContent() {
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newMessage.trim() || !internship) return;
-    setIsSending(true);
+    const messageText = newMessage.trim();
+    const finalContent = replyTo
+      ? `↩ ${replyTo.sender.name}: "${replyTo.content.slice(0, 60)}${replyTo.content.length > 60 ? "…" : ""}"\n\n${messageText}`
+      : messageText;
 
-    const content = replyTo
-      ? `↩ ${replyTo.sender.name}: "${replyTo.content.slice(0, 60)}${replyTo.content.length > 60 ? "…" : ""}"\n\n${newMessage.trim()}`
-      : newMessage.trim();
+    // OPTIMISTIC UPDATE
+    const tempId = `temp-${Date.now()}`;
+    const optimisticMsg = {
+      id: tempId,
+      senderId: session?.user?.id,
+      sender: { name: session?.user?.name || "You" },
+      content: finalContent,
+      sentAt: new Date().toISOString(),
+    };
+    setMessages((prev) => [...prev, optimisticMsg]);
+
+    // Clear immediately for smooth UX
+    setNewMessage("");
+    setReplyTo(null);
+    setIsSending(true);
 
     try {
       const res = await fetch("/api/messages", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ internshipId: internship.id, content }),
+        body: JSON.stringify({ internshipId: internship.id, content: finalContent }),
       });
       if (!res.ok) throw new Error();
       const data = await res.json();
-      setMessages((prev) => [...prev, data.data]);
-      setNewMessage("");
-      setReplyTo(null);
+      // Replace optimistic message with official one
+      setMessages((prev) => prev.map(m => m.id === tempId ? data.data : m));
     } catch {
+      setMessages((prev) => prev.filter(m => m.id !== tempId));
       toast.error(t("toast.messageSendFailed"));
     } finally {
       setIsSending(false);
@@ -255,67 +280,77 @@ function MessagesContent() {
     : messages;
 
   return (
-    <div className="h-[calc(100vh-140px)] flex flex-col space-y-4">
-      <div className="flex flex-col space-y-2">
-        <Link href={backUrl}
-          className="flex items-center text-[12px] text-indigo-600 hover:text-indigo-800 font-medium w-fit bg-indigo-50 px-3 py-1 rounded-full">
-          <ChevronLeft className="h-4 w-4 mr-1" />Back to Internship
-        </Link>
-        <div>
-          <h1 className="text-[17px] font-semibold text-gray-900">{t("messages.title")}</h1>
-          <p className="text-[13px] text-gray-500">{t("messages.subtitle")}</p>
-        </div>
-      </div>
-
-      <div className="flex-1 bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden flex flex-col">
-        {/* Header */}
-        <div className="px-6 py-3 border-b border-gray-100 bg-gray-50/60 flex flex-col gap-2">
-          <div className={`flex items-center justify-between ${isRTL ? "flex-row-reverse" : ""}`}>
-            <div className={`flex items-center gap-3 ${isRTL ? "flex-row-reverse" : ""}`}>
-              <div className={`h-2.5 w-2.5 rounded-full ${internship ? "bg-green-500" : "bg-gray-300"}`} />
-              <span className="text-[13px] font-bold text-gray-800 uppercase tracking-tight">
-                {internship ? internship.topic.title : "No active internship"}
-              </span>
-            </div>
-            <div className={`flex items-center gap-3 ${isRTL ? "flex-row-reverse" : ""}`}>
-              <button 
-                onClick={() => setShowFiles(!showFiles)}
-                className={`p-1.5 rounded-md transition-colors flex items-center gap-1.5 text-[11px] font-medium ${
-                  showFiles ? "bg-indigo-600 text-white" : "bg-white text-gray-500 hover:bg-gray-100 border border-gray-200"
-                }`}
-              >
-                <FileText className="h-3.5 w-3.5" />
-                {showFiles ? "Hide Files" : "View Files"}
-              </button>
-              <span className="text-[11px] text-gray-400">{participants.length} Participants</span>
+    <>
+    <div className="-mt-4 md:-mt-6 h-[calc(100vh-115px)] flex flex-col space-y-3 overflow-hidden">
+      {/* Header Area */}
+      <div className="flex flex-col gap-2 flex-shrink-0">
+        <div className={`flex items-center justify-between ${isRTL ? "flex-row-reverse" : ""}`}>
+          <div className={`flex items-center gap-2 md:gap-3 ${isRTL ? "flex-row-reverse" : ""}`}>
+            <Link href={backUrl} className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-500 transition-colors">
+              <ChevronLeft className={`h-5 w-5 ${isRTL ? "rotate-180" : ""}`} />
+            </Link>
+            <div>
+              <div className="flex items-center gap-2">
+                <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse hidden sm:block" />
+                <h1 className="text-[14px] md:text-[15px] font-bold text-gray-900 leading-none truncate max-w-[120px] sm:max-w-none">Coordination Center</h1>
+              </div>
+              <p className="text-[11px] md:text-[12px] text-gray-500 mt-0.5 md:mt-1 uppercase tracking-tight font-bold truncate max-w-[150px] sm:max-w-none">{internship?.topic.title}</p>
             </div>
           </div>
-          {internship && (
-            <div className="relative">
-              <Search className={`absolute ${isRTL ? "right-3" : "left-3"} top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400`} />
-              <input
-                type="text"
-                placeholder={t("common.search")}
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className={`w-full h-8 bg-white border border-gray-200 rounded-full ${isRTL ? "pr-8 pl-4 text-right" : "pl-8 pr-4"} text-[12px] focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-300`}
-              />
-              {searchQuery && (
-                <button onClick={() => setSearchQuery("")}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
-                  <X className="h-3.5 w-3.5" />
-                </button>
-              )}
-            </div>
-          )}
+          
+          <div className={`flex items-center gap-1.5 md:gap-2 ${isRTL ? "flex-row-reverse" : ""}`}>
+            <button
+              onClick={() => toggleSidebar("files")}
+              className={`h-8 px-2 md:px-3 rounded-md transition-all flex items-center gap-1.5 md:gap-2 text-[10px] md:text-[11px] font-bold border ${
+                showFiles && sidebarTab === "files" 
+                  ? "bg-indigo-600 text-white border-indigo-600 shadow-sm" 
+                  : "bg-white text-gray-600 hover:bg-gray-50 border-gray-200"
+              }`}
+            >
+              <FileText className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">{sharedFiles.length} Files</span>
+              <span className="sm:hidden">{sharedFiles.length}</span>
+            </button>
+            <button
+              onClick={() => toggleSidebar("participants")}
+              className={`h-8 px-2 md:px-3 rounded-md transition-all flex items-center gap-1.5 md:gap-2 text-[10px] md:text-[11px] font-bold border ${
+                showFiles && sidebarTab === "participants" 
+                  ? "bg-indigo-600 text-white border-indigo-600 shadow-sm" 
+                  : "bg-white text-gray-600 hover:bg-gray-50 border-gray-200"
+              }`}
+            >
+              <Users className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">{internship ? (internship.students.length + 1) : 0}</span>
+            </button>
+          </div>
         </div>
 
-        {/* Messages Content Area */}
-        <div className="flex-1 flex overflow-hidden">
-          {/* Main Chat */}
-          <div className="flex-1 flex flex-col min-w-0">
-            {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-6 space-y-2 bg-gray-50/30">
+        {/* Local Search */}
+        {internship && (
+          <div className="relative">
+            <Search className={`absolute ${isRTL ? "right-3" : "left-3"} top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400`} />
+            <input
+              type="text"
+              placeholder={t("common.search")}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className={`w-full h-8 bg-white border border-gray-200 rounded-full ${isRTL ? "pr-8 pl-4 text-right" : "pl-8 pr-4"} text-[12px] focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-300`}
+            />
+            {searchQuery && (
+              <button onClick={() => setSearchQuery("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Messages Content Area */}
+      <div className="flex-1 flex overflow-hidden relative min-w-0">
+        {/* Main Chat Content */}
+        <div className="flex-1 min-w-0 bg-white border border-gray-200 rounded-xl shadow-sm flex flex-col overflow-hidden">
+          {/* Messages */}
+          <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
               {isLoading ? (
                 <p className="text-center text-gray-400 text-[13px] pt-12">Loading…</p>
               ) : !internship ? (
@@ -328,7 +363,7 @@ function MessagesContent() {
                 </p>
               ) : (
                 displayMessages.map((msg) => {
-                  const isMe = msg.senderId === session?.user?.id;
+                  const isMe = String(msg.senderId) === String(session?.user?.id);
                   const { quoted, text } = parseReply(msg.content);
 
                   return (
@@ -465,52 +500,98 @@ function MessagesContent() {
             </form>
           </div>
 
-          {/* Shared Files Sidebar */}
+          {/* Coordination Details Sidebar */}
           {showFiles && (
-            <div className={`w-72 border-gray-100 bg-white flex flex-col animate-in ${isRTL ? "border-r slide-in-from-left" : "border-l slide-in-from-right"} duration-300`}>
+            <div className={`w-80 border-gray-100 bg-white flex flex-col animate-in ${isRTL ? "border-r slide-in-from-left" : "border-l slide-in-from-right"} duration-300`}>
               <div className={`p-4 border-b border-gray-100 bg-gray-50/50 flex items-center justify-between ${isRTL ? "flex-row-reverse" : ""}`}>
-                <h3 className="text-[12px] font-bold text-gray-900 uppercase tracking-tight">{t("messages.sharedFiles")}</h3>
-                <span className="text-[10px] bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded-full font-bold">
-                  {sharedFiles.length}
-                </span>
+                <h3 className="text-[12px] font-bold text-gray-900 uppercase tracking-widest font-bold">
+                  {sidebarTab === "files" ? "Shared Files" : "Participants"}
+                </h3>
+                {sidebarTab === "files" ? <FileText className="h-4 w-4 text-gray-400" /> : <Users className="h-4 w-4 text-gray-400" />}
               </div>
-              <div className="flex-1 overflow-y-auto p-3 space-y-3">
-                {sharedFiles.length === 0 ? (
-                  <div className="text-center py-12">
-                    <FileText className="h-8 w-8 text-gray-200 mx-auto mb-2" />
-                    <p className="text-[11px] text-gray-400 px-4">{t("messages.noFiles")}</p>
-                  </div>
-                ) : (
-                  sharedFiles.map((file) => (
-                    <a
-                      key={file.id}
-                      href={file.url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className={`flex items-start gap-3 p-2.5 rounded-xl hover:bg-indigo-50/50 border border-transparent hover:border-indigo-100 transition-all group ${isRTL ? "flex-row-reverse" : ""}`}
-                    >
-                      <div className={`h-9 w-9 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                        file.category === "DOCUMENT" ? "bg-amber-50 text-amber-600" : "bg-indigo-50 text-indigo-600"
-                      }`}>
-                        {fileIcon(file.name) === "🖼" ? <span className="text-sm">🖼</span> : <FileText className="h-4 w-4" />}
-                      </div>
-                      <div className={`min-w-0 flex-1 ${isRTL ? "text-right" : "text-left"}`}>
-                        <p className="text-[12px] font-semibold text-gray-800 truncate group-hover:text-indigo-700 transition-colors" title={file.name}>
-                          {file.name}
-                        </p>
-                        <div className={`flex items-center gap-1.5 mt-0.5 ${isRTL ? "flex-row-reverse" : ""}`}>
-                          <span className={`text-[9px] font-bold px-1 rounded uppercase ${
-                            file.category === "DOCUMENT" ? "bg-amber-100 text-amber-700" : "bg-indigo-100 text-indigo-700"
-                          }`}>
-                            {file.category === "DOCUMENT" ? "Doc" : "Chat"}
-                          </span>
-                          <span className="text-[10px] text-gray-400 truncate">
-                            {file.senderName} · {format(new Date(file.sentAt), "d MMM")}
-                          </span>
+              
+              <div className="flex-1 overflow-y-auto p-3">
+                {sidebarTab === "participants" ? (
+                  <div className="space-y-6">
+                    {/* Supervisor */}
+                    <div className="space-y-2">
+                      <p className="text-[10px] text-gray-400 font-bold uppercase tracking-tighter px-1">Supervisor</p>
+                      <div className="rounded-xl border border-gray-100 bg-white p-2.5 shadow-sm">
+                        <div className="flex items-center gap-3">
+                          <div className="h-8 w-8 rounded-full bg-indigo-50 text-indigo-700 flex items-center justify-center font-bold text-[12px]">
+                            {internship?.teacher?.name.charAt(0) || "S"}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-[12px] font-bold text-gray-900 truncate">{internship?.teacher?.name || "No Supervisor"}</p>
+                            <p className="text-[10px] text-gray-500 truncate">{internship?.teacher?.email || "N/A"}</p>
+                          </div>
                         </div>
                       </div>
-                    </a>
-                  ))
+                    </div>
+
+                    {/* Students */}
+                    <div className="space-y-2">
+                      <p className="text-[10px] text-gray-400 font-bold uppercase tracking-tighter px-1">Students</p>
+                      <div className="space-y-2">
+                        {internship?.students.map((s, idx) => (
+                          <div key={`${s.student.email}-${idx}`} className="rounded-xl border border-gray-100 bg-white p-2.5 shadow-sm">
+                            <div className="flex items-center gap-3">
+                              <div className={`h-8 w-8 rounded-full flex items-center justify-center font-bold text-[12px] ${s.isLeader ? "bg-amber-50 text-amber-700" : "bg-emerald-50 text-emerald-700"}`}>
+                                {s.student.name.charAt(0)}
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center gap-1.5">
+                                  <p className="text-[12px] font-bold text-gray-900 truncate">{s.student.name}</p>
+                                  {s.isLeader && <span className="text-[8px] bg-amber-100 text-amber-700 px-1 rounded uppercase font-bold">Leader</span>}
+                                </div>
+                                <p className="text-[10px] text-gray-500 truncate">{s.student.email || "N/A"}</p>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {sharedFiles.length === 0 ? (
+                      <div className="text-center py-12">
+                        <FileText className="h-10 w-10 text-gray-200 mx-auto mb-2" />
+                        <p className="text-[12px] text-gray-400">{t("messages.noFiles")}</p>
+                      </div>
+                    ) : (
+                      sharedFiles.map((file) => (
+                        <a
+                          key={file.id}
+                          href={file.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className={`flex items-start gap-3 p-2.5 rounded-xl hover:bg-gray-50 border border-transparent hover:border-gray-100 transition-all group ${isRTL ? "flex-row-reverse" : ""}`}
+                        >
+                          <div className={`h-9 w-9 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                            file.category === "DOCUMENT" ? "bg-amber-50 text-amber-600" : "bg-indigo-50 text-indigo-600"
+                          }`}>
+                            <FileText className="h-4 w-4" />
+                          </div>
+                          <div className={`min-w-0 flex-1 ${isRTL ? "text-right" : "text-left"}`}>
+                            <p className="text-[12px] font-semibold text-gray-800 truncate group-hover:text-indigo-700 transition-colors" title={file.name}>
+                              {file.name}
+                            </p>
+                            <div className={`flex items-center gap-1.5 mt-0.5 ${isRTL ? "flex-row-reverse" : ""}`}>
+                              <span className={`text-[9px] font-bold px-1 rounded uppercase ${
+                                file.category === "DOCUMENT" ? "bg-amber-100 text-amber-700" : "bg-indigo-100 text-indigo-700"
+                              }`}>
+                                {file.category === "DOCUMENT" ? "Doc" : "Chat"}
+                              </span>
+                              <span className="text-[10px] text-gray-400 truncate">
+                                {file.senderName} · {format(new Date(file.sentAt), "d MMM")}
+                              </span>
+                            </div>
+                          </div>
+                        </a>
+                      ))
+                    )}
+                  </div>
                 )}
               </div>
             </div>
@@ -585,7 +666,7 @@ function MessagesContent() {
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }
 

@@ -21,7 +21,8 @@ type ProfileData = {
 export default function ProfilePage() {
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [saving, setSaving] = useState(false);
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [isSavingPassword, setIsSavingPassword] = useState(false);
   const [isRemovingAvatar, setIsRemovingAvatar] = useState(false);
   const [showConfirmRemoveAvatar, setShowConfirmRemoveAvatar] = useState(false);
   const [passwords, setPasswords] = useState({ currentPassword: "", newPassword: "" });
@@ -85,9 +86,31 @@ export default function ProfilePage() {
     fetchProfile().finally(() => setIsLoading(false));
   }, []);
 
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const validateEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+
   const handleSave = async () => {
     if (!profile) return;
-    setSaving(true);
+    
+    // Clear previous errors
+    setErrors({});
+    const newErrors: Record<string, string> = {};
+
+    if (profile.name.trim().length < 2) {
+      newErrors.name = "Name must be at least 2 characters.";
+    }
+    if (!validateEmail(profile.email)) {
+      newErrors.email = "Please enter a valid email address.";
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      toast.error("Please fix the errors before saving.");
+      return;
+    }
+
+    setIsSavingProfile(true);
     try {
       const res = await fetch("/api/profile", {
         method: "PUT",
@@ -99,7 +122,12 @@ export default function ProfilePage() {
         }),
       });
       const json = await res.json();
-      if (!res.ok) throw new Error(json.error || "Failed to save profile");
+      if (!res.ok) {
+        if (json.error?.includes("email")) {
+          setErrors({ email: json.error });
+        }
+        throw new Error(json.error || "Failed to save profile");
+      }
       setProfile(json.data);
       if (updateSession) {
         await updateSession({ user: { ...(session?.user ?? {}), name: json.data.name, email: json.data.email } });
@@ -108,16 +136,30 @@ export default function ProfilePage() {
     } catch (error) {
       toast.error(error instanceof Error ? error.message : t("errors.serverError"));
     } finally {
-      setSaving(false);
+      setIsSavingProfile(false);
     }
   };
 
   const handlePasswordUpdate = async () => {
-    if (!passwords.currentPassword || !passwords.newPassword) {
-      toast.error(t("toast.fillBothPasswords"));
+    setErrors({});
+    const newErrors: Record<string, string> = {};
+
+    if (!passwords.currentPassword) {
+      newErrors.currentPassword = "Current password is required.";
+    }
+    if (passwords.newPassword.length < 8) {
+      newErrors.newPassword = "New password must be at least 8 characters.";
+    }
+    if (passwords.currentPassword === passwords.newPassword && passwords.currentPassword !== "") {
+      newErrors.newPassword = "New password cannot be the same as current.";
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
       return;
     }
-    setSaving(true);
+
+    setIsSavingPassword(true);
     try {
       const res = await fetch("/api/profile", {
         method: "PUT",
@@ -128,13 +170,20 @@ export default function ProfilePage() {
         }),
       });
       const json = await res.json();
-      if (!res.ok) throw new Error(json.error || "Failed to change password");
+      if (!res.ok) {
+        if (json.error?.toLowerCase().includes("current password")) {
+          setErrors({ currentPassword: json.error });
+        } else if (json.error?.toLowerCase().includes("new password")) {
+          setErrors({ newPassword: json.error });
+        }
+        throw new Error(json.error || "Failed to change password");
+      }
       setPasswords({ currentPassword: "", newPassword: "" });
       toast.success(t("toast.passwordUpdated"));
     } catch (error: any) {
       toast.error(error?.message ?? "Failed to change password");
     } finally {
-      setSaving(false);
+      setIsSavingPassword(false);
     }
   };
 
@@ -231,18 +280,26 @@ export default function ProfilePage() {
             <Input
               label="Full name"
               value={profile?.name || ""}
-              onChange={(event) => setProfile((prev) => prev ? { ...prev, name: event.target.value } : prev)}
+              error={errors.name}
+              onChange={(event) => {
+                setProfile((prev) => prev ? { ...prev, name: event.target.value } : prev);
+                if (errors.name) setErrors(prev => ({ ...prev, name: "" }));
+              }}
             />
             <Input
               label="Email address"
               type="email"
               value={profile?.email || ""}
-              onChange={(event) => setProfile((prev) => prev ? { ...prev, email: event.target.value } : prev)}
+              error={errors.email}
+              onChange={(event) => {
+                setProfile((prev) => prev ? { ...prev, email: event.target.value } : prev);
+                if (errors.email) setErrors(prev => ({ ...prev, email: "" }));
+              }}
             />
           </div>
 
           <div className="flex justify-end">
-            <Button onClick={handleSave} isLoading={saving}>
+            <Button onClick={handleSave} isLoading={isSavingProfile}>
               <Save className="h-4 w-4 mr-2" /> Save changes
             </Button>
           </div>
@@ -260,18 +317,26 @@ export default function ProfilePage() {
               label="Current password"
               type="password"
               value={passwords.currentPassword}
-              onChange={(event) => setPasswords((prev) => ({ ...prev, currentPassword: event.target.value }))}
+              error={errors.currentPassword}
+              onChange={(event) => {
+                setPasswords((prev) => ({ ...prev, currentPassword: event.target.value }));
+                if (errors.currentPassword) setErrors(prev => ({ ...prev, currentPassword: "" }));
+              }}
             />
             <Input
               label="New password"
               type="password"
               value={passwords.newPassword}
-              onChange={(event) => setPasswords((prev) => ({ ...prev, newPassword: event.target.value }))}
+              error={errors.newPassword}
+              onChange={(event) => {
+                setPasswords((prev) => ({ ...prev, newPassword: event.target.value }));
+                if (errors.newPassword) setErrors(prev => ({ ...prev, newPassword: "" }));
+              }}
             />
           </div>
 
           <div className="flex justify-end">
-            <Button onClick={handlePasswordUpdate} isLoading={saving}>
+            <Button onClick={handlePasswordUpdate} isLoading={isSavingPassword}>
               <Lock className="h-4 w-4 mr-2" /> Update password
             </Button>
           </div>

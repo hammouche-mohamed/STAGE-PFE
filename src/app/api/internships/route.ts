@@ -56,7 +56,7 @@ export async function GET(req: NextRequest) {
           companyValidatedFinalReport: true,
           createdAt: true,
           topic: { select: { title: true, type: true, internshipType: true } },
-          teacher: { select: { id: true, name: true } },
+          teacher: { select: { id: true, name: true, email: true } },
           students: { include: { student: { select: { id: true, name: true, email: true } } } },
           _count: { select: { documents: true, messages: true } },
         },

@@ -26,4 +26,6 @@ export interface InternshipThread {
   teacher?: {
     name: string;
   };
+  midtermDeadline?: string | null;
+  finalDeadline?: string | null;
 }

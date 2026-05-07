@@ -11,7 +11,6 @@ export const proxy = auth((req) => {
   const session = req.auth;
 
   const isPublicRoute = 
-    nextUrl.pathname === "/" ||
     nextUrl.pathname === "/login" ||
     nextUrl.pathname === "/register" ||
     nextUrl.pathname === "/reset-password" ||
@@ -24,11 +23,15 @@ export const proxy = auth((req) => {
   // 1. Allow API auth and public routes
   if (isApiAuthRoute || isApiPublicRoute) return NextResponse.next();
 
-  // 2. Handle Public Routes
-  if (isPublicRoute) {
+  // 2. Handle Entry Point (/) and Public Routes
+  if (isPublicRoute || nextUrl.pathname === "/") {
     if (isLoggedIn) {
       const role = session?.user?.role;
       return NextResponse.redirect(new URL(`/${role?.toLowerCase() || ""}`, nextUrl));
+    }
+    // Allow the landing page to render
+    if (nextUrl.pathname === "/") {
+      return NextResponse.next();
     }
     return NextResponse.next();
   }

@@ -78,6 +78,11 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: "Current password is incorrect" }, { status: 400 });
     }
 
+    const isSame = await bcrypt.compare(newPassword, user.password);
+    if (isSame) {
+      return NextResponse.json({ error: "New password cannot be the same as your current password." }, { status: 400 });
+    }
+
     // NFR-S1: minimum 12 bcrypt salt rounds on every password write
     data.password = await bcrypt.hash(newPassword, 12);
     data.mustChangePassword = false;

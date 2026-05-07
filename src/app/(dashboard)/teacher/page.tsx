@@ -34,6 +34,8 @@ export default async function TeacherDashboardPage() {
     pendingApplications,
     pendingDocuments,
     pendingFinalReports,
+    activeInternships,
+    recentMessages
   ] = await Promise.all([
     prisma.internship.count({ where: { teacherId: teacher.id, status: "IN_PROGRESS" } }),
     prisma.teacherApplication.count({ where: { teacherId: teacher.id, status: "PENDING" } }),
@@ -43,7 +45,6 @@ export default async function TeacherDashboardPage() {
         status: "UPLOADED",
       },
     }),
-    // Final reports awaiting the teacher's own validation
     prisma.internship.count({
       where: {
         teacherId: teacher.id,
@@ -51,14 +52,32 @@ export default async function TeacherDashboardPage() {
         teacherValidatedFinalReport: false,
       },
     }),
+    prisma.internship.findMany({
+      where: { teacherId: teacher.id, status: "IN_PROGRESS" },
+      include: {
+        topic: { select: { title: true } },
+        students: { include: { student: { select: { name: true } } } },
+      },
+      take: 5,
+      orderBy: { updatedAt: "desc" }
+    }),
+    prisma.message.findMany({
+      where: { internship: { teacherId: teacher.id } },
+      include: {
+        sender: { select: { name: true } },
+        internship: { select: { topic: { select: { title: true } } } }
+      },
+      take: 4,
+      orderBy: { sentAt: "desc" }
+    })
   ]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-8">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-[17px] font-semibold text-gray-900">Teacher Workspace</h1>
-          <p className="text-[13px] text-gray-500 mt-0.5">
+          <h1 className="text-[17px] font-bold text-gray-900 leading-none">Teacher Workspace</h1>
+          <p className="text-[13px] text-gray-500 mt-1.5">
             Welcome back, {teacher.name}. Monitor your student supervisions and academic progress.
           </p>
         </div>
@@ -84,7 +103,7 @@ export default async function TeacherDashboardPage() {
           value={pendingDocuments}
           icon={FileText}
           subValue="Uploaded, pending approval"
-          subValueColor={pendingDocuments > 0 ? ("amber" as "green") : "gray"}
+          subValueColor={pendingDocuments > 0 ? "amber" : "gray"}
         />
         <StatsCard
           label="Final Reports Pending"
@@ -96,47 +115,89 @@ export default async function TeacherDashboardPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Quick link to supervisions */}
+        {/* Active Supervisions List */}
         <div className="lg:col-span-2 space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-[14px] font-semibold text-gray-900 flex items-center">
+            <h2 className="text-[14px] font-bold text-gray-900 flex items-center">
               <Clock className="h-4 w-4 mr-2 text-indigo-600" />
-              Active Internships
+              Active Supervisions
             </h2>
             <Link
               href="/teacher/internships"
-              className="text-[12px] font-medium text-indigo-600 hover:text-indigo-700 flex items-center"
+              className="text-[12px] font-bold text-indigo-600 hover:text-indigo-700 flex items-center"
             >
               View all <ArrowRight className="ml-1 h-3 w-3" />
             </Link>
           </div>
 
-          <div className="bg-white border border-gray-200 rounded-md p-8 text-center text-gray-400 text-[13px] shadow-sm">
-            <Link
-              href="/teacher/internships"
-              className="text-indigo-600 hover:underline font-medium"
-            >
-              Open Supervisions →
-            </Link>
+          <div className="space-y-3">
+            {activeInternships.length === 0 ? (
+              <div className="bg-white border border-gray-100 rounded-xl p-10 text-center shadow-sm">
+                <Briefcase className="h-10 w-10 text-gray-100 mx-auto mb-3" />
+                <p className="text-[13px] text-gray-400">No active supervisions found.</p>
+              </div>
+            ) : (
+              activeInternships.map((internship) => (
+                <Link
+                  key={internship.id}
+                  href={`/teacher/internships/${internship.id}`}
+                  className="block bg-white border border-gray-100 rounded-xl p-4 shadow-sm hover:shadow-md hover:border-indigo-100 transition-all group"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[13px] font-bold text-gray-900 truncate group-hover:text-indigo-700 transition-colors">
+                        {internship.topic.title}
+                      </p>
+                      <p className="text-[11px] text-gray-500 mt-1 truncate">
+                        {internship.students.map(s => s.student.name).join(" · ")}
+                      </p>
+                    </div>
+                    <div className="h-8 w-8 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white transition-all">
+                      <ArrowRight className="h-4 w-4" />
+                    </div>
+                  </div>
+                </Link>
+              ))
+            )}
           </div>
         </div>
 
-        {/* Resources */}
-        <div className="space-y-4">
-          <h2 className="text-[14px] font-semibold text-gray-900">Resources</h2>
-          <div className="bg-white border border-gray-200 rounded-md p-4 space-y-3 shadow-sm">
-            <div className="p-3 bg-gray-50 rounded-md border border-gray-100 hover:border-indigo-200 transition-colors cursor-pointer">
-              <p className="text-[13px] font-medium text-gray-900">Template: Final Report</p>
-              <p className="text-[11px] text-gray-500">Official ESST PFE template (.docx)</p>
-            </div>
-            <div className="p-3 bg-gray-50 rounded-md border border-gray-100 hover:border-indigo-200 transition-colors cursor-pointer">
-              <p className="text-[13px] font-medium text-gray-900">Validation Workflow</p>
-              <p className="text-[11px] text-gray-500">
-                How to validate a student&apos;s final report.
-              </p>
+        {/* Sidebar: Messages & Resources */}
+        <div className="space-y-6">
+          {/* Recent Messages */}
+          <div className="space-y-4">
+            <h2 className="text-[14px] font-bold text-gray-900 flex items-center">
+              <MessageSquare className="h-4 w-4 mr-2 text-indigo-600" />
+              Recent Activity
+            </h2>
+            <div className="bg-white border border-gray-100 rounded-xl p-1 shadow-sm">
+              {recentMessages.length === 0 ? (
+                <p className="p-6 text-center text-[12px] text-gray-400">No recent messages.</p>
+              ) : (
+                recentMessages.map((m) => (
+                  <div key={m.id} className="p-3 border-b border-gray-50 last:border-0">
+                    <div className="flex justify-between items-start gap-2">
+                      <p className="text-[12px] font-bold text-gray-900 truncate">{m.sender.name}</p>
+                      <span className="text-[9px] text-gray-400 shrink-0 font-medium uppercase tracking-tighter">
+                        {new Date(m.sentAt).toLocaleDateString([], { month: 'short', day: 'numeric' })}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-gray-500 truncate mt-0.5" title={m.internship.topic.title}>
+                      {m.internship.topic.title}
+                    </p>
+                    <p className="text-[12px] text-gray-600 line-clamp-1 mt-1 italic">
+                      &quot;{m.content.replace(/^↩ .*?\n\n/, "").slice(0, 50)}...&quot;
+                    </p>
+                  </div>
+                ))
+              )}
+              <Link href="/teacher/messages" className="block p-3 text-center text-[11px] font-bold text-indigo-600 hover:bg-gray-50 transition-colors rounded-b-xl border-t border-gray-50">
+                Open All Messages →
+              </Link>
             </div>
           </div>
         </div>
+
       </div>
     </div>
   );

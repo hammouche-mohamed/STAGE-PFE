@@ -35,10 +35,10 @@ ALTER TABLE topic
 
 -- 6. Extend internship_status enum (preserves existing rows)
 ALTER TABLE internship MODIFY COLUMN status
-  ENUM('REQUESTED','DOCUMENT_SENT','IN_PROGRESS','NEEDS_REVISION','APPROVED','COMPLETED','CANCELLED')
+  ENUM('REQUESTED','DOCUMENT_SENT','IN_PROGRESS','NEEDS_REVISION','APPROVED','FINAL_REPORT_SUBMITTED','PENDING_ADMIN_CONFIRMATION','COMPLETED','CANCELLED')
   NOT NULL DEFAULT 'REQUESTED';
 
--- 7. Add new columns to Internship
+-- 7. Add new columns to Internship (including 3-gate validation flags)
 ALTER TABLE internship
   ADD COLUMN internshipType ENUM('PFE','NORMAL') NULL AFTER academicYear,
   ADD COLUMN midtermDeadline DATE NULL,
@@ -46,7 +46,11 @@ ALTER TABLE internship
   ADD COLUMN technicalSupervisorName VARCHAR(100) NULL,
   ADD COLUMN technicalSupervisorEmail VARCHAR(150) NULL,
   ADD COLUMN activatedAt DATETIME NULL,
-  ADD COLUMN completedAt DATETIME NULL;
+  ADD COLUMN completedAt DATETIME NULL,
+  ADD COLUMN teacherValidatedFinalReport BOOLEAN NOT NULL DEFAULT FALSE,
+  ADD COLUMN teacherValidatedAt DATETIME NULL,
+  ADD COLUMN companyValidatedFinalReport BOOLEAN NOT NULL DEFAULT FALSE,
+  ADD COLUMN companyValidatedAt DATETIME NULL;
 
 -- 8. Add isBinome to StudentApplication
 ALTER TABLE studentapplication
@@ -88,7 +92,11 @@ ALTER TABLE notification MODIFY COLUMN type
     'STUDENT_TOPIC_APPROVED',
     'STUDENT_TOPIC_REJECTED',
     'COMPANY_DATES_CONFIRMED',
-    'DEADLINE_REMINDER'
+    'DEADLINE_REMINDER',
+    'FINAL_REPORT_SUBMITTED',
+    'FINAL_REPORT_TEACHER_VALIDATED',
+    'FINAL_REPORT_COMPANY_VALIDATED',
+    'FINAL_REPORT_ADMIN_CONFIRMED'
   ) NOT NULL;
 
 -- 13. Create SystemDeadline table

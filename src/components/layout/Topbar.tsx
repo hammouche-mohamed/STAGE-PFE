@@ -123,10 +123,11 @@ export const Topbar: React.FC = () => {
         isOpen={isLogoutDialogOpen}
         onClose={() => setIsLogoutDialogOpen(false)}
         onConfirm={() => signOut({ callbackUrl: "/" })}
-        title="Sign Out"
-        description="Are you sure you want to sign out?"
+        title="Logout Confirmation"
+        description="Are you sure you want to log out? You will need to sign in again to access your dashboard."
         confirmLabel="Logout"
-        variant="danger"
+        cancelLabel="Cancel"
+        variant="warning"
       />
     </header>
   );

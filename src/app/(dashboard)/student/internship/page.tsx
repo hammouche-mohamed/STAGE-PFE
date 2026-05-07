@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import Link from "next/link";
 import { 
   Briefcase, 
   User, 
@@ -80,10 +81,13 @@ export default function StudentInternshipPage() {
           <h1 className="text-[20px] font-bold text-gray-900">{internship.topic.title}</h1>
         </div>
         <div className="flex items-center gap-2">
-           <button className="px-4 py-2 bg-white border border-gray-200 rounded-md text-[13px] font-medium text-gray-700 hover:bg-gray-50 flex items-center shadow-sm transition-all">
+           <Link 
+             href={`/student/messages?id=${internship.id}`}
+             className="px-4 py-2 bg-white border border-gray-200 rounded-md text-[13px] font-medium text-gray-700 hover:bg-gray-50 flex items-center shadow-sm transition-all"
+           >
               <MessageSquare className="h-4 w-4 mr-2 text-indigo-500" />
               Open Chat
-           </button>
+           </Link>
         </div>
       </div>
 

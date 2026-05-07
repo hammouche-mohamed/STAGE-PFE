@@ -30,12 +30,14 @@ interface Internship {
   teacher: {
     id: string;
     name: string;
+    email: string;
   };
   students: {
     isLeader: boolean;
     student: {
       id: string;
       name: string;
+      email: string;
     };
   }[];
   startDate: string | null;
@@ -210,17 +212,44 @@ export default function StudentDashboard() {
                 <p className="text-[13px] text-gray-500 mt-1">{internship.topic.description}</p>
               </div>
 
-              <div className="grid grid-cols-2 gap-6 text-[13px]">
-                <div>
-                  <p className="text-gray-400 font-medium mb-1">{t("dashboard.supervisor")}</p>
-                  <p className="text-gray-900 font-medium">{internship.teacher.name}</p>
+              {/* Participants Section */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-3">
+                  <p className="text-[11px] text-gray-400 uppercase tracking-widest font-bold">{t("dashboard.supervisor")}</p>
+                  <div className="rounded-xl border border-gray-100 bg-white p-3 shadow-sm hover:shadow-md transition-shadow">
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-full bg-indigo-50 text-indigo-700 flex items-center justify-center font-bold text-[14px]">
+                        {internship.teacher.name.charAt(0)}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-[13px] font-bold text-gray-900 truncate">{internship.teacher.name}</p>
+                        <p className="text-[11px] text-gray-500 truncate">{internship.teacher.email}</p>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-gray-400 font-medium mb-1">{t("dashboard.team")}</p>
-                  <div className={`flex items-center gap-2 ${isRTL ? "flex-row-reverse" : ""}`}>
-                    {internship.students.map((s, i) => (
-                      <div key={`${s.student.id}-${i}`} className="h-7 w-7 rounded-full bg-indigo-100 flex items-center justify-center text-[11px] font-bold text-indigo-700">
-                        {s.student.name[0]}
+
+                <div className="space-y-3">
+                  <p className="text-[11px] text-gray-400 uppercase tracking-widest font-bold">{t("dashboard.team")}</p>
+                  <div className="space-y-2">
+                    {internship.students.map((student) => (
+                      <div key={student.student.id} className="rounded-xl border border-gray-100 bg-white p-3 shadow-sm hover:shadow-md transition-shadow">
+                        <div className="flex items-center gap-3">
+                          <div className="h-10 w-10 rounded-full bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold text-[14px]">
+                            {student.student.name.charAt(0)}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-[13px] font-bold text-gray-900 truncate">
+                              {student.student.name}
+                              {student.isLeader && (
+                                <span className="ml-2 text-[9px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full uppercase tracking-tighter font-bold">
+                                  Leader
+                                </span>
+                              )}
+                            </p>
+                            <p className="text-[11px] text-gray-500 truncate">{student.student.email}</p>
+                          </div>
+                        </div>
                       </div>
                     ))}
                   </div>

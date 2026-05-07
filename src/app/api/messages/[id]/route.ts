@@ -38,6 +38,17 @@ export async function GET(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
+    // Automatically clear "MESSAGE_RECEIVED" notifications for this user and internship when they open the chat
+    await prisma.notification.updateMany({
+      where: {
+        userId: session.user.id,
+        relatedId: internshipId,
+        type: "MESSAGE_RECEIVED",
+        isRead: false,
+      },
+      data: { isRead: true },
+    });
+
     const messages = await prisma.message.findMany({
       where: { internshipId },
       include: { sender: { select: { name: true } } },

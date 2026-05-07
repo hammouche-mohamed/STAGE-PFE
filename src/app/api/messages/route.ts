@@ -79,6 +79,7 @@ export async function POST(req: NextRequest) {
         message: `${session.user.name}: ${content.trim().substring(0, 60)}${content.length > 60 ? "…" : ""}`,
         relatedId: internshipId,
         relatedType: "Internship",
+        skipEmail: true,
       });
     }
 

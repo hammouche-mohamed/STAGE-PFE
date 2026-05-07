@@ -11,6 +11,7 @@ export class NotificationService {
     relatedId,
     relatedType,
     link,
+    skipEmail = false,
   }: {
     userId: string;
     type: string; // Prisma notification_type enum value
@@ -20,6 +21,7 @@ export class NotificationService {
     relatedType?: string;
     /** Optional deep link URL shown in the notification (e.g. /student/internship) */
     link?: string;
+    skipEmail?: boolean;
   }) {
     try {
       // 1. Persist notification to DB first (NFR-RDI2: track delivery per record)
@@ -33,11 +35,14 @@ export class NotificationService {
           relatedId,
           relatedType,
           link,
-          // emailSent defaults to false — cron will retry if first attempt fails
+          // If skipEmail is true, mark it as "already sent" so cron ignores it
+          emailSent: skipEmail,
         },
       });
 
       // 2. Fetch user details for email
+      if (skipEmail) return notification;
+
       const user = await prisma.user.findUnique({
         where: { id: userId },
         select: { email: true, name: true },
