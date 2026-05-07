@@ -5,7 +5,7 @@ interface StatsCardProps {
   label: string;
   value: string | number;
   subValue?: string;
-  subValueColor?: "red" | "green" | "gray";
+  subValueColor?: "red" | "green" | "gray" | "amber";
   icon?: LucideIcon;
   badge?: React.ReactNode;
 }
@@ -21,7 +21,8 @@ export const StatsCard: React.FC<StatsCardProps> = ({
   const colorMap = {
     red: "text-red-600",
     green: "text-green-600",
-    gray: "text-gray-400"
+    gray: "text-gray-400",
+    amber: "text-amber-600"
   };
 
   return (

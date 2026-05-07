@@ -1,6 +1,5 @@
 import { PrismaClient } from "@prisma/client";
 import { PrismaMariaDb } from "@prisma/adapter-mariadb";
-import pool from "mariadb";
 
 const prismaClientSingleton = () => {
   if (!process.env.DATABASE_URL) {

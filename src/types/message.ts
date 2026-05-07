@@ -21,10 +21,12 @@ export interface InternshipThread {
   students: {
     student: {
       name: string;
+      email: string;
     };
   }[];
   teacher?: {
     name: string;
+    email: string;
   };
   midtermDeadline?: string | null;
   finalDeadline?: string | null;

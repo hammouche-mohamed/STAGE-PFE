@@ -154,9 +154,9 @@ function MessagesContent() {
 
     // OPTIMISTIC UPDATE
     const tempId = `temp-${Date.now()}`;
-    const optimisticMsg = {
+    const optimisticMsg: Message = {
       id: tempId,
-      senderId: session?.user?.id,
+      senderId: session?.user?.id || "",
       sender: { name: session?.user?.name || "You" },
       content: finalContent,
       sentAt: new Date().toISOString(),
@@ -264,93 +264,91 @@ function MessagesContent() {
   const fmtBytes = (b: number) => b < 1024 * 1024 ? `${(b / 1024).toFixed(1)} KB` : `${(b / 1024 / 1024).toFixed(1)} MB`;
   const fileIcon = (name: string) => {
     const ext = name.split(".").pop()?.toLowerCase();
-    if (["png","jpg","jpeg"].includes(ext ?? "")) return "🖼";
+    if (["png", "jpg", "jpeg"].includes(ext ?? "")) return "🖼";
     if (ext === "pdf") return "📄";
-    if (["doc","docx"].includes(ext ?? "")) return "📝";
+    if (["doc", "docx"].includes(ext ?? "")) return "📝";
     if (ext === "zip") return "🗜";
     return "📎";
   };
 
   const displayMessages = searchQuery.trim()
     ? messages.filter(
-        (m) =>
-          m.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          m.attachmentName?.toLowerCase().includes(searchQuery.toLowerCase())
-      )
+      (m) =>
+        m.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        m.attachmentName?.toLowerCase().includes(searchQuery.toLowerCase())
+    )
     : messages;
 
   return (
     <>
-    <div className="-mt-4 md:-mt-6 h-[calc(100vh-115px)] flex flex-col space-y-3 overflow-hidden">
-      {/* Header Area */}
-      <div className="flex flex-col gap-2 flex-shrink-0">
-        <div className={`flex items-center justify-between ${isRTL ? "flex-row-reverse" : ""}`}>
-          <div className={`flex items-center gap-2 md:gap-3 ${isRTL ? "flex-row-reverse" : ""}`}>
-            <Link href={backUrl} className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-500 transition-colors">
-              <ChevronLeft className={`h-5 w-5 ${isRTL ? "rotate-180" : ""}`} />
-            </Link>
-            <div>
-              <div className="flex items-center gap-2">
-                <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse hidden sm:block" />
-                <h1 className="text-[14px] md:text-[15px] font-bold text-gray-900 leading-none truncate max-w-[120px] sm:max-w-none">Coordination Center</h1>
+      <div className="-mt-4 md:-mt-6 h-[calc(100vh-115px)] flex flex-col space-y-3 overflow-hidden">
+        {/* Header Area */}
+        <div className="flex flex-col gap-2 flex-shrink-0">
+          <div className={`flex items-center justify-between ${isRTL ? "flex-row-reverse" : ""}`}>
+            <div className={`flex items-center gap-2 md:gap-3 ${isRTL ? "flex-row-reverse" : ""}`}>
+              <Link href={backUrl} className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-500 transition-colors">
+                <ChevronLeft className={`h-5 w-5 ${isRTL ? "rotate-180" : ""}`} />
+              </Link>
+              <div>
+                <div className="flex items-center gap-2">
+                  <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse hidden sm:block" />
+                  <h1 className="text-[14px] md:text-[15px] font-bold text-gray-900 leading-none truncate max-w-[120px] sm:max-w-none">Coordination Center</h1>
+                </div>
+                <p className="text-[11px] md:text-[12px] text-gray-500 mt-0.5 md:mt-1 uppercase tracking-tight font-bold truncate max-w-[150px] sm:max-w-none">{internship?.topic.title}</p>
               </div>
-              <p className="text-[11px] md:text-[12px] text-gray-500 mt-0.5 md:mt-1 uppercase tracking-tight font-bold truncate max-w-[150px] sm:max-w-none">{internship?.topic.title}</p>
+            </div>
+
+            <div className={`flex items-center gap-1.5 md:gap-2 ${isRTL ? "flex-row-reverse" : ""}`}>
+              <button
+                onClick={() => toggleSidebar("files")}
+                className={`h-8 px-2 md:px-3 rounded-md transition-all flex items-center gap-1.5 md:gap-2 text-[10px] md:text-[11px] font-bold border ${showFiles && sidebarTab === "files"
+                    ? "bg-indigo-600 text-white border-indigo-600 shadow-sm"
+                    : "bg-white text-gray-600 hover:bg-gray-50 border-gray-200"
+                  }`}
+              >
+                <FileText className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">{sharedFiles.length} Files</span>
+                <span className="sm:hidden">{sharedFiles.length}</span>
+              </button>
+              <button
+                onClick={() => toggleSidebar("participants")}
+                className={`h-8 px-2 md:px-3 rounded-md transition-all flex items-center gap-1.5 md:gap-2 text-[10px] md:text-[11px] font-bold border ${showFiles && sidebarTab === "participants"
+                    ? "bg-indigo-600 text-white border-indigo-600 shadow-sm"
+                    : "bg-white text-gray-600 hover:bg-gray-50 border-gray-200"
+                  }`}
+              >
+                <Users className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">{internship ? (internship.students.length + 1) : 0}</span>
+              </button>
             </div>
           </div>
-          
-          <div className={`flex items-center gap-1.5 md:gap-2 ${isRTL ? "flex-row-reverse" : ""}`}>
-            <button
-              onClick={() => toggleSidebar("files")}
-              className={`h-8 px-2 md:px-3 rounded-md transition-all flex items-center gap-1.5 md:gap-2 text-[10px] md:text-[11px] font-bold border ${
-                showFiles && sidebarTab === "files" 
-                  ? "bg-indigo-600 text-white border-indigo-600 shadow-sm" 
-                  : "bg-white text-gray-600 hover:bg-gray-50 border-gray-200"
-              }`}
-            >
-              <FileText className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">{sharedFiles.length} Files</span>
-              <span className="sm:hidden">{sharedFiles.length}</span>
-            </button>
-            <button
-              onClick={() => toggleSidebar("participants")}
-              className={`h-8 px-2 md:px-3 rounded-md transition-all flex items-center gap-1.5 md:gap-2 text-[10px] md:text-[11px] font-bold border ${
-                showFiles && sidebarTab === "participants" 
-                  ? "bg-indigo-600 text-white border-indigo-600 shadow-sm" 
-                  : "bg-white text-gray-600 hover:bg-gray-50 border-gray-200"
-              }`}
-            >
-              <Users className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">{internship ? (internship.students.length + 1) : 0}</span>
-            </button>
-          </div>
+
+          {/* Local Search */}
+          {internship && (
+            <div className="relative">
+              <Search className={`absolute ${isRTL ? "right-3" : "left-3"} top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400`} />
+              <input
+                type="text"
+                placeholder={t("common.search")}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className={`w-full h-8 bg-white border border-gray-200 rounded-full ${isRTL ? "pr-8 pl-4 text-right" : "pl-8 pr-4"} text-[12px] focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-300`}
+              />
+              {searchQuery && (
+                <button onClick={() => setSearchQuery("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
+          )}
         </div>
 
-        {/* Local Search */}
-        {internship && (
-          <div className="relative">
-            <Search className={`absolute ${isRTL ? "right-3" : "left-3"} top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400`} />
-            <input
-              type="text"
-              placeholder={t("common.search")}
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className={`w-full h-8 bg-white border border-gray-200 rounded-full ${isRTL ? "pr-8 pl-4 text-right" : "pl-8 pr-4"} text-[12px] focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-300`}
-            />
-            {searchQuery && (
-              <button onClick={() => setSearchQuery("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
-                <X className="h-3.5 w-3.5" />
-              </button>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* Messages Content Area */}
-      <div className="flex-1 flex overflow-hidden relative min-w-0">
-        {/* Main Chat Content */}
-        <div className="flex-1 min-w-0 bg-white border border-gray-200 rounded-xl shadow-sm flex flex-col overflow-hidden">
-          {/* Messages */}
-          <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
+        {/* Messages Content Area */}
+        <div className="flex-1 flex overflow-hidden relative min-w-0">
+          {/* Main Chat Content */}
+          <div className="flex-1 min-w-0 bg-white border border-gray-200 rounded-xl shadow-sm flex flex-col overflow-hidden">
+            {/* Messages */}
+            <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
               {isLoading ? (
                 <p className="text-center text-gray-400 text-[13px] pt-12">Loading…</p>
               ) : !internship ? (
@@ -396,16 +394,14 @@ function MessagesContent() {
                         </div>
 
                         {/* Bubble */}
-                        <div className={`relative px-4 py-3 rounded-2xl text-[13.5px] leading-relaxed ${
-                          isMe
+                        <div className={`relative px-4 py-3 rounded-2xl text-[13.5px] leading-relaxed ${isMe
                             ? "bg-indigo-600 text-white rounded-tr-sm"
                             : "bg-white text-gray-800 rounded-tl-sm shadow-sm border border-gray-100"
-                        }`}>
+                          }`}>
                           {/* Quoted reply */}
                           {quoted && (
-                            <div className={`mb-2 px-3 py-1.5 rounded-lg text-[11px] border-l-2 ${
-                              isMe ? "bg-indigo-700 border-indigo-300 text-indigo-200" : "bg-gray-50 border-indigo-400 text-gray-500"
-                            }`}>
+                            <div className={`mb-2 px-3 py-1.5 rounded-lg text-[11px] border-l-2 ${isMe ? "bg-indigo-700 border-indigo-300 text-indigo-200" : "bg-gray-50 border-indigo-400 text-gray-500"
+                              }`}>
                               {quoted}
                             </div>
                           )}
@@ -414,9 +410,8 @@ function MessagesContent() {
                           {/* Attachment */}
                           {msg.attachmentName && (
                             <a href={msg.attachmentUrl ?? "#"} target="_blank" rel="noreferrer"
-                              className={`mt-2 p-2 rounded-lg flex items-center gap-2 border text-[11px] ${
-                                isMe ? "bg-indigo-700 border-indigo-500 text-white" : "bg-gray-50 border-gray-200 text-gray-600"
-                              }`}>
+                              className={`mt-2 p-2 rounded-lg flex items-center gap-2 border text-[11px] ${isMe ? "bg-indigo-700 border-indigo-500 text-white" : "bg-gray-50 border-gray-200 text-gray-600"
+                                }`}>
                               <FileText className="h-4 w-4 flex-shrink-0" />
                               <span className="truncate font-medium">{msg.attachmentName}</span>
                             </a>
@@ -509,7 +504,7 @@ function MessagesContent() {
                 </h3>
                 {sidebarTab === "files" ? <FileText className="h-4 w-4 text-gray-400" /> : <Users className="h-4 w-4 text-gray-400" />}
               </div>
-              
+
               <div className="flex-1 overflow-y-auto p-3">
                 {sidebarTab === "participants" ? (
                   <div className="space-y-6">
@@ -568,9 +563,8 @@ function MessagesContent() {
                           rel="noreferrer"
                           className={`flex items-start gap-3 p-2.5 rounded-xl hover:bg-gray-50 border border-transparent hover:border-gray-100 transition-all group ${isRTL ? "flex-row-reverse" : ""}`}
                         >
-                          <div className={`h-9 w-9 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                            file.category === "DOCUMENT" ? "bg-amber-50 text-amber-600" : "bg-indigo-50 text-indigo-600"
-                          }`}>
+                          <div className={`h-9 w-9 rounded-lg flex items-center justify-center flex-shrink-0 ${file.category === "DOCUMENT" ? "bg-amber-50 text-amber-600" : "bg-indigo-50 text-indigo-600"
+                            }`}>
                             <FileText className="h-4 w-4" />
                           </div>
                           <div className={`min-w-0 flex-1 ${isRTL ? "text-right" : "text-left"}`}>
@@ -578,9 +572,8 @@ function MessagesContent() {
                               {file.name}
                             </p>
                             <div className={`flex items-center gap-1.5 mt-0.5 ${isRTL ? "flex-row-reverse" : ""}`}>
-                              <span className={`text-[9px] font-bold px-1 rounded uppercase ${
-                                file.category === "DOCUMENT" ? "bg-amber-100 text-amber-700" : "bg-indigo-100 text-indigo-700"
-                              }`}>
+                              <span className={`text-[9px] font-bold px-1 rounded uppercase ${file.category === "DOCUMENT" ? "bg-amber-100 text-amber-700" : "bg-indigo-100 text-indigo-700"
+                                }`}>
                                 {file.category === "DOCUMENT" ? "Doc" : "Chat"}
                               </span>
                               <span className="text-[10px] text-gray-400 truncate">
