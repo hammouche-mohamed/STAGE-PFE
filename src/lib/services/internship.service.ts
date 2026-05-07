@@ -112,6 +112,61 @@ export class InternshipService {
     return updated;
   }
 
+  // ─── Send Document ─────────────────────────────────────────────────────────
+
+  /**
+   * Admin marks the convention/document as sent to the company.
+   * Status → DOCUMENT_SENT.
+   */
+  static async sendDocument(internshipId: string, adminId: string) {
+    const internship = await prisma.internship.findUnique({
+      where: { id: internshipId },
+    });
+
+    if (!internship) throw new Error('Internship not found');
+    if (internship.status !== 'REQUESTED') {
+      throw new Error('Only internships in REQUESTED status can be marked as document sent.');
+    }
+
+    const updated = await prisma.internship.update({
+      where: { id: internshipId },
+      data: {
+        status: 'DOCUMENT_SENT',
+        updatedAt: new Date(),
+      },
+    });
+
+    await AuditService.log({
+      userId: adminId,
+      action: 'INTERNSHIP_DOCUMENT_SENT',
+      targetType: 'Internship',
+      targetId: internshipId,
+    });
+
+    // Notify student and teacher
+    const recipients = [
+      ...await prisma.internshipStudent.findMany({
+        where: { internshipId },
+        select: { studentId: true }
+      }).then(students => students.map(s => s.studentId)),
+      internship.teacherId,
+    ];
+
+    for (const userId of recipients) {
+      await NotificationService.trigger({
+        userId,
+        type: 'DOCUMENT_UPLOADED', // Reusing appropriate type or mapping to a generic one
+        title: 'Convention Sent to Company',
+        message: 'The internship convention has been sent to the host company for confirmation.',
+        relatedId: internshipId,
+        relatedType: 'Internship',
+        link: '/student/internship',
+      });
+    }
+
+    return updated;
+  }
+
   // ─── Final Report Submission ───────────────────────────────────────────────
 
   /**

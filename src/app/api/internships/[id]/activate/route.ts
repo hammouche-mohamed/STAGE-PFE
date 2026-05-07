@@ -3,15 +3,15 @@ import { auth } from '@/lib/auth';
 import { InternshipService } from '@/lib/services/internship.service';
 import { z } from 'zod';
 
-const activateSchema = z.object({
-  startDate: z.string().datetime({ message: 'startDate must be an ISO datetime string' }),
-  endDate: z.string().datetime({ message: 'endDate must be an ISO datetime string' }),
-  technicalSupervisorName: z.string().min(2, 'Supervisor name is required'),
-  technicalSupervisorEmail: z.string().email('Invalid supervisor email'),
+const activationSchema = z.object({
+  startDate: z.string().datetime(),
+  endDate: z.string().datetime(),
+  technicalSupervisorName: z.string().min(2),
+  technicalSupervisorEmail: z.string().email(),
 });
 
 // POST /api/internships/[id]/activate
-// Company confirms internship start/end dates → status becomes IN_PROGRESS
+// Company (or admin) confirms dates and starts the internship
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
@@ -27,8 +27,7 @@ export async function POST(
   try {
     const { id } = await params;
     const body = await req.json();
-    const { startDate, endDate, technicalSupervisorName, technicalSupervisorEmail } =
-      activateSchema.parse(body);
+    const { startDate, endDate, technicalSupervisorName, technicalSupervisorEmail } = activationSchema.parse(body);
 
     const start = new Date(startDate);
     const end = new Date(endDate);

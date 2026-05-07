@@ -3,8 +3,9 @@
 import React, { useEffect, useState } from "react";
 import {
   Search, Filter, Building2, CheckCircle2, Loader2,
-  X, AlertCircle, Users, Calendar, Tag, ChevronRight, User
+  X, AlertCircle, Users, Calendar, Tag, ChevronRight, User, Plus
 } from "lucide-react";
+import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { toast } from "sonner";
 import { useTranslation } from "@/lib/i18n/LanguageContext";
@@ -89,9 +90,17 @@ export default function StudentTopicsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-[17px] font-semibold text-gray-900">{t("topics.title")}</h1>
-        <p className="text-[13px] text-gray-500 mt-0.5">{t("topics.pendingApproval")}</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-[17px] font-semibold text-gray-900">{t("topics.title")}</h1>
+          <p className="text-[13px] text-gray-500 mt-0.5">{t("topics.pendingApproval")}</p>
+        </div>
+        <Link href="/student/topics/propose">
+          <Button size="sm" className="bg-indigo-600 hover:bg-indigo-700">
+            <Plus className="h-4 w-4 mr-2" />
+            {t("topics.propose")}
+          </Button>
+        </Link>
       </div>
 
       <div className="flex flex-col sm:flex-row gap-4">

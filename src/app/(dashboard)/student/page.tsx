@@ -204,6 +204,12 @@ export default function StudentDashboard() {
               <Link href="/student/topics" className="text-[12px] text-indigo-600 hover:underline mt-2 block">
                 {t("dashboard.browseTopics")}
               </Link>
+              <div className="mt-4 pt-4 border-t border-gray-50">
+                <p className="text-[11px] text-gray-400 mb-2">Have you already found a company?</p>
+                <Link href="/student/topics/propose" className="text-[12px] font-bold text-indigo-600 hover:text-indigo-800">
+                  + {t("topics.propose")}
+                </Link>
+              </div>
             </div>
           ) : (
             <div className={`space-y-6 ${isRTL ? "text-right" : ""}`}>
