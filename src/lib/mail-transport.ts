@@ -14,7 +14,7 @@ export const transporter = nodemailer.createTransport(smtpConfig);
 
 // Verify connection configuration
 if (process.env.SMTP_USER && process.env.SMTP_PASS) {
-  transporter.verify((error, success) => {
+  transporter.verify((error) => {
     if (error) {
       console.error("SMTP Connection Error:", error);
     } else {

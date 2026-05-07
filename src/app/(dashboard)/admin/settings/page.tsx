@@ -38,6 +38,10 @@ export default function AdminSettingsPage() {
     }
   }, [session, status, router]);
 
+  useEffect(() => {
+    fetchSettings();
+  }, []);
+
   // Block render until session is confirmed
   if (status === "loading" || !session || session.user.role !== "ADMIN") {
     return <div className="p-8 text-center text-gray-400 text-sm">Verifying access…</div>;
@@ -122,9 +126,6 @@ export default function AdminSettingsPage() {
     }
   };
 
-  useEffect(() => {
-    fetchSettings();
-  }, []);
 
   const handleUpdate = async (key: string, value: string) => {
     setLoadingKey(key);

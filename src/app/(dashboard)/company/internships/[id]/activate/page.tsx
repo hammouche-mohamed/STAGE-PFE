@@ -23,8 +23,9 @@ type ActivateFormData = z.infer<typeof activateSchema>;
 export default function ActivateInternshipPage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
+  const resolvedParams = React.use(params);
   const router = useRouter();
   const { t } = useTranslation();
   const [isLoading, setIsLoading] = useState(false);
@@ -48,7 +49,7 @@ export default function ActivateInternshipPage({
 
     setIsLoading(true);
     try {
-      const res = await fetch(`/api/internships/${params.id}/activate`, {
+      const res = await fetch(`/api/internships/${resolvedParams.id}/activate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

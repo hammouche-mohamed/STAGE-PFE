@@ -42,6 +42,8 @@ export type InternshipStatus =
   | 'IN_PROGRESS'
   | 'NEEDS_REVISION'
   | 'APPROVED'
+  | 'FINAL_REPORT_SUBMITTED'
+  | 'PENDING_ADMIN_CONFIRMATION'
   | 'COMPLETED'
   | 'CANCELLED';
 
@@ -52,6 +54,8 @@ export const INTERNSHIP_STATUS_LABELS: Record<InternshipStatus, string> = {
   IN_PROGRESS: 'In Progress',
   NEEDS_REVISION: 'Needs Revision',
   APPROVED: 'Approved',
+  FINAL_REPORT_SUBMITTED: 'Final Report Submitted',
+  PENDING_ADMIN_CONFIRMATION: 'Pending Admin Confirmation',
   COMPLETED: 'Completed',
   CANCELLED: 'Cancelled',
 };

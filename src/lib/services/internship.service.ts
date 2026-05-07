@@ -1,7 +1,7 @@
 import prisma from '@/lib/prisma';
+import { internship_status, internship_type } from '@prisma/client';
 import { addDays, subDays, differenceInDays } from 'date-fns';
-import { randomUUID } from 'crypto';
-import type { InternshipType, InternshipDeadlines } from '@/types/internship';
+import type { InternshipDeadlines } from '@/types/internship';
 import { AuditService } from './audit.service';
 import { NotificationService } from './notification.service';
 import { TeacherLoadService } from './teacherLoad.service';
@@ -20,13 +20,13 @@ export class InternshipService {
   static calculateDeadlines(
     startDate: Date,
     endDate: Date,
-    type: InternshipType,
+    type: internship_type,
   ): InternshipDeadlines {
     const durationDays = differenceInDays(endDate, startDate);
 
     return {
       midtermDeadline:
-        type === 'PFE'
+        type === internship_type.PFE
           ? addDays(startDate, Math.floor(durationDays / 2))
           : null, // NORMAL → never required
       finalDeadline: subDays(endDate, 7),
@@ -57,18 +57,18 @@ export class InternshipService {
 
     if (!internship) throw new Error('Internship not found');
 
-    const type = internship.internshipType ?? 'PFE';
+    const internshipType: internship_type = internship.internshipType ?? internship_type.PFE;
     const { midtermDeadline, finalDeadline } = this.calculateDeadlines(
       startDate,
       endDate,
-      type as InternshipType,
+      internshipType,
     );
 
     const updated = await prisma.$transaction(async (tx) => {
       const result = await tx.internship.update({
         where: { id: internshipId },
         data: {
-          status: 'IN_PROGRESS',
+          status: internship_status.IN_PROGRESS,
           startDate,
           endDate,
           midtermDeadline,
@@ -85,7 +85,7 @@ export class InternshipService {
         action: 'INTERNSHIP_ACTIVATED',
         targetType: 'Internship',
         targetId: internshipId,
-        details: { startDate, endDate, type },
+        details: { startDate, endDate, internshipType },
       });
 
       return result;
@@ -124,14 +124,14 @@ export class InternshipService {
     });
 
     if (!internship) throw new Error('Internship not found');
-    if (internship.status !== 'REQUESTED') {
+    if (internship.status !== internship_status.REQUESTED) {
       throw new Error('Only internships in REQUESTED status can be marked as document sent.');
     }
 
     const updated = await prisma.internship.update({
       where: { id: internshipId },
       data: {
-        status: 'DOCUMENT_SENT',
+        status: internship_status.DOCUMENT_SENT,
         updatedAt: new Date(),
       },
     });
@@ -189,7 +189,7 @@ export class InternshipService {
     });
 
     if (!internship) throw new Error('Internship not found');
-    if (internship.status !== 'IN_PROGRESS') {
+    if (internship.status !== internship_status.IN_PROGRESS) {
       throw new Error('The internship must be IN_PROGRESS to submit the final report.');
     }
 
@@ -201,7 +201,7 @@ export class InternshipService {
       await tx.internship.update({
         where: { id: internshipId },
         data: {
-          status: 'FINAL_REPORT_SUBMITTED',
+          status: internship_status.FINAL_REPORT_SUBMITTED,
           // Reset validation flags in case of resubmission after revision
           teacherValidatedFinalReport: false,
           teacherValidatedAt: null,
@@ -251,7 +251,7 @@ export class InternshipService {
     });
 
     if (!internship) throw new Error('Internship not found');
-    if (internship.status !== 'FINAL_REPORT_SUBMITTED') {
+    if (internship.status !== internship_status.FINAL_REPORT_SUBMITTED) {
       throw new Error('No final report is pending validation.');
     }
     if (internship.teacherId !== teacherId) {
@@ -262,7 +262,7 @@ export class InternshipService {
     }
 
     const bothValidated = internship.companyValidatedFinalReport;
-    const newStatus = bothValidated ? 'PENDING_ADMIN_CONFIRMATION' : 'FINAL_REPORT_SUBMITTED';
+    const newStatus: internship_status = bothValidated ? internship_status.PENDING_ADMIN_CONFIRMATION : internship_status.FINAL_REPORT_SUBMITTED;
 
     await prisma.$transaction(async (tx) => {
       await tx.internship.update({
@@ -270,7 +270,7 @@ export class InternshipService {
         data: {
           teacherValidatedFinalReport: true,
           teacherValidatedAt: new Date(),
-          status: newStatus as any,
+          status: newStatus,
           updatedAt: new Date(),
         },
       });
@@ -318,7 +318,7 @@ export class InternshipService {
     });
 
     if (!internship) throw new Error('Internship not found');
-    if (internship.status !== 'FINAL_REPORT_SUBMITTED') {
+    if (internship.status !== internship_status.FINAL_REPORT_SUBMITTED) {
       throw new Error('No final report is pending validation.');
     }
     if (internship.topic.proposedById !== companyUserId) {
@@ -329,7 +329,7 @@ export class InternshipService {
     }
 
     const bothValidated = internship.teacherValidatedFinalReport;
-    const newStatus = bothValidated ? 'PENDING_ADMIN_CONFIRMATION' : 'FINAL_REPORT_SUBMITTED';
+    const newStatus: internship_status = bothValidated ? internship_status.PENDING_ADMIN_CONFIRMATION : internship_status.FINAL_REPORT_SUBMITTED;
 
     await prisma.$transaction(async (tx) => {
       await tx.internship.update({
@@ -337,7 +337,7 @@ export class InternshipService {
         data: {
           companyValidatedFinalReport: true,
           companyValidatedAt: new Date(),
-          status: newStatus as any,
+          status: newStatus,
           updatedAt: new Date(),
         },
       });
@@ -386,7 +386,7 @@ export class InternshipService {
     });
 
     if (!internship) throw new Error('Internship not found');
-    if (internship.status !== 'PENDING_ADMIN_CONFIRMATION') {
+    if (internship.status !== internship_status.PENDING_ADMIN_CONFIRMATION) {
       throw new Error(
         'Both the teacher and company must validate the final report before admin can confirm completion.',
       );
@@ -396,7 +396,7 @@ export class InternshipService {
       await tx.internship.update({
         where: { id: internshipId },
         data: {
-          status: 'COMPLETED',
+          status: internship_status.COMPLETED,
           completedAt: new Date(),
           updatedAt: new Date(),
         },
@@ -456,7 +456,7 @@ export class InternshipService {
       await tx.internship.update({
         where: { id: internshipId },
         data: {
-          status: 'NEEDS_REVISION',
+          status: internship_status.NEEDS_REVISION,
           // Reset validation gates so the student must resubmit
           teacherValidatedFinalReport: false,
           teacherValidatedAt: null,
