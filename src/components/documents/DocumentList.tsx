@@ -3,10 +3,12 @@
 import React from "react";
 import { formatShortDate } from "@/lib/utils/formatDate";
 import { StatusBadge } from "@/components/ui/StatusBadge";
-import { FileIcon, Download, Check, X, MessageSquare, Trash2 } from "lucide-react";
+import { FileIcon, Eye, Check, X, MessageSquare, Trash2, Download } from "lucide-react";
 import { toast } from "sonner";
 import { InternshipDocument } from "@/types/document";
 
+
+import { useTranslation } from "@/lib/i18n/LanguageContext";
 
 interface DocumentListProps {
   documents: InternshipDocument[];
@@ -16,8 +18,10 @@ interface DocumentListProps {
 }
 
 export const DocumentList: React.FC<DocumentListProps> = ({ documents, onReview, onDelete, canReview }) => {
+  const { t } = useTranslation();
+  
   const getTypeLabel = (type: string) => {
-    return type.replace(/_/g, " ");
+    return t(`documents.types.${type}` as any) || type.replace(/_/g, " ");
   };
 
   return (
@@ -26,18 +30,18 @@ export const DocumentList: React.FC<DocumentListProps> = ({ documents, onReview,
         <table className="admin-table">
           <thead className="admin-table-header">
             <tr>
-              <th>Document Type</th>
-              <th>File Name</th>
-              <th>Version</th>
-              <th>Uploaded By</th>
-              <th>Status</th>
-              <th className="text-right">Actions</th>
+              <th>{t("documents.type")}</th>
+              <th>{t("documents.fileName")}</th>
+              <th>{t("documents.version")}</th>
+              <th>{t("common.uploadedBy")}</th>
+              <th>{t("common.status")}</th>
+              <th className="text-right">{t("documents.actions")}</th>
             </tr>
           </thead>
           <tbody>
             {documents.length === 0 ? (
               <tr>
-                <td colSpan={6} className="text-center py-8 text-gray-400">No documents uploaded yet.</td>
+                <td colSpan={6} className="text-center py-8 text-gray-400">{t("documents.noDocuments")}</td>
               </tr>
             ) : (
               documents.map((doc) => (
@@ -69,6 +73,14 @@ export const DocumentList: React.FC<DocumentListProps> = ({ documents, onReview,
                         href={doc.fileUrl} 
                         target="_blank" 
                         rel="noopener noreferrer"
+                        className="p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition-all"
+                        title="View"
+                      >
+                        <Eye className="h-4 w-4" />
+                      </a>
+                      <a 
+                        href={doc.fileUrl} 
+                        download={doc.fileName}
                         className="p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition-all"
                         title="Download"
                       >

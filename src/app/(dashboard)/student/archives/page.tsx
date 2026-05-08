@@ -5,6 +5,7 @@ import { Archive, Calendar, Building2, User, GraduationCap, MessageSquare } from
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { StatusBadge } from "@/components/ui/StatusBadge";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
 
 interface ArchivedInternship {
   id: string;
@@ -21,6 +22,7 @@ interface ArchivedInternship {
 }
 
 export default function StudentArchivesPage() {
+  const { t } = useTranslation();
   const [internships, setInternships] = useState<ArchivedInternship[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -28,9 +30,9 @@ export default function StudentArchivesPage() {
     fetch("/api/internships?archived=true")
       .then((r) => r.json())
       .then((d) => setInternships(d.data || []))
-      .catch(() => toast.error("Failed to load archives"))
+      .catch(() => toast.error(t("toast.loadFailed")))
       .finally(() => setIsLoading(false));
-  }, []);
+  }, [t]);
 
   // Group by academic year
   const grouped = internships.reduce<Record<string, ArchivedInternship[]>>((acc, i) => {
@@ -42,20 +44,20 @@ export default function StudentArchivesPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-[17px] font-semibold text-gray-900 flex items-center gap-2">
-          <Archive className="h-5 w-5 text-indigo-600" /> Archives
+          <Archive className="h-5 w-5 text-indigo-600" /> {t("archivesPage.title")}
         </h1>
         <p className="text-[13px] text-gray-500 mt-0.5">
-          Your completed and archived internships. These records are read-only.
+          {t("archivesPage.subtitle")}
         </p>
       </div>
 
       {isLoading ? (
-        <div className="py-16 text-center text-gray-400 text-[13px]">Loading archives…</div>
+        <div className="py-16 text-center text-gray-400 text-[13px]">{t("common.loading")}</div>
       ) : internships.length === 0 ? (
         <div className="py-16 text-center">
           <Archive className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-          <p className="text-[14px] font-medium text-gray-500">No archived internships yet</p>
-          <p className="text-[12px] text-gray-400 mt-1">Completed internships will appear here after the final deadline.</p>
+          <p className="text-[14px] font-medium text-gray-500">{t("archivesPage.noArchives")}</p>
+          <p className="text-[12px] text-gray-400 mt-1">{t("archivesPage.noArchivesDesc")}</p>
         </div>
       ) : (
         Object.entries(grouped)
@@ -63,7 +65,7 @@ export default function StudentArchivesPage() {
           .map(([year, items]) => (
             <div key={year}>
               <h2 className="text-[12px] font-bold text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-2">
-                <Calendar className="h-3.5 w-3.5" /> Academic Year {year}
+                <Calendar className="h-3.5 w-3.5" /> {t("archivesPage.academicYear", { year })}
               </h2>
               <div className="space-y-3">
                 {items.map((internship) => {
@@ -104,16 +106,16 @@ export default function StudentArchivesPage() {
 
                         <div className="text-right flex-shrink-0 space-y-1">
                           <p className="text-[11px] text-gray-400">
-                            Archived {format(new Date(internship.archivedAt), "dd MMM yyyy")}
+                            {t("archivesPage.archivedOn", { date: format(new Date(internship.archivedAt), "dd MMM yyyy") })}
                           </p>
                           {chatLocked ? (
                             <span className="flex items-center gap-1 text-[11px] text-gray-400">
-                              <MessageSquare className="h-3.5 w-3.5" /> Chat archived
+                              <MessageSquare className="h-3.5 w-3.5" /> {t("archivesPage.chatLocked")}
                             </span>
                           ) : (
                             <span className="flex items-center gap-1 text-[11px] text-amber-600">
                               <MessageSquare className="h-3.5 w-3.5" />
-                              Chat closes {format(new Date(internship.chatArchivedAt), "dd MMM")}
+                              {t("archivesPage.chatGrace", { date: format(new Date(internship.chatArchivedAt), "dd MMM") })}
                             </span>
                           )}
                         </div>

@@ -80,7 +80,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
             </div>
           )}
 
-          <div className="whitespace-pre-wrap break-words overflow-hidden">{text}</div>
+          <div dir="auto" className="whitespace-pre-wrap break-words overflow-hidden text-start">{text}</div>
 
           {/* Attachment */}
           {message.attachmentUrl && (

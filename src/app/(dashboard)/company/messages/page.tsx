@@ -1,25 +1,36 @@
 "use client";
 
-import React, { useEffect, useState, useRef, useCallback } from "react";
-import { Send, Paperclip, FileText } from "lucide-react";
+import React, { useEffect, useState, useCallback, Suspense } from "react";
 import { toast } from "sonner";
-import { format } from "date-fns";
 import { useSession } from "next-auth/react";
 import { useTranslation } from "@/lib/i18n/LanguageContext";
+import { ChatWindow } from "@/components/messages/ChatWindow";
+import { InternshipThread } from "@/types/message";
+import { FileText, ChevronLeft, Search, X, Users } from "lucide-react";
+import { format } from "date-fns";
 
-import { Message, InternshipThread } from "@/types/message";
+interface SharedFile {
+  id: string;
+  name: string;
+  url: string;
+  sentAt: string;
+  senderName: string;
+  category: "DOCUMENT" | "ATTACHMENT";
+}
 
-export default function CompanyMessagesPage() {
+function CompanyMessagesContent() {
   const { data: session } = useSession();
   const { t, isRTL } = useTranslation();
   const [internships, setInternships] = useState<InternshipThread[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [newMessage, setNewMessage] = useState("");
+  const [sharedFiles, setSharedFiles] = useState<SharedFile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isSending, setIsSending] = useState(false);
-  const bottomRef = useRef<HTMLDivElement>(null);
+  const [showFiles, setShowFiles] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
+  const [sidebarTab, setSidebarTab] = useState<"files" | "participants">("files");
+
+  // Fetch company's internships (as thread list)
   const loadInternships = useCallback(async () => {
     try {
       const res = await fetch("/api/internships");
@@ -28,7 +39,9 @@ export default function CompanyMessagesPage() {
         (i: any) => !["CANCELLED", "REQUESTED"].includes(i.status)
       );
       setInternships(active);
-      if (active.length > 0 && !selectedId) setSelectedId(active[0].id);
+      if (active.length > 0 && !selectedId) {
+        setSelectedId(active[0].id);
+      }
     } catch {
       toast.error(t("toast.loadInternshipsFailed"));
     } finally {
@@ -36,153 +49,317 @@ export default function CompanyMessagesPage() {
     }
   }, [t, selectedId]);
 
+  const fetchSharedFiles = useCallback(async (internshipId: string) => {
+    try {
+      // 1. Fetch messages to get attachments
+      const msgRes = await fetch(`/api/messages/${internshipId}`);
+      const msgData = await msgRes.json();
+      const msgs = msgData.data || [];
+
+      const msgAttachments: SharedFile[] = msgs
+        .filter((m: any) => m.attachmentName && m.attachmentUrl)
+        .map((m: any) => ({
+          id: m.id,
+          name: m.attachmentName!,
+          url: m.attachmentUrl!,
+          sentAt: m.sentAt,
+          senderName: m.sender.name,
+          category: "ATTACHMENT",
+        }));
+
+      // 2. Fetch formal documents
+      const docRes = await fetch(`/api/documents?internshipId=${internshipId}`);
+      const docData = await docRes.json();
+      const docs: SharedFile[] = (docData.data || []).map((d: any) => ({
+        id: d.id,
+        name: d.fileName,
+        url: d.fileUrl,
+        sentAt: d.uploadedAt || d.createdAt,
+        senderName: d.uploadedBy?.name || "System",
+        category: "DOCUMENT",
+      }));
+
+      const combined = [...docs, ...msgAttachments].sort(
+        (a, b) => new Date(b.sentAt).getTime() - new Date(a.sentAt).getTime()
+      );
+      setSharedFiles(combined);
+    } catch (error) {
+      console.error("Failed to fetch shared files");
+    }
+  }, []);
+
   useEffect(() => {
     loadInternships();
   }, [loadInternships]);
 
-  const fetchMessages = useCallback(async (id: string) => {
-    try {
-      const res = await fetch(`/api/messages/${id}`);
-      const data = await res.json();
-      setMessages(data.data || []);
-    } catch {
-      toast.error(t("toast.loadMessagesFailed"));
-    }
-  }, [t]);
-
-  useEffect(() => { if (selectedId) fetchMessages(selectedId); }, [selectedId, fetchMessages]);
-  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
   useEffect(() => {
-    if (!selectedId) return;
-    const interval = setInterval(() => fetchMessages(selectedId), 15000);
-    return () => clearInterval(interval);
-  }, [selectedId]);
+    if (selectedId) {
+      fetchSharedFiles(selectedId);
+      const interval = setInterval(() => fetchSharedFiles(selectedId), 30000);
+      return () => clearInterval(interval);
+    }
+  }, [selectedId, fetchSharedFiles]);
 
-  const handleSend = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newMessage.trim() || !selectedId) return;
-    setIsSending(true);
-    try {
-      const res = await fetch("/api/messages", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ internshipId: selectedId, content: newMessage.trim() }),
-      });
-      if (!res.ok) throw new Error();
-      const data = await res.json();
-      setMessages((prev) => [...prev, data.data]);
-      setNewMessage("");
-    } catch {
-      toast.error(t("toast.messageSendFailed"));
-    } finally {
-      setIsSending(false);
+  const selectedInternship = internships.find((i) => i.id === selectedId);
+
+  const toggleSidebar = (tab: "files" | "participants") => {
+    if (showFiles && sidebarTab === tab) {
+      setShowFiles(false);
+    } else {
+      setSidebarTab(tab);
+      setShowFiles(true);
     }
   };
 
-  const selected = internships.find((i) => i.id === selectedId);
-
   return (
-    <div className="h-[calc(100vh-140px)] flex flex-col space-y-4">
-      <div>
-        <h1 className="text-[17px] font-semibold text-gray-900">Intern Communications</h1>
-        <p className="text-[13px] text-gray-500 mt-0.5">
+    <div className="-mt-4 md:-mt-6 h-[calc(100vh-115px)] flex flex-col space-y-3 overflow-hidden">
+      <div className="flex-shrink-0">
+        <h1 className="text-[17px] font-bold text-gray-900 leading-none">Intern Communications</h1>
+        <p className="text-[12px] text-gray-500 mt-1">
           Coordinate directly with your interns and their university supervisor.
         </p>
       </div>
 
-      <div className="flex flex-1 gap-4 overflow-hidden">
-        {internships.length > 1 && (
-          <div className="w-56 bg-white border border-gray-200 rounded-md shadow-sm flex flex-col overflow-y-auto flex-shrink-0">
-            <p className="px-4 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-wider border-b">Threads</p>
-            {internships.map((i) => (
-              <button key={i.id} onClick={() => setSelectedId(i.id)}
-                className={`text-left px-4 py-3 text-[12px] border-b border-gray-100 hover:bg-indigo-50 transition-colors ${
-                  selectedId === i.id ? "bg-indigo-50 text-indigo-700 font-semibold" : "text-gray-700"
-                }`}>
-                {i.topic.title}
-                <p className="text-[11px] text-gray-400 mt-0.5 truncate">
-                  {i.students.map((s) => s.student.name).join(", ")}
-                </p>
-              </button>
-            ))}
+      <div className="flex flex-1 gap-4 overflow-hidden relative">
+        {/* Team Selector Sidebar */}
+        <div className={`w-64 bg-white border border-gray-200 rounded-xl shadow-sm flex flex-col overflow-hidden flex-shrink-0 transition-all
+          ${selectedId ? "hidden md:flex" : "flex w-full md:w-64"}
+        `}>
+          <div className="px-4 py-4 border-b border-gray-100 bg-gray-50/50 flex items-center justify-between">
+            <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">
+              My Teams
+            </p>
           </div>
-        )}
-
-        <div className="flex-1 bg-white border border-gray-200 rounded-md shadow-sm overflow-hidden flex flex-col">
-          <div className="h-14 px-6 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
-            <div className="flex items-center gap-3">
-              <div className="h-2 w-2 rounded-full bg-green-500" />
-              <span className="text-[13px] font-bold text-gray-700 uppercase tracking-tight">
-                {selected ? selected.topic.title : "No active internship"}
-              </span>
-            </div>
-            {selected && (
-              <span className="text-[11px] text-gray-400">
-                Supervisor: {selected.teacher?.name}
-              </span>
+          <div className="flex-1 overflow-y-auto">
+            {isLoading ? (
+              <div className="p-4 space-y-3">
+                {[1, 2, 3].map(n => (
+                  <div key={n} className="h-12 bg-gray-50 rounded-lg animate-pulse" />
+                ))}
+              </div>
+            ) : internships.length === 0 ? (
+              <p className="p-6 text-center text-[12px] text-gray-400 italic">No teams assigned</p>
+            ) : (
+              internships.map((i) => (
+                <button
+                  key={i.id}
+                  onClick={() => setSelectedId(i.id)}
+                  className={`w-full text-left px-4 py-4 border-b border-gray-50 transition-all group relative ${selectedId === i.id ? "bg-indigo-50/50" : "hover:bg-gray-50"
+                    }`}
+                >
+                  {selectedId === i.id && (
+                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-indigo-600" />
+                  )}
+                  <p className={`text-[13px] font-bold truncate ${selectedId === i.id ? "text-indigo-700" : "text-gray-800"}`}>
+                    {i.topic.title}
+                  </p>
+                  <p className="text-[11px] text-gray-400 mt-1 truncate">
+                    {i.students.map((s) => s.student.name).join(", ")}
+                  </p>
+                </button>
+              ))
             )}
           </div>
+        </div>
 
-          <div className="flex-1 overflow-y-auto p-6 space-y-6">
-            {isLoading ? (
-              <p className="text-center text-gray-400 text-[13px]">Loading…</p>
-            ) : !selectedId ? (
-              <p className="text-center text-gray-400 text-[13px] py-12">No active internships found.</p>
-            ) : messages.length === 0 ? (
-              <p className="text-center text-gray-400 text-[13px] py-12">No messages yet.</p>
-            ) : (
-              messages.map((msg) => {
-                const isMe = msg.senderId === session?.user?.id;
-                return (
-                  <div key={msg.id} className={`flex ${isMe ? "justify-end" : "justify-start"}`}>
-                    <div className="max-w-[70%]">
-                      <div className={`flex items-center gap-2 mb-1 ${isMe ? "flex-row-reverse" : ""}`}>
-                        <span className="text-[11px] font-bold text-gray-900">
-                          {isMe ? "You" : msg.sender.name}
-                        </span>
-                        <span className="text-[10px] text-gray-400">
-                          {format(new Date(msg.sentAt), "HH:mm")}
-                        </span>
-                      </div>
-                      <div className={`p-4 rounded-2xl text-[14px] leading-relaxed ${
-                        isMe ? "bg-indigo-600 text-white rounded-tr-none" : "bg-gray-100 text-gray-800 rounded-tl-none"
-                      }`}>
-                        {msg.content}
-                        {msg.attachmentName && (
-                          <a href={msg.attachmentUrl ?? "#"} target="_blank" rel="noreferrer"
-                            className={`mt-3 p-2 rounded-lg flex items-center gap-3 border ${
-                              isMe ? "bg-indigo-700 border-indigo-500" : "bg-white border-gray-200"
-                            }`}>
-                            <FileText className="h-4 w-4 flex-shrink-0" />
-                            <span className="text-[11px] font-medium truncate">{msg.attachmentName}</span>
-                          </a>
-                        )}
+        {/* Chat & Sidebar Area */}
+        <div className={`flex-1 min-w-0 bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden flex flex-col
+          ${!selectedId ? "hidden md:flex" : "flex"}
+        `}>
+          {selectedId && session?.user?.id ? (
+            <div className="flex-1 flex flex-col overflow-hidden relative">
+              {/* Coordination Header */}
+              <div className="px-4 md:px-6 py-4 border-b border-gray-100 bg-gray-50/60 flex flex-col gap-6">
+                <div className={`flex items-center justify-between ${isRTL ? "flex-row-reverse" : ""}`}>
+                  <div className={`flex items-center gap-2 md:gap-3 ${isRTL ? "flex-row-reverse" : ""}`}>
+                    <button onClick={() => setSelectedId(null)} className="md:hidden p-1 hover:bg-gray-200 rounded-lg text-gray-500">
+                      <ChevronLeft className={`h-5 w-5 ${isRTL ? "rotate-180" : ""}`} />
+                    </button>
+                    <div className="h-2.5 w-2.5 rounded-full bg-green-500 animate-pulse hidden sm:block" />
+                    <span className={`font-bold text-gray-800 uppercase tracking-tight truncate max-w-[150px] sm:max-w-none ${isRTL ? "text-[15px] leading-relaxed" : "text-[13px] leading-none"}`}>
+                      {selectedInternship?.topic.title}
+                    </span>
+                  </div>
+                  <div className={`flex items-center gap-1.5 md:gap-2 ${isRTL ? "flex-row-reverse" : ""}`}>
+                    <button
+                      onClick={() => toggleSidebar("files")}
+                      className={`h-8 px-2 md:px-3 rounded-md transition-all flex items-center gap-1.5 md:gap-2 text-[10px] md:text-[11px] font-bold border ${
+                        showFiles && sidebarTab === "files" 
+                          ? "bg-indigo-600 text-white border-indigo-600 shadow-sm" 
+                          : "bg-white text-gray-600 hover:bg-gray-50 border-gray-200"
+                      }`}
+                    >
+                      <FileText className="h-3.5 w-3.5" />
+                      <span className="hidden xs:inline">{sharedFiles.length} {t("messages.files")}</span>
+                      <span className="xs:hidden">{sharedFiles.length}</span>
+                    </button>
+                    <button
+                      onClick={() => toggleSidebar("participants")}
+                      className={`h-8 px-2 md:px-3 rounded-md transition-all flex items-center gap-1.5 md:gap-2 text-[10px] md:text-[11px] font-bold border ${
+                        showFiles && sidebarTab === "participants" 
+                          ? "bg-indigo-600 text-white border-indigo-600 shadow-sm" 
+                          : "bg-white text-gray-600 hover:bg-gray-50 border-gray-200"
+                      }`}
+                    >
+                      <Users className="h-3.5 w-3.5" />
+                      <span className="hidden xs:inline">{t("messages.participants")} ({(selectedInternship?.students.length || 0) + 1})</span>
+                      <span className="xs:hidden">{(selectedInternship?.students.length || 0) + 1}</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Search Bar */}
+                <div className="relative">
+                  <Search className={`absolute ${isRTL ? "right-3" : "left-3"} top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400`} />
+                  <input
+                    type="text"
+                    placeholder={t("common.search")}
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className={`w-full h-8 bg-white border border-gray-200 rounded-full ${isRTL ? "pr-8 pl-4 text-right" : "pl-8 pr-4"} text-[12px] focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-300`}
+                  />
+                  {searchQuery && (
+                    <button onClick={() => setSearchQuery("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex-1 flex overflow-hidden relative">
+                <div className="flex-1 overflow-hidden">
+                  <ChatWindow
+                    internshipId={selectedId}
+                    currentUserId={session.user.id}
+                    isAdmin={session.user.role === "ADMIN"}
+                    searchQuery={searchQuery}
+                  />
+                </div>
+
+                {/* Coordination Details Sidebar */}
+                {showFiles && (
+                  <div className={`absolute inset-0 md:relative md:inset-auto md:w-80 z-20 border-gray-100 bg-white flex flex-col animate-in ${isRTL ? "border-r slide-in-from-left" : "border-l slide-in-from-right"} duration-300 shadow-xl md:shadow-none`}>
+                    <div className={`p-4 border-b border-gray-100 bg-gray-50/50 flex items-center justify-between ${isRTL ? "flex-row-reverse" : ""}`}>
+                      <h3 className="text-[12px] font-bold text-gray-900 uppercase tracking-widest">
+                        {sidebarTab === "files" ? t("messages.files") : t("messages.participants")}
+                      </h3>
+                      <button onClick={() => setShowFiles(false)} className="md:hidden p-1 hover:bg-gray-200 rounded-lg text-gray-400">
+                        <X className="h-4 w-4" />
+                      </button>
+                      <div className="hidden md:block">
+                        {sidebarTab === "files" ? <FileText className="h-4 w-4 text-gray-400" /> : <Users className="h-4 w-4 text-gray-400" />}
                       </div>
                     </div>
-                  </div>
-                );
-              })
-            )}
-            <div ref={bottomRef} />
-          </div>
+                    
+                    <div className="flex-1 overflow-y-auto p-3">
+                      {sidebarTab === "participants" ? (
+                        <div className="space-y-6">
+                          {/* Supervisor */}
+                          <div className="space-y-2">
+                            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-tighter px-1">{t("messages.supervisor")}</p>
+                            <div className="rounded-xl border border-gray-100 bg-white p-2.5 shadow-sm">
+                              <div className={`flex items-center gap-4 ${isRTL ? "flex-row-reverse text-right" : ""}`}>
+                                <div className="h-8 w-8 rounded-full bg-indigo-50 text-indigo-700 flex items-center justify-center font-bold text-[12px] flex-shrink-0">
+                                  {selectedInternship?.teacher?.name.charAt(0) || "S"}
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <p className="text-[12px] font-bold text-gray-900 truncate">{selectedInternship?.teacher?.name || "No Supervisor"}</p>
+                                  <p className="text-[10px] text-gray-500 truncate">{selectedInternship?.teacher?.email || "N/A"}</p>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
 
-          <form onSubmit={handleSend} className="p-4 border-t border-gray-100 bg-gray-50/30">
-            <div className="max-w-4xl mx-auto flex items-center gap-2">
-              <button type="button" className="p-2 text-gray-400 hover:text-indigo-600 transition-colors">
-                <Paperclip className="h-5 w-5" />
-              </button>
-              <input type="text" placeholder={selectedId ? "Type your message..." : "No active internship"}
-                disabled={!selectedId || isSending}
-                className="flex-1 h-11 bg-white border border-gray-200 rounded-full px-5 text-[14px] focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 disabled:opacity-50"
-                value={newMessage} onChange={(e) => setNewMessage(e.target.value)} />
-              <button type="submit" disabled={!selectedId || isSending || !newMessage.trim()}
-                className="h-11 w-11 bg-indigo-600 text-white rounded-full flex items-center justify-center hover:bg-indigo-700 transition-all shadow-md shadow-indigo-100 disabled:opacity-50">
-                <Send className="h-4 w-4" />
-              </button>
+                          {/* Company */}
+                          <div className="space-y-2">
+                            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-tighter px-1">Hosting Company</p>
+                            <div className="rounded-xl border border-gray-100 bg-white p-2.5 shadow-sm">
+                              <div className={`flex items-center gap-4 ${isRTL ? "flex-row-reverse text-right" : ""}`}>
+                                <div className="h-8 w-8 rounded-full bg-amber-50 text-amber-700 flex items-center justify-center font-bold text-[12px] flex-shrink-0">
+                                  {selectedInternship?.company?.name.charAt(0) || "C"}
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <p className="text-[12px] font-bold text-gray-900 truncate">{selectedInternship?.company?.name || "Company"}</p>
+                                  <p className="text-[10px] text-gray-500 truncate">{selectedInternship?.company?.email || "Partner"}</p>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Students */}
+                          <div className="space-y-2">
+                            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-tighter px-1">{t("messages.students")}</p>
+                            <div className="space-y-2">
+                              {selectedInternship?.students.map((s, idx) => (
+                                <div key={`${s.student.email}-${idx}`} className="rounded-xl border border-gray-100 bg-white p-2.5 shadow-sm">
+                                  <div className={`flex items-center gap-4 ${isRTL ? "flex-row-reverse text-right" : ""}`}>
+                                    <div className="h-8 w-8 rounded-full bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold text-[12px] flex-shrink-0">
+                                      {s.student.name.charAt(0)}
+                                    </div>
+                                    <div className="min-w-0 flex-1">
+                                      <p className="text-[12px] font-bold text-gray-900 truncate">{s.student.name}</p>
+                                      <p className="text-[10px] text-gray-500 truncate">{s.student.email}</p>
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="space-y-3">
+                          {sharedFiles.length === 0 ? (
+                            <div className="text-center py-12">
+                              <FileText className="h-10 w-10 text-gray-200 mx-auto mb-2" />
+                              <p className="text-[12px] text-gray-400">No shared files yet.</p>
+                            </div>
+                          ) : (
+                            sharedFiles.map((file) => (
+                              <a
+                                key={file.id}
+                                href={file.url}
+                                target="_blank"
+                                rel="noreferrer"
+                                className={`flex items-start gap-3 p-2.5 rounded-xl hover:bg-gray-50 border border-transparent hover:border-gray-100 transition-all group ${isRTL ? "flex-row-reverse" : ""}`}
+                              >
+                                <div className={`h-9 w-9 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                                  file.category === "DOCUMENT" ? "bg-amber-50 text-amber-600" : "bg-indigo-50 text-indigo-600"
+                                }`}>
+                                  <FileText className="h-4 w-4" />
+                                </div>
+                                <div className={`min-w-0 flex-1 ${isRTL ? "text-right" : "text-left"}`}>
+                                  <p className="text-[12px] font-semibold text-gray-800 truncate group-hover:text-indigo-700 transition-colors" title={file.name}>
+                                    {file.name}
+                                  </p>
+                                  <p className="text-[10px] text-gray-400 mt-0.5">
+                                    {format(new Date(file.sentAt), "d MMM, yyyy")}
+                                  </p>
+                                </div>
+                              </a>
+                            ))
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
-          </form>
+          ) : (
+            <div className="flex-1 flex items-center justify-center">
+              <p className="text-gray-400 text-[13px]">Select a team to start communicating.</p>
+            </div>
+          )}
         </div>
       </div>
     </div>
+  );
+}
+
+export default function CompanyMessagesPage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-center text-gray-400">Loading Hub…</div>}>
+      <CompanyMessagesContent />
+    </Suspense>
   );
 }

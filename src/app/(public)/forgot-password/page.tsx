@@ -138,6 +138,7 @@ export default function ForgotPasswordPage() {
                   {...emailForm.register("email")}
                   error={emailForm.formState.errors.email?.message as string}
                   icon={Mail}
+                  required
                 />
                 <Button type="submit" className="w-full" isLoading={isLoading} size="lg">
                   Send Verification Code
@@ -162,6 +163,7 @@ export default function ForgotPasswordPage() {
                   error={codeForm.formState.errors.code?.message as string}
                   icon={Key}
                   className="text-center tracking-[10px] font-bold text-xl"
+                  required
                 />
                 <Button type="submit" className="w-full" isLoading={isLoading} size="lg">
                   Verify Code
@@ -194,6 +196,7 @@ export default function ForgotPasswordPage() {
                   {...passwordForm.register("password")}
                   error={passwordForm.formState.errors.password?.message as string}
                   icon={Lock}
+                  required
                 />
                 <Input
                   label="Confirm Password"
@@ -202,6 +205,7 @@ export default function ForgotPasswordPage() {
                   {...passwordForm.register("confirmPassword")}
                   error={passwordForm.formState.errors.confirmPassword?.message as string}
                   icon={Lock}
+                  required
                 />
                 <Button type="submit" className="w-full" isLoading={isLoading} size="lg">
                   Update Password

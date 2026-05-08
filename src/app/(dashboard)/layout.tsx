@@ -30,17 +30,17 @@ export default async function DashboardLayout({
   return (
     <SidebarProvider>
       <BreadcrumbProvider>
-        <div className="min-h-screen bg-gray-50 flex overflow-x-hidden">
+        <div className="h-screen bg-gray-50 flex overflow-hidden relative">
           {/* Sidebar - Responsive */}
           <Sidebar role={role} logoUrl={logoUrl} />
 
           {/* Main Content Area */}
-          <div className="flex-1 min-w-0 flex flex-col md:ltr:ml-[240px] md:rtl:mr-[240px] transition-all duration-300 overflow-x-hidden">
-            {/* Topbar - Fixed height, sticky or fixed */}
+          <div className="flex-1 min-w-0 flex flex-col transition-all duration-300 md:ltr:ml-[240px] md:rtl:mr-[240px]">
+            {/* Topbar - Fixed height */}
             <Topbar />
 
             {/* Content - Scrollable container */}
-            <main className="mt-[56px] p-3 sm:p-4 md:p-6 min-h-[calc(100vh-56px)] min-w-0">
+            <main className="flex-1 overflow-y-auto p-6 md:p-10 min-w-0">
               {children}
             </main>
           </div>

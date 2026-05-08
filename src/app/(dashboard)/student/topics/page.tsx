@@ -40,7 +40,7 @@ function canApply(studentLevel: string | undefined, targetLevels: string | null 
 export default function StudentTopicsPage() {
   const { data: session } = useSession();
   const [topics, setTopics] = useState<Topic[]>([]);
-  const { t } = useTranslation();
+  const { t, isRTL } = useTranslation();
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [levelFilter, setLevelFilter] = useState<string>("ALL");
@@ -57,10 +57,26 @@ export default function StudentTopicsPage() {
     setIsLoading(true);
     Promise.all([
       fetch("/api/topics").then(r => r.json()),
-      fetch("/api/filieres").then(r => r.json())
-    ]).then(([topicsData, filieresData]) => {
-      setTopics(topicsData.data || []);
-      setFilieres(filieresData.data || []);
+      fetch("/api/filieres").then(r => r.json()),
+      fetch("/api/profile").then(r => r.json())
+    ]).then(([topicsData, filieresData, profileData]) => {
+      const allTopics = topicsData.data || [];
+      const allFilieres = filieresData.data || [];
+      const studentSpec = profileData.data?.studentProfile?.speciality;
+
+      setTopics(allTopics);
+      setFilieres(allFilieres);
+
+      if (studentSpec) {
+        const matched = allFilieres.find(
+          (f: Filiere) => 
+            f.name.toLowerCase() === studentSpec.toLowerCase() || 
+            f.code?.toLowerCase() === studentSpec.toLowerCase()
+        );
+        if (matched) {
+          setFiliereFilter(matched.id);
+        }
+      }
     })
     .catch(() => toast.error(t("toast.loadTopicsFailed")))
     .finally(() => setIsLoading(false));
@@ -143,30 +159,20 @@ export default function StudentTopicsPage() {
 
       <div className="flex flex-col md:flex-row gap-3">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <Search className={`absolute ${isRTL ? "right-3" : "left-3"} top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400`} />
           <input
             type="text"
             placeholder={t("common.search")}
-            className="admin-input pl-10"
+            className={`admin-input ${isRTL ? "pr-10 text-right" : "pl-10"}`}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-        <select 
-          className="admin-input md:w-64"
-          value={filiereFilter}
-          onChange={(e) => setFiliereFilter(e.target.value)}
-        >
-          <option value="ALL">All Departments (Filières)</option>
-          {filieres.map(f => (
-            <option key={f.id} value={f.id}>{f.name} ({f.code})</option>
-          ))}
-        </select>
       </div>
 
       <div className="flex items-center gap-2 flex-wrap">
         <span className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider flex items-center gap-1">
-          <GraduationCap className="h-3.5 w-3.5" /> Level:
+          <GraduationCap className="h-3.5 w-3.5" /> {t("topics.list.level")}:
         </span>
         {["ALL", ...LEVELS].map((level) => (
           <button
@@ -178,12 +184,12 @@ export default function StudentTopicsPage() {
                 : "bg-white text-gray-600 border-gray-200 hover:border-indigo-300"
             }`}
           >
-            {level}
+            {level === "ALL" ? t("common.all") : level}
           </button>
         ))}
         {studentLevel && (
-          <span className="ml-auto text-[11px] text-gray-400">
-            Your level: <span className="font-bold text-indigo-600">{studentLevel}</span>
+          <span className={`${isRTL ? "mr-auto" : "ml-auto"} text-[11px] text-gray-400`}>
+            {t("topics.list.yourLevel")}: <span className="font-bold text-indigo-600">{studentLevel}</span>
           </span>
         )}
       </div>
@@ -209,7 +215,7 @@ export default function StudentTopicsPage() {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="px-2 py-0.5 bg-indigo-50 text-indigo-700 text-[10px] font-bold uppercase rounded-full">
-                        {topic.type === "COMPANY_PROPOSED" ? "Company" : "Professor"}
+                        {topic.type === "COMPANY_PROPOSED" ? t("topics.list.company") : t("topics.list.professor")}
                       </span>
                       <span className={`px-2 py-0.5 text-[10px] font-bold uppercase rounded-full ${
                         topic.internshipType === "PFE" ? "bg-purple-50 text-purple-700" : "bg-emerald-50 text-emerald-700"
@@ -222,7 +228,7 @@ export default function StudentTopicsPage() {
                         </span>
                       )}
                     </div>
-                    <ChevronRight className="h-4 w-4 text-gray-300 group-hover:text-indigo-400 transition-colors" />
+                    <ChevronRight className={`h-4 w-4 text-gray-300 group-hover:text-indigo-400 transition-colors ${isRTL ? "rotate-180" : ""}`} />
                   </div>
 
                   {topic.targetLevels && (
@@ -230,7 +236,7 @@ export default function StudentTopicsPage() {
                       {levelBadge(topic.targetLevels)}
                       {!eligible && (
                         <span className="text-[10px] text-amber-600 flex items-center gap-0.5">
-                          <Lock className="h-3 w-3" /> {studentLevel} not eligible
+                          <Lock className="h-3 w-3" /> {t("topics.list.notEligible", { level: studentLevel })}
                         </span>
                       )}
                     </div>
@@ -259,7 +265,7 @@ export default function StudentTopicsPage() {
                     </div>
                     <div className="flex items-center gap-1 text-gray-400">
                       <Users className="h-3.5 w-3.5" />
-                      {topic.maxStudents} student{topic.maxStudents !== 1 ? "s" : ""}
+                      {topic.maxStudents} {topic.maxStudents !== 1 ? t("topics.list.students") : t("topics.list.student")}
                     </div>
                   </div>
                 </div>
@@ -271,7 +277,7 @@ export default function StudentTopicsPage() {
                     </span>
                   ) : !eligible ? (
                     <span className="flex items-center gap-1.5 text-[12px] text-amber-600 font-medium">
-                      <Lock className="h-3.5 w-3.5" /> Not eligible (requires {topic.targetLevels})
+                      <Lock className="h-3.5 w-3.5" /> {t("topics.list.requires", { levels: topic.targetLevels })}
                     </span>
                   ) : (
                     <Button onClick={(e) => handleApply(topic.id, e)} size="sm" className="px-6" disabled={isApplying}>
@@ -292,7 +298,7 @@ export default function StudentTopicsPage() {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-2 flex-wrap">
                   <span className="px-2.5 py-0.5 bg-indigo-50 text-indigo-700 text-[10px] font-bold uppercase rounded-full">
-                    {selectedTopic.type === "COMPANY_PROPOSED" ? "Company" : "Professor"}
+                    {selectedTopic.type === "COMPANY_PROPOSED" ? t("topics.list.company") : t("topics.list.professor")}
                   </span>
                   <span className={`px-2.5 py-0.5 text-[10px] font-bold uppercase rounded-full ${
                     selectedTopic.internshipType === "PFE" ? "bg-purple-50 text-purple-700" : "bg-emerald-50 text-emerald-700"
@@ -315,26 +321,26 @@ export default function StudentTopicsPage() {
 
             <div className="flex-1 p-6 space-y-6 overflow-y-auto">
               <div>
-                <h3 className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2">Description</h3>
+                <h3 className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2">{t("topics.list.description")}</h3>
                 <p className="text-[14px] text-gray-700 leading-relaxed whitespace-pre-wrap">{selectedTopic.description}</p>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="bg-gray-50 border border-gray-100 rounded-xl p-3.5">
-                  <p className="text-[10px] font-semibold text-gray-400 uppercase mb-1.5">Proposed By</p>
+                  <p className="text-[10px] font-semibold text-gray-400 uppercase mb-1.5">{t("topics.list.proposedBy")}</p>
                   <div className="flex items-center gap-2">
                     <Building2 className="h-4 w-4 text-indigo-500" />
                     <p className="text-[13px] font-medium text-gray-800">{selectedTopic.proposedBy.name}</p>
                   </div>
                 </div>
                 <div className="bg-gray-50 border border-gray-100 rounded-xl p-3.5">
-                  <p className="text-[10px] font-semibold text-gray-400 uppercase mb-1.5">Capacity</p>
+                  <p className="text-[10px] font-semibold text-gray-400 uppercase mb-1.5">{t("topics.list.capacity")}</p>
                   <div className="flex items-center gap-2">
                     <Users className="h-4 w-4 text-indigo-500" />
-                    <p className="text-[13px] font-medium text-gray-800">{selectedTopic.maxStudents} student{selectedTopic.maxStudents !== 1 ? "s" : ""}</p>
+                    <p className="text-[13px] font-medium text-gray-800">{selectedTopic.maxStudents} {selectedTopic.maxStudents !== 1 ? t("topics.list.students") : t("topics.list.student")}</p>
                   </div>
                 </div>
                 <div className="bg-gray-50 border border-gray-100 rounded-xl p-3.5">
-                  <p className="text-[10px] font-semibold text-gray-400 uppercase mb-1.5">Academic Year</p>
+                  <p className="text-[10px] font-semibold text-gray-400 uppercase mb-1.5">{t("topics.list.academicYear")}</p>
                   <div className="flex items-center gap-2">
                     <Calendar className="h-4 w-4 text-indigo-500" />
                     <p className="text-[13px] font-medium text-gray-800">{selectedTopic.academicYear}</p>
@@ -342,7 +348,7 @@ export default function StudentTopicsPage() {
                 </div>
                 {selectedTopic.assignedTeacher && (
                   <div className="bg-gray-50 border border-gray-100 rounded-xl p-3.5">
-                    <p className="text-[10px] font-semibold text-gray-400 uppercase mb-1.5">Supervisor</p>
+                    <p className="text-[10px] font-semibold text-gray-400 uppercase mb-1.5">{t("topics.list.supervisor")}</p>
                     <div className="flex items-center gap-2">
                       <User className="h-4 w-4 text-indigo-500" />
                       <p className="text-[13px] font-medium text-gray-800">{selectedTopic.assignedTeacher.name}</p>
@@ -365,7 +371,7 @@ export default function StudentTopicsPage() {
               {selectedTopic && !canApply(studentLevel, selectedTopic.targetLevels) && (
                 <div className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg text-amber-800 text-[12px]">
                   <Lock className="h-4 w-4 flex-shrink-0" />
-                  This topic is restricted to level(s): <strong>{selectedTopic.targetLevels}</strong>. Your level ({studentLevel}) is not eligible to apply.
+                  {t("topics.list.restricted", { levels: selectedTopic.targetLevels, studentLevel })}
                 </div>
               )}
             </div>
@@ -373,10 +379,10 @@ export default function StudentTopicsPage() {
             <div className="p-6 border-t border-gray-100 bg-gray-50/30 flex justify-end">
               {applied.has(selectedTopic.id) ? (
                 <div className="flex items-center justify-center gap-2 px-6 h-11 bg-emerald-50 text-emerald-700 rounded-xl font-semibold text-[13px] border border-emerald-100">
-                  <CheckCircle2 className="h-4 w-4" /> Application Already Sent
+                  <CheckCircle2 className="h-4 w-4" /> {t("topics.list.applicationAlreadySent")}
                 </div>
               ) : !canApply(studentLevel, selectedTopic.targetLevels) ? (
-                <Button variant="outline" className="h-11 px-6 rounded-xl" onClick={() => setSelectedTopic(null)}>Close</Button>
+                <Button variant="outline" className="h-11 px-6 rounded-xl" onClick={() => setSelectedTopic(null)}>{t("common.close")}</Button>
               ) : (
                 <div className="flex gap-3">
                   <Button variant="outline" className="h-11 px-6 rounded-xl" onClick={() => setSelectedTopic(null)}>{t("common.close")}</Button>
@@ -401,7 +407,7 @@ export default function StudentTopicsPage() {
               <div className="h-14 w-14 rounded-full bg-amber-100 flex items-center justify-center mb-4">
                 <AlertCircle className="h-7 w-7 text-amber-500" />
               </div>
-              <h3 className="text-[16px] font-bold text-gray-900">Already Enrolled</h3>
+              <h3 className="text-[16px] font-bold text-gray-900">{t("topics.list.alreadyEnrolled")}</h3>
               <p className="text-[13px] text-gray-500 mt-2 leading-relaxed">{alreadyModal.message}</p>
             </div>
             <div className="px-6 pb-6">
@@ -409,7 +415,7 @@ export default function StudentTopicsPage() {
                 onClick={() => setAlreadyModal({ show: false, message: "" })}
                 className="w-full h-11 rounded-xl bg-indigo-600 text-white text-[13px] font-semibold hover:bg-indigo-700 transition-colors"
               >
-                Got it
+                {t("topics.list.gotIt")}
               </button>
             </div>
           </div>

@@ -6,7 +6,7 @@ import { Language, translations } from "./translations";
 type LanguageContextType = {
   language: Language;
   setLanguage: (lang: Language) => void;
-  t: (path: string) => string;
+  t: (path: string, params?: Record<string, any>) => string;
   isRTL: boolean;
 };
 
@@ -36,7 +36,7 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   }, [language, isRTL]);
 
   // Simple t function to resolve "common.dashboard" -> translations[lang].common.dashboard
-  const t = (path: string): string => {
+  const t = (path: string, params?: Record<string, any>): string => {
     const keys = path.split(".");
     let current: any = translations[language];
     
@@ -48,7 +48,16 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
       }
     }
     
-    return typeof current === "string" ? current : path;
+    let result = typeof current === "string" ? current : path;
+
+    // Handle interpolation: "Hello {name}" -> "Hello John"
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        result = result.replace(new RegExp(`\\{${key}\\}`, "g"), value);
+      });
+    }
+
+    return result;
   };
 
   return (

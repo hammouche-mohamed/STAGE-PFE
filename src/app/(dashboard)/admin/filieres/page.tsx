@@ -126,7 +126,7 @@ export default function AdminFilieresPage() {
         <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-5 space-y-3">
           <h3 className="text-[13px] font-semibold text-indigo-800">New Filière</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
+            <div className="space-y-1.5">
               <label className="admin-form-label">Name <span className="text-red-500">*</span></label>
               <input
                 className="admin-input"

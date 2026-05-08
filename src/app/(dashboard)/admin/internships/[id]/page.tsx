@@ -19,6 +19,8 @@ import { Button } from "@/components/ui/Button";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { DocumentList } from "@/components/documents/DocumentList";
+import { InternshipDocument } from "@/types/document";
 
 interface Internship {
    id: string;
@@ -34,27 +36,35 @@ interface Internship {
    academicYear: string;
    startDate?: string;
    endDate?: string;
+   technicalSupervisorName?: string;
+   technicalSupervisorEmail?: string;
    createdAt: string;
 }
 
 export default function AdminInternshipDetailPage() {
    const { id } = useParams();
    const [internship, setInternship] = useState<Internship | null>(null);
+   const [documents, setDocuments] = useState<InternshipDocument[]>([]);
    const [isLoading, setIsLoading] = useState(true);
 
+   const fetchData = async () => {
+      try {
+         const res = await fetch(`/api/internships/${id}`);
+         const data = await res.json();
+         setInternship(data.data);
+
+         const docRes = await fetch(`/api/documents?internshipId=${id}`);
+         const docData = await docRes.json();
+         setDocuments(docData.data || []);
+      } catch (error) {
+         toast.error("Failed to load internship details");
+      } finally {
+         setIsLoading(false);
+      }
+   };
+
    useEffect(() => {
-      const fetchInternship = async () => {
-         try {
-            const res = await fetch(`/api/internships/${id}`);
-            const data = await res.json();
-            setInternship(data.data);
-         } catch (error) {
-            toast.error("Failed to load internship details");
-         } finally {
-            setIsLoading(false);
-         }
-      };
-      fetchInternship();
+      fetchData();
    }, [id]);
 
    const markAsSent = async () => {
@@ -67,12 +77,27 @@ export default function AdminInternshipDetailPage() {
             throw new Error(error.error || "Failed to mark as sent");
          }
          toast.success("Convention marked as sent to company");
-         // Refresh data
-         const updatedRes = await fetch(`/api/internships/${id}`);
-         const updatedData = await updatedRes.json();
-         setInternship(updatedData.data);
+         fetchData();
       } catch (error: any) {
          toast.error(error.message);
+      }
+   };
+
+   const handleReview = async (docId: string, status: "APPROVED" | "REJECTED", comment: string) => {
+      try {
+         const res = await fetch(`/api/documents/${docId}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ status, reviewComment: comment }),
+         });
+         if (!res.ok) throw new Error("Review failed");
+         toast.success(`Document ${status.toLowerCase()} successfully`);
+         
+         const docRes = await fetch(`/api/documents?internshipId=${id}`);
+         const docData = await docRes.json();
+         setDocuments(docData.data || []);
+      } catch (error) {
+         toast.error("Failed to process document review");
       }
    };
 
@@ -171,26 +196,20 @@ export default function AdminInternshipDetailPage() {
                </div>
 
                <div className="bg-white border border-gray-200 rounded-md p-6 shadow-sm">
-                  <h2 className="text-[14px] font-bold text-gray-900 mb-6 flex items-center">
-                     <User className="h-4 w-4 mr-2 text-indigo-500" />
-                     Assigned Students
+                  <h2 className="text-[14px] font-bold text-gray-900 mb-6 flex items-center justify-between">
+                     <div className="flex items-center">
+                        <FileText className="h-4 w-4 mr-2 text-indigo-500" />
+                        Internship Documents
+                     </div>
+                     <span className="text-[11px] font-medium text-gray-400 bg-gray-50 px-2 py-1 rounded">
+                        {documents.length} Files
+                     </span>
                   </h2>
-                  <div className="space-y-4">
-                     {internship.students.map((s) => (
-                        <div key={s.student.email} className="flex items-center justify-between p-3 border border-gray-50 rounded-lg bg-gray-50/50">
-                           <div className="flex items-center gap-3">
-                              <div className="h-9 w-9 rounded bg-white border border-gray-100 text-gray-400 flex items-center justify-center">
-                                 <User className="h-5 w-5" />
-                              </div>
-                              <div>
-                                 <p className="text-[13px] font-bold text-gray-900">{s.student.name}</p>
-                                 <p className="text-[11px] text-gray-500">{s.student.email}</p>
-                              </div>
-                           </div>
-                           <span className="text-[11px] font-bold text-indigo-600 bg-indigo-50 px-2 py-1 rounded">ID: {s.student.studentId}</span>
-                        </div>
-                     ))}
-                  </div>
+                  <DocumentList 
+                     documents={documents}
+                     canReview={true}
+                     onReview={handleReview}
+                  />
                </div>
             </div>
 
@@ -206,6 +225,26 @@ export default function AdminInternshipDetailPage() {
                         <span className="text-gray-500">Academic Year</span>
                         <span className="text-gray-900 font-medium">{internship.academicYear}</span>
                      </div>
+                     {internship.startDate && (
+                       <>
+                         <div className="pt-2 border-t border-gray-50 mt-2">
+                            <span className="text-[11px] font-bold text-gray-400 uppercase tracking-widest block mb-2">Duration</span>
+                            <div className="flex items-center gap-2 text-[13px] text-gray-900">
+                               <Calendar className="h-4 w-4 text-indigo-500" />
+                               {format(new Date(internship.startDate), "PP")} — {internship.endDate ? format(new Date(internship.endDate), "PP") : "..."}
+                            </div>
+                         </div>
+                         {internship.technicalSupervisorName && (
+                            <div className="pt-2 mt-2 border-t border-gray-50">
+                               <span className="text-[11px] font-bold text-gray-400 uppercase tracking-widest block mb-2">Technical Supervisor</span>
+                               <div className="text-[13px] text-gray-900">
+                                  <p className="font-medium">{internship.technicalSupervisorName}</p>
+                                  <p className="text-gray-500 text-[11px]">{internship.technicalSupervisorEmail}</p>
+                               </div>
+                            </div>
+                         )}
+                       </>
+                     )}
                   </div>
                </div>
 

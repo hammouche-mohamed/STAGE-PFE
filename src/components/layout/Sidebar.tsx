@@ -54,9 +54,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ role: initialRole, logoUrl }) 
           { label: t("common.users"), icon: Users, href: "/admin/users", active: pathname === "/admin/users" },
           { label: t("common.topics"), icon: Briefcase, href: "/admin/topics", active: pathname === "/admin/topics" },
           { label: t("common.internships"), icon: ShieldCheck, href: "/admin/internships", active: pathname === "/admin/internships" },
-          { label: "Filières", icon: GraduationCap, href: "/admin/filieres", active: pathname === "/admin/filieres" },
-          { label: "Archives", icon: Archive, href: "/admin/archives", active: pathname === "/admin/archives" },
-          { label: "Audit Logs", icon: FileText, href: "/admin/audit-logs", active: pathname === "/admin/audit-logs" },
+          { label: t("nav.filieres"), icon: GraduationCap, href: "/admin/filieres", active: pathname === "/admin/filieres" },
+          { label: t("nav.archives"), icon: Archive, href: "/admin/archives", active: pathname === "/admin/archives" },
+          { label: t("nav.audit"), icon: FileText, href: "/admin/audit-logs", active: pathname === "/admin/audit-logs" },
           { label: t("common.settings"), icon: Settings, href: "/admin/settings", active: pathname === "/admin/settings" },
           { label: t("common.profile"), icon: UserIcon, href: "/profile", active: pathname === "/profile" },
         ];
@@ -85,7 +85,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ role: initialRole, logoUrl }) 
           { label: t("common.documents"), icon: FileText, href: "/student/documents", active: pathname === "/student/documents" },
           { label: t("common.messages"), icon: MessageSquare, href: "/student/messages", active: pathname === "/student/messages" },
           { label: t("common.invitations"), icon: Users, href: "/student/invitations", active: pathname === "/student/invitations" },
-          { label: "Archives", icon: Archive, href: "/student/archives", active: pathname === "/student/archives" },
+          { label: t("nav.archives"), icon: Archive, href: "/student/archives", active: pathname === "/student/archives" },
           { label: t("common.profile"), icon: UserIcon, href: "/profile", active: pathname === "/profile" },
         ];
     }
@@ -142,9 +142,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ role: initialRole, logoUrl }) 
                   ${item.active
                     ? "bg-indigo-50 text-indigo-700 border-l-2 border-indigo-600 font-medium"
                     : "text-gray-600 hover:bg-gray-50 hover:text-gray-900 border-l-2 border-transparent"
-                  } ${isRTL ? "flex-row-reverse border-l-0 border-r-2" : ""}`}
+                  } ${isRTL ? "flex-row-reverse border-l-0 border-r-2 gap-x-5" : "gap-x-3"}`}
               >
-                <Icon className={`${isRTL ? "ml-3" : "mr-3"} h-[18px] w-[18px] ${item.active ? "text-indigo-600" : "text-gray-400 group-hover:text-gray-600"}`} />
+                <Icon className={`h-[18px] w-[18px] ${item.active ? "text-indigo-600" : "text-gray-400 group-hover:text-gray-600"}`} />
                 {item.label}
               </Link>
             );
@@ -153,8 +153,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ role: initialRole, logoUrl }) 
 
         {/* Footer */}
         <div className="p-4 border-t border-gray-100">
-          <div className={`flex items-center mb-4 ${isRTL ? "flex-row-reverse" : ""}`}>
-            <div className={`h-8 w-8 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-[12px] font-bold overflow-hidden ${isRTL ? "ml-3" : "mr-3"}`}>
+          <div className={`flex items-center mb-4 ${isRTL ? "flex-row-reverse gap-x-5" : "gap-x-3"}`}>
+            <div className="h-8 w-8 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-[12px] font-bold overflow-hidden">
               {session?.user?.image ? (
                 <Image 
                   src={session.user.image} 
@@ -176,9 +176,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ role: initialRole, logoUrl }) 
           
           <button 
             onClick={() => setIsLogoutDialogOpen(true)}
-            className={`flex items-center w-full h-[36px] px-3 text-[13px] text-gray-500 hover:text-red-600 hover:bg-red-50 rounded transition-colors cursor-pointer ${isRTL ? "flex-row-reverse" : ""}`}
+            className={`flex items-center w-full h-[36px] px-3 text-[13px] text-gray-500 hover:text-red-600 hover:bg-red-50 rounded transition-colors cursor-pointer ${isRTL ? "flex-row-reverse gap-x-5" : "gap-x-3"}`}
           >
-            <LogOut className={`${isRTL ? "ml-3" : "mr-3"} h-[18px] w-[18px]`} />
+            <LogOut className="h-[18px] w-[18px]" />
             {t("common.logout")}
           </button>
         </div>
@@ -188,10 +188,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ role: initialRole, logoUrl }) 
         isOpen={isLogoutDialogOpen}
         onClose={() => setIsLogoutDialogOpen(false)}
         onConfirm={() => signOut({ callbackUrl: "/" })}
-        title="Logout Confirmation"
-        description="Are you sure you want to log out? You will need to sign in again to access your dashboard."
-        confirmLabel="Logout"
-        cancelLabel="Cancel"
+        title={t("logoutConfirm.title")}
+        description={t("logoutConfirm.description")}
+        confirmLabel={t("common.logout")}
+        cancelLabel={t("common.cancel")}
         variant="warning"
       />
     </>

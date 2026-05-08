@@ -6,7 +6,7 @@ import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { toast } from "sonner";
-import { Settings, Lock, Unlock, Calendar, Palette, FileText } from "lucide-react";
+import { Settings, Lock, Unlock, Calendar, Palette, FileText, Trash2 } from "lucide-react";
 import { useTranslation } from "@/lib/i18n/LanguageContext";
 
 export default function AdminSettingsPage() {
@@ -29,6 +29,52 @@ export default function AdminSettingsPage() {
   const [brandingPreview, setBrandingPreview] = useState<string | null>(null);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const [isUploadingTemplate, setIsUploadingTemplate] = useState(false);
+
+  const fetchSettings = async () => {
+    try {
+      const res = await fetch("/api/settings");
+      const data = await res.json();
+      if (data.data) {
+        const settingMap = data.data.reduce((acc: any, curr: any) => {
+          acc[curr.key] = curr.value;
+          return acc;
+        }, {});
+        setSettings(prev => ({ ...prev, ...settingMap }));
+      }
+    } catch (error) {
+      console.error("Failed to load settings:", error);
+    }
+  };
+
+  const handleUpdate = async (key: string, value: string) => {
+    setLoadingKey(key);
+    try {
+      const res = await fetch("/api/settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ key, value }),
+      });
+      
+      const result = await res.json();
+      
+      if (!res.ok) {
+        throw new Error(result.error + (result.message ? `: ${result.message}` : "") || "Update failed");
+      }
+      
+      toast.success(`${key} updated successfully`);
+      await fetchSettings();
+    } catch (error: any) {
+      console.error("Update error:", error);
+      toast.error(error.message || "Failed to update setting");
+    } finally {
+      setLoadingKey(null);
+    }
+  };
+
+  const handleDeleteTemplate = async () => {
+    if (!confirm("Are you sure you want to delete the official proposal template? Users will no longer be able to download it.")) return;
+    await handleUpdate("proposalFormTemplateUrl", "");
+  };
 
   // NFR-S2: client-side role guard — redirect non-admins immediately
   useEffect(() => {
@@ -110,47 +156,6 @@ export default function AdminSettingsPage() {
     }
   };
 
-  const fetchSettings = async () => {
-    try {
-      const res = await fetch("/api/settings");
-      const data = await res.json();
-      if (data.data) {
-        const settingMap = data.data.reduce((acc: any, curr: any) => {
-          acc[curr.key] = curr.value;
-          return acc;
-        }, {});
-        setSettings(prev => ({ ...prev, ...settingMap }));
-      }
-    } catch (error) {
-      console.error("Failed to load settings:", error);
-    }
-  };
-
-
-  const handleUpdate = async (key: string, value: string) => {
-    setLoadingKey(key);
-    try {
-      const res = await fetch("/api/settings", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ key, value }),
-      });
-      
-      const result = await res.json();
-      
-      if (!res.ok) {
-        throw new Error(result.error + (result.message ? `: ${result.message}` : "") || "Update failed");
-      }
-      
-      toast.success(`${key} updated successfully`);
-      await fetchSettings();
-    } catch (error: any) {
-      console.error("Update error:", error);
-      toast.error(error.message || "Failed to update setting");
-    } finally {
-      setLoadingKey(null);
-    }
-  };
 
   return (
     <div className="max-w-[800px] space-y-6">
@@ -327,7 +332,23 @@ export default function AdminSettingsPage() {
                  <div>
                     <p className="text-[13px] font-medium text-gray-900">Official Proposal Form</p>
                     {settings.proposalFormTemplateUrl ? (
-                      <a href={`/api${settings.proposalFormTemplateUrl}`} target="_blank" className="text-[11px] text-indigo-600 hover:underline">Download current template</a>
+                      <div className="flex items-center gap-2">
+                        <a 
+                          href={settings.proposalFormTemplateUrl.startsWith("/api") ? settings.proposalFormTemplateUrl : `/api${settings.proposalFormTemplateUrl}`} 
+                          target="_blank" 
+                          className="text-[11px] text-indigo-600 hover:underline"
+                        >
+                          Download current template
+                        </a>
+                        <button 
+                          onClick={handleDeleteTemplate}
+                          disabled={loadingKey === "proposalFormTemplateUrl"}
+                          className="p-1 text-gray-400 hover:text-red-600 transition-colors disabled:opacity-50"
+                          title="Delete template"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
                     ) : (
                       <p className="text-[11px] text-gray-500">No template uploaded yet.</p>
                     )}

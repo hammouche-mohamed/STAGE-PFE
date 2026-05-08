@@ -99,7 +99,7 @@ export default function AdminUsersPage() {
 
       if (!res.ok) throw new Error("Update failed");
 
-      toast.success(newStatus ? "User activated" : "User deactivated");
+      toast.success(newStatus ? t("toast.userUpdated") : t("toast.userUpdated"));
       setUserToDeactivate(null);
       fetchUsers();
     } catch (error) {
@@ -221,19 +221,19 @@ export default function AdminUsersPage() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-[16px] sm:text-[17px] font-semibold text-gray-900">User Management</h1>
-          <p className="text-[12px] sm:text-[13px] text-gray-500 mt-0.5">View and manage all platform users.</p>
+          <h1 className="text-[16px] sm:text-[17px] font-semibold text-gray-900">{t("admin.users.title")}</h1>
+          <p className="text-[12px] sm:text-[13px] text-gray-500 mt-0.5">{t("admin.users.subtitle")}</p>
         </div>
       </div>
 
       {/* Filters bar */}
       <div className="flex flex-col sm:flex-row gap-4">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <Search className={`absolute ${isRTL ? "right-3" : "left-3"} top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400`} />
           <input
             type="text"
-            placeholder="Search by name or email..."
-            className="admin-input pl-10"
+            placeholder={t("admin.users.searchPlaceholder")}
+            className={`admin-input ${isRTL ? "pr-10 text-right" : "pl-10"}`}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -244,15 +244,15 @@ export default function AdminUsersPage() {
             value={roleFilter}
             onChange={(e) => setRoleFilter(e.target.value)}
           >
-            <option value="ALL">All Roles</option>
-            <option value="STUDENT">Students</option>
-            <option value="TEACHER">Teachers</option>
-            <option value="COMPANY">Companies</option>
-            <option value="ADMIN">Admins</option>
+            <option value="ALL">{t("admin.users.allRoles")}</option>
+            <option value="STUDENT">{t("roles.STUDENT")}</option>
+            <option value="TEACHER">{t("roles.TEACHER")}</option>
+            <option value="COMPANY">{t("roles.COMPANY")}</option>
+            <option value="ADMIN">{t("roles.ADMIN")}</option>
           </select>
           <Button variant="outline" className="h-[36px]">
-            <Filter className="h-4 w-4 mr-2" />
-            More Filters
+            <Filter className={`h-4 w-4 ${isRTL ? "ml-2" : "mr-2"}`} />
+            {t("admin.users.moreFilters")}
           </Button>
         </div>
       </div>
@@ -261,22 +261,22 @@ export default function AdminUsersPage() {
       <div className="admin-table-container sm:bg-white sm:border sm:border-gray-200 sm:rounded-md">
         <table className="admin-table stacked-table">
           <thead className="admin-table-header">
-            <tr>
-              <th>User</th>
-              <th>Role</th>
-              <th>Status</th>
-              <th>Created At</th>
-              <th className="text-right">Actions</th>
+            <tr className={isRTL ? "text-right" : "text-left"}>
+              <th className={isRTL ? "text-right" : "text-left"}>{t("admin.users.user")}</th>
+              <th className={isRTL ? "text-right" : "text-left"}>{t("common.role")}</th>
+              <th className={isRTL ? "text-right" : "text-left"}>{t("common.status")}</th>
+              <th className={isRTL ? "text-right" : "text-left"}>{t("admin.users.createdAt")}</th>
+              <th className={isRTL ? "text-left" : "text-right"}>{t("common.actions")}</th>
             </tr>
           </thead>
           <tbody>
             {isLoading ? (
               <tr className="empty-row">
-                <td colSpan={5} className="text-center py-12 text-gray-400">Loading users...</td>
+                <td colSpan={5} className="text-center py-12 text-gray-400">{t("common.loading")}</td>
               </tr>
             ) : filteredUsers.length === 0 ? (
               <tr className="empty-row">
-                <td colSpan={5} className="text-center py-12 text-gray-400">No users found matching your filters.</td>
+                <td colSpan={5} className="text-center py-12 text-gray-400">{t("common.noData")}</td>
               </tr>
             ) : (
               filteredUsers.map((user, index) => (
@@ -312,11 +312,11 @@ export default function AdminUsersPage() {
                       <span className="text-[11px] sm:text-[12px] font-medium text-gray-600 uppercase tracking-tight">{user.role}</span>
                     </div>
                   </td>
-                  <td data-label="Status">
+                  <td data-label={t("common.status")}>
                     <div className="flex items-center">
-                      <div className={`h-1.5 w-1.5 rounded-full mr-1.5 flex-shrink-0 ${user.isActive ? "bg-green-500" : "bg-red-500"}`} />
+                      <div className={`h-1.5 w-1.5 rounded-full ${isRTL ? "ml-1.5" : "mr-1.5"} flex-shrink-0 ${user.isActive ? "bg-green-500" : "bg-red-500"}`} />
                       <span className={`text-[11px] sm:text-[12px] font-medium ${user.isActive ? "text-green-700" : "text-red-700"}`}>
-                        {user.isActive ? "Active" : "Inactive"}
+                        {user.isActive ? t("admin.users.active") : t("admin.users.inactive")}
                       </span>
                     </div>
                   </td>
@@ -353,15 +353,15 @@ export default function AdminUsersPage() {
                                 onClick={() => handleFetchDetail(user.id, 'edit')}
                                 className="w-full flex items-center px-4 py-2 text-[12px] text-gray-600 hover:bg-gray-50 transition-colors"
                               >
-                                <Edit className="h-3.5 w-3.5 mr-2 text-gray-400" />
-                                Edit Account
+                                <Edit className={`h-3.5 w-3.5 ${isRTL ? "ml-2" : "mr-2"} text-gray-400`} />
+                                {t("admin.users.editAccount")}
                               </button>
                               <button 
                                 onClick={() => handleFetchDetail(user.id, 'view')}
                                 className="w-full flex items-center px-4 py-2 text-[12px] text-gray-600 hover:bg-gray-50 transition-colors"
                               >
-                                <Eye className="h-3.5 w-3.5 mr-2 text-gray-400" />
-                                View Profile
+                                <Eye className={`h-3.5 w-3.5 ${isRTL ? "ml-2" : "mr-2"} text-gray-400`} />
+                                {t("admin.users.viewProfile")}
                               </button>
                               <button 
                                 onClick={() => {
@@ -370,8 +370,8 @@ export default function AdminUsersPage() {
                                 }}
                                 className="w-full flex items-center px-4 py-2 text-[12px] text-gray-600 hover:bg-gray-50 transition-colors"
                               >
-                                <Key className="h-3.5 w-3.5 mr-2 text-gray-400" />
-                                Reset Password
+                                <Key className={`h-3.5 w-3.5 ${isRTL ? "ml-2" : "mr-2"} text-gray-400`} />
+                                {t("admin.users.resetPassword")}
                               </button>
                               <div className="h-px bg-gray-50 my-1" />
                               <button 
@@ -381,8 +381,8 @@ export default function AdminUsersPage() {
                                 }}
                                 className="w-full flex items-center px-4 py-2 text-[12px] text-red-600 hover:bg-red-50 transition-colors"
                               >
-                                <Trash2 className="h-3.5 w-3.5 mr-2" />
-                                Delete Member
+                                <Trash2 className={`h-3.5 w-3.5 ${isRTL ? "ml-2" : "mr-2"}`} />
+                                {t("admin.users.deleteMember")}
                               </button>
                             </div>
                           </>
@@ -401,9 +401,9 @@ export default function AdminUsersPage() {
         isOpen={!!userToDeactivate}
         onClose={() => setUserToDeactivate(null)}
         onConfirm={() => userToDeactivate && executeStatusUpdate(userToDeactivate.id, false)}
-        title="Deactivate Account"
-        description={`Are you sure you want to deactivate ${userToDeactivate?.name}'s account? This will immediately revoke their access to the platform.`}
-        confirmLabel="Deactivate"
+        title={t("admin.users.deactivateTitle")}
+        description={t("admin.users.deactivateDesc", { name: userToDeactivate?.name })}
+        confirmLabel={t("admin.users.inactive")}
         isLoading={isProcessingStatus}
       />
 
@@ -411,9 +411,9 @@ export default function AdminUsersPage() {
         isOpen={!!userToDelete}
         onClose={() => setUserToDelete(null)}
         onConfirm={executeDeleteUser}
-        title="Delete User Account"
-        description={`Are you sure you want to PERMANENTLY delete ${userToDelete?.name}'s account? This will remove all their data and cannot be undone.`}
-        confirmLabel="Delete User"
+        title={t("admin.users.deleteTitle")}
+        description={t("admin.users.deleteDesc", { name: userToDelete?.name })}
+        confirmLabel={t("admin.users.deleteMember")}
         variant="danger"
         isLoading={isProcessingStatus}
       />
@@ -422,7 +422,7 @@ export default function AdminUsersPage() {
       <Modal
         isOpen={!!userToView}
         onClose={() => setUserToView(null)}
-        title="Institutional Profile"
+        title={t("admin.users.profileTitle")}
         size="md"
       >
         {userToView && (
@@ -453,7 +453,7 @@ export default function AdminUsersPage() {
 
             <div className="grid grid-cols-2 gap-y-4 gap-x-8">
               <div>
-                <label className="text-[11px] font-bold text-gray-400 uppercase tracking-widest block mb-1">Status</label>
+                <label className="text-[11px] font-bold text-gray-400 uppercase tracking-widest block mb-1">{t("common.status")}</label>
                 <div className="flex items-center">
                   <div className={`h-2 w-2 rounded-full mr-2 ${userToView.isActive ? "bg-green-500" : "bg-red-500"}`} />
                   <span className="text-[14px] font-medium">{userToView.isActive ? "Active" : "Inactive"}</span>
@@ -502,7 +502,7 @@ export default function AdminUsersPage() {
             </div>
 
             <div className="pt-4 flex justify-end">
-              <Button onClick={() => setUserToView(null)}>Close View</Button>
+              <Button onClick={() => setUserToView(null)}>{t("common.close")}</Button>
             </div>
           </div>
         )}
@@ -512,26 +512,28 @@ export default function AdminUsersPage() {
       <Modal
         isOpen={!!userToEdit}
         onClose={() => setUserToEdit(null)}
-        title="Edit Account Details"
+        title={t("admin.users.editTitle")}
         size="lg"
       >
         {userToEdit && (
           <form onSubmit={handleUpdateUser} className="space-y-6 py-2">
             <div className="grid grid-cols-2 gap-4">
               <Input
-                label="Full Name"
+                label={t("admin.users.fullName")}
                 value={userToEdit.name}
                 onChange={(e) => setUserToEdit({...userToEdit, name: e.target.value})}
+                required
               />
               <Input
-                label="Email Address"
+                label={t("admin.users.email")}
                 type="email"
                 value={userToEdit.email}
                 onChange={(e) => setUserToEdit({...userToEdit, email: e.target.value})}
+                required
               />
               
               <div className="col-span-2 space-y-2">
-                <label className="admin-form-label">System Role</label>
+                <label className="admin-form-label">{t("admin.users.systemRole")} <span className="text-red-500">*</span></label>
                 <select 
                   className="admin-input"
                   value={userToEdit.role}
@@ -548,12 +550,12 @@ export default function AdminUsersPage() {
               {userToEdit.role === "STUDENT" && (
                 <>
                   <Input
-                    label="Speciality"
+                    label={t("admin.users.speciality")}
                     value={userToEdit.profileData?.speciality || ""}
                     onChange={(e) => setUserToEdit({...userToEdit, profileData: {...userToEdit.profileData, speciality: e.target.value}})}
                   />
                   <Input
-                    label="Promotion"
+                    label={t("admin.users.promotion")}
                     value={userToEdit.profileData?.promotion || ""}
                     onChange={(e) => setUserToEdit({...userToEdit, profileData: {...userToEdit.profileData, promotion: e.target.value}})}
                   />
@@ -563,12 +565,12 @@ export default function AdminUsersPage() {
               {userToEdit.role === "TEACHER" && (
                 <>
                   <Input
-                    label="Grade"
+                    label={t("admin.users.grade")}
                     value={userToEdit.profileData?.grade || ""}
                     onChange={(e) => setUserToEdit({...userToEdit, profileData: {...userToEdit.profileData, grade: e.target.value}})}
                   />
                   <Input
-                    label="Max Teams Capacity"
+                    label={t("admin.users.maxCapacity")}
                     type="number"
                     value={userToEdit.profileData?.maxStudents || 5}
                     onChange={(e) => setUserToEdit({...userToEdit, profileData: {...userToEdit.profileData, maxStudents: parseInt(e.target.value)}})}
@@ -579,12 +581,12 @@ export default function AdminUsersPage() {
               {userToEdit.role === "COMPANY" && (
                 <>
                   <Input
-                    label="Company Name"
+                    label={t("admin.users.companyName")}
                     value={userToEdit.profileData?.companyName || ""}
                     onChange={(e) => setUserToEdit({...userToEdit, profileData: {...userToEdit.profileData, companyName: e.target.value}})}
                   />
                   <Input
-                    label="Sector"
+                    label={t("admin.users.sector")}
                     value={userToEdit.profileData?.sector || ""}
                     onChange={(e) => setUserToEdit({...userToEdit, profileData: {...userToEdit.profileData, sector: e.target.value}})}
                   />
@@ -593,8 +595,8 @@ export default function AdminUsersPage() {
             </div>
 
             <div className="flex justify-end gap-3 pt-4 border-t border-gray-50">
-              <Button type="button" variant="outline" onClick={() => setUserToEdit(null)}>Cancel</Button>
-              <Button type="submit" isLoading={isProcessingStatus}>Save Changes</Button>
+              <Button type="button" variant="outline" onClick={() => setUserToEdit(null)}>{t("common.cancel")}</Button>
+              <Button type="submit" isLoading={isProcessingStatus}>{t("common.save")}</Button>
             </div>
           </form>
         )}
@@ -607,13 +609,13 @@ export default function AdminUsersPage() {
           setUserToReset(null);
           setResetPasswordValue("");
         }}
-        title="Reset User Password"
+        title={t("admin.users.resetTitle")}
         size="sm"
       >
         {userToReset && (
           <form onSubmit={handleResetPassword} className="space-y-6 py-2">
             <div className="bg-amber-50 border border-amber-100 p-3 rounded-md text-[13px] text-amber-800 leading-snug">
-              Manual reset for <strong>{userToReset.name}</strong>. The user will be required to change this password on their next login.
+              {t("admin.users.resetDesc", { name: userToReset.name })}
             </div>
 
             <Input
@@ -626,8 +628,8 @@ export default function AdminUsersPage() {
             />
 
             <div className="flex justify-end gap-3 pt-4">
-              <Button type="button" variant="outline" onClick={() => setUserToReset(null)}>Cancel</Button>
-              <Button type="submit" variant="danger" isLoading={isProcessingStatus}>Confirm Reset</Button>
+              <Button type="button" variant="outline" onClick={() => setUserToReset(null)}>{t("common.cancel")}</Button>
+              <Button type="submit" variant="danger" isLoading={isProcessingStatus}>{t("admin.users.resetPassword")}</Button>
             </div>
           </form>
         )}

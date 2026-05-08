@@ -73,6 +73,23 @@ export async function PATCH(
         data: { pendingEditData, pendingEditRequestedAt: new Date() },
       });
 
+      const admins = await prisma.user.findMany({
+        where: { role: 'ADMIN' },
+        select: { id: true },
+      });
+
+      for (const admin of admins) {
+        await NotificationService.trigger({
+          userId: admin.id,
+          type: 'TOPIC_SUBMITTED',
+          title: 'Topic Edit Request',
+          message: `${session.user.name} has requested an edit for the topic: "${topic.title}". Please review it.`,
+          relatedId: id,
+          relatedType: 'Topic',
+          link: '/admin/topics',
+        });
+      }
+
       return NextResponse.json({ message: "Edit request submitted. Awaiting admin approval." });
     }
 

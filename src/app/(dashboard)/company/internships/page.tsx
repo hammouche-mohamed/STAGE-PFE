@@ -12,8 +12,7 @@ import {
   ArrowRight,
   TrendingUp,
   LayoutDashboard,
-  GraduationCap,
-  ExternalLink
+  GraduationCap
 } from "lucide-react";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Button } from "@/components/ui/Button";
@@ -71,32 +70,27 @@ export default function CompanyInternshipsPage() {
           </div>
         ) : (
           internships.map((internship) => (
-            <div key={internship.id} className="bg-white border border-gray-200 rounded-md p-6 flex flex-col justify-between hover:border-indigo-400 transition-all shadow-sm group">
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                     <StatusBadge status={internship.status} />
-                     <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{internship.academicYear}</span>
-                  </div>
-                  <Link href={`/company/internships/${internship.id}`} className="inline-flex p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition-colors">
-                    <ExternalLink className="h-4 w-4" />
-                  </Link>
+            <div key={internship.id} className="bg-white border border-gray-200 rounded-md p-5 flex flex-col justify-between hover:border-indigo-400 transition-all shadow-sm group">
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                   <StatusBadge status={internship.status} />
+                   <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{internship.academicYear}</span>
                 </div>
 
                 <h3 className="text-[15px] font-bold text-gray-900 leading-tight">
                   {internship.topic.title}
                 </h3>
 
-                <div className="space-y-3 pt-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-2 gap-x-4 pt-1">
                   <div className="flex items-center text-[12px] text-gray-600">
                     <Users className="h-4 w-4 mr-2 text-indigo-400" />
                     <span className="font-semibold mr-1">{t("common.users")}:</span>
-                    {internship.students.map(s => s.student.name).join(", ")}
+                    <span className="truncate">{internship.students.map(s => s.student.name).join(", ")}</span>
                   </div>
                   <div className="flex items-center text-[12px] text-gray-600">
                     <GraduationCap className="h-4 w-4 mr-2 text-gray-400" />
                     <span className="font-semibold mr-1">{t("dashboard.supervisor")}:</span>
-                    {internship.teacher.name}
+                    <span className="truncate">{internship.teacher.name}</span>
                   </div>
                   <div className="flex items-center text-[12px] text-gray-600">
                     <Clock className="h-4 w-4 mr-2 text-gray-400" />
@@ -106,11 +100,13 @@ export default function CompanyInternshipsPage() {
                 </div>
               </div>
 
-              <div className="mt-8 pt-4 border-t border-gray-50 flex items-center justify-between">
-                <button className="text-[11px] font-bold text-indigo-600 uppercase tracking-wide flex items-center hover:underline">
-                  {t("common.view")}
-                  <ArrowRight className="ml-1 h-3 w-3" />
-                </button>
+              <div className="mt-5 pt-3 border-t border-gray-50 flex items-center justify-between">
+                <Link href={`/company/internships/${internship.id}`}>
+                  <button className="text-[11px] font-bold text-indigo-600 uppercase tracking-wide flex items-center hover:underline">
+                    {t("common.view")}
+                    <ArrowRight className="ml-1 h-3 w-3" />
+                  </button>
+                </Link>
                 <Link href="/company/messages">
                    <Button size="sm" variant="outline" className="h-8">
                      {t("nav.messages")}

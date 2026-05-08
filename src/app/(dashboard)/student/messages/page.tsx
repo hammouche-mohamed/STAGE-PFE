@@ -286,22 +286,21 @@ function MessagesContent() {
 
   return (
     <>
-      <div className="-mt-4 md:-mt-6 h-[calc(100vh-115px)] flex flex-col space-y-3 overflow-hidden">
+      <div className="h-[calc(100vh-140px)] flex flex-col space-y-5 overflow-hidden">
         {/* Archive banners */}
         {isChatLocked && (
           <div className="flex items-center gap-2 px-4 py-2 bg-gray-800 text-gray-300 rounded-xl text-[12px] font-medium">
             <Archive className="h-4 w-4 text-gray-400 flex-shrink-0" />
-            This internship has been archived. The chat is now read-only.
+            {t("messages.archivedDesc")}
           </div>
         )}
         {isChatGrace && !isChatLocked && (
           <div className="flex items-center gap-2 px-4 py-2 bg-amber-50 border border-amber-200 rounded-xl text-[12px] text-amber-800">
             <Archive className="h-4 w-4 text-amber-500 flex-shrink-0" />
-            This internship is archived. Chat will close on{" "}
-            <strong>{internship?.chatArchivedAt ? new Date(internship.chatArchivedAt).toLocaleDateString() : "—"}</strong>.
+            {t("messages.archivedGrace", { date: internship?.chatArchivedAt ? new Date(internship.chatArchivedAt).toLocaleDateString() : "—" })}
           </div>
         )}
-        <div className="flex flex-col gap-2 flex-shrink-0">
+        <div className="flex flex-col gap-8 flex-shrink-0">
           <div className={`flex items-center justify-between ${isRTL ? "flex-row-reverse" : ""}`}>
             <div className={`flex items-center gap-2 md:gap-3 ${isRTL ? "flex-row-reverse" : ""}`}>
               <Link href={backUrl} className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-500 transition-colors">
@@ -310,9 +309,9 @@ function MessagesContent() {
               <div>
                 <div className="flex items-center gap-2">
                   <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse hidden sm:block" />
-                  <h1 className="text-[14px] md:text-[15px] font-bold text-gray-900 leading-none truncate max-w-[120px] sm:max-w-none">Coordination Center</h1>
+                  <h1 className={`text-[14px] md:text-[15px] font-bold text-gray-900 ${isRTL ? "leading-relaxed text-[17px] max-w-none" : "leading-none truncate max-w-[120px] sm:max-w-none"}`}>{t("messages.title")}</h1>
                 </div>
-                <p className="text-[11px] md:text-[12px] text-gray-500 mt-0.5 md:mt-1 uppercase tracking-tight font-bold truncate max-w-[150px] sm:max-w-none">{internship?.topic.title}</p>
+                <p className={`text-gray-500 mt-0.5 md:mt-1 uppercase font-bold truncate max-w-[150px] sm:max-w-none ${isRTL ? "text-[13px] tracking-normal" : "text-[11px] md:text-[12px] tracking-tight"}`}>{internship?.topic.title}</p>
               </div>
             </div>
 
@@ -325,7 +324,7 @@ function MessagesContent() {
                   }`}
               >
                 <FileText className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">{sharedFiles.length} Files</span>
+                <span className="hidden sm:inline">{sharedFiles.length} {t("messages.files")}</span>
                 <span className="sm:hidden">{sharedFiles.length}</span>
               </button>
               <button
@@ -336,7 +335,8 @@ function MessagesContent() {
                   }`}
               >
                 <Users className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">{internship ? (internship.students.length + 1) : 0}</span>
+                <span className="hidden sm:inline">{t("messages.participants")} ({internship ? (internship.students.length + 1) : 0})</span>
+                <span className="sm:hidden">{(internship?.students.length || 0) + 1}</span>
               </button>
             </div>
           </div>
@@ -366,16 +366,16 @@ function MessagesContent() {
           {/* Main Chat Content */}
           <div className="flex-1 min-w-0 bg-white border border-gray-200 rounded-xl shadow-sm flex flex-col overflow-hidden">
             {/* Messages */}
-            <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
+            <div dir="ltr" className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
               {isLoading ? (
                 <p className="text-center text-gray-400 text-[13px] pt-12">Loading…</p>
               ) : !internship ? (
                 <p className="text-center text-gray-400 text-[13px] pt-12">
-                  No active internship. Messages appear once your internship starts.
+                  {t("messages.noActiveInternship")}
                 </p>
               ) : displayMessages.length === 0 ? (
                 <p className="text-center text-gray-400 text-[13px] pt-12">
-                  {searchQuery ? `No messages matching "${searchQuery}"` : "No messages yet — start the conversation!"}
+                  {searchQuery ? `${t("common.noData")} ("${searchQuery}")` : t("messages.noMessages")}
                 </p>
               ) : (
                 displayMessages.map((msg) => {
@@ -423,7 +423,7 @@ function MessagesContent() {
                               {quoted}
                             </div>
                           )}
-                          {text}
+                          <div dir="auto" className="text-start">{text}</div>
 
                           {/* Attachment */}
                           {msg.attachmentName && (
@@ -463,8 +463,9 @@ function MessagesContent() {
             {replyTo && (
               <div className="mx-4 mb-0 px-4 py-2 bg-indigo-50 border border-indigo-100 rounded-t-lg flex items-start justify-between gap-3">
                 <div className="flex-1 min-w-0">
-                  <p className="text-[11px] font-bold text-indigo-700 mb-0.5">
-                    ↩ Replying to {replyTo.senderId === session?.user?.id ? "yourself" : replyTo.sender.name}
+                  <p className="text-[11px] font-bold text-indigo-700 mb-0.5 flex items-center gap-1">
+                    <span className="opacity-70">{isRTL ? "↩" : "↪"}</span>
+                    <span>{t("messages.replyingTo", { name: replyTo.senderId === session?.user?.id ? t("messages.yourself") : (replyTo.sender?.name || "User") })}</span>
                   </p>
                   <p className="text-[12px] text-gray-500 truncate">{replyTo.content.slice(0, 80)}</p>
                 </div>
@@ -512,7 +513,7 @@ function MessagesContent() {
                 <button
                   type="submit"
                   disabled={!internship || isSending || !newMessage.trim() || isChatLocked}
-                  className={`h-11 w-11 bg-indigo-600 text-white rounded-full flex items-center justify-center hover:bg-indigo-700 active:scale-95 transition-all shadow-md shadow-indigo-200 disabled:opacity-40 flex-shrink-0 ${isRTL ? "rotate-180" : ""}`}>
+                  className={`h-11 w-11 bg-indigo-600 text-white rounded-full flex items-center justify-center hover:bg-indigo-700 active:scale-95 transition-all shadow-md shadow-indigo-200 disabled:opacity-40 flex-shrink-0 ${isRTL ? "-scale-x-100" : ""}`}>
                   <Send className="h-4 w-4" />
                 </button>
               </div>
@@ -526,7 +527,7 @@ function MessagesContent() {
             <div className={`w-80 border-gray-100 bg-white flex flex-col animate-in ${isRTL ? "border-r slide-in-from-left" : "border-l slide-in-from-right"} duration-300`}>
               <div className={`p-4 border-b border-gray-100 bg-gray-50/50 flex items-center justify-between ${isRTL ? "flex-row-reverse" : ""}`}>
                 <h3 className="text-[12px] font-bold text-gray-900 uppercase tracking-widest font-bold">
-                  {sidebarTab === "files" ? "Shared Files" : "Participants"}
+                  {sidebarTab === "files" ? t("messages.files") : t("messages.participants")}
                 </h3>
                 {sidebarTab === "files" ? <FileText className="h-4 w-4 text-gray-400" /> : <Users className="h-4 w-4 text-gray-400" />}
               </div>
@@ -536,10 +537,12 @@ function MessagesContent() {
                   <div className="space-y-6">
                     {/* Supervisor */}
                     <div className="space-y-2">
-                      <p className="text-[10px] text-gray-400 font-bold uppercase tracking-tighter px-1">Supervisor</p>
+                      <p className="text-[10px] text-gray-400 font-bold uppercase tracking-tighter px-1">
+                        {t("messages.supervisor")}
+                      </p>
                       <div className="rounded-xl border border-gray-100 bg-white p-2.5 shadow-sm">
-                        <div className="flex items-center gap-3">
-                          <div className="h-8 w-8 rounded-full bg-indigo-50 text-indigo-700 flex items-center justify-center font-bold text-[12px]">
+                        <div className={`flex items-center gap-4 ${isRTL ? "flex-row-reverse text-right" : ""}`}>
+                          <div className="h-8 w-8 rounded-full bg-indigo-50 text-indigo-700 flex items-center justify-center font-bold text-[12px] flex-shrink-0">
                             {internship?.teacher?.name.charAt(0) || "S"}
                           </div>
                           <div className="min-w-0 flex-1">
@@ -552,16 +555,18 @@ function MessagesContent() {
 
                     {/* Students */}
                     <div className="space-y-2">
-                      <p className="text-[10px] text-gray-400 font-bold uppercase tracking-tighter px-1">Students</p>
+                      <p className="text-[10px] text-gray-400 font-bold uppercase tracking-tighter px-1">
+                        {t("messages.students")}
+                      </p>
                       <div className="space-y-2">
                         {internship?.students.map((s, idx) => (
                           <div key={`${s.student.email}-${idx}`} className="rounded-xl border border-gray-100 bg-white p-2.5 shadow-sm">
-                            <div className="flex items-center gap-3">
-                              <div className={`h-8 w-8 rounded-full flex items-center justify-center font-bold text-[12px] ${s.isLeader ? "bg-amber-50 text-amber-700" : "bg-emerald-50 text-emerald-700"}`}>
+                            <div className={`flex items-center gap-4 ${isRTL ? "flex-row-reverse text-right" : ""}`}>
+                              <div className={`h-8 w-8 rounded-full flex items-center justify-center font-bold text-[12px] flex-shrink-0 ${s.isLeader ? "bg-amber-50 text-amber-700" : "bg-emerald-50 text-emerald-700"}`}>
                                 {s.student.name.charAt(0)}
                               </div>
                               <div className="min-w-0 flex-1">
-                                <div className="flex items-center gap-1.5">
+                                <div className={`flex items-center gap-1.5 ${isRTL ? "flex-row-reverse" : ""}`}>
                                   <p className="text-[12px] font-bold text-gray-900 truncate">{s.student.name}</p>
                                   {s.isLeader && <span className="text-[8px] bg-amber-100 text-amber-700 px-1 rounded uppercase font-bold">Leader</span>}
                                 </div>

@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import prisma from "@/lib/prisma";
-import { writeFile, mkdir } from "fs/promises";
-import { join } from "path";
 import { randomUUID } from "crypto";
 
 export async function POST(req: NextRequest) {
@@ -29,19 +27,20 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "File size must be under 4MB" }, { status: 400 });
     }
 
-    const ext = file.name.split(".").pop() || "png";
-    const filename = `logo-${randomUUID()}.${ext}`;
-    const uploadsDir = join(process.cwd(), "public", "uploads");
-
-    // Ensure the uploads directory exists
-    await mkdir(uploadsDir, { recursive: true });
-
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
-    await writeFile(join(uploadsDir, filename), buffer);
+    // Store in DB
+    const fileId = randomUUID();
+    await prisma.$executeRawUnsafe(
+      "INSERT INTO upload (id, fileName, fileType, content) VALUES (?, ?, ?, ?)",
+      fileId,
+      file.name,
+      file.type,
+      buffer
+    );
 
-    const publicUrl = `/uploads/${filename}`;
+    const publicUrl = `/api/files/${fileId}`;
 
     // Save to database
     await prisma.systemSettings.upsert({

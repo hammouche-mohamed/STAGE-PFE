@@ -27,7 +27,7 @@ export const Topbar: React.FC = () => {
 
   const fetchUnread = useCallback(async () => {
     try {
-      const res = await fetch("/api/notifications/unread/count");
+      const res = await fetch("/api/notifications?count=true");
       if (res.ok) {
         const data = await res.json();
         setUnreadCount(data.count || 0);
@@ -50,7 +50,7 @@ export const Topbar: React.FC = () => {
   const breadcrumbs = getBreadcrumbs();
 
   return (
-    <header className="h-[56px] bg-white border-b border-gray-200 sticky top-0 z-40 px-5 md:px-6 flex items-center justify-between">
+    <header className="h-[56px] bg-white border-b border-gray-200 px-6 md:px-8 flex items-center justify-between flex-shrink-0">
       <div className={`flex items-center gap-2 md:gap-4 ${isRTL ? "flex-row-reverse" : ""}`}>
         {/* Mobile Menu Toggle */}
         <button 

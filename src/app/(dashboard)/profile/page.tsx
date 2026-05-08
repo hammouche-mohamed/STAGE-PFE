@@ -218,8 +218,8 @@ export default function ProfilePage() {
   return (
     <div className="max-w-[860px] space-y-8">
       <div>
-        <h1 className="text-[17px] font-semibold text-gray-900">My Profile</h1>
-        <p className="text-[13px] text-gray-500 mt-1">Upload a profile picture, update your account information, and change your password.</p>
+        <h1 className="text-[17px] font-semibold text-gray-900">{t("profilePage.title")}</h1>
+        <p className="text-[13px] text-gray-500 mt-1">{t("profilePage.subtitle")}</p>
       </div>
 
       <div className="grid gap-6">
@@ -234,8 +234,8 @@ export default function ProfilePage() {
                 )}
               </div>
               <div>
-                <p className="text-sm font-semibold text-gray-900">Profile picture</p>
-                <p className="text-[12px] text-gray-500 mt-1">Upload a photo to personalize your account.</p>
+                <p className="text-sm font-semibold text-gray-900">{t("profilePage.picture")}</p>
+                <p className="text-[12px] text-gray-500 mt-1">{t("profilePage.pictureDesc")}</p>
               </div>
             </div>
 
@@ -244,13 +244,13 @@ export default function ProfilePage() {
                 <>
                   <input type="file" id="avatar-upload" className="hidden" accept="image/*" onChange={handleAvatarSelect} />
                   <label htmlFor="avatar-upload" className="cursor-pointer inline-flex items-center justify-center bg-indigo-600 text-white hover:bg-indigo-700 h-[36px] px-4 text-[13px] font-medium rounded-md shadow-sm transition-all">
-                    Choose picture
+                    {t("profilePage.choosePicture")}
                   </label>
                 </>
               ) : (
                 <div className="flex items-center gap-2">
                   <Button size="sm" onClick={handleAvatarUpload} isLoading={isUploadingAvatar}>
-                    Add
+                    {t("common.save")}
                   </Button>
                   <Button size="sm" variant="outline" onClick={() => { setAvatarFile(null); setAvatarPreview(null); }} disabled={isUploadingAvatar}>
                     Cancel
@@ -263,7 +263,7 @@ export default function ProfilePage() {
                   variant="outline"
                   onClick={() => setShowConfirmRemoveAvatar(true)}
                 >
-                  Remove picture
+                  {t("profilePage.removePicture")}
                 </Button>
               )}
             </div>
@@ -272,25 +272,27 @@ export default function ProfilePage() {
 
         <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm space-y-6">
           <div>
-            <h2 className="text-sm font-semibold text-gray-900">Account details</h2>
-            <p className="text-[12px] text-gray-500 mt-1">Your name and email are used for login and notification delivery.</p>
+            <h2 className="text-sm font-semibold text-gray-900">{t("profilePage.details")}</h2>
+            <p className="text-[12px] text-gray-500 mt-1">{t("profilePage.detailsDesc")}</p>
           </div>
 
           <div className="grid gap-4 md:grid-cols-2">
             <Input
-              label="Full name"
+              label={t("common.name")}
               value={profile?.name || ""}
               error={errors.name}
+              required
               onChange={(event) => {
                 setProfile((prev) => prev ? { ...prev, name: event.target.value } : prev);
                 if (errors.name) setErrors(prev => ({ ...prev, name: "" }));
               }}
             />
             <Input
-              label="Email address"
+              label={t("common.email")}
               type="email"
               value={profile?.email || ""}
               error={errors.email}
+              required
               onChange={(event) => {
                 setProfile((prev) => prev ? { ...prev, email: event.target.value } : prev);
                 if (errors.email) setErrors(prev => ({ ...prev, email: "" }));
@@ -300,7 +302,7 @@ export default function ProfilePage() {
 
           <div className="flex justify-end">
             <Button onClick={handleSave} isLoading={isSavingProfile}>
-              <Save className="h-4 w-4 mr-2" /> Save changes
+              <Save className="h-4 w-4 mr-2" /> {t("common.save")}
             </Button>
           </div>
         </div>
@@ -308,26 +310,28 @@ export default function ProfilePage() {
 
         <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm space-y-6">
           <div>
-            <h2 className="text-sm font-semibold text-gray-900">Change password</h2>
-            <p className="text-[12px] text-gray-500 mt-1">Update your account password to protect your profile.</p>
+            <h2 className="text-sm font-semibold text-gray-900">{t("profilePage.changePassword")}</h2>
+            <p className="text-[12px] text-gray-500 mt-1">{t("profilePage.changePasswordDesc")}</p>
           </div>
 
           <div className="grid gap-4 md:grid-cols-2">
             <Input
-              label="Current password"
+              label={t("profilePage.currentPassword")}
               type="password"
               value={passwords.currentPassword}
               error={errors.currentPassword}
+              required
               onChange={(event) => {
                 setPasswords((prev) => ({ ...prev, currentPassword: event.target.value }));
                 if (errors.currentPassword) setErrors(prev => ({ ...prev, currentPassword: "" }));
               }}
             />
             <Input
-              label="New password"
+              label={t("profilePage.newPassword")}
               type="password"
               value={passwords.newPassword}
               error={errors.newPassword}
+              required
               onChange={(event) => {
                 setPasswords((prev) => ({ ...prev, newPassword: event.target.value }));
                 if (errors.newPassword) setErrors(prev => ({ ...prev, newPassword: "" }));
@@ -337,7 +341,7 @@ export default function ProfilePage() {
 
           <div className="flex justify-end">
             <Button onClick={handlePasswordUpdate} isLoading={isSavingPassword}>
-              <Lock className="h-4 w-4 mr-2" /> Update password
+              <Lock className="h-4 w-4 mr-2" /> {t("profilePage.updatePassword")}
             </Button>
           </div>
         </div>
@@ -347,9 +351,9 @@ export default function ProfilePage() {
         isOpen={showConfirmRemoveAvatar}
         onClose={() => setShowConfirmRemoveAvatar(false)}
         onConfirm={confirmRemoveAvatar}
-        title="Remove Profile Picture"
-        description="Are you sure you want to remove your profile picture? This will reset your avatar to the default icon."
-        confirmLabel="Remove"
+        title={t("profilePage.removeConfirmTitle")}
+        description={t("profilePage.removeConfirmDesc")}
+        confirmLabel={t("common.delete")}
         isLoading={isRemovingAvatar}
       />
     </div>

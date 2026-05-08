@@ -36,6 +36,8 @@ interface Internship {
   students: { student: { name: string; email: string } }[];
   status: string;
   academicYear: string;
+  startDate?: string;
+  endDate?: string;
   _count: { documents: number; messages: number };
   createdAt: string;
 }
@@ -146,6 +148,12 @@ export default function AdminInternshipsPage() {
                       <span className="text-[12px] text-indigo-600 font-medium line-clamp-2 text-left">
                         {internship.topic.title}
                       </span>
+                      {internship.startDate && internship.endDate && (
+                        <div className="flex items-center gap-2 mt-1 text-[11px] text-gray-500">
+                          <Clock className="h-3 w-3" />
+                          {format(new Date(internship.startDate), "MMM d")} - {format(new Date(internship.endDate), "MMM d, yyyy")}
+                        </div>
+                      )}
                     </div>
                   </td>
                   <td data-label="Supervisor">

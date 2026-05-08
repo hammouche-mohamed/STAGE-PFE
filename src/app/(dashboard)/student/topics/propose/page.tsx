@@ -178,7 +178,7 @@ export default function ProposeTopicPage() {
           {t("topics.propose")}
         </h1>
         <p className="text-[13px] text-gray-500 mt-1">
-          Found a company independently? Submit your topic and company details for admin approval.
+          {t("topics.proposePage.subtitle")}
         </p>
       </div>
 
@@ -187,8 +187,8 @@ export default function ProposeTopicPage() {
         <div className="flex items-center gap-3 p-4 bg-blue-50 border border-blue-200 rounded-xl">
           <Download className="h-5 w-5 text-blue-600 flex-shrink-0" />
           <div className="flex-1 min-w-0">
-            <p className="text-[13px] font-semibold text-blue-800">Official Proposal Form Template Available</p>
-            <p className="text-[12px] text-blue-600">Download the official form, fill it in, sign it and bring it to the department.</p>
+            <p className="text-[13px] font-semibold text-blue-800">{t("topics.proposePage.templateTitle")}</p>
+            <p className="text-[12px] text-blue-600">{t("topics.proposePage.templateDesc")}</p>
           </div>
           <a
             href={templateUrl}
@@ -196,7 +196,7 @@ export default function ProposeTopicPage() {
             rel="noopener noreferrer"
             className="flex-shrink-0 px-4 py-2 bg-blue-600 text-white text-[12px] font-semibold rounded-lg hover:bg-blue-700 transition-colors"
           >
-            Download
+            {t("topics.proposePage.download")}
           </a>
         </div>
       )}
@@ -206,8 +206,8 @@ export default function ProposeTopicPage() {
         <Info className={`h-4 w-4 mt-0.5 flex-shrink-0 ${isNormalOnly ? "text-amber-600" : "text-indigo-600"}`} />
         <p className={`text-[12px] ${isNormalOnly ? "text-amber-800" : "text-indigo-800"}`}>
           {isNormalOnly
-            ? `Your level (${studentLevel}) is eligible for Normal internships only.`
-            : `Your level (${studentLevel}) is eligible for both PFE and Normal internships.`}
+            ? t("topics.proposePage.eligibleNormal", { level: studentLevel })
+            : t("topics.proposePage.eligibleBoth", { level: studentLevel })}
         </p>
       </div>
 
@@ -215,18 +215,18 @@ export default function ProposeTopicPage() {
         {/* Topic Information */}
         <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm space-y-4">
           <h2 className="text-[13px] font-semibold text-gray-900 uppercase tracking-wider flex items-center gap-2">
-            <FileText className="h-4 w-4 text-indigo-600" /> Topic Information
+            <FileText className="h-4 w-4 text-indigo-600" /> {t("topics.proposePage.topicInfo")}
           </h2>
 
           <div>
-            <label className="admin-form-label">Internship Type <span className="text-red-500">*</span></label>
+            <label className="admin-form-label">{t("topics.proposePage.internshipType")} <span className="text-red-500">*</span></label>
             <div className="flex gap-4 mt-1">
               {!isNormalOnly && (
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input type="radio" value="PFE" {...register("internshipType")} className="accent-purple-600" />
                   <span className="text-[13px] font-medium">
                     <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-purple-100 text-purple-700 border border-purple-200 uppercase mr-1">PFE</span>
-                    Projet de Fin d&apos;Études
+                    {t("topics.proposePage.pfe")}
                   </span>
                 </label>
               )}
@@ -234,58 +234,58 @@ export default function ProposeTopicPage() {
                 <input type="radio" value="NORMAL" {...register("internshipType")} className="accent-emerald-600" disabled={isNormalOnly} />
                 <span className="text-[13px] font-medium">
                   <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-700 border border-emerald-200 uppercase mr-1">Normal</span>
-                  Normal Internship
+                  {t("topics.proposePage.normal")}
                 </span>
               </label>
             </div>
           </div>
 
-          <Input label="Topic Title *" placeholder="e.g. Development of a real-time monitoring system" {...register("title")} error={errors.title?.message} />
+          <Input label={t("topics.proposePage.titleLabel")} placeholder={t("topics.proposePage.titlePlaceholder")} {...register("title")} error={errors.title?.message} required />
 
           <div>
-            <label className="admin-form-label">Description <span className="text-red-500">*</span></label>
-            <textarea {...register("description")} rows={4} className="admin-input h-auto py-2" placeholder="Describe the internship goals, context, and expected outcomes..." />
+            <label className="admin-form-label">{t("topics.proposePage.descLabel")} <span className="text-red-500">*</span></label>
+            <textarea {...register("description")} rows={4} className="admin-input h-auto py-2" placeholder={t("topics.proposePage.descPlaceholder")} />
             {errors.description && <p className="mt-1 text-[11px] text-red-600">{errors.description.message}</p>}
           </div>
 
           <div>
-            <label className="admin-form-label">Required Skills / Technologies</label>
-            <textarea {...register("requiredSkills")} rows={2} className="admin-input h-auto py-2" placeholder="e.g. Python, React, REST APIs, Docker..." />
+            <label className="admin-form-label">{t("topics.proposePage.skillsLabel")}</label>
+            <textarea {...register("requiredSkills")} rows={2} className="admin-input h-auto py-2" placeholder={t("topics.proposePage.skillsPlaceholder")} />
           </div>
         </div>
 
         {/* Company Information */}
         <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm space-y-4">
           <h2 className="text-[13px] font-semibold text-gray-900 uppercase tracking-wider flex items-center gap-2">
-            <Building2 className="h-4 w-4 text-indigo-600" /> Host Company Information
+            <Building2 className="h-4 w-4 text-indigo-600" /> {t("topics.proposePage.companyInfo")}
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Input label="Company Name *" placeholder="e.g. Sonatrach" {...register("companyName")} error={errors.companyName?.message} />
-            <Input label="Industry Sector" placeholder="e.g. IT, Energy, Telecom" {...register("companySector")} />
-            <Input label="Company Address" placeholder="Street address" {...register("companyAddress")} />
-            <Input label="City / Wilaya" placeholder="e.g. Algiers" {...register("companyCity")} />
+            <Input label={t("topics.proposePage.companyName")} placeholder="e.g. Sonatrach" {...register("companyName")} error={errors.companyName?.message} required />
+            <Input label={t("topics.proposePage.companySector")} placeholder="e.g. IT, Energy, Telecom" {...register("companySector")} />
+            <Input label={t("topics.proposePage.companyAddress")} placeholder="Street address" {...register("companyAddress")} />
+            <Input label={t("topics.proposePage.companyCity")} placeholder="e.g. Algiers" {...register("companyCity")} />
           </div>
         </div>
 
         {/* Contact Person */}
         <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm space-y-4">
           <h2 className="text-[13px] font-semibold text-gray-900 uppercase tracking-wider flex items-center gap-2">
-            <User className="h-4 w-4 text-indigo-600" /> Company Contact Person
+            <User className="h-4 w-4 text-indigo-600" /> {t("topics.proposePage.contactInfo")}
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Input label="Full Name *" placeholder="e.g. Mohamed Amine" {...register("contactPerson")} error={errors.contactPerson?.message} />
-            <Input label="Email *" type="email" placeholder="contact@company.dz" {...register("contactEmail")} error={errors.contactEmail?.message} />
-            <Input label="Phone" type="tel" placeholder="+213 xx xxx xxxx" {...register("contactPhone")} />
+            <Input label={t("topics.proposePage.contactName")} placeholder="e.g. Mohamed Amine" {...register("contactPerson")} error={errors.contactPerson?.message} required />
+            <Input label={t("topics.proposePage.contactEmail")} type="email" placeholder="contact@company.dz" {...register("contactEmail")} error={errors.contactEmail?.message} required />
+            <Input label={t("topics.proposePage.contactPhone")} type="tel" placeholder="+213 xx xxx xxxx" {...register("contactPhone")} />
           </div>
         </div>
 
         {/* Supporting Document — file upload */}
         <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm space-y-3">
           <h2 className="text-[13px] font-semibold text-gray-900 uppercase tracking-wider flex items-center gap-2">
-            <Upload className="h-4 w-4 text-indigo-600" /> Supporting Document
+            <Upload className="h-4 w-4 text-indigo-600" /> {t("topics.proposePage.supportingDoc")}
           </h2>
           <p className="text-[12px] text-gray-500">
-            Upload a company acceptance letter or any official document (PDF, DOCX, JPG — max 5 MB).
+            {t("topics.proposePage.uploadDesc")}
           </p>
 
           {docFile ? (
@@ -308,9 +308,9 @@ export default function ProposeTopicPage() {
               className="flex items-center gap-2 px-4 py-2.5 border-2 border-dashed border-gray-300 rounded-lg text-[13px] text-gray-500 hover:border-indigo-400 hover:text-indigo-600 hover:bg-indigo-50 transition-all w-full justify-center"
             >
               {uploading ? (
-                <><span className="animate-spin text-lg">⏳</span> Uploading…</>
+                <><span className="animate-spin text-lg">⏳</span> {t("topics.proposePage.uploading")}</>
               ) : (
-                <><Paperclip className="h-4 w-4" /> Click to attach a document</>
+                <><Paperclip className="h-4 w-4" /> {t("topics.proposePage.clickToAttach")}</>
               )}
             </button>
           )}
@@ -322,15 +322,15 @@ export default function ProposeTopicPage() {
           <div className="flex items-center gap-3 p-4 bg-gray-50 border border-gray-200 rounded-xl">
             <Printer className="h-5 w-5 text-gray-500 flex-shrink-0" />
             <div className="flex-1 min-w-0">
-              <p className="text-[13px] font-semibold text-gray-700">Ready to print?</p>
-              <p className="text-[12px] text-gray-500">Generate a printable summary to sign offline at the department.</p>
+              <p className="text-[13px] font-semibold text-gray-700">{t("topics.proposePage.readyToPrint")}</p>
+              <p className="text-[12px] text-gray-500">{t("topics.proposePage.printDesc")}</p>
             </div>
             <button
               type="button"
               onClick={handlePrint}
               className="flex-shrink-0 flex items-center gap-1.5 px-4 py-2 bg-gray-800 text-white text-[12px] font-semibold rounded-lg hover:bg-gray-900 transition-colors"
             >
-              <Printer className="h-3.5 w-3.5" /> Print Form
+              <Printer className="h-3.5 w-3.5" /> {t("topics.proposePage.printButton")}
             </button>
           </div>
         )}

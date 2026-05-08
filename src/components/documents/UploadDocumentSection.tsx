@@ -4,23 +4,28 @@ import React, { useState, useRef } from "react";
 import { Button } from "@/components/ui/Button";
 import { toast } from "sonner";
 import { FileUp, Info, FileText, X, Loader2 } from "lucide-react";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
 
 interface UploadDocumentSectionProps {
   internshipId: string;
   onUploadSuccess?: () => void;
 }
 
-const DOCUMENT_TYPES = [
-  { value: "PROGRESS_REPORT", label: "Progress Report (Mini-Pres)" },
-  { value: "MID_REPORT", label: "Mid-term Report" },
-  { value: "FINAL_REPORT", label: "Final Report / Thesis" },
-  { value: "OTHER", label: "Other Attachment" },
-];
+// DOCUMENT_TYPES moved inside component to use translations
 
 export const UploadDocumentSection: React.FC<UploadDocumentSectionProps> = ({ 
   internshipId, 
   onUploadSuccess 
 }) => {
+  const { t } = useTranslation();
+  
+  const DOCUMENT_TYPES = [
+    { value: "PROGRESS_REPORT", label: t("documents.types.PROGRESS_REPORT") },
+    { value: "MID_REPORT", label: t("documents.types.MID_REPORT") },
+    { value: "FINAL_REPORT", label: t("documents.types.FINAL_REPORT") },
+    { value: "OTHER", label: t("documents.types.OTHER") },
+  ];
+
   const [selectedType, setSelectedType] = useState(DOCUMENT_TYPES[0].value);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
@@ -100,12 +105,12 @@ export const UploadDocumentSection: React.FC<UploadDocumentSectionProps> = ({
     <div className="bg-white border border-gray-200 rounded-md p-6 shadow-sm">
       <div className="flex items-center space-x-2 mb-6 text-indigo-700">
         <FileUp className="h-5 w-5" />
-        <h2 className="text-[15px] font-semibold uppercase tracking-wider">Upload New Document</h2>
+        <h2 className="text-[15px] font-semibold uppercase tracking-wider">{t("documents.uploadNew")}</h2>
       </div>
 
       <div className="space-y-6">
         <div className="w-full">
-          <label className="admin-form-label">1. Document Category</label>
+          <label className="admin-form-label">{t("documents.categoryLabel")}</label>
           <select 
             value={selectedType}
             onChange={(e) => setSelectedType(e.target.value)}
@@ -118,12 +123,12 @@ export const UploadDocumentSection: React.FC<UploadDocumentSectionProps> = ({
           </select>
           <p className="mt-2 text-[11px] text-gray-400 flex items-start">
             <Info className="h-3 w-3 mr-1 mt-0.5 shrink-0" />
-            PDF format is strictly required for reports. Max size 16MB.
+            {t("documents.pdfRequired")}
           </p>
         </div>
 
         <div className="space-y-4">
-          <label className="admin-form-label">2. Select & Upload File</label>
+          <label className="admin-form-label">{t("documents.selectFileLabel")}</label>
           
           <input 
             type="file" 
@@ -141,8 +146,8 @@ export const UploadDocumentSection: React.FC<UploadDocumentSectionProps> = ({
               <div className="h-10 w-10 bg-white rounded-full shadow-sm flex items-center justify-center mb-3">
                 <FileUp className="h-5 w-5 text-indigo-600" />
               </div>
-              <span className="text-[13px] font-medium text-gray-900">Choose a file</span>
-              <span className="text-[11px] text-gray-400 mt-1">or drag and drop here</span>
+              <span className="text-[13px] font-medium text-gray-900">{t("documents.chooseFile")}</span>
+              <span className="text-[11px] text-gray-400 mt-1">{t("documents.dragDrop")}</span>
             </div>
           ) : (
             <div className="p-4 bg-indigo-50/50 border border-indigo-100 rounded-md">
@@ -177,10 +182,10 @@ export const UploadDocumentSection: React.FC<UploadDocumentSectionProps> = ({
                 {isUploading ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Uploading...
+                    {t("documents.uploading")}
                   </>
                 ) : (
-                  "Add File"
+                  t("documents.addFile")
                 )}
               </Button>
             </div>
@@ -190,7 +195,7 @@ export const UploadDocumentSection: React.FC<UploadDocumentSectionProps> = ({
         {isSyncing && (
           <div className="flex items-center justify-center space-x-2 text-[13px] text-gray-500 animate-pulse">
             <div className="h-2 w-2 bg-indigo-600 rounded-full animate-bounce" />
-            <span>Syncing file metadata...</span>
+            <span>{t("documents.syncing")}</span>
           </div>
         )}
       </div>

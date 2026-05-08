@@ -98,7 +98,7 @@ export default function RegisterPage() {
 
         <form onSubmit={handleSubmit(onSubmit)} className="p-8 space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Input label={t("common.name")} placeholder="e.g. Salim Amghar" {...register("name")} error={errors.name?.message} />
+            <Input label={t("common.name")} placeholder="e.g. Salim Amghar" {...register("name")} error={errors.name?.message} required />
 
             <div className="w-full">
               <Input
@@ -106,6 +106,7 @@ export default function RegisterPage() {
                 {...register("email")}
                 onBlur={(e) => { register("email").onBlur(e); handleEmailBlur(e); }}
                 error={errors.email?.message}
+                required
               />
               {emailStatus.type === "checking" && <p className="mt-1 text-[11px] text-gray-400">{t("common.loading")}</p>}
               {emailStatus.type === "pending" && <p className="mt-1 text-[11px] text-indigo-600 font-medium">{emailStatus.message}</p>}
@@ -119,7 +120,7 @@ export default function RegisterPage() {
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 col-span-1 lg:col-span-2">
               <div className="w-full">
-                <label className="admin-form-label">{t("common.role")}</label>
+                <label className="admin-form-label">{t("common.role")} <span className="text-red-500">*</span></label>
                 <select {...register("role")} className="admin-input cursor-pointer">
                   <option value="STUDENT">Student</option>
                   <option value="TEACHER">Teacher Supervisor</option>
@@ -128,12 +129,12 @@ export default function RegisterPage() {
               </div>
 
               {selectedRole === "STUDENT" && (
-                <Input label="Student ID (Matricule)" placeholder="e.g. 21213500..." {...register("studentId")} error={errors.studentId?.message} />
+                <Input label="Student ID (Matricule)" placeholder="e.g. 21213500..." {...register("studentId")} error={errors.studentId?.message} required />
               )}
             </div>
 
-            <Input label={t("auth.newPassword")} type="password" placeholder="••••••••" {...register("password")} error={errors.password?.message} />
-            <Input label={t("auth.confirmPassword")} type="password" placeholder="••••••••" {...register("confirmPassword")} error={errors.confirmPassword?.message} />
+            <Input label={t("auth.newPassword")} type="password" placeholder="••••••••" {...register("password")} error={errors.password?.message} required />
+            <Input label={t("auth.confirmPassword")} type="password" placeholder="••••••••" {...register("confirmPassword")} error={errors.confirmPassword?.message} required />
 
             {selectedRole === "STUDENT" && (
               <>
@@ -148,7 +149,7 @@ export default function RegisterPage() {
                   {errors.level && <p className="mt-1 text-[11px] text-red-600 font-medium">{errors.level.message}</p>}
                 </div>
                 <div className="w-full">
-                  <label className="admin-form-label">Speciality</label>
+                  <label className="admin-form-label">Speciality <span className="text-red-500">*</span></label>
                   <select {...register("speciality")} className="admin-input cursor-pointer">
                     <option value="">Select Speciality</option>
                     {specialities.map(s => <option key={s} value={s}>{s}</option>)}
@@ -162,7 +163,7 @@ export default function RegisterPage() {
 
             {selectedRole === "TEACHER" && (
               <div className="w-full col-span-1 lg:col-span-2">
-                <label className="admin-form-label">Speciality</label>
+                <label className="admin-form-label">Speciality <span className="text-red-500">*</span></label>
                 <select {...register("speciality")} className="admin-input cursor-pointer">
                   <option value="">Select Speciality</option>
                   {specialities.map(s => <option key={s} value={s}>{s}</option>)}
@@ -174,9 +175,9 @@ export default function RegisterPage() {
 
             {selectedRole === "COMPANY" && (
               <>
-                <Input label="Company Name" placeholder="e.g. Sonatrach" {...register("companyName")} error={errors.companyName?.message} />
-                <Input label="Industry Sector" placeholder="e.g. Energy, IT" {...register("sector")} error={errors.sector?.message} />
-                <Input label="Wilaya" placeholder="e.g. Algiers" {...register("wilaya")} error={errors.wilaya?.message} />
+                <Input label="Company Name" placeholder="e.g. Sonatrach" {...register("companyName")} error={errors.companyName?.message} required />
+                <Input label="Industry Sector" placeholder="e.g. Energy, IT" {...register("sector")} error={errors.sector?.message} required />
+                <Input label="Wilaya" placeholder="e.g. Algiers" {...register("wilaya")} error={errors.wilaya?.message} required />
               </>
             )}
           </div>

@@ -3,6 +3,7 @@ import prisma from '@/lib/prisma';
 import { auth } from '@/lib/auth';
 import { topicSchema } from '@/lib/validations/topic.schema';
 import { AuditService } from '@/lib/services/audit.service';
+import { NotificationService } from '@/lib/services/notification.service';
 import { addHours } from 'date-fns';
 import { SettingsService } from '@/lib/services/settings.service';
 import { isEligibleForType } from '@/types/internship';
@@ -116,6 +117,23 @@ export async function POST(req: NextRequest) {
       details: { internshipType: validatedData.internshipType },
     });
 
+    const admins = await prisma.user.findMany({
+      where: { role: 'ADMIN' },
+      select: { id: true },
+    });
+
+    for (const admin of admins) {
+      await NotificationService.trigger({
+        userId: admin.id,
+        type: 'TOPIC_SUBMITTED',
+        title: 'New Topic Proposal',
+        message: `${session.user.name} (${session.user.role}) has proposed a new topic: "${validatedData.title}". Please review it.`,
+        relatedId: result.id,
+        relatedType: 'Topic',
+        link: '/admin/topics',
+      });
+    }
+
     return NextResponse.json(
       { message: 'Topic proposal submitted successfully.', data: result },
       { status: 201 },
@@ -205,6 +223,8 @@ export async function GET(req: NextRequest) {
           rejectionReason: true,
           createdAt: true,
           updatedAt: true,
+          pendingEditData: true,
+          pendingEditRequestedAt: true,
           proposedBy: { select: { id: true, name: true } },
           assignedTeacher: { select: { id: true, name: true } },
         },

@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/Button";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useTranslation } from "@/lib/i18n/LanguageContext";
 import { Modal } from "@/components/ui/Modal";
 import { Input } from "@/components/ui/Input";
@@ -37,6 +38,7 @@ interface Topic {
 }
 
 export default function CompanyTopicsPage() {
+  const router = useRouter();
   const { t, isRTL } = useTranslation();
   const [topics, setTopics] = useState<Topic[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -117,7 +119,8 @@ export default function CompanyTopicsPage() {
 
       toast.success("Edit request submitted for admin approval");
       setTopicToEdit(null);
-      fetchTopics();
+      router.refresh();
+      window.location.href = "/company/topics"; // Force a full state reset as requested
     } catch (error) {
       toast.error("Failed to submit request. Please try again.");
     } finally {
@@ -211,7 +214,7 @@ export default function CompanyTopicsPage() {
         onClose={() => setTopicToDeleteId(null)}
         onConfirm={confirmDeleteTopic}
         title={t("common.delete")}
-        description={t("errors.serverError")}
+        description={t("topics.confirmDelete") || "Are you sure you want to delete this topic proposal?"}
         isLoading={isDeleting}
       />
 

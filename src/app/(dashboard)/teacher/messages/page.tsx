@@ -169,14 +169,14 @@ function TeacherMessagesContent() {
           {selectedId && session?.user?.id ? (
             <div className="flex-1 flex flex-col overflow-hidden relative">
               {/* Coordination Header */}
-              <div className="px-4 md:px-6 py-3 border-b border-gray-100 bg-gray-50/60 flex flex-col gap-2">
+              <div className="px-4 md:px-6 py-4 border-b border-gray-100 bg-gray-50/60 flex flex-col gap-6">
                 <div className={`flex items-center justify-between ${isRTL ? "flex-row-reverse" : ""}`}>
                   <div className={`flex items-center gap-2 md:gap-3 ${isRTL ? "flex-row-reverse" : ""}`}>
                     <button onClick={() => setSelectedId(null)} className="md:hidden p-1 hover:bg-gray-200 rounded-lg text-gray-500">
                       <ChevronLeft className={`h-5 w-5 ${isRTL ? "rotate-180" : ""}`} />
                     </button>
                     <div className="h-2.5 w-2.5 rounded-full bg-green-500 animate-pulse hidden sm:block" />
-                    <span className="text-[13px] font-bold text-gray-800 uppercase tracking-tight truncate max-w-[150px] sm:max-w-none">
+                    <span className={`font-bold text-gray-800 uppercase tracking-tight truncate max-w-[150px] sm:max-w-none ${isRTL ? "text-[15px] leading-relaxed" : "text-[13px] leading-none"}`}>
                       {selectedInternship?.topic.title}
                     </span>
                   </div>
@@ -190,7 +190,7 @@ function TeacherMessagesContent() {
                       }`}
                     >
                       <FileText className="h-3.5 w-3.5" />
-                      <span className="hidden xs:inline">{sharedFiles.length} Files</span>
+                      <span className="hidden xs:inline">{sharedFiles.length} {t("messages.files")}</span>
                       <span className="xs:hidden">{sharedFiles.length}</span>
                     </button>
                     <button
@@ -202,7 +202,8 @@ function TeacherMessagesContent() {
                       }`}
                     >
                       <Users className="h-3.5 w-3.5" />
-                      <span className="hidden xs:inline">{(selectedInternship?.students.length || 0) + 1}</span>
+                      <span className="hidden xs:inline">{t("messages.participants")} ({(selectedInternship?.students.length || 0) + 1})</span>
+                      <span className="xs:hidden">{(selectedInternship?.students.length || 0) + 1}</span>
                     </button>
                   </div>
                 </div>
@@ -240,7 +241,7 @@ function TeacherMessagesContent() {
                   <div className={`absolute inset-0 md:relative md:inset-auto md:w-80 z-20 border-gray-100 bg-white flex flex-col animate-in ${isRTL ? "border-r slide-in-from-left" : "border-l slide-in-from-right"} duration-300 shadow-xl md:shadow-none`}>
                     <div className={`p-4 border-b border-gray-100 bg-gray-50/50 flex items-center justify-between ${isRTL ? "flex-row-reverse" : ""}`}>
                       <h3 className="text-[12px] font-bold text-gray-900 uppercase tracking-widest">
-                        {sidebarTab === "files" ? "Shared Files" : "Participants"}
+                        {sidebarTab === "files" ? t("messages.files") : t("messages.participants")}
                       </h3>
                       <button onClick={() => setShowFiles(false)} className="md:hidden p-1 hover:bg-gray-200 rounded-lg text-gray-400">
                         <X className="h-4 w-4" />
@@ -255,10 +256,10 @@ function TeacherMessagesContent() {
                         <div className="space-y-6">
                           {/* Supervisor */}
                           <div className="space-y-2">
-                            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-tighter px-1">Supervisor</p>
+                            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-tighter px-1">{t("messages.supervisor")}</p>
                             <div className="rounded-xl border border-gray-100 bg-white p-2.5 shadow-sm">
-                              <div className="flex items-center gap-3">
-                                <div className="h-8 w-8 rounded-full bg-indigo-50 text-indigo-700 flex items-center justify-center font-bold text-[12px]">
+                              <div className={`flex items-center gap-4 ${isRTL ? "flex-row-reverse text-right" : ""}`}>
+                                <div className="h-8 w-8 rounded-full bg-indigo-50 text-indigo-700 flex items-center justify-center font-bold text-[12px] flex-shrink-0">
                                   {selectedInternship?.teacher?.name.charAt(0) || "S"}
                                 </div>
                                 <div className="min-w-0 flex-1">
@@ -271,12 +272,12 @@ function TeacherMessagesContent() {
 
                           {/* Students */}
                           <div className="space-y-2">
-                            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-tighter px-1">Students</p>
+                            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-tighter px-1">{t("messages.students")}</p>
                             <div className="space-y-2">
                               {selectedInternship?.students.map((s, idx) => (
                                 <div key={`${s.student.email}-${idx}`} className="rounded-xl border border-gray-100 bg-white p-2.5 shadow-sm">
-                                  <div className="flex items-center gap-3">
-                                    <div className="h-8 w-8 rounded-full bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold text-[12px]">
+                                  <div className={`flex items-center gap-4 ${isRTL ? "flex-row-reverse text-right" : ""}`}>
+                                    <div className="h-8 w-8 rounded-full bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold text-[12px] flex-shrink-0">
                                       {s.student.name.charAt(0)}
                                     </div>
                                     <div className="min-w-0 flex-1">

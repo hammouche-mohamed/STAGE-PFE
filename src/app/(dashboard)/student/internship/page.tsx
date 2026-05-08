@@ -22,10 +22,14 @@ import { useTranslation } from "@/lib/i18n/LanguageContext";
 
 interface Internship {
   id: string;
-  topic: { title: string; type: string; description: string };
+  topic: { title: string; type: string; description: string; companyName?: string };
   teacher: { name: string; email: string };
   status: string;
   academicYear: string;
+  startDate?: string;
+  endDate?: string;
+  technicalSupervisorName?: string;
+  technicalSupervisorEmail?: string;
 }
 
 export default function StudentInternshipPage() {
@@ -79,6 +83,14 @@ export default function StudentInternshipPage() {
              <span className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">{internship.academicYear}</span>
           </div>
           <h1 className="text-[20px] font-bold text-gray-900">{internship.topic.title}</h1>
+          {internship.startDate && internship.endDate && (
+            <div className="flex items-center gap-4 mt-2 text-[12px] text-indigo-600 font-medium">
+              <span className="flex items-center gap-1.5">
+                <Calendar className="h-3.5 w-3.5" />
+                {format(new Date(internship.startDate), "PPP")} — {format(new Date(internship.endDate), "PPP")}
+              </span>
+            </div>
+          )}
         </div>
         <div className="flex items-center gap-2">
            <Link 
@@ -151,13 +163,20 @@ export default function StudentInternshipPage() {
 
               <div className="pt-6 border-t border-gray-50">
                  <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-3">Company Details</p>
-                 <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3">
                     <div className="h-12 w-12 rounded bg-amber-50 text-amber-700 flex items-center justify-center">
                        <Building2 className="h-5 w-5" />
                     </div>
-                    <div>
-                       <p className="text-[13px] font-bold text-gray-900">Partner Company</p>
-                       <p className="text-[11px] text-gray-500">Industry Partner</p>
+                    <div className="min-w-0 flex-1">
+                       <p className="text-[13px] font-bold text-gray-900 truncate">Partner Company</p>
+                       <p className="text-[11px] text-gray-500 truncate">{internship.topic.companyName || "Industry Partner"}</p>
+                       {internship.technicalSupervisorName && (
+                         <div className="mt-2 pt-2 border-t border-gray-50">
+                           <p className="text-[11px] font-bold text-gray-400 uppercase tracking-tight">Technical Supervisor</p>
+                           <p className="text-[12px] text-gray-700 font-medium">{internship.technicalSupervisorName}</p>
+                           <p className="text-[10px] text-gray-400">{internship.technicalSupervisorEmail}</p>
+                         </div>
+                       )}
                     </div>
                  </div>
               </div>

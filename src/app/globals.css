@@ -87,7 +87,11 @@
 /* Base Styles */
 @layer base {
   .font-arabic {
-    font-family: var(--font-arabic) !important;
+    font-family: var(--font-arabic), "Outfit", sans-serif !important;
+  }
+
+  [dir="rtl"] .font-arabic {
+    @apply leading-relaxed;
   }
 
   body {
@@ -136,10 +140,26 @@
     @apply block text-[13px] font-medium text-gray-700 mb-1.5;
   }
 
+  [dir="rtl"] .admin-form-label {
+    @apply text-[14px];
+  }
+
   .admin-input {
-    @apply h-[36px] w-full px-3 py-2 bg-white border border-gray-300 rounded-md text-[13px]
+    @apply h-[40px] w-full px-3 py-2 bg-white border border-gray-300 rounded-md text-[13px]
            focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500
            disabled:bg-gray-50 disabled:text-gray-400 transition-all;
+  }
+
+  [dir="rtl"] .admin-input {
+    @apply text-[14px] text-right;
+    font-family: var(--font-arabic), "Outfit", sans-serif;
+  }
+
+  /* Fix for select arrow in RTL */
+  [dir="rtl"] select.admin-input {
+    background-position: left 0.75rem center;
+    padding-left: 2.5rem;
+    padding-right: 0.75rem;
   }
 
   .admin-error {
@@ -207,4 +227,17 @@
   .mobile-full-width {
     @apply w-full!;
   }
+}
+
+/* RTL Typography Overrides */
+[dir="rtl"] .text-\[11px\], [dir="rtl"] .text-xs {
+  @apply text-[12px]!;
+}
+
+[dir="rtl"] .text-\[12px\], [dir="rtl"] .text-sm {
+  @apply text-[13px]!;
+}
+
+[dir="rtl"] .text-\[13px\], [dir="rtl"] .text-base {
+  @apply text-[14px]!;
 }

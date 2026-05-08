@@ -5,6 +5,7 @@ import { MessageBubble } from "./MessageBubble";
 import { Button } from "@/components/ui/Button";
 import { Paperclip, Send, X, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
 
 interface Message {
   id: string;
@@ -31,6 +32,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
   isAdmin,
   searchQuery = ""
 }) => {
+  const { t, isRTL } = useTranslation();
   const [messages, setMessages] = useState<Message[]>([]);
   const [content, setContent] = useState("");
   const [isSending, setIsSending] = useState(false);
@@ -207,6 +209,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
       {/* Messages Area */}
       <div 
         ref={scrollRef}
+        dir="ltr"
         className="flex-1 overflow-y-auto p-6 bg-gray-50 flex flex-col"
       >
         {filteredMessages.map((msg) => (
@@ -231,8 +234,9 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
       {replyTo && (
         <div className="px-4 py-2 bg-indigo-50 border-t border-indigo-100 flex items-start justify-between gap-3">
           <div className="flex-1 min-w-0">
-            <p className="text-[11px] font-bold text-indigo-700 mb-0.5">
-              Replying to {replyTo.senderId === currentUserId ? "yourself" : (replyTo.sender?.name || "User")}
+            <p className="text-[11px] font-bold text-indigo-700 mb-0.5 flex items-center gap-1">
+              <span className="opacity-70">{isRTL ? "↩" : "↪"}</span>
+              <span>{t("messages.replyingTo", { name: replyTo.senderId === currentUserId ? t("messages.yourself") : (replyTo.sender?.name || "User") })}</span>
             </p>
             <p className="text-[12px] text-gray-500 truncate">{replyTo.content.replace(/^↩ .*?\n\n/, "")}</p>
           </div>
@@ -278,9 +282,10 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
           disabled={!content.trim() || isSending} 
           isLoading={isSending}
           size="sm"
+          className={isRTL ? "flex-row-reverse" : ""}
         >
-          <Send className="h-4 w-4 mr-2" />
-          Send
+          <Send className={`h-4 w-4 ${isRTL ? "ml-2 -scale-x-100" : "mr-2"}`} />
+          {t("common.send")}
         </Button>
       </form>
 

@@ -108,6 +108,7 @@ function LoginForm() {
               placeholder="e.g. salim@example.com"
               {...register("email")}
               error={errors.email?.message}
+              required
             />
 
             <div className="space-y-1">
@@ -123,6 +124,7 @@ function LoginForm() {
                 placeholder="••••••••"
                 {...register("password")}
                 error={errors.password?.message}
+                required
               />
             </div>
 

@@ -351,6 +351,16 @@ model SystemSettings {
   @@map("systemsettings")
 }
 
+model Upload {
+  id        String   @id
+  fileName  String
+  fileType  String
+  content   Bytes    @db.LongBlob
+  createdAt DateTime @default(now())
+
+  @@map("upload")
+}
+
 /// System-wide deadline announcements visible to all users on their dashboards
 model SystemDeadline {
   id        String   @id

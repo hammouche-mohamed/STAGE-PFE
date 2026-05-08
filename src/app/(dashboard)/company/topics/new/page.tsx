@@ -81,10 +81,11 @@ export default function NewTopicPage() {
             placeholder="e.g. Design of an AI-powered detection system"
             {...register("title")}
             error={errors.title?.message as string}
+            required
           />
 
           <div className="w-full">
-            <label className="admin-form-label">Full Description</label>
+            <label className="admin-form-label">Full Description <span className="text-red-500">*</span></label>
             <textarea
               {...register("description")}
               rows={6}

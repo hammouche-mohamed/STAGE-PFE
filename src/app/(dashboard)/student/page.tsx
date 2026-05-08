@@ -136,7 +136,7 @@ export default function StudentDashboard() {
       </div>
 
       {/* ── Status Row ─────────────────────────────────────────────── */}
-      <div className={`grid grid-cols-1 md:grid-cols-3 gap-4 ${isRTL ? "flex-row-reverse" : ""}`}>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Status */}
         <div className="bg-white border border-gray-200 rounded-md p-5">
           <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2">{t("common.status")}</p>
@@ -170,7 +170,7 @@ export default function StudentDashboard() {
           <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2">{t("common.documents")}</p>
           {internship ? (
             <>
-              <p className="text-[20px] font-bold text-gray-900">{internship._count.documents} uploaded</p>
+              <p className="text-[20px] font-bold text-gray-900">{internship._count.documents} {t("dashboard.uploaded")}</p>
               <Link href="/student/documents" className="text-[12px] text-indigo-600 font-medium hover:underline mt-1 block">
                 {t("documents.upload")} →
               </Link>
@@ -205,7 +205,7 @@ export default function StudentDashboard() {
                 {t("dashboard.browseTopics")}
               </Link>
               <div className="mt-4 pt-4 border-t border-gray-50">
-                <p className="text-[11px] text-gray-400 mb-2">Have you already found a company?</p>
+                <p className="text-[11px] text-gray-400 mb-2">{t("dashboard.foundCompany")}</p>
                 <Link href="/student/topics/propose" className="text-[12px] font-bold text-indigo-600 hover:text-indigo-800">
                   + {t("topics.propose")}
                 </Link>
@@ -248,8 +248,8 @@ export default function StudentDashboard() {
                             <p className="text-[13px] font-bold text-gray-900 truncate">
                               {student.student.name}
                               {student.isLeader && (
-                                <span className="ml-2 text-[9px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full uppercase tracking-tighter font-bold">
-                                  Leader
+                                <span className={`ml-2 text-[9px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full uppercase tracking-tighter font-bold ${isRTL ? "mr-2 ml-0" : ""}`}>
+                                  {t("dashboard.leader")}
                                 </span>
                               )}
                             </p>

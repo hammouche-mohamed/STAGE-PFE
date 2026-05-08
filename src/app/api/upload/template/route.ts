@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import { writeFile, mkdir } from "fs/promises";
-import { join } from "path";
 
 const MAX_SIZE = 10 * 1024 * 1024; // 10 MB
 const ALLOWED = ["application/pdf", "application/msword",
@@ -23,22 +21,29 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Only PDF or DOCX allowed" }, { status: 400 });
     }
 
-    const ext = file.name.split(".").pop() ?? "pdf";
-    const fileName = `proposal-form-template.${ext}`;
-    const uploadDir = join(process.cwd(), "public", "uploads", "templates");
-
-    await mkdir(uploadDir, { recursive: true });
     const bytes = await file.arrayBuffer();
-    await writeFile(join(uploadDir, fileName), Buffer.from(bytes));
+    const buffer = Buffer.from(bytes);
 
-    const url = `/uploads/templates/${fileName}`;
-
-    // Persist URL in SystemSettings
+    // Store in DB
     const { default: prisma } = await import("@/lib/prisma");
+    const fileId = (await import("crypto")).randomUUID();
+    
+    await prisma.$executeRawUnsafe(
+      "INSERT INTO upload (id, fileName, fileType, content) VALUES (?, ?, ?, ?)",
+      fileId,
+      file.name,
+      file.type,
+      buffer
+    );
+
+    const url = `/api/files/${fileId}`;
+
+    // Update SystemSettings
+    const settingsId = (await import("crypto")).randomUUID();
     await prisma.systemSettings.upsert({
       where: { key: "proposalFormTemplateUrl" },
       update: { value: url, updatedAt: new Date() },
-      create: { id: crypto.randomUUID(), key: "proposalFormTemplateUrl", value: url, updatedAt: new Date() },
+      create: { id: settingsId, key: "proposalFormTemplateUrl", value: url, updatedAt: new Date() },
     });
 
     return NextResponse.json({ url });

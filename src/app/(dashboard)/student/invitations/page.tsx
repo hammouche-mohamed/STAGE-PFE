@@ -72,26 +72,26 @@ export default function InvitationsPage() {
       <div>
         <h1 className="text-[17px] font-semibold text-gray-900 flex items-center gap-2">
           <Bell className="h-5 w-5 text-indigo-600" />
-          Binôme Invitations
+          {t("invitationsPage.title")}
         </h1>
         <p className="text-[13px] text-gray-500 mt-1">
-          Accept or decline partner invitations for joint internship applications.
+          {t("invitationsPage.subtitle")}
         </p>
       </div>
 
       {/* Pending */}
       <div className="space-y-3">
         <h2 className="text-[13px] font-semibold text-gray-700 uppercase tracking-wider">
-          Pending ({pendingInvitations.length})
+          {t("invitationsPage.pending", { count: pendingInvitations.length })}
         </h2>
 
         {isLoading ? (
           <div className="text-center py-10 text-gray-400 text-[13px]">
-            Loading invitations…
+            {t("common.loading")}
           </div>
         ) : pendingInvitations.length === 0 ? (
           <div className="bg-white border border-gray-200 rounded-lg p-8 text-center text-[13px] text-gray-400">
-            No pending invitations at the moment.
+            {t("invitationsPage.noPending")}
           </div>
         ) : (
           pendingInvitations.map((inv) => (
@@ -111,17 +111,14 @@ export default function InvitationsPage() {
                   <div className="flex items-center gap-1.5 text-[12px] text-gray-500">
                     <User className="h-3.5 w-3.5" />
                     <span>
-                      From{" "}
-                      <span className="font-medium text-gray-700">
-                        {inv.application.leader.name}
-                      </span>{" "}
-                      ({inv.application.leader.email})
+                      {t("invitationsPage.from", { name: inv.application.leader.name })}
+                      {" "}({inv.application.leader.email})
                     </span>
                   </div>
                 </div>
                 <div className="flex items-center gap-1 text-[11px] text-amber-600 bg-amber-50 border border-amber-200 px-2 py-1 rounded">
                   <Clock className="h-3 w-3" />
-                  Expires {formatDistanceToNow(new Date(inv.expiresAt), { addSuffix: true })}
+                  {t("invitationsPage.expires", { date: formatDistanceToNow(new Date(inv.expiresAt), { addSuffix: true }) })}
                 </div>
               </div>
 
@@ -139,7 +136,7 @@ export default function InvitationsPage() {
                   className="bg-emerald-600 hover:bg-emerald-700 text-white"
                 >
                   <CheckCircle className="h-4 w-4 mr-1.5" />
-                  Accept
+                  {t("invitationsPage.accept")}
                 </Button>
                 <Button
                   size="sm"
@@ -149,7 +146,7 @@ export default function InvitationsPage() {
                   className="text-red-600 border-red-200 hover:bg-red-50"
                 >
                   <XCircle className="h-4 w-4 mr-1.5" />
-                  Decline
+                  {t("invitationsPage.decline")}
                 </Button>
               </div>
             </div>
@@ -161,7 +158,7 @@ export default function InvitationsPage() {
       {pastInvitations.length > 0 && (
         <div className="space-y-3">
           <h2 className="text-[13px] font-semibold text-gray-700 uppercase tracking-wider">
-            History
+            {t("invitationsPage.history")}
           </h2>
           <div className="bg-white border border-gray-200 rounded-lg divide-y divide-gray-100">
             {pastInvitations.map((inv) => (
@@ -184,7 +181,7 @@ export default function InvitationsPage() {
                       : "bg-gray-100 text-gray-500"
                   }`}
                 >
-                  {inv.status}
+                  {t(`status.${inv.status}` as any)}
                 </span>
               </div>
             ))}

@@ -21,6 +21,8 @@ import { toast } from "sonner";
 import { format, addMonths } from "date-fns";
 import { useTranslation } from "@/lib/i18n/LanguageContext";
 import { Input } from "@/components/ui/Input";
+import { DocumentList } from "@/components/documents/DocumentList";
+import { InternshipDocument } from "@/types/document";
 
 interface Internship {
   id: string;
@@ -36,6 +38,7 @@ export default function CompanyInternshipDetailPage() {
   const { id } = useParams();
   const { t, isRTL } = useTranslation();
   const [internship, setInternship] = useState<Internship | null>(null);
+  const [documents, setDocuments] = useState<InternshipDocument[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [evaluationScore, setEvaluationScore] = useState<number>(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -46,19 +49,24 @@ export default function CompanyInternshipDetailPage() {
     supervisorEmail: "",
   });
 
+  const fetchData = async () => {
+    try {
+      const res = await fetch(`/api/internships/${id}`);
+      const data = await res.json();
+      setInternship(data.data);
+
+      const docRes = await fetch(`/api/documents?internshipId=${id}`);
+      const docData = await docRes.json();
+      setDocuments(docData.data || []);
+    } catch (error) {
+      toast.error("Failed to load internship details");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchInternship = async () => {
-      try {
-        const res = await fetch(`/api/internships/${id}`);
-        const data = await res.json();
-        setInternship(data.data);
-      } catch (error) {
-        toast.error("Failed to load internship details");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    fetchInternship();
+    fetchData();
   }, [id]);
 
   const handleSubmitEvaluation = async () => {
@@ -106,14 +114,29 @@ export default function CompanyInternshipDetailPage() {
       }
 
       toast.success("Internship activated and dates confirmed");
-      // Refresh data
-      const updatedRes = await fetch(`/api/internships/${id}`);
-      const updatedData = await updatedRes.json();
-      setInternship(updatedData.data);
+      fetchData();
     } catch (error: any) {
       toast.error(error.message);
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleDocumentReview = async (docId: string, status: "APPROVED" | "REJECTED", comment: string) => {
+    try {
+      const res = await fetch(`/api/documents/${docId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status, reviewComment: comment }),
+      });
+      if (!res.ok) throw new Error("Review failed");
+      toast.success(`Document ${status.toLowerCase()} successfully`);
+      
+      const docRes = await fetch(`/api/documents?internshipId=${id}`);
+      const docData = await docRes.json();
+      setDocuments(docData.data || []);
+    } catch (error) {
+      toast.error("Failed to process document review");
     }
   };
 
@@ -257,6 +280,23 @@ export default function CompanyInternshipDetailPage() {
             )}
           </div>
         </div>
+      </div>
+
+      <div className="bg-white border border-gray-200 rounded-md p-6 shadow-sm">
+        <h2 className="text-[15px] font-bold text-gray-900 mb-6 flex items-center justify-between">
+           <div className="flex items-center">
+              <FileText className="h-4 w-4 mr-2 text-indigo-500" />
+              Internship Documents
+           </div>
+           <span className="text-[11px] font-medium text-gray-400 bg-gray-50 px-2 py-1 rounded">
+              {documents.length} Files
+           </span>
+        </h2>
+        <DocumentList 
+           documents={documents}
+           canReview={true}
+           onReview={handleDocumentReview}
+        />
       </div>
     </div>
   );

@@ -246,7 +246,7 @@ export default function AdminTopicDetailPage() {
             
             <div className="space-y-4">
               <div className="space-y-2">
-                <label className="text-[12px] font-bold text-gray-500 uppercase">{t("topics.title")}</label>
+                <label className="text-[12px] font-bold text-gray-500 uppercase">{t("topics.title")} <span className="text-red-500">*</span></label>
                 <input 
                   className="admin-input font-semibold text-[16px]" 
                   value={editData.title}
@@ -255,7 +255,7 @@ export default function AdminTopicDetailPage() {
               </div>
 
               <div className="space-y-2">
-                <label className="text-[12px] font-bold text-gray-500 uppercase">{t("common.name")}</label>
+                <label className="text-[12px] font-bold text-gray-500 uppercase">{t("topics.list.description")} <span className="text-red-500">*</span></label>
                 <textarea 
                   className="admin-input min-h-[150px] text-[14px] leading-relaxed py-3"
                   value={editData.description}
@@ -265,89 +265,95 @@ export default function AdminTopicDetailPage() {
             </div>
           </div>
 
-          <div className="bg-white border border-gray-200 rounded-md p-6 shadow-sm">
-             <h3 className="text-[13px] font-bold text-indigo-900 uppercase tracking-wide mb-6 flex items-center">
-                <Layers className="h-4 w-4 mr-2" />
-                Advanced Moderation Controls
-             </h3>
+          <div className="bg-white border border-gray-200 rounded-md shadow-sm">
+             <div className="border-b border-gray-100 bg-gray-50/50 px-6 py-4">
+               <h3 className="text-[14px] font-bold text-gray-900 flex items-center">
+                  <Layers className="h-4 w-4 mr-2 text-indigo-500" />
+                  Topic Configuration
+               </h3>
+             </div>
              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
-                <div className="space-y-2">
-                  <label className="text-[12px] font-bold text-gray-700">{t("common.status")}</label>
-                  <select 
-                    className="admin-input"
-                    value={editData.status}
-                    onChange={(e) => setEditData({...editData, status: e.target.value})}
-                  >
-                    <option value="PENDING_ADMIN">Waiting Review</option>
-                    <option value="APPROVED">Approved</option>
-                    <option value="OPEN_FOR_SELECTION">Open for Selection</option>
-                    <option value="TAKEN">Assigned to Group</option>
-                    <option value="REJECTED">Rejected</option>
-                  </select>
+             <div className="p-6 space-y-6">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-bold text-gray-500 uppercase tracking-widest">{t("common.status")}</label>
+                    <select 
+                      className="w-full text-[13px] p-2 border border-gray-200 rounded-md focus:ring-1 focus:ring-indigo-500"
+                      value={editData.status}
+                      onChange={(e) => setEditData({...editData, status: e.target.value})}
+                    >
+                      <option value="PENDING_ADMIN">Waiting Review</option>
+                      <option value="PENDING_TEACHER">Waiting Supervisor Approval</option>
+                      <option value="OPEN_FOR_SELECTION">Approved & Open for Selection</option>
+                      <option value="REJECTED">Rejected</option>
+                      {editData.status === "TAKEN" && <option value="TAKEN" disabled>Assigned to Students (Taken)</option>}
+                    </select>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-bold text-gray-500 uppercase tracking-widest">Type</label>
+                    <select 
+                      className="w-full text-[13px] p-2 border border-gray-200 rounded-md focus:ring-1 focus:ring-indigo-500"
+                      value={editData.type}
+                      onChange={(e) => setEditData({...editData, type: e.target.value})}
+                    >
+                      <option value="STUDENT_PROPOSED">Student Initiative</option>
+                      <option value="COMPANY_PROPOSED">Company Partnership</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-bold text-gray-500 uppercase tracking-widest">Capacity</label>
+                    <input 
+                      type="number"
+                      className="w-full text-[13px] p-2 border border-gray-200 rounded-md focus:ring-1 focus:ring-indigo-500"
+                      value={editData.maxStudents}
+                      onChange={(e) => setEditData({...editData, maxStudents: parseInt(e.target.value)})}
+                    />
+                  </div>
                 </div>
 
-                <div className="space-y-2">
-                  <label className="text-[12px] font-bold text-gray-700">Proposal Type</label>
-                  <select 
-                    className="admin-input"
-                    value={editData.type}
-                    onChange={(e) => setEditData({...editData, type: e.target.value})}
-                  >
-                    <option value="STUDENT_PROPOSED">Student Initiative</option>
-                    <option value="COMPANY_PROPOSED">Company Partnership</option>
-                  </select>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-6 border-t border-gray-100">
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-bold text-gray-500 uppercase tracking-widest">Academic Supervisor</label>
+                    <select 
+                      className="w-full text-[13px] p-2 border border-gray-200 rounded-md focus:ring-1 focus:ring-indigo-500"
+                      value={editData.teacherId}
+                      onChange={(e) => setEditData({...editData, teacherId: e.target.value})}
+                    >
+                      <option value="">No Supervisor Assigned</option>
+                      {teachers.map(t => (
+                        <option key={t.id} value={t.id}>{t.name}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-bold text-gray-500 uppercase tracking-widest">Filière</label>
+                    <select 
+                      className="w-full text-[13px] p-2 border border-gray-200 rounded-md focus:ring-1 focus:ring-indigo-500"
+                      value={editData.filiereId}
+                      onChange={(e) => setEditData({...editData, filiereId: e.target.value})}
+                    >
+                      <option value="">Select Filière...</option>
+                      {filieres.map(f => (
+                        <option key={f.id} value={f.id}>{f.name} ({f.code})</option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
 
-                <div className="space-y-2">
-                  <label className="text-[12px] font-bold text-gray-700">Capacity (Students)</label>
-                  <input 
-                    type="number"
-                    className="admin-input"
-                    value={editData.maxStudents}
-                    onChange={(e) => setEditData({...editData, maxStudents: parseInt(e.target.value)})}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-[12px] font-bold text-gray-700">Academic Supervisor</label>
-                  <select 
-                    className="admin-input"
-                    value={editData.teacherId}
-                    onChange={(e) => setEditData({...editData, teacherId: e.target.value})}
-                  >
-                    <option value="">No Supervisor Assigned</option>
-                    {teachers.map(t => (
-                      <option key={t.id} value={t.id}>{t.name}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-[12px] font-bold text-gray-700">Filière Assignment</label>
-                  <select 
-                    className="admin-input"
-                    value={editData.filiereId}
-                    onChange={(e) => setEditData({...editData, filiereId: e.target.value})}
-                  >
-                    <option value="">Select Filière...</option>
-                    {filieres.map(f => (
-                      <option key={f.id} value={f.id}>{f.name} ({f.code})</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-[12px] font-bold text-gray-700">Target Study Levels</label>
-                  <div className="flex flex-wrap gap-2 mt-1">
+                <div className="pt-6 border-t border-gray-100">
+                  <label className="text-[11px] font-bold text-gray-500 uppercase tracking-widest block mb-2">Target Study Levels</label>
+                  <div className="flex flex-wrap gap-2">
                     {studyLevels.map(level => (
                       <button
                         key={level}
                         type="button"
                         onClick={() => toggleLevel(level)}
-                        className={`px-3 py-1.5 rounded-md text-[12px] font-bold transition-all ${
+                        className={`px-4 py-1.5 rounded-md text-[12px] font-bold transition-all ${
                           selectedLevels.includes(level)
-                            ? "bg-indigo-600 text-white shadow-sm ring-2 ring-indigo-500/20"
+                            ? "bg-indigo-600 text-white shadow-sm"
                             : "bg-gray-100 text-gray-500 hover:bg-gray-200"
                         }`}
                       >

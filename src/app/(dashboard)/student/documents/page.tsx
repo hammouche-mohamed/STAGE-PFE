@@ -110,12 +110,12 @@ function DocumentsContent() {
             )}
             
             <div className="p-5 bg-indigo-50 border border-indigo-100 rounded-md">
-              <h3 className="text-[13px] font-semibold text-indigo-900 uppercase tracking-widest mb-3">Submission Guidelines</h3>
+              <h3 className="text-[13px] font-semibold text-indigo-900 uppercase tracking-widest mb-3">{t("documents.guidelines")}</h3>
               <ul className="text-[12px] text-indigo-700 list-disc list-inside space-y-2">
-                <li>Reports must be in PDF format.</li>
-                <li>Each upload creates a new version.</li>
-                <li>Your supervisor will be notified automatically.</li>
-                <li>Admin approval is required for the final report.</li>
+                <li>{t("documents.guideline1")}</li>
+                <li>{t("documents.guideline2")}</li>
+                <li>{t("documents.guideline3")}</li>
+                <li>{t("documents.guideline4")}</li>
               </ul>
             </div>
           </div>

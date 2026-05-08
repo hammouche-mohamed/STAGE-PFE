@@ -35,6 +35,8 @@ interface Topic {
   proposedBy: { name: string };
   assignedTeacher?: { name: string } | null;
   createdAt: string;
+  pendingEditData?: string | null;
+  pendingEditRequestedAt?: string | null;
 }
 
 export default function AdminTopicsPage() {
@@ -85,7 +87,12 @@ export default function AdminTopicsPage() {
   const filteredTopics = topics.filter(t => {
     const matchesSearch = t.title.toLowerCase().includes(search.toLowerCase()) || 
                          t.proposedBy.name.toLowerCase().includes(search.toLowerCase());
-    const matchesStatus = statusFilter === "ALL" || t.status === statusFilter;
+    
+    let matchesStatus = false;
+    if (statusFilter === "ALL") matchesStatus = true;
+    else if (statusFilter === "MODIFICATIONS") matchesStatus = !!t.pendingEditData;
+    else matchesStatus = t.status === statusFilter;
+    
     return matchesSearch && matchesStatus;
   });
 
@@ -103,6 +110,7 @@ export default function AdminTopicsPage() {
         {[
           { id: "ALL", label: t("common.all") },
           { id: "PENDING_ADMIN", label: t("status.PENDING_ADMIN") },
+          { id: "MODIFICATIONS", label: "Modifications" },
           { id: "APPROVED", label: t("status.APPROVED") },
           { id: "OPEN_FOR_SELECTION", label: t("status.OPEN_FOR_SELECTION") },
         ].map((tab) => (
@@ -156,6 +164,12 @@ export default function AdminTopicsPage() {
                 <div className="space-y-1 pr-6 flex-1">
                   <div className="flex items-center gap-2 mb-1">
                     <StatusBadge status={topic.status} />
+                    {topic.pendingEditData && (
+                       <span className="text-[10px] font-bold text-amber-600 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded flex items-center">
+                         <AlertCircle className="h-3 w-3 mr-1" />
+                         PENDING EDIT
+                       </span>
+                    )}
                     <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{topic.academicYear}</span>
                   </div>
                   <h3 className="text-[15px] font-semibold text-gray-900 group-hover:text-indigo-600 transition-colors">
