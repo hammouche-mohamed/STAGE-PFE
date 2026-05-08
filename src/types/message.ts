@@ -17,6 +17,7 @@ export interface InternshipThread {
   id: string;
   topic: {
     title: string;
+    companyName?: string | null;
   };
   students: {
     student: {

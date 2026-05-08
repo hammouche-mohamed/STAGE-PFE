@@ -276,11 +276,11 @@ function CompanyMessagesContent() {
                             <div className="rounded-xl border border-gray-100 bg-white p-2.5 shadow-sm">
                               <div className={`flex items-center gap-4 ${isRTL ? "flex-row-reverse text-right" : ""}`}>
                                 <div className="h-8 w-8 rounded-full bg-amber-50 text-amber-700 flex items-center justify-center font-bold text-[12px] flex-shrink-0">
-                                  {selectedInternship?.company?.name.charAt(0) || "C"}
+                                  {selectedInternship?.topic.companyName?.charAt(0) || "C"}
                                 </div>
                                 <div className="min-w-0 flex-1">
-                                  <p className="text-[12px] font-bold text-gray-900 truncate">{selectedInternship?.company?.name || "Company"}</p>
-                                  <p className="text-[10px] text-gray-500 truncate">{selectedInternship?.company?.email || "Partner"}</p>
+                                  <p className="text-[12px] font-bold text-gray-900 truncate">{selectedInternship?.topic.companyName || "Company"}</p>
+                                  <p className="text-[10px] text-gray-500 truncate">Hosting Partner</p>
                                 </div>
                               </div>
                             </div>
