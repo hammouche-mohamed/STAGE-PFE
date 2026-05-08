@@ -10,8 +10,8 @@ export const registrationSchema = z
     name: z.string().min(2, 'Name must be at least 2 characters'),
     email: z.string().email('Invalid email address'),
     role: RegistrationRole,
-    password: z.string().min(6, 'Password must be at least 6 characters'),
-    confirmPassword: z.string().min(6, 'Confirmation must be at least 6 characters'),
+    password: z.string().min(12, 'Password must be at least 12 characters'),
+    confirmPassword: z.string().min(12, 'Confirmation must be at least 12 characters'),
     motivation: z.string().optional(),
 
     // Student specific
