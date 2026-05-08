@@ -97,7 +97,7 @@ export default function StudentTopicsPage() {
         return;
       }
       if (!res.ok) { toast.error(data.error || "Failed to apply"); return; }
-      setApplied((prev) => new Set(prev).add(topicId));
+      setApplied((prev: Set<string>) => new Set(prev).add(topicId));
       setSelectedTopic(null);
       toast.success(t("toast.applicationSubmitted"));
     } catch {
@@ -108,7 +108,7 @@ export default function StudentTopicsPage() {
   };
 
   const filteredTopics = React.useMemo(() => {
-    return topics.filter((topic) => {
+    return topics.filter((topic: Topic) => {
       const matchesSearch =
         topic.title.toLowerCase().includes(search.toLowerCase()) ||
         topic.proposedBy.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -117,7 +117,7 @@ export default function StudentTopicsPage() {
       const matchesLevel =
         levelFilter === "ALL" ||
         !topic.targetLevels ||
-        topic.targetLevels.split(",").map((l) => l.trim()).includes(levelFilter);
+        topic.targetLevels.split(",").map((l: string) => l.trim()).includes(levelFilter);
 
       const matchesFiliere = filiereFilter === "ALL" || topic.filiereId === filiereFilter;
 
@@ -130,10 +130,10 @@ export default function StudentTopicsPage() {
 
   const levelBadge = (targetLevels?: string | null) => {
     if (!targetLevels) return null;
-    const levels = targetLevels.split(",").map((l) => l.trim());
+    const levels = targetLevels.split(",").map((l: string) => l.trim());
     return (
       <div className="flex flex-wrap gap-1">
-        {levels.map((l) => (
+        {levels.map((l: string) => (
           <span key={l} className="px-1.5 py-0.5 bg-violet-50 text-violet-700 text-[10px] font-bold rounded border border-violet-200">
             {l}
           </span>
@@ -165,7 +165,7 @@ export default function StudentTopicsPage() {
             placeholder={t("common.search")}
             className={`admin-input ${isRTL ? "pr-10 text-right" : "pl-10"}`}
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearch(e.target.value)}
           />
         </div>
       </div>
@@ -200,7 +200,7 @@ export default function StudentTopicsPage() {
         ) : filteredTopics.length === 0 ? (
           <div className="col-span-full text-center py-12 text-gray-400">{t("topics.noTopics")}</div>
         ) : (
-          filteredTopics.map((topic) => {
+          filteredTopics.map((topic: Topic) => {
             const isApplied = applied.has(topic.id);
             const isApplying = applying === topic.id;
             const eligible = canApply(studentLevel, topic.targetLevels);
@@ -270,7 +270,7 @@ export default function StudentTopicsPage() {
                   </div>
                 </div>
 
-                <div className="mt-5 pt-4 border-t border-gray-100 flex items-center justify-end" onClick={(e) => e.stopPropagation()}>
+                <div className="mt-5 pt-4 border-t border-gray-100 flex items-center justify-end" onClick={(e: React.MouseEvent) => e.stopPropagation()}>
                   {isApplied ? (
                     <span className="flex items-center gap-1.5 text-[12px] font-semibold text-emerald-600">
                       <CheckCircle2 className="h-4 w-4" /> {t("status.APPROVED")}
@@ -280,7 +280,7 @@ export default function StudentTopicsPage() {
                       <Lock className="h-3.5 w-3.5" /> {t("topics.list.requires", { levels: topic.targetLevels })}
                     </span>
                   ) : (
-                    <Button onClick={(e) => handleApply(topic.id, e)} size="sm" className="px-6" disabled={isApplying}>
+                    <Button onClick={(e: React.MouseEvent) => handleApply(topic.id, e)} size="sm" className="px-6" disabled={isApplying}>
                       {isApplying ? <><Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />{t("common.loading")}</> : t("common.apply")}
                     </Button>
                   )}
@@ -293,7 +293,7 @@ export default function StudentTopicsPage() {
 
       {selectedTopic && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4" onClick={() => setSelectedTopic(null)}>
-          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in duration-200" onClick={(e) => e.stopPropagation()}>
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in duration-200" onClick={(e: React.MouseEvent) => e.stopPropagation()}>
             <div className="p-6 border-b border-gray-100 flex items-start justify-between gap-4 bg-gray-50/50">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-2 flex-wrap">
@@ -388,7 +388,7 @@ export default function StudentTopicsPage() {
                   <Button variant="outline" className="h-11 px-6 rounded-xl" onClick={() => setSelectedTopic(null)}>{t("common.close")}</Button>
                   <Button
                     className="min-w-[160px] h-11 text-[14px] rounded-xl shadow-lg shadow-indigo-100"
-                    onClick={(e) => handleApply(selectedTopic.id, e)}
+                    onClick={(e: React.MouseEvent) => handleApply(selectedTopic.id, e)}
                     disabled={applying === selectedTopic.id}
                   >
                     {applying === selectedTopic.id ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />{t("common.loading")}</> : t("common.apply")}
