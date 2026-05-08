@@ -80,7 +80,7 @@ export class BinomeService {
       throw new Error('A pending invitation already exists for this application');
     }
 
-    const invitation = await prisma.$transaction(async (tx) => {
+    const invitation = await prisma.$transaction(async (tx: any) => {
       // Mark application as binôme
       await tx.studentApplication.update({
         where: { id: applicationId },
@@ -167,7 +167,7 @@ export class BinomeService {
     }
 
     if (accept) {
-      await prisma.$transaction(async (tx) => {
+      await prisma.$transaction(async (tx: any) => {
         await tx.binomeInvitation.update({
           where: { id: invitationId },
           data: { status: 'ACCEPTED', respondedAt: new Date() },
@@ -198,7 +198,7 @@ export class BinomeService {
       });
     } else {
       // Declined: reset the application to individual
-      await prisma.$transaction(async (tx) => {
+      await prisma.$transaction(async (tx: any) => {
         await tx.binomeInvitation.update({
           where: { id: invitationId },
           data: { status: 'DECLINED', respondedAt: new Date() },

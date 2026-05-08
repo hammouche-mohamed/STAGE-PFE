@@ -8,16 +8,15 @@ import {
 
 export default function DashboardVisual() {
   return (
-    <div className="relative w-full max-w-6xl mx-auto h-[600px] mt-12 hidden md:block">
+    <div className="relative w-full max-w-6xl mx-auto h-auto md:h-[600px] mt-8 md:mt-12">
       {/* Background Glow */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] bg-brand-purple/10 blur-[120px] -z-10" />
-      <div className="absolute top-1/4 right-1/4 w-[400px] h-[300px] bg-brand-pink/5 blur-[100px] -z-10" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] md:w-[800px] h-[200px] md:h-[400px] bg-brand-purple/10 blur-[60px] md:blur-[120px] -z-10" />
 
-      {/* Main Container for Cards with MAXIMUM gap */}
-      <div className="relative grid grid-cols-12 gap-16 p-8">
+      {/* Main Container for Cards */}
+      <div className="relative grid grid-cols-1 md:grid-cols-12 gap-6 md:gap-16 p-4 md:p-8">
         
         {/* Card 1: Internship Proposals (Top Left) */}
-        <div className="col-span-4 bg-white rounded-2xl shadow-2xl border border-gray-100 p-6 transform -rotate-1 hover:rotate-0 transition-all duration-500 hover:scale-105 z-20">
+        <div className="md:col-span-4 bg-white rounded-2xl shadow-xl border border-gray-100 p-6 md:transform md:-rotate-1 md:hover:rotate-0 transition-all duration-500 hover:scale-105 z-20">
           <div className="flex items-center justify-between mb-6">
             <h4 className="font-bold text-gray-900">Internship Proposals</h4>
             <div className="h-8 w-8 bg-brand-purple/10 rounded-lg flex items-center justify-center text-brand-purple">
@@ -41,7 +40,7 @@ export default function DashboardVisual() {
         </div>
 
         {/* Card 2: Career Trends (Top Middle) */}
-        <div className="col-span-3 bg-white rounded-2xl shadow-2xl border border-gray-100 p-6 mt-20 hover:scale-105 transition-all duration-500 z-10">
+        <div className="md:col-span-3 bg-white rounded-2xl shadow-xl border border-gray-100 p-6 md:mt-20 hover:scale-105 transition-all duration-500 z-10 hidden md:block">
           <div className="flex items-center gap-2 mb-6 text-brand-pink">
             <TrendingUp className="h-5 w-5" />
             <h4 className="font-bold text-gray-900">Placement Rate</h4>
@@ -64,7 +63,7 @@ export default function DashboardVisual() {
         </div>
 
         {/* Card 3: Active Offers (Top Right) */}
-        <div className="col-span-5 bg-white rounded-2xl shadow-2xl border border-gray-100 p-6 transform rotate-1 hover:rotate-0 transition-all duration-500 hover:scale-105 z-20">
+        <div className="md:col-span-5 bg-white rounded-2xl shadow-xl border border-gray-100 p-6 md:transform md:rotate-1 md:hover:rotate-0 transition-all duration-500 hover:scale-105 z-20 hidden md:block">
           <div className="flex items-center gap-3 mb-6">
             <div className="h-10 w-10 rounded-full bg-brand-accent/10 flex items-center justify-center text-brand-accent">
               <Briefcase className="h-5 w-5" />
@@ -88,7 +87,7 @@ export default function DashboardVisual() {
         </div>
 
         {/* Card 4: Hello Alumni (Bottom Left) */}
-        <div className="col-span-4 bg-white rounded-2xl shadow-2xl border border-gray-100 p-6 -mt-8 hover:scale-105 transition-all duration-500 z-30">
+        <div className="md:col-span-4 bg-white rounded-2xl shadow-xl border border-gray-100 p-6 md:-mt-8 hover:scale-105 transition-all duration-500 z-30 hidden md:block">
           <h4 className="font-bold text-gray-900 mb-4 text-[18px]">Meet your Mentor</h4>
           <p className="text-gray-500 text-[13px] mb-6">Connect with alumni for guidance and feedback on your project.</p>
           <div className="flex -space-x-2 mb-6">
@@ -107,7 +106,7 @@ export default function DashboardVisual() {
         </div>
 
         {/* Card 5: Schedule (Bottom Right) */}
-        <div className="col-span-4 bg-white rounded-2xl shadow-2xl border border-gray-100 p-6 mt-12 ml-12 transform -rotate-1 hover:rotate-0 transition-all duration-500 z-20">
+        <div className="md:col-span-4 bg-white rounded-2xl shadow-xl border border-gray-100 p-6 md:mt-12 md:ml-12 md:transform md:-rotate-1 md:hover:rotate-0 transition-all duration-500 z-20">
           <div className="flex items-center gap-2 mb-6">
             <Calendar className="h-5 w-5 text-brand-purple" />
             <h4 className="font-bold text-gray-900">Your Schedule</h4>
@@ -136,7 +135,7 @@ export default function DashboardVisual() {
         </div>
 
         {/* Card 6: Candidate Search (Bottom Middle) */}
-        <div className="col-span-4 bg-white rounded-2xl shadow-2xl border border-gray-100 p-6 -mt-12 hover:scale-105 transition-all duration-500 z-30">
+        <div className="md:col-span-4 bg-white rounded-2xl shadow-xl border border-gray-100 p-6 md:-mt-12 hover:scale-105 transition-all duration-500 z-30 hidden md:block">
            <div className="relative mb-6">
              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
              <div className="w-full h-10 bg-gray-50 border border-gray-200 rounded-lg pl-10 pr-4 flex items-center">

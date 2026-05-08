@@ -22,7 +22,6 @@ export default function RegisterPage() {
   const { t, language, setLanguage, isRTL } = useTranslation();
   const [isLoading, setIsLoading] = useState(false);
   const [specialities, setSpecialities] = useState<string[]>([]);
-  const [promotions, setPromotions] = useState<string[]>([]);
   const [emailStatus, setEmailStatus] = useState<{
     type: "idle" | "checking" | "pending" | "exists" | "rejected";
     message?: string;
@@ -41,9 +40,6 @@ export default function RegisterPage() {
         if (d.data?.currentAcademicYear) setValue("academicYear", d.data.currentAcademicYear);
         if (d.data?.availableSpecialities) {
           setSpecialities(d.data.availableSpecialities.split(/[,\n]/).map((s: string) => s.trim()).filter(Boolean));
-        }
-        if (d.data?.availablePromotions) {
-          setPromotions(d.data.availablePromotions.split(/[,\n]/).map((s: string) => s.trim()).filter(Boolean));
         }
       })
       .catch(() => {});
@@ -121,13 +117,19 @@ export default function RegisterPage() {
               {emailStatus.type === "rejected" && <p className="mt-1 text-[11px] text-orange-600 font-medium">{emailStatus.message}</p>}
             </div>
 
-            <div className="w-full">
-              <label className="admin-form-label">{t("common.role")}</label>
-              <select {...register("role")} className="admin-input cursor-pointer">
-                <option value="STUDENT">Student</option>
-                <option value="TEACHER">Teacher Supervisor</option>
-                <option value="COMPANY">Company Supervisor</option>
-              </select>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 col-span-1 lg:col-span-2">
+              <div className="w-full">
+                <label className="admin-form-label">{t("common.role")}</label>
+                <select {...register("role")} className="admin-input cursor-pointer">
+                  <option value="STUDENT">Student</option>
+                  <option value="TEACHER">Teacher Supervisor</option>
+                  <option value="COMPANY">Company</option>
+                </select>
+              </div>
+
+              {selectedRole === "STUDENT" && (
+                <Input label="Student ID (Matricule)" placeholder="e.g. 21213500..." {...register("studentId")} error={errors.studentId?.message} />
+              )}
             </div>
 
             <Input label={t("auth.newPassword")} type="password" placeholder="••••••••" {...register("password")} error={errors.password?.message} />
@@ -135,7 +137,6 @@ export default function RegisterPage() {
 
             {selectedRole === "STUDENT" && (
               <>
-                <Input label="Student ID (Matricule)" placeholder="e.g. 21213500..." {...register("studentId")} error={errors.studentId?.message} />
                 <div className="w-full">
                   <label className="admin-form-label">Academic Level <span className="text-red-500">*</span></label>
                   <select {...register("level")} className="admin-input cursor-pointer">
@@ -145,15 +146,6 @@ export default function RegisterPage() {
                     <option value="M1">M1</option><option value="M2">M2 (PFE eligible)</option>
                   </select>
                   {errors.level && <p className="mt-1 text-[11px] text-red-600 font-medium">{errors.level.message}</p>}
-                </div>
-                <div className="w-full">
-                  <label className="admin-form-label">Promotion</label>
-                  <select {...register("promotion")} className="admin-input cursor-pointer">
-                    <option value="">Select Promotion</option>
-                    {promotions.map(p => <option key={p} value={p}>{p}</option>)}
-                    {promotions.length === 0 && <option value="M1 Génie Logiciel">M1 Génie Logiciel</option>}
-                  </select>
-                  {errors.promotion && <p className="mt-1 text-[11px] text-red-600 font-medium">{errors.promotion.message}</p>}
                 </div>
                 <div className="w-full">
                   <label className="admin-form-label">Speciality</label>

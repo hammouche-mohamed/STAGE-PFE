@@ -35,10 +35,10 @@
   --color-gray-600: #4b5563;
   --color-gray-900: #111827;
 
-  --color-brand-deep: #1a0a3c;
+  --color-brand-deep: #0f172a;
   --color-brand-pink: #f14d91;
-  --color-brand-purple: #7e22ce;
-  --color-brand-accent: #6366f1;
+  --color-brand-purple: #1e293b;
+  --color-brand-accent: #3b82f6;
 
   --color-linkedin-blue: #0a66c2;
   --color-linkedin-light: #e8f3ff;
@@ -91,7 +91,7 @@
   }
 
   body {
-    @apply bg-gray-50 text-gray-900 font-sans antialiased text-[15px];
+    @apply bg-gradient-to-br from-blue-50 to-slate-100 text-gray-900 font-sans antialiased text-[15px] min-h-screen;
   }
 
   h1, h2, h3, h4, h5, h6 {

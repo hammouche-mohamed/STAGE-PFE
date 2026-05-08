@@ -49,7 +49,10 @@ function LoginForm() {
         return;
       }
       toast.success(t("auth.login"));
-      router.refresh();
+      
+      // Instead of just refreshing, we manually redirect to hit the middleware's logic
+      // or we can just redirect to the root which will then be handled by middleware
+      router.push("/"); 
     } catch {
       toast.error(t("errors.serverError"));
     } finally {

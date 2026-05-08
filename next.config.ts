@@ -9,7 +9,6 @@ const nextConfig: NextConfig = {
   experimental: {
     optimizePackageImports: ["lucide-react", "recharts", "date-fns"],
   },
-  serverExternalPackages: ["@prisma/client", "prisma"],
   /* config options here */
 };
 

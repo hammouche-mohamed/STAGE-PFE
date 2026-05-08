@@ -301,6 +301,25 @@ export const translations = {
       footer: {
         desc: "The official career and internship management platform for the École Supérieure des Sciences et Technologies. Connecting ESST's brightest minds with industry leaders to foster innovation and professional excellence.",
         status: "System Status: Optimal",
+        registrations: "Registrations",
+        topics: "Topic Selection",
+        available: "Available Topics",
+        propose: "Propose a Topic",
+      },
+      features: {
+        item1_title: "Registrations",
+        item1_desc: "Create your account",
+        item2_title: "Topic Selection",
+        item2_desc: "Available Topics",
+        item3_title: "Approved",
+        item3_desc: "Awaiting Admin Confirmation",
+        item4_title: "Completed",
+        item4_desc: "My Internship",
+      },
+      postTopic: {
+        title: "Post your topics and find the right talent",
+        subtitle: "Whether you're a student with a vision or a company with a challenge, our platform makes it easy to collaborate.",
+        button: "Post a Topic",
       }
     }
   },
@@ -554,7 +573,7 @@ export const translations = {
     },
     landing: {
       hero: {
-        title: "Portail des Stages ESST",
+        title: "ESST Internship Portal",
         subtitle: "La plateforme communautaire officielle pour les étudiants, les enseignants et les partenaires pour collaborer sur l'innovation technologique de nouvelle génération.",
         getStarted: "Commencer",
         learnMore: "En savoir plus",
@@ -590,6 +609,25 @@ export const translations = {
       footer: {
         desc: "La plateforme officielle de gestion des carrières et des stages de l'École Supérieure des Sciences et Technologies. Connecter les esprits les plus brillants de l'ESST avec les leaders de l'industrie pour favoriser l'innovation et l'excellence professionnelle.",
         status: "État du système : Optimal",
+        registrations: "Inscriptions",
+        topics: "Choix de Sujet",
+        available: "Sujets Disponibles",
+        propose: "Proposer un Sujet",
+      },
+      features: {
+        item1_title: "Inscriptions",
+        item1_desc: "Créez votre compte",
+        item2_title: "Choix de Sujet",
+        item2_desc: "Sujets Disponibles",
+        item3_title: "Approuvé",
+        item3_desc: "En attente de confirmation",
+        item4_title: "Terminé",
+        item4_desc: "Mon Stage",
+      },
+      postTopic: {
+        title: "Postez vos sujets et trouvez le bon talent",
+        subtitle: "Que vous soyez un étudiant avec une vision ou une entreprise avec un défi, notre plateforme facilite la collaboration.",
+        button: "Poster un Sujet",
       }
     }
   },
@@ -846,7 +884,7 @@ export const translations = {
     },
     landing: {
       hero: {
-        title: "بوابة التربصات ESST",
+        title: "بوابة ESST للتربصات",
         subtitle: "المنصة المجتمعية الرسمية للطلاب والأساتذة والشركاء للتعاون في ابتكارات تكنولوجية من الجيل القادم.",
         getStarted: "ابدأ الآن",
         learnMore: "اكتشف المزيد",
@@ -882,6 +920,25 @@ export const translations = {
       footer: {
         desc: "المنصة الرسمية لإدارة المهن والتربصات في المدرسة العليا للعلوم والتكنولوجيات. ربط ألمع العقول في ESST مع قادة الصناعة لتعزيز الابتكار والتميز المهني.",
         status: "حالة النظام: مثالية",
+        registrations: "التسجيلات",
+        topics: "اختيار المواضيع",
+        available: "المواضيع المتاحة",
+        propose: "اقتراح موضوع",
+      },
+      features: {
+        item1_title: "طلبات التسجيل",
+        item1_desc: "أنشئ حسابك الخاص",
+        item2_title: "اختيار الموضوع",
+        item2_desc: "المواضيع المتاحة",
+        item3_title: "مقبول",
+        item3_desc: "في انتظار موافقة المسؤول",
+        item4_title: "مكتمل",
+        item4_desc: "تربصي",
+      },
+      postTopic: {
+        title: "انشر مواضيعك وجد المواهب المناسبة",
+        subtitle: "سواء كنت طالباً صاحب رؤية أو شركة تواجه تحدياً، فإن منصتنا تسهل عليك التعاون.",
+        button: "انشر موضوعاً",
       }
     }
   },
