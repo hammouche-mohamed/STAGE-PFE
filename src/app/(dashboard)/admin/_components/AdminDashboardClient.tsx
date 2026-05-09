@@ -8,7 +8,6 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { format } from "date-fns";
-import { StatusBadge } from "@/components/ui/StatusBadge";
 import { useTranslation } from "@/lib/i18n/LanguageContext";
 
 interface Registration {

@@ -16,8 +16,6 @@ export async function GET(req: NextRequest) {
   const defaultYear = await SettingsService.getCurrentAcademicYear();
   const academicYear = searchParams.get('academicYear') || defaultYear;
   const internshipTypeFilter = searchParams.get('type') as 'PFE' | 'NORMAL' | null;
-  const sector = searchParams.get('sector');
-  const department = searchParams.get('department');
 
   try {
     // Build shared where clause

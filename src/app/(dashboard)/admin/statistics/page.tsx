@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import {
   BarChart,
   Bar,
@@ -41,7 +41,7 @@ export default function StatisticsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [typeFilter, setTypeFilter] = useState<"" | "PFE" | "NORMAL">("");
 
-  const fetchStats = async () => {
+  const fetchStats = useCallback(async () => {
     setIsLoading(true);
     try {
       const params = new URLSearchParams();
@@ -59,7 +59,7 @@ export default function StatisticsPage() {
 
   useEffect(() => {
     fetchStats();
-  }, [typeFilter]);
+  }, [typeFilter, fetchStats]);
 
   return (
     <div className="space-y-6">
@@ -146,8 +146,8 @@ export default function StatisticsPage() {
                       cx="50%"
                       cy="50%"
                       outerRadius={80}
-                      label={({ type, percent }: any) =>
-                        `${type} ${((percent ?? 0) * 100).toFixed(0)}%`
+                      label={({ type, percent }: { type: string; percent: number }) =>
+                        `${type} ${(percent * 100).toFixed(0)}%`
                       }
                     >
                       {stats.byType.map((entry) => (
@@ -157,7 +157,7 @@ export default function StatisticsPage() {
                         />
                       ))}
                     </Pie>
-                    <Tooltip formatter={(value: any) => [`${value} internships`]} />
+                    <Tooltip formatter={(value: number) => [`${value} internships`]} />
                     <Legend />
                   </PieChart>
                 </ResponsiveContainer>
@@ -187,7 +187,7 @@ export default function StatisticsPage() {
                       width={110}
                       tick={{ fontSize: 11 }}
                     />
-                    <Tooltip formatter={(v: any) => [`${v} intern(s)`]} />
+                    <Tooltip formatter={(v: number) => [`${v} intern(s)`]} />
                     <Bar dataKey="internshipCount" fill="#4f46e5" radius={[0, 4, 4, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
