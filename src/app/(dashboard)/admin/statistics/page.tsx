@@ -146,7 +146,7 @@ export default function StatisticsPage() {
                       cx="50%"
                       cy="50%"
                       outerRadius={80}
-                      label={({ name, percent }: { name: string; percent: number }) =>
+                      label={({ name, percent }: any) =>
                         `${name} ${(percent * 100).toFixed(0)}%`
                       }
                     >
