@@ -55,7 +55,7 @@ export default function StatisticsPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [typeFilter]);
 
   useEffect(() => {
     fetchStats();
@@ -146,8 +146,8 @@ export default function StatisticsPage() {
                       cx="50%"
                       cy="50%"
                       outerRadius={80}
-                      label={({ type, percent }: { type: string; percent: number }) =>
-                        `${type} ${(percent * 100).toFixed(0)}%`
+                      label={({ name, percent }: { name: string; percent: number }) =>
+                        `${name} ${(percent * 100).toFixed(0)}%`
                       }
                     >
                       {stats.byType.map((entry) => (
@@ -157,7 +157,7 @@ export default function StatisticsPage() {
                         />
                       ))}
                     </Pie>
-                    <Tooltip formatter={(value: number) => [`${value} internships`]} />
+                    <Tooltip formatter={(value: any) => [`${value} internships`]} />
                     <Legend />
                   </PieChart>
                 </ResponsiveContainer>
@@ -187,7 +187,7 @@ export default function StatisticsPage() {
                       width={110}
                       tick={{ fontSize: 11 }}
                     />
-                    <Tooltip formatter={(v: number) => [`${v} intern(s)`]} />
+                    <Tooltip formatter={(v: any) => [`${v} intern(s)`]} />
                     <Bar dataKey="internshipCount" fill="#4f46e5" radius={[0, 4, 4, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
