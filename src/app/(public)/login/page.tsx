@@ -48,11 +48,16 @@ function LoginForm() {
         setAuthError(t("errors.unauthorized"));
         return;
       }
-      toast.success(t("auth.login"));
       
-      // Instead of just refreshing, we manually redirect to hit the middleware's logic
-      // or we can just redirect to the root which will then be handled by middleware
-      router.push("/"); 
+      toast.success(t("auth.login"));
+      const sessionResult = await fetch('/api/auth/session').then(res => res.json());
+      const role = sessionResult?.user?.role?.toLowerCase();
+      
+      if (role) {
+        router.push(`/${role}`);
+      } else {
+        router.push("/");
+      }
     } catch {
       toast.error(t("errors.serverError"));
     } finally {

@@ -77,7 +77,7 @@ export default function LandingClient({ logoUrl, academicYear }: Props) {
 
               <div className="flex items-center gap-3">
                 <Link href={dashboardUrl} className="px-4 py-1.5 md:px-6 md:py-2 border border-brand-deep text-brand-deep text-[13px] md:text-[16px] font-bold rounded-full hover:bg-gray-50 transition-all whitespace-nowrap">
-                  {t("auth.login")}
+                  {session ? t("common.dashboard") : t("auth.login")}
                 </Link>
               </div>
             </div>
@@ -131,7 +131,7 @@ export default function LandingClient({ logoUrl, academicYear }: Props) {
               </p>
               <div className="flex flex-wrap items-center justify-center lg:justify-start gap-4 animate-fade-in" style={{ animationDelay: "400ms" }}>
                 <Link href={dashboardUrl} className="px-6 py-2.5 md:px-8 md:py-3 bg-brand-deep text-white rounded-full text-[14px] md:text-[16px] font-bold hover:bg-black transition-all shadow-md min-w-[140px] md:min-w-[160px] text-center border border-white/20">
-                  {t("auth.login")}
+                  {session ? t("common.dashboard") : t("auth.login")}
                 </Link>
                 {!session && (
                   <Link href="/register" className="px-6 py-2.5 md:px-8 md:py-3 bg-white text-brand-deep rounded-full text-[14px] md:text-[16px] font-bold hover:bg-gray-100 transition-all min-w-[140px] md:min-w-[160px] text-center shadow-md">
