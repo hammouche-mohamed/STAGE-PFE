@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono, Cairo } from "next/font/google";
 import { SessionProvider } from "next-auth/react";
 import { LanguageProvider } from "@/lib/i18n/LanguageContext";
+import { Toaster } from "sonner";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -39,6 +40,7 @@ export default function RootLayout({
         <SessionProvider>
           <LanguageProvider>
             {children}
+            <Toaster position="top-center" richColors />
           </LanguageProvider>
         </SessionProvider>
       </body>

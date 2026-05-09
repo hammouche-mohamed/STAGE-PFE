@@ -34,6 +34,15 @@ model AuditLog {
   @@map("auditlog")
 }
 
+model BlockedEmail {
+  id        String   @id @default(uuid())
+  email     String   @unique(map: "BlockedEmail_email_key")
+  reason    String?  @db.Text
+  createdAt DateTime @default(now())
+
+  @@map("blockedemail")
+}
+
 model BinomeInvitation {
   id                   String                  @id @default(uuid())
   studentApplicationId String                  @unique(map: "BinomeInvitation_studentApplicationId_key")
@@ -284,7 +293,7 @@ model RegistrationRequest {
   promotion    String?
   speciality   String?
   // Student level for eligibility enforcement
-  level        student_level?
+  level        String?
   academicYear String?
   grade        String?
   sector       String?
@@ -335,7 +344,7 @@ model StudentProfile {
   speciality   String
   academicYear String
   // Academic level for internship type eligibility (L1/L2/M1 → NORMAL only; L3/M2 → PFE or NORMAL)
-  level        student_level?
+  level        String?
 
   user User? @relation(fields: [userId], references: [id], map: "StudentProfile_userId_fkey")
 
@@ -460,7 +469,7 @@ model User {
   password           String
   role               user_role
   // Academic level — only meaningful for STUDENT role
-  level              student_level?
+  level              String?
   department         String?
   avatarUrl          String?
   isActive           Boolean        @default(false)
@@ -627,14 +636,6 @@ enum internship_type {
   NORMAL
 }
 
-/// Academic level — determines which internship types the student may access
-enum student_level {
-  L1
-  L2
-  L3
-  M1
-  M2
-}
 
 enum studentapplication_status {
   PENDING

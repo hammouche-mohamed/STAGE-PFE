@@ -58,6 +58,14 @@ export default function AdminUsersPage() {
   const [isProcessingStatus, setIsProcessingStatus] = useState(false);
   const [isFetchingDetail, setIsFetchingDetail] = useState(false);
   const [showEditConfirm, setShowEditConfirm] = useState(false);
+  
+  const [activeTab, setActiveTab] = useState<"USERS" | "BLOCKLIST">("USERS");
+  const [blocklist, setBlocklist] = useState<any[]>([]);
+  const [isFetchingBlocklist, setIsFetchingBlocklist] = useState(false);
+  const [isAddBlocklistModalOpen, setIsAddBlocklistModalOpen] = useState(false);
+  const [newBlockedEmail, setNewBlockedEmail] = useState("");
+  const [newBlockedReason, setNewBlockedReason] = useState("");
+  const [emailToUnblock, setEmailToUnblock] = useState<any | null>(null);
 
   const fetchUsers = async () => {
     try {
@@ -71,9 +79,73 @@ export default function AdminUsersPage() {
     }
   };
 
+  const fetchBlocklist = async () => {
+    setIsFetchingBlocklist(true);
+    try {
+      const res = await fetch("/api/blocklist");
+      const data = await res.json();
+      setBlocklist(data.data || []);
+    } catch (error) {
+      toast.error("Failed to load blocklist");
+    } finally {
+      setIsFetchingBlocklist(false);
+    }
+  };
+
   useEffect(() => {
     fetchUsers();
+    fetchBlocklist();
   }, []);
+
+  const handleUnblock = (item: any) => {
+    setEmailToUnblock(item);
+  };
+
+  const executeUnblock = async () => {
+    if (!emailToUnblock) return;
+    setIsProcessingStatus(true);
+    try {
+      const res = await fetch(`/api/blocklist/${emailToUnblock.id}`, { method: "DELETE" });
+      if (res.ok) {
+        toast.success("Email unblocked successfully");
+        setEmailToUnblock(null);
+        fetchBlocklist();
+      } else {
+        toast.error("Failed to unblock email");
+      }
+    } catch (error) {
+      toast.error("An error occurred");
+    } finally {
+      setIsProcessingStatus(false);
+    }
+  };
+
+  const handleAddBlocklist = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newBlockedEmail.trim()) return;
+    
+    setIsProcessingStatus(true);
+    try {
+      const res = await fetch("/api/blocklist", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: newBlockedEmail.trim(), reason: newBlockedReason.trim() }),
+      });
+      
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to block email");
+      
+      toast.success("Email blocked successfully");
+      setIsAddBlocklistModalOpen(false);
+      setNewBlockedEmail("");
+      setNewBlockedReason("");
+      fetchBlocklist();
+    } catch (error: any) {
+      toast.error(error.message);
+    } finally {
+      setIsProcessingStatus(false);
+    }
+  };
 
   const filteredUsers = users.filter(u => {
     const matchesSearch = u.name.toLowerCase().includes(search.toLowerCase()) || 
@@ -229,8 +301,29 @@ export default function AdminUsersPage() {
         </div>
       </div>
 
-      {/* Filters bar */}
-      <div className="flex flex-col sm:flex-row gap-4">
+      <div className="flex border-b border-gray-200 mb-6">
+        <button
+          className={`pb-3 px-4 text-[13px] font-medium transition-colors border-b-2 ${
+            activeTab === "USERS" ? "border-indigo-600 text-indigo-600" : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+          }`}
+          onClick={() => setActiveTab("USERS")}
+        >
+          Users
+        </button>
+        <button
+          className={`pb-3 px-4 text-[13px] font-medium transition-colors border-b-2 ${
+            activeTab === "BLOCKLIST" ? "border-indigo-600 text-indigo-600" : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+          }`}
+          onClick={() => setActiveTab("BLOCKLIST")}
+        >
+          Blocked Emails
+        </button>
+      </div>
+
+      {activeTab === "USERS" && (
+        <>
+          {/* Filters bar */}
+          <div className="flex flex-col sm:flex-row gap-4">
         <div className="relative flex-1">
           <Search className={`absolute ${isRTL ? "right-3" : "left-3"} top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400`} />
           <input
@@ -253,10 +346,6 @@ export default function AdminUsersPage() {
             <option value="COMPANY">{t("roles.COMPANY")}</option>
             <option value="ADMIN">{t("roles.ADMIN")}</option>
           </select>
-          <Button variant="outline" className="h-[36px]">
-            <Filter className={`h-4 w-4 ${isRTL ? "ml-2" : "mr-2"}`} />
-            {t("admin.users.moreFilters")}
-          </Button>
         </div>
       </div>
 
@@ -657,6 +746,112 @@ export default function AdminUsersPage() {
         variant="warning"
         isLoading={isProcessingStatus}
       />
+      </>
+      )}
+
+      {activeTab === "BLOCKLIST" && (
+        <div className="space-y-4">
+          <div className="flex justify-end">
+            <Button onClick={() => setIsAddBlocklistModalOpen(true)} size="sm">
+              <UserX className="h-4 w-4 mr-2" />
+              Add to Blocklist
+            </Button>
+          </div>
+          <div className="admin-table-container sm:bg-white sm:border sm:border-gray-200 sm:rounded-md">
+            <table className="admin-table stacked-table">
+              <thead className="admin-table-header">
+                <tr>
+                  <th>Email</th>
+                  <th>Reason to block</th>
+                  <th>Date Blocked</th>
+                  <th className="text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {isFetchingBlocklist ? (
+                  <tr className="empty-row"><td colSpan={4} className="text-center py-8 text-gray-400">Loading...</td></tr>
+                ) : blocklist.length === 0 ? (
+                  <tr className="empty-row"><td colSpan={4} className="text-center py-8 text-gray-400">No blocked emails.</td></tr>
+                ) : (
+                  blocklist.map(item => (
+                    <tr key={item.id} className="admin-table-row">
+                      <td data-label="Email" className="font-medium text-gray-900">{item.email}</td>
+                      <td data-label="Reason to block" className="text-gray-500 max-w-md truncate">{item.reason || "N/A"}</td>
+                      <td data-label="Date Blocked" className="text-[12px]">{format(new Date(item.createdAt), "MMM d, yyyy")}</td>
+                      <td data-label="Actions" className="text-right">
+                        <Button variant="outline" size="sm" onClick={() => handleUnblock(item)}>
+                          Unblock
+                        </Button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Add Blocklist Modal */}
+      <Modal
+        isOpen={isAddBlocklistModalOpen}
+        onClose={() => {
+          setIsAddBlocklistModalOpen(false);
+          setNewBlockedEmail("");
+          setNewBlockedReason("");
+        }}
+        title="Block Email Address"
+        size="sm"
+      >
+        <form onSubmit={handleAddBlocklist} className="space-y-4 py-2">
+          <div className="bg-amber-50 border border-amber-100 p-3 rounded-md text-[13px] text-amber-800 leading-snug">
+            This email address will be permanently prevented from submitting registration requests.
+          </div>
+          
+          <Input
+            label="Email Address"
+            type="email"
+            placeholder="e.g., student@example.com"
+            value={newBlockedEmail}
+            onChange={(e) => setNewBlockedEmail(e.target.value)}
+            required
+          />
+          
+          <div>
+            <label className="text-[12px] font-bold text-gray-700 block mb-2 uppercase tracking-wide">
+              Reason to block (Optional)
+            </label>
+            <textarea
+              className="admin-input h-24 pt-2 resize-none"
+              placeholder="e.g., Suspicious activity, expelled student..."
+              value={newBlockedReason}
+              onChange={(e) => setNewBlockedReason(e.target.value)}
+            />
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4 border-t border-gray-50">
+            <Button type="button" variant="outline" onClick={() => setIsAddBlocklistModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" variant="danger" isLoading={isProcessingStatus}>
+              Block Email
+            </Button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Unblock Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={!!emailToUnblock}
+        onClose={() => setEmailToUnblock(null)}
+        onConfirm={executeUnblock}
+        title="Unblock Email"
+        description={`Are you sure you want to unblock "${emailToUnblock?.email}"? This user will immediately be able to submit new registration requests.`}
+        confirmLabel="Yes, Unblock"
+        variant="warning"
+        isLoading={isProcessingStatus}
+      />
     </div>
   );
 }
+

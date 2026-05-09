@@ -5,8 +5,9 @@ import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Button } from "@/components/ui/Button";
 import { toast } from "sonner";
 import { format } from "date-fns";
-import { Check, X, Eye } from "lucide-react";
+import { Check, X, Eye, AlertTriangle } from "lucide-react";
 import { useTranslation } from "@/lib/i18n/LanguageContext";
+import { Modal } from "@/components/ui/Modal";
 
 interface RegistrationRequest {
   id: string;
@@ -31,6 +32,14 @@ export default function AdminRegistrationsPage() {
   const [requests, setRequests] = useState<RegistrationRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedRequest, setSelectedRequest] = useState<RegistrationRequest | null>(null);
+  const [editData, setEditData] = useState<any>(null);
+  const [specialities, setSpecialities] = useState<string[]>([]);
+  const [promotions, setPromotions] = useState<string[]>([]);
+  const [currentYear, setCurrentYear] = useState("");
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
+  const [rejectReason, setRejectReason] = useState("");
+  const [blockEmail, setBlockEmail] = useState(false);
 
   const fetchRequests = async () => {
     try {
@@ -44,27 +53,80 @@ export default function AdminRegistrationsPage() {
     }
   };
 
+  const fetchSettings = async () => {
+    try {
+      const res = await fetch("/api/settings/public");
+      const d = await res.json();
+      if (d.data?.availableSpecialities) {
+        setSpecialities(d.data.availableSpecialities.split(",").map((s: string) => s.trim()).filter(Boolean));
+      }
+      if (d.data?.availablePromotions) {
+        setPromotions(d.data.availablePromotions.split(",").map((s: string) => s.trim()).filter(Boolean));
+      }
+      if (d.data?.currentAcademicYear) {
+        setCurrentYear(d.data.currentAcademicYear);
+      }
+    } catch (e) {}
+  };
+
   useEffect(() => {
     fetchRequests();
+    fetchSettings();
   }, []);
 
-  const handleReview = async (id: string, status: "APPROVED" | "REJECTED") => {
-    const adminComment = status === "REJECTED" ? window.prompt("Reason for rejection:") : null;
-    if (status === "REJECTED" && !adminComment) return;
+  useEffect(() => {
+    if (selectedRequest) {
+      setEditData({ ...selectedRequest });
+    } else {
+      setEditData(null);
+    }
+  }, [selectedRequest]);
 
+  const handleReview = async (id: string, status: "APPROVED" | "REJECTED", reason?: string) => {
+    if (status === "REJECTED" && !reason) {
+      setIsRejectModalOpen(true);
+      return;
+    }
+
+    setIsUpdating(true);
     try {
+      // Calculate updatedData by comparing editData with selectedRequest
+      const updatedData: any = {};
+      const fields = ["name", "email", "role", "studentId", "promotion", "speciality", "academicYear", "grade", "sector", "wilaya"];
+      fields.forEach(field => {
+        if (editData[field] !== selectedRequest![field as keyof RegistrationRequest]) {
+          updatedData[field] = editData[field];
+        }
+      });
+
+      // NFR-RDI3: Always enforce the current system academic year on approval
+      if (editData.role === "STUDENT" && currentYear) {
+        updatedData.academicYear = currentYear;
+      }
+
       const res = await fetch(`/api/registrations/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status, adminComment }),
+        body: JSON.stringify({ 
+          status, 
+          adminComment: reason || null,
+          blockEmail,
+          updatedData: Object.keys(updatedData).length > 0 ? updatedData : undefined
+        }),
       });
 
       if (!res.ok) throw new Error("Update failed");
 
       toast.success(`Request ${status.toLowerCase()} successfully`);
+      setSelectedRequest(null);
+      setIsRejectModalOpen(false);
+      setRejectReason("");
+      setBlockEmail(false);
       fetchRequests();
     } catch (error) {
       toast.error("Failed to update request");
+    } finally {
+      setIsUpdating(false);
     }
   };
 
@@ -146,61 +208,127 @@ export default function AdminRegistrationsPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-gray-400 block mb-1">{t("common.name")}</label>
-                  <p className="font-medium text-gray-900">{selectedRequest.name}</p>
+                  <input 
+                    className="admin-input" 
+                    value={editData?.name || ""} 
+                    onChange={e => setEditData({...editData, name: e.target.value})}
+                  />
                 </div>
                 <div>
                   <label className="text-gray-400 block mb-1">{t("common.role")}</label>
-                  <p className="font-medium text-gray-900 capitalize">{selectedRequest.role.toLowerCase()}</p>
+                  <select 
+                    className="admin-input" 
+                    value={editData?.role || ""} 
+                    onChange={e => setEditData({...editData, role: e.target.value})}
+                  >
+                    <option value="STUDENT">STUDENT</option>
+                    <option value="TEACHER">TEACHER</option>
+                    <option value="COMPANY">COMPANY</option>
+                  </select>
                 </div>
                 <div className="col-span-2">
                   <label className="text-gray-400 block mb-1">{t("common.email")}</label>
-                  <p className="font-medium text-gray-900">{selectedRequest.email}</p>
+                  <input 
+                    className="admin-input" 
+                    value={editData?.email || ""} 
+                    onChange={e => setEditData({...editData, email: e.target.value})}
+                  />
                 </div>
               </div>
 
               <div className="pt-4 border-t border-gray-50 space-y-3">
-                {selectedRequest.role === "STUDENT" && (
+                {editData?.role === "STUDENT" && (
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="text-gray-400 block mb-1">Student ID</label>
-                      <p className="text-gray-900">{selectedRequest.studentId}</p>
+                      <input 
+                        className="admin-input" 
+                        value={editData?.studentId || ""} 
+                        onChange={e => setEditData({...editData, studentId: e.target.value})}
+                      />
                     </div>
                     <div>
                       <label className="text-gray-400 block mb-1">Promotion</label>
-                      <p className="text-gray-900">{selectedRequest.promotion}</p>
+                      <select 
+                        className="admin-input" 
+                        value={editData?.promotion || ""} 
+                        onChange={e => setEditData({...editData, promotion: e.target.value})}
+                      >
+                        <option value="">Select Promotion</option>
+                        {promotions.map(p => <option key={p} value={p}>{p}</option>)}
+                      </select>
                     </div>
                     <div>
                       <label className="text-gray-400 block mb-1">Speciality</label>
-                      <p className="text-gray-900">{selectedRequest.speciality}</p>
+                      <select 
+                        className="admin-input" 
+                        value={editData?.speciality || ""} 
+                        onChange={e => setEditData({...editData, speciality: e.target.value})}
+                      >
+                        <option value="">Select Speciality</option>
+                        {specialities.map(s => <option key={s} value={s}>{s}</option>)}
+                      </select>
                     </div>
                     <div>
                       <label className="text-gray-400 block mb-1">Academic Year</label>
-                      <p className="text-gray-900">{selectedRequest.academicYear}</p>
+                      <div className="admin-input bg-gray-50 text-gray-500 cursor-not-allowed flex items-center">
+                        {currentYear || "N/A"}
+                      </div>
+                      <input type="hidden" value={currentYear} />
                     </div>
                   </div>
                 )}
 
-                {selectedRequest.role === "TEACHER" && (
-                  <div>
-                    <label className="text-gray-400 block mb-1">Speciality</label>
-                    <p className="text-gray-900">{selectedRequest.speciality}</p>
+                {editData?.role === "TEACHER" && (
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-gray-400 block mb-1">Speciality</label>
+                      <select 
+                        className="admin-input" 
+                        value={editData?.speciality || ""} 
+                        onChange={e => setEditData({...editData, speciality: e.target.value})}
+                      >
+                        <option value="">Select Speciality</option>
+                        {specialities.map(s => <option key={s} value={s}>{s}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-gray-400 block mb-1">Grade</label>
+                      <input 
+                        className="admin-input" 
+                        value={editData?.grade || ""} 
+                        onChange={e => setEditData({...editData, grade: e.target.value})}
+                      />
+                    </div>
                   </div>
                 )}
 
-                {selectedRequest.role === "COMPANY" && (
+                {editData?.role === "COMPANY" && (
                   <div className="space-y-3">
                     <div>
                       <label className="text-gray-400 block mb-1">Company</label>
-                      <p className="text-gray-900">{selectedRequest.companyName}</p>
+                      <input 
+                        className="admin-input" 
+                        value={editData?.companyName || ""} 
+                        onChange={e => setEditData({...editData, companyName: e.target.value})}
+                      />
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <label className="text-gray-400 block mb-1">Sector</label>
-                        <p className="text-gray-900">{selectedRequest.sector}</p>
+                        <input 
+                          className="admin-input" 
+                          value={editData?.sector || ""} 
+                          onChange={e => setEditData({...editData, sector: e.target.value})}
+                        />
                       </div>
                       <div>
                         <label className="text-gray-400 block mb-1">Wilaya</label>
-                        <p className="text-gray-900">{selectedRequest.wilaya}</p>
+                        <input 
+                          className="admin-input" 
+                          value={editData?.wilaya || ""} 
+                          onChange={e => setEditData({...editData, wilaya: e.target.value})}
+                        />
                       </div>
                     </div>
                   </div>
@@ -223,20 +351,16 @@ export default function AdminRegistrationsPage() {
                   <Button 
                     variant="danger" 
                     size="sm" 
-                    onClick={() => {
-                      handleReview(selectedRequest.id, "REJECTED");
-                      setSelectedRequest(null);
-                    }}
+                    isLoading={isUpdating}
+                    onClick={() => handleReview(selectedRequest.id, "REJECTED")}
                   >
                     {t("common.reject")}
                   </Button>
                   <Button 
                     variant="primary" 
                     size="sm" 
-                    onClick={() => {
-                      handleReview(selectedRequest.id, "APPROVED");
-                      setSelectedRequest(null);
-                    }}
+                    isLoading={isUpdating}
+                    onClick={() => handleReview(selectedRequest.id, "APPROVED")}
                   >
                     {t("common.approve")}
                   </Button>
@@ -247,6 +371,64 @@ export default function AdminRegistrationsPage() {
           </div>
         </div>
       )}
+
+      {/* Rejection Reason Modal */}
+      <Modal
+        isOpen={isRejectModalOpen}
+        onClose={() => setIsRejectModalOpen(false)}
+        title="Reason for Rejection"
+        size="sm"
+        footer={
+          <>
+            <Button variant="outline" size="sm" onClick={() => setIsRejectModalOpen(false)}>
+              {t("common.cancel")}
+            </Button>
+            <Button 
+              variant="danger" 
+              size="sm" 
+              disabled={!rejectReason.trim()}
+              isLoading={isUpdating}
+              onClick={() => handleReview(selectedRequest!.id, "REJECTED", rejectReason)}
+            >
+              Confirm Rejection
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          <div className="flex items-center gap-3 text-amber-600 bg-amber-50 p-3 rounded-lg border border-amber-100">
+            <AlertTriangle className="h-5 w-5 flex-shrink-0" />
+            <p className="text-[12px] font-medium leading-tight">
+              Please provide a clear reason for rejecting this registration. The user will receive this in their notification email.
+            </p>
+          </div>
+          <div>
+            <label className="text-[12px] font-bold text-gray-700 block mb-2 uppercase tracking-wide">
+              Rejection Note
+            </label>
+            <textarea
+              className="admin-input h-32 pt-2 resize-none focus:ring-red-500 focus:border-red-500"
+              placeholder="e.g., Missing documents, incorrect student ID, or invalid profile information..."
+              value={rejectReason}
+              onChange={(e) => setRejectReason(e.target.value)}
+              autoFocus
+            />
+            
+            <div className="mt-4 flex items-center gap-2">
+              <input 
+                type="checkbox" 
+                id="blockEmail" 
+                className="rounded border-gray-300 text-red-600 focus:ring-red-500"
+                checked={blockEmail}
+                onChange={(e) => setBlockEmail(e.target.checked)}
+              />
+              <label htmlFor="blockEmail" className="text-[12px] font-medium text-gray-700 select-none cursor-pointer">
+                Also permanently block this email address
+              </label>
+            </div>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

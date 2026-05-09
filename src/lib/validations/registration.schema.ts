@@ -3,7 +3,7 @@ import { z } from 'zod';
 const RegistrationRole = z.enum(['STUDENT', 'COMPANY', 'TEACHER']);
 
 // Academic levels for the dual-track eligibility system
-const StudentLevel = z.enum(['L1', 'L2', 'L3', 'M1', 'M2']);
+const StudentLevel = z.string();
 
 export const registrationSchema = z
   .object({

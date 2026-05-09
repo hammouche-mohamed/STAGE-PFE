@@ -278,7 +278,7 @@ export default function ProfilePage() {
 
           <div className="grid gap-4 md:grid-cols-2">
             <Input
-              label={t("common.name")}
+              label={t("common.fullName")}
               value={profile?.name || ""}
               error={errors.name}
               required

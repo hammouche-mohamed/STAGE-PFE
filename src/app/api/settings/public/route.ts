@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 
 // Safe public settings that any (even unauthenticated) page can read
-const PUBLIC_KEYS = ["proposalFormTemplateUrl", "currentAcademicYear", "availableSpecialities", "availablePromotions"];
+const PUBLIC_KEYS = ["proposalFormTemplateUrl", "currentAcademicYear", "availableSpecialities", "availablePromotions", "registrationOpen"];
 
 // NFR-P2: cache public settings for 5 minutes
 let cachedPublicSettings: { data: Record<string, string>; expiry: number } | null = null;

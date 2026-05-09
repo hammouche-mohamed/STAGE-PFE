@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/Input";
 import { toast } from "sonner";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { ShieldCheck, ArrowLeft, Globe } from "lucide-react";
 import { useTranslation } from "@/lib/i18n/LanguageContext";
 import { Language } from "@/lib/i18n/translations";
@@ -58,39 +59,62 @@ function LoginForm() {
       } else {
         router.push("/");
       }
-    } catch {
+    } catch (e) {
       toast.error(t("errors.serverError"));
     } finally {
       setIsLoading(false);
     }
   };
-
   return (
-    <div className={`min-h-screen bg-gray-50 flex flex-col items-center justify-center p-6 ${isRTL ? "rtl" : "ltr"}`}>
-      {/* Language switcher top-right */}
-      <div className={`fixed top-4 ${isRTL ? "left-4" : "right-4"} z-50 flex items-center bg-white border border-gray-200 rounded-full p-0.5 gap-0.5 shadow-sm`}>
-        {LANGS.map(({ code, label }) => (
-          <button
-            key={code}
-            onClick={() => setLanguage(code)}
-            className={`h-7 px-2.5 rounded-full text-[11px] font-bold transition-all duration-200
-              ${language === code ? "bg-indigo-600 text-white shadow-sm" : "text-gray-500 hover:text-gray-800"}`}
-          >
-            {label}
-          </button>
-        ))}
+    <div className={"min-h-screen flex relative " + (isRTL ? "rtl" : "ltr")}>
+      {/* Background Image - Fixed on mobile, Left side on desktop */}
+      <div className="fixed inset-0 lg:relative lg:w-1/2 bg-gray-900 z-0">
+        <div className="absolute inset-0 bg-indigo-900/70 mix-blend-multiply z-10" />
+        <Image 
+          src="https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&w=1200&q=80" 
+          alt="University Campus" 
+          fill
+          className="object-cover"
+          unoptimized
+          priority
+        />
+        <div className="hidden lg:flex absolute inset-0 z-20 flex-col justify-end p-12 text-white">
+          <div className="mb-8">
+            <div className="h-14 w-14 bg-white rounded-lg flex items-center justify-center mb-6 shadow-xl">
+              <ShieldCheck className="h-8 w-8 text-indigo-600" />
+            </div>
+            <h2 className="text-4xl font-bold mb-4 tracking-tight text-white drop-shadow-lg">Empowering Your Academic Journey</h2>
+            <p className="text-lg text-white/90 max-w-md leading-relaxed drop-shadow-md">
+              Join the official ESST portal to manage your internships, academic progress, and professional development in one seamless platform.
+            </p>
+          </div>
+        </div>
       </div>
 
-      <div className="w-full max-w-[400px]">
-        <div className="text-center mb-8">
-          <div className="h-12 w-12 bg-indigo-600 rounded-md mx-auto mb-4 flex items-center justify-center shadow-sm">
-            <ShieldCheck className="h-7 w-7 text-white" />
-          </div>
-          <h1 className="text-[17px] font-semibold text-gray-900 uppercase tracking-tight">ESST</h1>
-          <p className="text-[11px] text-gray-400 uppercase tracking-widest font-medium mt-1">{t("common.appSubtitle")}</p>
+      <div className="w-full lg:w-1/2 flex flex-col items-center justify-center p-4 sm:p-12 lg:bg-gray-50 relative z-10 min-h-screen lg:bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] lg:[background-size:20px_20px]">
+        <div className={`absolute top-6 ${isRTL ? "left-6" : "right-6"} z-50 flex items-center bg-white border border-gray-200 rounded-full p-0.5 gap-0.5 shadow-sm`}>
+          {LANGS.map(({ code, label }) => (
+            <button
+              key={code}
+              onClick={() => setLanguage(code)}
+              className={`h-7 px-2.5 rounded-full text-[11px] font-bold transition-all duration-200
+                ${language === code ? "bg-indigo-600 text-white shadow-sm" : "text-gray-500 hover:text-gray-800"}`}
+            >
+              {label}
+            </button>
+          ))}
         </div>
 
-        <div className="bg-white border border-gray-200 rounded-md p-8 shadow-sm">
+        <div className="w-full max-w-[460px] relative z-10">
+          <div className="text-center mb-8 lg:hidden">
+            <div className="h-14 w-14 bg-white rounded-lg mx-auto mb-4 flex items-center justify-center shadow-xl">
+              <ShieldCheck className="h-8 w-8 text-indigo-600" />
+            </div>
+            <h1 className="text-[20px] font-bold text-white uppercase tracking-tight drop-shadow-md">ESST Portal</h1>
+            <p className="text-[12px] text-white/80 uppercase tracking-widest font-medium mt-1 drop-shadow-sm">{t("common.appSubtitle")}</p>
+          </div>
+
+        <div className="bg-white/95 backdrop-blur-sm lg:bg-white border border-white/20 lg:border-gray-200 rounded-xl lg:rounded-md p-8 shadow-2xl lg:shadow-sm">
           <h2 className="text-[15px] font-medium text-gray-900 mb-6">{t("auth.login")}</h2>
 
           {error && (
@@ -110,7 +134,7 @@ function LoginForm() {
             <Input
               label={t("common.email")}
               type="email"
-              placeholder="e.g. salim@example.com"
+              placeholder="yourname@example.com"
               {...register("email")}
               error={errors.email?.message}
               required
@@ -156,10 +180,14 @@ function LoginForm() {
             </p>
           </div>
         </div>
+        </div>
 
-        <p className="text-center text-[10px] text-gray-400 mt-8 uppercase tracking-[0.2em] font-medium">
-          Official University Administrative Portal
-        </p>
+        {/* Footer */}
+        <div className="absolute bottom-8 left-0 w-full text-center hidden lg:block">
+          <p className="text-[12px] text-gray-400 font-medium">
+            © {new Date().getFullYear()} ESST. All rights reserved.
+          </p>
+        </div>
       </div>
     </div>
   );

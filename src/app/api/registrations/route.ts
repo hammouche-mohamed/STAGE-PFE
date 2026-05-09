@@ -19,8 +19,24 @@ export async function GET(req: NextRequest) {
     const limit = Math.min(20, Math.max(1, parseInt(searchParams.get("limit") ?? "20", 10)));
     const skip = (page - 1) * limit;
     const statusFilter = searchParams.get("status"); // optional filter
+    const fiveHoursAgo = new Date(Date.now() - 5 * 60 * 60 * 1000);
 
-    const where = statusFilter ? { status: statusFilter as "PENDING" | "APPROVED" | "REJECTED" } : {};
+    const where: any = {
+      AND: [
+        statusFilter ? { status: statusFilter } : {},
+        {
+          OR: [
+            { status: "PENDING" },
+            { 
+              AND: [
+                { status: { in: ["APPROVED", "REJECTED"] } },
+                { reviewedAt: { gte: fiveHoursAgo } }
+              ]
+            }
+          ]
+        }
+      ]
+    };
 
     const [requests, total] = await Promise.all([
       prisma.registrationRequest.findMany({
@@ -78,15 +94,86 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const validatedData = registrationSchema.parse(body);
 
+    // Check if user already exists
+    const existingUser = await prisma.user.findUnique({
+      where: { email: validatedData.email },
+    });
+
+    if (existingUser) {
+      return NextResponse.json(
+        { error: "An account with this email already exists.", status: "ACCOUNT_EXISTS" },
+        { status: 409 },
+      );
+    }
+
+    // Check Blocklist
+    const isBlocked = await (prisma as any).blockedEmail.findUnique({
+      where: { email: validatedData.email },
+    });
+
+    if (isBlocked) {
+      return NextResponse.json(
+        { error: "This email address is not authorized to register." },
+        { status: 403 },
+      );
+    }
+
     const existingRequest = await prisma.registrationRequest.findUnique({
       where: { email: validatedData.email },
     });
 
     if (existingRequest) {
-      return NextResponse.json(
-        { error: "A registration request already exists for this email address." },
-        { status: 409 },
-      );
+      if (existingRequest.status === "PENDING") {
+        return NextResponse.json(
+          { 
+            error: "You already have a pending registration request.", 
+            status: "PENDING_REQUEST" 
+          },
+          { status: 409 },
+        );
+      }
+      if (existingRequest.status === "REJECTED") {
+        // Automatically delete the old rejected request to allow a fresh submission
+        await prisma.registrationRequest.delete({
+          where: { id: existingRequest.id }
+        });
+      } else {
+        return NextResponse.json(
+          { error: "A registration request already exists for this email address.", status: "REQUEST_EXISTS" },
+          { status: 409 },
+        );
+      }
+    }
+
+    // Check for duplicate Student ID
+    if (validatedData.role === "STUDENT" && validatedData.studentId) {
+      const existingIdInProfile = await prisma.studentProfile.findUnique({
+        where: { studentId: validatedData.studentId },
+      });
+
+      if (existingIdInProfile) {
+        return NextResponse.json(
+          { error: "This Student ID is already registered to an active account." },
+          { status: 409 },
+        );
+      }
+
+      const pendingRequestWithId = await prisma.registrationRequest.findFirst({
+        where: { 
+          studentId: validatedData.studentId,
+          status: "PENDING"
+        },
+      });
+
+      if (pendingRequestWithId) {
+        return NextResponse.json(
+          { 
+            error: "A registration request with this Student ID is already pending review.",
+            status: "PENDING_REQUEST" 
+          },
+          { status: 409 },
+        );
+      }
     }
 
     // NFR-S5: explicit password strength check before hashing
@@ -115,7 +202,7 @@ export async function POST(req: NextRequest) {
         promotion: validatedData.promotion,
         academicYear: validatedData.academicYear,
         // NFR-RDI3: persist academic level for eligibility enforcement at approval time
-        level: (validatedData.level as "L1" | "L2" | "L3" | "M1" | "M2" | undefined) ?? null,
+        level: (validatedData.level as any) ?? null,
         // Company specific
         companyName: validatedData.companyName,
         sector: validatedData.sector,
@@ -124,6 +211,21 @@ export async function POST(req: NextRequest) {
         grade: validatedData.grade,
       },
     });
+
+    // Notify all admins about the new registration request
+    const admins = await prisma.user.findMany({ where: { role: "ADMIN" } });
+    for (const admin of admins) {
+      await prisma.notification.create({
+        data: {
+          id: randomUUID(),
+          userId: admin.id,
+          type: "REGISTRATION_SUBMITTED",
+          title: "New Registration Request",
+          message: `${validatedData.name} has submitted a registration request as a ${validatedData.role.toLowerCase()}.`,
+          link: "/admin/registrations",
+        },
+      });
+    }
 
     return NextResponse.json(
       { data: { id: request.id, status: request.status } },

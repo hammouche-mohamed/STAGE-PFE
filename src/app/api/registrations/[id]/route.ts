@@ -18,7 +18,7 @@ export async function PATCH(
   try {
     const { id } = await params;
     const body = await req.json();
-    const { status, adminComment } = body;
+    const { status, adminComment, updatedData, blockEmail } = body;
 
     if (!['APPROVED', 'REJECTED'].includes(status)) {
       return NextResponse.json({ error: 'Invalid status' }, { status: 400 });
@@ -30,18 +30,39 @@ export async function PATCH(
       return NextResponse.json({ error: 'Request not found' }, { status: 404 });
     }
 
+    // If admin modified the data, update the request first
+    if (updatedData) {
+      await prisma.registrationRequest.update({
+        where: { id },
+        data: {
+          ...updatedData,
+          updatedAt: new Date(),
+        },
+      });
+      // Refresh request data for user creation
+      Object.assign(request, updatedData);
+    }
+
     if (status === 'REJECTED') {
       await prisma.registrationRequest.update({
         where: { id },
         data: { status: 'REJECTED', adminComment, reviewedAt: new Date() },
       });
 
+      if (blockEmail) {
+        await (prisma as any).blockedEmail.upsert({
+          where: { email: request.email },
+          update: { reason: adminComment },
+          create: { email: request.email, reason: adminComment },
+        });
+      }
+
       await AuditService.log({
         userId: session.user.id,
         action: 'REGISTRATION_REJECTED',
         targetType: 'RegistrationRequest',
         targetId: request.name,
-        details: { reason: adminComment },
+        details: { reason: adminComment, blocked: blockEmail },
       });
 
       try {

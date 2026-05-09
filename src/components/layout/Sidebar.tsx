@@ -45,50 +45,76 @@ export const Sidebar: React.FC<SidebarProps> = ({ role: initialRole, logoUrl }) 
     .join("")
     .toUpperCase();
 
+  const [counts, setCounts] = useState<Record<string, number>>({});
+
+  React.useEffect(() => {
+    const fetchCounts = async () => {
+      try {
+        const res = await fetch("/api/sidebar/counts");
+        if (res.ok) {
+          const data = await res.json();
+          setCounts(data);
+        }
+      } catch (e) {
+        // Silently catch fetch errors (e.g. during server restarts) to prevent Next.js dev overlays
+      }
+    };
+    fetchCounts();
+    // Refresh counts every 30 seconds
+    const interval = setInterval(fetchCounts, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
   const getNavItems = () => {
-    switch (role) {
-      case "ADMIN":
-        return [
-          { label: t("common.dashboard"), icon: LayoutDashboard, href: "/admin", active: pathname === "/admin" },
-          { label: t("common.registrations"), icon: UserIcon, href: "/admin/registrations", active: pathname === "/admin/registrations" },
-          { label: t("common.users"), icon: Users, href: "/admin/users", active: pathname === "/admin/users" },
-          { label: t("common.topics"), icon: Briefcase, href: "/admin/topics", active: pathname === "/admin/topics" },
-          { label: t("common.internships"), icon: ShieldCheck, href: "/admin/internships", active: pathname === "/admin/internships" },
-          { label: t("nav.filieres"), icon: GraduationCap, href: "/admin/filieres", active: pathname === "/admin/filieres" },
-          { label: t("nav.archives"), icon: Archive, href: "/admin/archives", active: pathname === "/admin/archives" },
-          { label: t("nav.audit"), icon: FileText, href: "/admin/audit-logs", active: pathname === "/admin/audit-logs" },
-          { label: t("common.settings"), icon: Settings, href: "/admin/settings", active: pathname === "/admin/settings" },
-          { label: t("common.profile"), icon: UserIcon, href: "/profile", active: pathname === "/profile" },
-        ];
-      case "TEACHER":
-        return [
-          { label: t("common.dashboard"), icon: LayoutDashboard, href: "/teacher", active: pathname === "/teacher" },
-          { label: t("nav.supervision"), icon: ShieldCheck, href: "/teacher/internships", active: pathname === "/teacher/internships" },
-          { label: t("common.documents"), icon: FileText, href: "/teacher/documents", active: pathname === "/teacher/documents" },
-          { label: t("common.messages"), icon: MessageSquare, href: "/teacher/messages", active: pathname === "/teacher/messages" },
-          { label: t("common.profile"), icon: UserIcon, href: "/profile", active: pathname === "/profile" },
-        ];
-      case "COMPANY":
-        return [
-          { label: t("common.dashboard"), icon: LayoutDashboard, href: "/company", active: pathname === "/company" },
-          { label: t("nav.myTopic"), icon: Briefcase, href: "/company/topics", active: pathname === "/company/topics" },
-          { label: t("nav.applications"), icon: Users, href: "/company/applications", active: pathname === "/company/applications" },
-          { label: t("common.internships"), icon: ShieldCheck, href: "/company/internships", active: pathname === "/company/internships" },
-          { label: t("common.messages"), icon: MessageSquare, href: "/company/messages", active: pathname === "/company/messages" },
-          { label: t("common.profile"), icon: UserIcon, href: "/profile", active: pathname === "/profile" },
-        ];
-      default: // STUDENT
-        return [
-          { label: t("common.dashboard"), icon: LayoutDashboard, href: "/student", active: pathname === "/student" },
-          { label: t("common.topics"), icon: Briefcase, href: "/student/topics", active: pathname.startsWith("/student/topics") },
-          { label: t("common.internship"), icon: ShieldCheck, href: "/student/internship", active: pathname === "/student/internship" },
-          { label: t("common.documents"), icon: FileText, href: "/student/documents", active: pathname === "/student/documents" },
-          { label: t("common.messages"), icon: MessageSquare, href: "/student/messages", active: pathname === "/student/messages" },
-          { label: t("common.invitations"), icon: Users, href: "/student/invitations", active: pathname === "/student/invitations" },
-          { label: t("nav.archives"), icon: Archive, href: "/student/archives", active: pathname === "/student/archives" },
-          { label: t("common.profile"), icon: UserIcon, href: "/profile", active: pathname === "/profile" },
-        ];
-    }
+    const items = (() => {
+      switch (role) {
+        case "ADMIN":
+          return [
+            { label: t("common.dashboard"), icon: LayoutDashboard, href: "/admin", active: pathname === "/admin" },
+            { label: t("common.registrations"), icon: UserIcon, href: "/admin/registrations", active: pathname === "/admin/registrations" },
+            { label: t("common.users"), icon: Users, href: "/admin/users", active: pathname === "/admin/users" },
+            { label: t("common.topics"), icon: Briefcase, href: "/admin/topics", active: pathname === "/admin/topics" },
+            { label: t("common.internships"), icon: ShieldCheck, href: "/admin/internships", active: pathname === "/admin/internships" },
+            { label: t("nav.archives"), icon: Archive, href: "/admin/archives", active: pathname === "/admin/archives" },
+            { label: t("nav.audit"), icon: FileText, href: "/admin/audit-logs", active: pathname === "/admin/audit-logs" },
+            { label: t("common.settings"), icon: Settings, href: "/admin/settings", active: pathname === "/admin/settings" },
+            { label: t("common.profile"), icon: UserIcon, href: "/profile", active: pathname === "/profile" },
+          ];
+        case "TEACHER":
+          return [
+            { label: t("common.dashboard"), icon: LayoutDashboard, href: "/teacher", active: pathname === "/teacher" },
+            { label: t("nav.supervision"), icon: ShieldCheck, href: "/teacher/internships", active: pathname === "/teacher/internships" },
+            { label: t("common.documents"), icon: FileText, href: "/teacher/documents", active: pathname === "/teacher/documents" },
+            { label: t("common.messages"), icon: MessageSquare, href: "/teacher/messages", active: pathname === "/teacher/messages" },
+            { label: t("common.profile"), icon: UserIcon, href: "/profile", active: pathname === "/profile" },
+          ];
+        case "COMPANY":
+          return [
+            { label: t("common.dashboard"), icon: LayoutDashboard, href: "/company", active: pathname === "/company" },
+            { label: t("nav.myTopic"), icon: Briefcase, href: "/company/topics", active: pathname === "/company/topics" },
+            { label: t("nav.applications"), icon: Users, href: "/company/applications", active: pathname === "/company/applications" },
+            { label: t("common.internships"), icon: ShieldCheck, href: "/company/internships", active: pathname === "/company/internships" },
+            { label: t("common.messages"), icon: MessageSquare, href: "/company/messages", active: pathname === "/company/messages" },
+            { label: t("common.profile"), icon: UserIcon, href: "/profile", active: pathname === "/profile" },
+          ];
+        default: // STUDENT
+          return [
+            { label: t("common.dashboard"), icon: LayoutDashboard, href: "/student", active: pathname === "/student" },
+            { label: t("common.topics"), icon: Briefcase, href: "/student/topics", active: pathname.startsWith("/student/topics") },
+            { label: t("common.internship"), icon: ShieldCheck, href: "/student/internship", active: pathname === "/student/internship" },
+            { label: t("common.documents"), icon: FileText, href: "/student/documents", active: pathname === "/student/documents" },
+            { label: t("common.messages"), icon: MessageSquare, href: "/student/messages", active: pathname === "/student/messages" },
+            { label: t("common.invitations"), icon: Users, href: "/student/invitations", active: pathname === "/student/invitations" },
+            { label: t("nav.archives"), icon: Archive, href: "/student/archives", active: pathname === "/student/archives" },
+            { label: t("common.profile"), icon: UserIcon, href: "/profile", active: pathname === "/profile" },
+          ];
+      }
+    })();
+
+    return items.map(item => ({
+      ...item,
+      badge: counts[item.href] || 0
+    }));
   };
 
   const navItems = getNavItems();
@@ -138,14 +164,21 @@ export const Sidebar: React.FC<SidebarProps> = ({ role: initialRole, logoUrl }) 
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex items-center h-[40px] px-6 text-[13px] transition-colors group
+                className={`flex items-center justify-between h-[40px] px-6 text-[13px] transition-colors group
                   ${item.active
                     ? "bg-indigo-50 text-indigo-700 border-l-2 border-indigo-600 font-medium"
                     : "text-gray-600 hover:bg-gray-50 hover:text-gray-900 border-l-2 border-transparent"
-                  } ${isRTL ? "flex-row-reverse border-l-0 border-r-2 gap-x-5" : "gap-x-3"}`}
+                  } ${isRTL ? "flex-row-reverse border-l-0 border-r-2" : ""}`}
               >
-                <Icon className={`h-[18px] w-[18px] ${item.active ? "text-indigo-600" : "text-gray-400 group-hover:text-gray-600"}`} />
-                {item.label}
+                <div className={`flex items-center ${isRTL ? "flex-row-reverse gap-x-5" : "gap-x-3"}`}>
+                  <Icon className={`h-[18px] w-[18px] ${item.active ? "text-indigo-600" : "text-gray-400 group-hover:text-gray-600"}`} />
+                  {item.label}
+                </div>
+                {item.badge > 0 && (
+                  <span className="bg-indigo-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+                    {item.badge}
+                  </span>
+                )}
               </Link>
             );
           })}

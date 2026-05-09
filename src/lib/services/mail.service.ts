@@ -8,7 +8,7 @@ const TEXT_GRAY = "#475569"; // Slate 600
 export class MailService {
   private static getEmailLayout(content: string) {
     return `
-      <div style="margin: 0; padding: 40px 0; width: 100%; background-color: #f1f5f9; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+      <div style="margin: 0; padding: 0; width: 100%; background-color: #f1f5f9; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
         <table align="center" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; border: 1px solid #e2e8f0;">
           <!-- Classic Academic Header -->
           <tr>

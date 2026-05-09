@@ -5,12 +5,16 @@ import React from "react";
 import Link from "next/link";
 import {
   BookOpen, Users, Briefcase, CheckCircle2, UserPlus, Clock, Plus,
-  Bot, ShieldCheck, Database, FlaskConical
+  Bot, ShieldCheck, Database, FlaskConical, Calendar,
+  Unlock, Lock
 } from "lucide-react";
 import { useTranslation } from "@/lib/i18n/LanguageContext";
 import { Language } from "@/lib/i18n/translations";
 import DashboardVisual from "./DashboardVisual";
 import { useSession } from "next-auth/react";
+import { Modal } from "@/components/ui/Modal";
+import { Button } from "@/components/ui/Button";
+import { useRouter } from "next/navigation";
 
 const LANGS: { code: Language; label: string }[] = [
   { code: "en", label: "EN" },
@@ -23,15 +27,18 @@ const HERO_IMAGES = [
   { src: "/group.jpg", duration: 5000 }
 ];
 
-interface Props {
+interface LandingClientProps {
   logoUrl: string;
   academicYear: string;
+  registrationOpen: string;
 }
 
-export default function LandingClient({ logoUrl, academicYear }: Props) {
+export default function LandingClient({ logoUrl, academicYear, registrationOpen }: LandingClientProps) {
   const { t, language, setLanguage, isRTL } = useTranslation();
   const { data: session } = useSession();
   const dashboardUrl = session?.user?.role ? `/${session.user.role.toLowerCase()}` : "/login";
+  const [isClosedModalOpen, setIsClosedModalOpen] = React.useState(false);
+  const router = useRouter();
 
   const [currentImage, setCurrentImage] = React.useState(0);
 
@@ -41,6 +48,13 @@ export default function LandingClient({ logoUrl, academicYear }: Props) {
     }, HERO_IMAGES[currentImage].duration);
     return () => clearTimeout(timer);
   }, [currentImage]);
+
+  const handleRegisterClick = (e: React.MouseEvent) => {
+    if (registrationOpen === "false") {
+      e.preventDefault();
+      setIsClosedModalOpen(true);
+    }
+  };
 
   return (
     <div className={`min-h-screen bg-gradient-to-br from-blue-50 to-slate-100 font-sans text-gray-900 ${isRTL ? "rtl" : "ltr"} relative overflow-hidden`}>
@@ -123,6 +137,25 @@ export default function LandingClient({ logoUrl, academicYear }: Props) {
 
           <div className="max-w-7xl mx-auto px-6 w-full h-full z-10 flex flex-col justify-center">
             <div className="w-full lg:w-3/5 text-center lg:text-left pt-12 md:pt-0">
+              <div className="flex flex-wrap items-center justify-center lg:justify-start gap-3 mb-6">
+                <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/10 backdrop-blur-md border border-white/20 rounded-full animate-fade-in" style={{ animationDelay: "100ms" }}>
+                  <Calendar className="h-3.5 w-3.5 text-blue-300" />
+                  <span className="text-[11px] font-bold text-white uppercase tracking-[0.2em]">{t("common.academicYear")} {academicYear}</span>
+                </div>
+                <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/10 backdrop-blur-md border border-white/20 rounded-full animate-fade-in" style={{ animationDelay: "200ms" }}>
+                  {registrationOpen === "true" ? (
+                    <>
+                      <Unlock className="h-3 w-3 text-green-400" />
+                      <span className="text-[10px] font-bold text-white uppercase tracking-wider">{t("common.registrationsOpen")}</span>
+                    </>
+                  ) : (
+                    <>
+                      <Lock className="h-3 w-3 text-red-400" />
+                      <span className="text-[10px] font-bold text-white uppercase tracking-wider">{t("common.registrationsClosed")}</span>
+                    </>
+                  )}
+                </div>
+              </div>
               <h1 className="text-[28px] sm:text-[36px] md:text-[64px] text-white font-black leading-tight tracking-tight mb-6 animate-fade-in">
                 ESST Internship Portal
               </h1>
@@ -134,7 +167,11 @@ export default function LandingClient({ logoUrl, academicYear }: Props) {
                   {session ? t("common.dashboard") : t("auth.login")}
                 </Link>
                 {!session && (
-                  <Link href="/register" className="px-6 py-2.5 md:px-8 md:py-3 bg-white text-brand-deep rounded-full text-[14px] md:text-[16px] font-bold hover:bg-gray-100 transition-all min-w-[140px] md:min-w-[160px] text-center shadow-md">
+                  <Link 
+                    href="/register" 
+                    onClick={handleRegisterClick}
+                    className="px-6 py-2.5 md:px-8 md:py-3 bg-white text-brand-deep rounded-full text-[14px] md:text-[16px] font-bold hover:bg-gray-100 transition-all min-w-[140px] md:min-w-[160px] text-center shadow-md"
+                  >
                     {t("auth.register")}
                   </Link>
                 )}
@@ -231,7 +268,11 @@ export default function LandingClient({ logoUrl, academicYear }: Props) {
           <div className="max-w-4xl mx-auto px-6 text-center relative z-10">
             <h2 className="text-[42px] font-light text-gray-800 mb-8">{t("landing.cta.title")}</h2>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <Link href="/register" className="w-full sm:w-auto px-10 py-4 bg-brand-deep text-white rounded-full text-lg font-bold hover:bg-black transition-all shadow-xl">
+              <Link 
+                href="/register" 
+                onClick={handleRegisterClick}
+                className="w-full sm:w-auto px-10 py-4 bg-brand-deep text-white rounded-full text-lg font-bold hover:bg-black transition-all shadow-xl"
+              >
                 {t("landing.cta.join")}
               </Link>
               <Link href="/login" className="w-full sm:w-auto px-10 py-4 border border-gray-800 text-gray-800 rounded-full text-lg font-bold hover:bg-gray-100 transition-all">
@@ -252,8 +293,15 @@ export default function LandingClient({ logoUrl, academicYear }: Props) {
                 {t("landing.footer.desc")}
               </p>
               <div className="flex gap-4 items-center">
-                <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-                <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest">{t("landing.footer.status")}</span>
+                <div className="flex items-center gap-2">
+                  <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest">{t("landing.footer.status")}</span>
+                </div>
+                <div className="h-4 w-px bg-white/10" />
+                <div className="flex items-center gap-2">
+                  <Calendar className="h-3 w-3 text-white/40" />
+                  <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Year: {academicYear}</span>
+                </div>
               </div>
             </div>
             
@@ -262,7 +310,15 @@ export default function LandingClient({ logoUrl, academicYear }: Props) {
               <div>
                 <h5 className="text-white font-bold mb-6 uppercase tracking-widest text-[10px] opacity-50">{t("landing.footer.registrations")}</h5>
                 <ul className="space-y-4">
-                  <li><Link href="/register" className="text-white/70 hover:text-white transition-colors text-[14px]">{t("auth.register")}</Link></li>
+                  <li>
+                    <Link 
+                      href="/register" 
+                      onClick={handleRegisterClick}
+                      className="text-white/70 hover:text-white transition-colors text-[14px]"
+                    >
+                      {t("auth.register")}
+                    </Link>
+                  </li>
                   <li><Link href="/login" className="text-white/70 hover:text-white transition-colors text-[14px]">{t("auth.login")}</Link></li>
                 </ul>
               </div>
@@ -281,6 +337,24 @@ export default function LandingClient({ logoUrl, academicYear }: Props) {
           </div>
         </div>
       </footer>
+
+      <Modal
+        isOpen={isClosedModalOpen}
+        onClose={() => setIsClosedModalOpen(false)}
+        title={t("auth.portalClosed")}
+        size="sm"
+        footer={<Button onClick={() => setIsClosedModalOpen(false)} className="w-full">{t("common.close")}</Button>}
+      >
+        <div className="flex flex-col items-center text-center py-4">
+          <div className="h-16 w-16 bg-red-50 text-red-600 rounded-full flex items-center justify-center mb-6">
+            <Lock className="h-8 w-8" />
+          </div>
+          <h3 className="text-[18px] font-bold text-gray-900 mb-2">{t("auth.portalClosed")}</h3>
+          <p className="text-[14px] text-gray-500 leading-relaxed mb-4">
+            {t("auth.portalClosedDesc")}
+          </p>
+        </div>
+      </Modal>
     </div>
   );
 }
