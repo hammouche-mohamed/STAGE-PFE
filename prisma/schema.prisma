@@ -9,7 +9,7 @@ datasource db {
 
 
 model AdminProfile {
-  id           String  @id
+  id           String  @id @default(uuid())
   userId       String  @unique(map: "AdminProfile_userId_key")
   isSuperAdmin Boolean @default(false)
 
@@ -19,7 +19,7 @@ model AdminProfile {
 }
 
 model AuditLog {
-  id         String   @id
+  id         String   @id @default(uuid())
   userId     String
   action     String
   targetType String
@@ -35,7 +35,7 @@ model AuditLog {
 }
 
 model BinomeInvitation {
-  id                   String                  @id
+  id                   String                  @id @default(uuid())
   studentApplicationId String                  @unique(map: "BinomeInvitation_studentApplicationId_key")
   invitedStudentId     String
   status               binomeinvitation_status @default(PENDING)
@@ -51,7 +51,7 @@ model BinomeInvitation {
 }
 
 model CompanyProfile {
-  id              String  @id
+  id              String  @id @default(uuid())
   userId          String  @unique(map: "CompanyProfile_userId_key")
   companyName     String
   sector          String?
@@ -66,7 +66,7 @@ model CompanyProfile {
 }
 
 model Deadline {
-  id           String        @id
+  id           String        @id @default(uuid())
   title        String
   type         deadline_type
   dueDate      DateTime
@@ -86,7 +86,7 @@ model Deadline {
 }
 
 model Document {
-  id               String          @id
+  id               String          @id @default(uuid())
   internshipId     String
   uploadedById     String
   type             document_type
@@ -119,7 +119,7 @@ model Document {
 }
 
 model Internship {
-  id           String            @id
+  id           String            @id @default(uuid())
   topicId      String            @unique(map: "Internship_topicId_key")
   teacherId    String
   academicYear String
@@ -163,7 +163,7 @@ model Internship {
 }
 
 model InternshipStudent {
-  id           String  @id
+  id           String  @id @default(uuid())
   internshipId String
   studentId    String
   isLeader     Boolean @default(false)
@@ -178,7 +178,7 @@ model InternshipStudent {
 }
 
 model Message {
-  id             String   @id
+  id             String   @id @default(uuid())
   internshipId   String
   senderId       String
   content        String   @db.Text
@@ -203,7 +203,7 @@ model Message {
 }
 
 model MessageRead {
-  id        String   @id
+  id        String   @id @default(uuid())
   messageId String
   userId    String
   readAt    DateTime @default(now())
@@ -218,7 +218,7 @@ model MessageRead {
 }
 
 model MiniPresentation {
-  id               String                  @id
+  id               String                  @id @default(uuid())
   internshipId     String
   title            String
   scheduledAt      DateTime
@@ -239,7 +239,7 @@ model MiniPresentation {
 }
 
 model PasswordResetToken {
-  id        String   @id
+  id        String   @id @default(uuid())
   userId    String
   email     String
   code      String   // The verification code (OTP - digit based)
@@ -253,7 +253,7 @@ model PasswordResetToken {
 }
 
 model Notification {
-  id          String            @id
+  id          String            @id @default(uuid())
   userId      String
   type        notification_type
   title       String
@@ -273,7 +273,7 @@ model Notification {
 }
 
 model RegistrationRequest {
-  id           String                     @id
+  id           String                     @id @default(uuid())
   name         String
   email        String                     @unique(map: "RegistrationRequest_email_key")
   password     String
@@ -304,7 +304,7 @@ model RegistrationRequest {
 }
 
 model StudentApplication {
-  id         String                    @id
+  id         String                    @id @default(uuid())
   topicId    String
   leaderId   String
   partnerId  String?
@@ -328,7 +328,7 @@ model StudentApplication {
 }
 
 model StudentProfile {
-  id           String         @id
+  id           String         @id @default(uuid())
   userId       String         @unique(map: "StudentProfile_userId_key")
   studentId    String         @unique(map: "StudentProfile_studentId_key")
   promotion    String
@@ -343,7 +343,7 @@ model StudentProfile {
 }
 
 model SystemSettings {
-  id        String   @id
+  id        String   @id @default(uuid())
   key       String   @unique(map: "SystemSettings_key_key")
   value     String
   updatedAt DateTime
@@ -352,7 +352,7 @@ model SystemSettings {
 }
 
 model Upload {
-  id        String   @id
+  id        String   @id @default(uuid())
   fileName  String
   fileType  String
   content   Bytes    @db.LongBlob
@@ -363,7 +363,7 @@ model Upload {
 
 /// System-wide deadline announcements visible to all users on their dashboards
 model SystemDeadline {
-  id        String   @id
+  id        String   @id @default(uuid())
   label     String
   dueDate   DateTime
   isActive  Boolean  @default(true)
@@ -373,7 +373,7 @@ model SystemDeadline {
 }
 
 model TeacherApplication {
-  id        String                    @id
+  id        String                    @id @default(uuid())
   teacherId String
   topicId   String
   message   String?                   @db.Text
@@ -389,7 +389,7 @@ model TeacherApplication {
 }
 
 model TeacherProfile {
-  id          String  @id
+  id          String  @id @default(uuid())
   userId      String  @unique(map: "TeacherProfile_userId_key")
   speciality  String?
   grade       String?
@@ -403,7 +403,7 @@ model TeacherProfile {
 }
 
 model Topic {
-  id                       String       @id
+  id                       String       @id @default(uuid())
   title                    String
   description              String       @db.Text
   requiredSkills           String?      @db.Text
@@ -454,7 +454,7 @@ model Topic {
 }
 
 model User {
-  id                 String         @id
+  id                 String         @id @default(uuid())
   name               String
   email              String         @unique(map: "User_email_key")
   password           String
@@ -497,7 +497,7 @@ model User {
 }
 
 model Validation {
-  id          String            @id
+  id          String            @id @default(uuid())
   topicId     String
   validatorId String
   step        validation_step
@@ -516,7 +516,7 @@ model Validation {
 }
 
 model Filiere {
-  id        String   @id
+  id        String   @id @default(uuid())
   name      String   @unique
   code      String?
   isActive  Boolean  @default(true)
