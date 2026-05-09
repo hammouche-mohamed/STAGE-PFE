@@ -26,12 +26,16 @@ export default auth((req) => {
   // 1. Allow API auth and public routes
   if (isApiAuthRoute || isApiPublicRoute) return NextResponse.next();
 
-  // 2. Handle Entry Point (/) and Public Routes
-  if (isPublicRoute || nextUrl.pathname === "/") {
+  // 2. Handle Entry Point (/) and Public Auth Routes
+  if (isPublicRoute) {
     if (isLoggedIn) {
       const role = session?.user?.role;
       return NextResponse.redirect(new URL(`/${role?.toLowerCase() || ""}`, nextUrl));
     }
+    return NextResponse.next();
+  }
+
+  if (nextUrl.pathname === "/") {
     return NextResponse.next();
   }
 
