@@ -47,9 +47,9 @@ export default auth((req) => {
   }
 
   // 4. Global Account Checks
-  if (session?.user?.mustChangePassword && nextUrl.pathname !== "/reset-password") {
+  /* if (session?.user?.mustChangePassword && nextUrl.pathname !== "/reset-password") {
     return NextResponse.redirect(new URL("/reset-password", nextUrl));
-  }
+  } */
 
   if (!session?.user?.isActive) {
     return NextResponse.redirect(new URL("/login?error=Account deactivated", nextUrl));
