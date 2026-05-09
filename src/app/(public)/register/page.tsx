@@ -39,11 +39,11 @@ export default function RegisterPage() {
       .then(r => r.json())
       .then(d => {
         if (d.data?.currentAcademicYear) setValue("academicYear", d.data.currentAcademicYear);
-        if (d.data?.filieres) {
-          setSpecialities(d.data.filieres);
+        if (d.data?.availableSpecialities) {
+          setSpecialities(d.data.availableSpecialities.split(",").map((s: string) => s.trim()).filter(Boolean));
         }
-        if (d.data?.availableLevels) {
-          setAcademicLevels(d.data.availableLevels.split(/[,\n]/).map((s: string) => s.trim()).filter(Boolean));
+        if (d.data?.availablePromotions) {
+          setAcademicLevels(d.data.availablePromotions.split(",").map((s: string) => s.trim()).filter(Boolean));
         }
       })
       .catch(() => {});

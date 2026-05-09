@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 
 // Safe public settings that any (even unauthenticated) page can read
-const PUBLIC_KEYS = ["proposalFormTemplateUrl", "currentAcademicYear", "availableLevels"];
+const PUBLIC_KEYS = ["proposalFormTemplateUrl", "currentAcademicYear", "availableSpecialities", "availablePromotions"];
 
 // NFR-P2: cache public settings for 5 minutes
 let cachedPublicSettings: { data: Record<string, string>; expiry: number } | null = null;
@@ -14,20 +14,13 @@ export async function GET() {
   }
 
   try {
-    const [settings, filieres] = await Promise.all([
-      prisma.systemSettings.findMany({
-        where: { key: { in: PUBLIC_KEYS } },
-        select: { key: true, value: true },
-      }),
-      prisma.filiere.findMany({
-        where: { isActive: true },
-        select: { name: true }
-      })
-    ]);
+    const settings = await prisma.systemSettings.findMany({
+      where: { key: { in: PUBLIC_KEYS } },
+      select: { key: true, value: true },
+    });
     
     const result: Record<string, any> = {};
     for (const s of settings) result[s.key] = s.value;
-    result.filieres = filieres.map(f => f.name);
 
     cachedPublicSettings = { data: result, expiry: Date.now() + CACHE_TTL };
     return NextResponse.json({ data: result });
