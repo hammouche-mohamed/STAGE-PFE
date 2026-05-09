@@ -49,11 +49,11 @@ function LoginForm() {
         setAuthError(t("errors.unauthorized"));
         return;
       }
-      
+
       toast.success(t("auth.login"));
       const sessionResult = await fetch('/api/auth/session').then(res => res.json());
       const role = sessionResult?.user?.role?.toLowerCase();
-      
+
       if (role) {
         router.push(`/${role}`);
       } else {
@@ -70,9 +70,9 @@ function LoginForm() {
       {/* Background Image - Fixed on mobile, Left side on desktop */}
       <div className="fixed inset-0 lg:relative lg:w-1/2 bg-gray-900 z-0">
         <div className="absolute inset-0 bg-indigo-900/70 mix-blend-multiply z-10" />
-        <Image 
-          src="https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&w=1200&q=80" 
-          alt="University Campus" 
+        <Image
+          src="https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&w=1200&q=80"
+          alt="University Campus"
           fill
           className="object-cover"
           unoptimized
@@ -114,72 +114,71 @@ function LoginForm() {
             <p className="text-[12px] text-white/80 uppercase tracking-widest font-medium mt-1 drop-shadow-sm">{t("common.appSubtitle")}</p>
           </div>
 
-        <div className="bg-white/95 backdrop-blur-sm lg:bg-white border border-white/20 lg:border-gray-200 rounded-xl lg:rounded-md p-8 shadow-2xl lg:shadow-sm">
-          <h2 className="text-[15px] font-medium text-gray-900 mb-6">{t("auth.login")}</h2>
+          <div className="bg-white/95 backdrop-blur-sm lg:bg-white border border-white/20 lg:border-gray-200 rounded-xl lg:rounded-md p-8 shadow-2xl lg:shadow-sm">
+            <h2 className="text-[15px] font-medium text-gray-900 mb-6">{t("auth.login")}</h2>
 
-          {error && (
-            <div className="mb-4 p-3 bg-red-50 border-l-2 border-red-600 text-[11px] text-red-700 font-medium rounded-r">
-              {t("errors.serverError")}: {error}
-            </div>
-          )}
-
-          {authError && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 text-[13px] text-red-700 font-medium rounded-lg flex items-center gap-3 animate-in fade-in slide-in-from-top-1">
-              <div className="h-2 w-2 bg-red-500 rounded-full animate-pulse flex-shrink-0" />
-              {authError}
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-            <Input
-              label={t("common.email")}
-              type="email"
-              placeholder="yourname@example.com"
-              {...register("email")}
-              error={errors.email?.message}
-              required
-            />
-
-            <div className="space-y-1">
-              <div className={`flex justify-between ${isRTL ? "flex-row-reverse" : ""}`}>
-                <label className="admin-form-label" htmlFor="password">{t("common.password")}</label>
-                <Link href="/forgot-password" className="text-[11px] text-indigo-600 hover:text-indigo-700">
-                  {t("auth.forgotPassword")}
-                </Link>
+            {error && (
+              <div className="mb-4 p-3 bg-red-50 border-l-2 border-red-600 text-[11px] text-red-700 font-medium rounded-r">
+                {t("errors.serverError")}: {error}
               </div>
+            )}
+
+            {authError && (
+              <div className="mb-6 p-4 bg-red-50 border border-red-200 text-[13px] text-red-700 font-medium rounded-lg flex items-center gap-3 animate-in fade-in slide-in-from-top-1">
+                <div className="h-2 w-2 bg-red-500 rounded-full animate-pulse flex-shrink-0" />
+                {authError}
+              </div>
+            )}
+
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
               <Input
-                id="password"
-                type="password"
-                placeholder="••••••••"
-                {...register("password")}
-                error={errors.password?.message}
+                label={t("common.email")}
+                type="email"
+                placeholder="yourname@example.com"
+                {...register("email")}
+                error={errors.email?.message}
                 required
               />
-            </div>
 
-            <Button type="submit" className="w-full" isLoading={isLoading} size="lg">
-              {t("auth.login")}
-            </Button>
+              <div className="space-y-1">
+                <div className={`flex justify-between ${isRTL ? "flex-row-reverse" : ""}`}>
+                  <label className="admin-form-label" htmlFor="password">{t("common.password")}</label>
+                  <Link href="/forgot-password" className="text-[11px] text-indigo-600 hover:text-indigo-700">
+                    {t("auth.forgotPassword")}
+                  </Link>
+                </div>
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="••••••••"
+                  {...register("password")}
+                  error={errors.password?.message}
+                  required
+                />
+              </div>
 
-            <button
-              type="button"
-              onClick={() => router.back()}
-              className="flex items-center justify-center gap-2 w-full py-2 text-[13px] text-gray-500 hover:text-indigo-600 font-medium transition-colors cursor-pointer"
-            >
-              <ArrowLeft className={`h-4 w-4 ${isRTL ? "rotate-180" : ""}`} />
-              {t("common.back")}
-            </button>
-          </form>
+              <Button type="submit" className="w-full" isLoading={isLoading} size="lg">
+                {t("auth.login")}
+              </Button>
 
-          <div className="mt-8 pt-6 border-t border-gray-100 text-center">
-            <p className="text-[13px] text-gray-500">
-              {t("auth.register")}?{" "}
-              <Link href="/register" className="text-indigo-600 font-medium hover:text-indigo-700">
-                {t("common.registrations")}
+              <Link
+                href="/"
+                className="flex items-center justify-center gap-2 w-full py-2 text-[13px] text-gray-500 hover:text-indigo-600 font-medium transition-colors cursor-pointer"
+              >
+                <ArrowLeft className={`h-4 w-4 ${isRTL ? "rotate-180" : ""}`} />
+                {t("common.back")}
               </Link>
-            </p>
+            </form>
+
+            <div className="mt-8 pt-6 border-t border-gray-100 text-center">
+              <p className="text-[13px] text-gray-500">
+                {t("auth.register")}?{" "}
+                <Link href="/register" className="text-indigo-600 font-medium hover:text-indigo-700">
+                  {t("common.registrations")}
+                </Link>
+              </p>
+            </div>
           </div>
-        </div>
         </div>
 
         {/* Footer */}
