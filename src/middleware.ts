@@ -27,7 +27,7 @@ export default auth((req) => {
   if (isApiAuthRoute || isApiPublicRoute) return NextResponse.next();
 
   // 2. Handle Entry Point (/) and Public Auth Routes
-  if (isPublicRoute) {
+  if (isPublicRoute && nextUrl.pathname !== "/reset-password") {
     if (isLoggedIn) {
       const role = session?.user?.role;
       return NextResponse.redirect(new URL(`/${role?.toLowerCase() || ""}`, nextUrl));
