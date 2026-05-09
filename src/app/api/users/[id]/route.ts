@@ -56,7 +56,12 @@ export async function PATCH(
     if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
     const updateData: any = { updatedAt: new Date() };
-    if (typeof isActive === "boolean") updateData.isActive = isActive;
+    if (typeof isActive === "boolean") {
+      if (id === session.user.id && isActive === false) {
+        return NextResponse.json({ error: "You cannot deactivate your own account" }, { status: 400 });
+      }
+      updateData.isActive = isActive;
+    }
     if (name) updateData.name = name;
     if (email) updateData.email = email;
     if (role) updateData.role = role;

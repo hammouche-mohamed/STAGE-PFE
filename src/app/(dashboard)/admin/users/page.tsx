@@ -19,6 +19,7 @@ import {
   Key,
   Trash2
 } from "lucide-react";
+import { useSession } from "next-auth/react";
 import Image from "next/image";
 import { Button } from "@/components/ui/Button";
 import { toast } from "sonner";
@@ -41,6 +42,8 @@ interface User {
 
 export default function AdminUsersPage() {
   const { t, isRTL } = useTranslation();
+  const { data: session } = useSession();
+  const currentUserId = session?.user?.id;
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -327,13 +330,15 @@ export default function AdminUsersPage() {
                   </td>
                   <td data-label="Actions" className="text-right">
                     <div className="flex items-center justify-end space-x-2">
-                      <button 
-                        onClick={() => toggleUserStatus(user)}
-                        className={`p-1.5 rounded hover:bg-gray-100 transition-colors ${user.isActive ? "text-red-600" : "text-green-600"}`}
-                        title={user.isActive ? "Deactivate" : "Activate"}
-                      >
-                        {user.isActive ? <UserX className="h-4 w-4" /> : <UserCheck className="h-4 w-4" />}
-                      </button>
+                      {user.id !== currentUserId && (
+                        <button 
+                          onClick={() => toggleUserStatus(user)}
+                          className={`p-1.5 rounded hover:bg-gray-100 transition-colors ${user.isActive ? "text-red-600" : "text-green-600"}`}
+                          title={user.isActive ? "Deactivate" : "Activate"}
+                        >
+                          {user.isActive ? <UserX className="h-4 w-4" /> : <UserCheck className="h-4 w-4" />}
+                        </button>
+                      )}
                       <div className="relative">
                         <button 
                           onClick={() => setActiveMenuId(activeMenuId === user.id ? null : user.id)}
@@ -363,27 +368,33 @@ export default function AdminUsersPage() {
                                 <Eye className={`h-3.5 w-3.5 ${isRTL ? "ml-2" : "mr-2"} text-gray-400`} />
                                 {t("admin.users.viewProfile")}
                               </button>
-                              <button 
-                                onClick={() => {
-                                  setUserToReset(user);
-                                  setActiveMenuId(null);
-                                }}
-                                className="w-full flex items-center px-4 py-2 text-[12px] text-gray-600 hover:bg-gray-50 transition-colors"
-                              >
-                                <Key className={`h-3.5 w-3.5 ${isRTL ? "ml-2" : "mr-2"} text-gray-400`} />
-                                {t("admin.users.resetPassword")}
-                              </button>
-                              <div className="h-px bg-gray-50 my-1" />
-                              <button 
-                                onClick={() => {
-                                  setUserToDelete(user);
-                                  setActiveMenuId(null);
-                                }}
-                                className="w-full flex items-center px-4 py-2 text-[12px] text-red-600 hover:bg-red-50 transition-colors"
-                              >
-                                <Trash2 className={`h-3.5 w-3.5 ${isRTL ? "ml-2" : "mr-2"}`} />
-                                {t("admin.users.deleteMember")}
-                              </button>
+                              {user.id !== currentUserId && (
+                                <button 
+                                  onClick={() => {
+                                    setUserToReset(user);
+                                    setActiveMenuId(null);
+                                  }}
+                                  className="w-full flex items-center px-4 py-2 text-[12px] text-gray-600 hover:bg-gray-50 transition-colors"
+                                >
+                                  <Key className={`h-3.5 w-3.5 ${isRTL ? "ml-2" : "mr-2"} text-gray-400`} />
+                                  {t("admin.users.resetPassword")}
+                                </button>
+                              )}
+                              {user.id !== currentUserId && (
+                                <>
+                                  <div className="h-px bg-gray-50 my-1" />
+                                  <button 
+                                    onClick={() => {
+                                      setUserToDelete(user);
+                                      setActiveMenuId(null);
+                                    }}
+                                    className="w-full flex items-center px-4 py-2 text-[12px] text-red-600 hover:bg-red-50 transition-colors"
+                                  >
+                                    <Trash2 className={`h-3.5 w-3.5 ${isRTL ? "ml-2" : "mr-2"}`} />
+                                    {t("admin.users.deleteMember")}
+                                  </button>
+                                </>
+                              )}
                             </div>
                           </>
                         )}
