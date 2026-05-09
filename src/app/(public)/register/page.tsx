@@ -138,7 +138,7 @@ export default function RegisterPage() {
 
             {selectedRole === "STUDENT" && (
               <>
-                <div className="w-full">
+                <div className="w-full col-span-1 lg:col-span-2">
                   <label className="admin-form-label">Academic Level <span className="text-red-500">*</span></label>
                   <select {...register("level")} className="admin-input cursor-pointer">
                     <option value="">Select Level</option>
@@ -148,30 +148,11 @@ export default function RegisterPage() {
                   </select>
                   {errors.level && <p className="mt-1 text-[11px] text-red-600 font-medium">{errors.level.message}</p>}
                 </div>
-                <div className="w-full">
-                  <label className="admin-form-label">Speciality <span className="text-red-500">*</span></label>
-                  <select {...register("speciality")} className="admin-input cursor-pointer">
-                    <option value="">Select Speciality</option>
-                    {specialities.map(s => <option key={s} value={s}>{s}</option>)}
-                    {specialities.length === 0 && <option value="Computer Science">Computer Science</option>}
-                  </select>
-                  {errors.speciality && <p className="mt-1 text-[11px] text-red-600 font-medium">{errors.speciality.message}</p>}
-                </div>
                 <Input label="Academic Year" readOnly className="bg-gray-50 cursor-not-allowed" {...register("academicYear")} error={errors.academicYear?.message} />
               </>
             )}
 
-            {selectedRole === "TEACHER" && (
-              <div className="w-full col-span-1 lg:col-span-2">
-                <label className="admin-form-label">Speciality <span className="text-red-500">*</span></label>
-                <select {...register("speciality")} className="admin-input cursor-pointer">
-                  <option value="">Select Speciality</option>
-                  {specialities.map(s => <option key={s} value={s}>{s}</option>)}
-                  {specialities.length === 0 && <option value="Computer Science">Computer Science</option>}
-                </select>
-                {errors.speciality && <p className="mt-1 text-[11px] text-red-600 font-medium">{errors.speciality.message}</p>}
-              </div>
-            )}
+
 
             {selectedRole === "COMPANY" && (
               <>
