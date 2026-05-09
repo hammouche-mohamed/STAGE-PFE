@@ -33,10 +33,10 @@ export const registrationSchema = z
   .refine(
     (data) => {
       if (data.role === 'STUDENT') {
-        return !!data.studentId && !!data.level;
+        return !!data.studentId && !!data.speciality && !!data.level;
       }
       if (data.role === 'COMPANY') return !!data.companyName;
-      if (data.role === 'TEACHER') return true;
+      if (data.role === 'TEACHER') return !!data.speciality;
       return true;
     },
     {
