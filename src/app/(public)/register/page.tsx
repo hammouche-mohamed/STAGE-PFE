@@ -22,6 +22,7 @@ export default function RegisterPage() {
   const { t, language, setLanguage, isRTL } = useTranslation();
   const [isLoading, setIsLoading] = useState(false);
   const [specialities, setSpecialities] = useState<string[]>([]);
+  const [academicLevels, setAcademicLevels] = useState<string[]>([]);
   const [emailStatus, setEmailStatus] = useState<{
     type: "idle" | "checking" | "pending" | "exists" | "rejected";
     message?: string;
@@ -38,8 +39,11 @@ export default function RegisterPage() {
       .then(r => r.json())
       .then(d => {
         if (d.data?.currentAcademicYear) setValue("academicYear", d.data.currentAcademicYear);
-        if (d.data?.availableSpecialities) {
-          setSpecialities(d.data.availableSpecialities.split(/[,\n]/).map((s: string) => s.trim()).filter(Boolean));
+        if (d.data?.filieres) {
+          setSpecialities(d.data.filieres);
+        }
+        if (d.data?.availableLevels) {
+          setAcademicLevels(d.data.availableLevels.split(/[,\n]/).map((s: string) => s.trim()).filter(Boolean));
         }
       })
       .catch(() => {});
@@ -142,9 +146,9 @@ export default function RegisterPage() {
                   <label className="admin-form-label">Academic Level <span className="text-red-500">*</span></label>
                   <select {...register("level")} className="admin-input cursor-pointer">
                     <option value="">Select Level</option>
-                    <option value="L1">L1</option><option value="L2">L2</option>
-                    <option value="L3">L3 (PFE eligible)</option>
-                    <option value="M1">M1</option><option value="M2">M2 (PFE eligible)</option>
+                    {academicLevels.map(lvl => (
+                      <option key={lvl} value={lvl}>{lvl}</option>
+                    ))}
                   </select>
                   {errors.level && <p className="mt-1 text-[11px] text-red-600 font-medium">{errors.level.message}</p>}
                 </div>
@@ -153,7 +157,6 @@ export default function RegisterPage() {
                   <select {...register("speciality")} className="admin-input cursor-pointer">
                     <option value="">Select Speciality</option>
                     {specialities.map(s => <option key={s} value={s}>{s}</option>)}
-                    {specialities.length === 0 && <option value="Computer Science">Computer Science</option>}
                   </select>
                   {errors.speciality && <p className="mt-1 text-[11px] text-red-600 font-medium">{errors.speciality.message}</p>}
                 </div>
@@ -167,7 +170,6 @@ export default function RegisterPage() {
                 <select {...register("speciality")} className="admin-input cursor-pointer">
                   <option value="">Select Speciality</option>
                   {specialities.map(s => <option key={s} value={s}>{s}</option>)}
-                  {specialities.length === 0 && <option value="Computer Science">Computer Science</option>}
                 </select>
                 {errors.speciality && <p className="mt-1 text-[11px] text-red-600 font-medium">{errors.speciality.message}</p>}
               </div>
