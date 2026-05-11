@@ -16,14 +16,30 @@ export async function GET(req: NextRequest) {
       where.topic = { proposedById: session.user.id };
       if (topicId) where.topicId = topicId;
     } else if (session.user.role === "STUDENT") {
-      where.leaderId = session.user.id;
+      const member = await prisma.teamMember.findFirst({
+        where: { studentId: session.user.id },
+      });
+      if (member) {
+        where.teamId = member.teamId;
+        where.status = { not: "REJECTED" };
+      } else {
+        // If they have no team, they have no applications
+        return NextResponse.json({ data: [] });
+      }
     } else if (session.user.role === "ADMIN") {
       if (topicId) where.topicId = topicId;
     }
 
     const applications = await prisma.studentApplication.findMany({
       where,
-      include: { topic: { select: { title: true, type: true, status: true } } },
+      include: { 
+        topic: { select: { title: true, type: true, status: true } },
+        team: {
+          include: {
+            members: { include: { student: { select: { name: true, email: true } } } }
+          }
+        }
+      },
       orderBy: { appliedAt: "desc" },
     });
 
@@ -41,7 +57,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const { topicId, partnerId } = await req.json();
+    const { topicId, message } = await req.json();
     if (!topicId) return NextResponse.json({ error: "topicId is required" }, { status: 400 });
 
     // ── GUARD: already in an active internship ──────────────────────────────
@@ -63,12 +79,41 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // ── Get User's Team ───────────────────────────────────────────────────────
+    let member = await prisma.teamMember.findFirst({
+      where: { studentId: session.user.id },
+      include: { team: true }
+    });
+
+    // If student has no team, auto-create a team of 1
+    if (!member) {
+      const studentProfile = await prisma.studentProfile.findUnique({
+        where: { userId: session.user.id }
+      });
+      if (!studentProfile) return NextResponse.json({ error: "Profile not found" }, { status: 404 });
+
+      const team = await prisma.studentTeam.create({
+        data: {
+          leaderId: session.user.id,
+          filiereId: studentProfile.filiereId,
+          academicYear: studentProfile.academicYear,
+        }
+      });
+
+      member = await prisma.teamMember.create({
+        data: { teamId: team.id, studentId: session.user.id, isLeader: true },
+        include: { team: true }
+      });
+    }
+
+    const teamId = member.teamId;
+
     // ── GUARD: already applied to this topic ────────────────────────────────
     const existingApp = await prisma.studentApplication.findFirst({
-      where: { topicId, leaderId: session.user.id, status: { not: "REJECTED" } },
+      where: { topicId, teamId, status: { not: "REJECTED" } },
     });
     if (existingApp) {
-      return NextResponse.json({ error: "You already applied to this topic." }, { status: 409 });
+      return NextResponse.json({ error: "Your team already applied to this topic." }, { status: 409 });
     }
 
     // ── GUARD: topic must be open ────────────────────────────────────────────
@@ -81,17 +126,16 @@ export async function POST(req: NextRequest) {
       data: {
         id: randomUUID(),
         topicId,
-        leaderId: session.user.id,
-        // Bug fix: persist partnerId so the binôme flow can read it later
-        partnerId: partnerId || null,
-        isBinome: !!partnerId,
+        teamId,
+        message,
         status: "PENDING",
       },
     });
 
     return NextResponse.json({ data: application }, { status: 201 });
   } catch (error) {
-    console.error(error);
+    console.error("[applications POST]", error);
     return NextResponse.json({ error: "Failed to apply" }, { status: 500 });
   }
 }
+

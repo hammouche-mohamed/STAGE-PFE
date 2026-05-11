@@ -5,6 +5,7 @@ import { registrationSchema } from "@/lib/validations/registration.schema";
 import bcrypt from "bcryptjs";
 import { randomUUID } from "crypto";
 import { isRateLimited, getClientIp } from "@/lib/utils/rateLimiter";
+import { MailService } from "@/lib/services/mail.service";
 
 export async function GET(req: NextRequest) {
   const session = await auth();
@@ -177,9 +178,9 @@ export async function POST(req: NextRequest) {
     }
 
     // NFR-S5: explicit password strength check before hashing
-    if (!validatedData.password || validatedData.password.length < 8) {
+    if (!validatedData.password || validatedData.password.length < 12 || !/[0-9]/.test(validatedData.password)) {
       return NextResponse.json(
-        { error: "Password must be at least 8 characters." },
+        { error: "Password must be at least 12 characters and include at least one number." },
         { status: 400 },
       );
     }
@@ -222,10 +223,18 @@ export async function POST(req: NextRequest) {
           type: "REGISTRATION_SUBMITTED",
           title: "New Registration Request",
           message: `${validatedData.name} has submitted a registration request as a ${validatedData.role.toLowerCase()}.`,
+          relatedId: request.id,
+          relatedType: "REGISTRATION_REQUEST",
           link: "/admin/registrations",
         },
       });
     }
+    
+    // NFR-N1: Send confirmation email to the user
+    // We do this asynchronously to avoid blocking the response
+    MailService.sendRegistrationReceived(validatedData.email, validatedData.name).catch(err => 
+      console.error("Delayed registration email failed:", err)
+    );
 
     return NextResponse.json(
       { data: { id: request.id, status: request.status } },

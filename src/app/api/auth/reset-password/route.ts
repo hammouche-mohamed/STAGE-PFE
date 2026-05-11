@@ -9,6 +9,10 @@ export async function POST(req: Request) {
     if (!email || !code || !newPassword) {
       return NextResponse.json({ error: "All fields are required" }, { status: 400 });
     }
+    
+    if (newPassword.length < 12 || !/[0-9]/.test(newPassword)) {
+      return NextResponse.json({ error: "Password must be at least 12 characters and include at least one number." }, { status: 400 });
+    }
 
     // Double check token again for security
     const token = await prisma.passwordResetToken.findFirst({

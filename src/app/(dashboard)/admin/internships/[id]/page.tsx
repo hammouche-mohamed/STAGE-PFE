@@ -16,6 +16,7 @@ import {
    Briefcase
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import { useSession } from "next-auth/react";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -34,8 +35,11 @@ interface Internship {
    students: { student: { name: string; email: string; studentId: string } }[];
    status: string;
    academicYear: string;
+   internshipType?: string | null;
    startDate?: string;
    endDate?: string;
+   midtermDeadline?: string | null;
+   finalDeadline?: string | null;
    technicalSupervisorName?: string;
    technicalSupervisorEmail?: string;
    createdAt: string;
@@ -43,15 +47,22 @@ interface Internship {
 
 export default function AdminInternshipDetailPage() {
    const { id } = useParams();
+   const { data: session } = useSession();
    const [internship, setInternship] = useState<Internship | null>(null);
    const [documents, setDocuments] = useState<InternshipDocument[]>([]);
    const [isLoading, setIsLoading] = useState(true);
+   const [deadlineInput, setDeadlineInput] = useState("");
+   const [isSettingDeadline, setIsSettingDeadline] = useState(false);
 
    const fetchData = async () => {
       try {
          const res = await fetch(`/api/internships/${id}`);
          const data = await res.json();
          setInternship(data.data);
+         // Pre-fill deadline input if already set
+         if (data.data?.finalDeadline) {
+            setDeadlineInput(data.data.finalDeadline.split('T')[0]);
+         }
 
          const docRes = await fetch(`/api/documents?internshipId=${id}`);
          const docData = await docRes.json();
@@ -98,6 +109,26 @@ export default function AdminInternshipDetailPage() {
          setDocuments(docData.data || []);
       } catch (error) {
          toast.error("Failed to process document review");
+      }
+   };
+
+   const handleSetDeadline = async () => {
+      if (!deadlineInput) { toast.error("Please select a deadline date"); return; }
+      setIsSettingDeadline(true);
+      try {
+         const res = await fetch(`/api/internships/${id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ finalDeadline: new Date(deadlineInput).toISOString() }),
+         });
+         const data = await res.json();
+         if (!res.ok) throw new Error(data.error);
+         toast.success(data.message);
+         fetchData();
+      } catch (error: any) {
+         toast.error(error.message || "Failed to set deadline");
+      } finally {
+         setIsSettingDeadline(false);
       }
    };
 
@@ -154,7 +185,7 @@ export default function AdminInternshipDetailPage() {
                   <Download className="h-4 w-4 mr-2" />
                   Generate Convention
                </Button>
-               {internship.status === "REQUESTED" && (
+               {!session?.user?.isSuperAdmin && internship.status === "REQUESTED" && (
                   <Button size="sm" className="bg-sky-600 hover:bg-sky-700" onClick={markAsSent}>
                      <CheckCircle2 className="h-4 w-4 mr-2" />
                      Mark as Sent
@@ -195,78 +226,137 @@ export default function AdminInternshipDetailPage() {
                   </div>
                </div>
 
-               <div className="bg-white border border-gray-200 rounded-md p-6 shadow-sm">
-                  <h2 className="text-[14px] font-bold text-gray-900 mb-6 flex items-center justify-between">
-                     <div className="flex items-center">
-                        <FileText className="h-4 w-4 mr-2 text-indigo-500" />
-                        Internship Documents
-                     </div>
-                     <span className="text-[11px] font-medium text-gray-400 bg-gray-50 px-2 py-1 rounded">
-                        {documents.length} Files
-                     </span>
-                  </h2>
-                  <DocumentList 
-                     documents={documents}
-                     canReview={true}
-                     onReview={handleReview}
-                  />
-               </div>
+               {!session?.user?.isSuperAdmin && (
+                 <div className="bg-white border border-gray-200 rounded-md p-6 shadow-sm">
+                    <h2 className="text-[14px] font-bold text-gray-900 mb-6 flex items-center justify-between">
+                       <div className="flex items-center">
+                          <FileText className="h-4 w-4 mr-2 text-indigo-500" />
+                          Internship Documents
+                       </div>
+                       <span className="text-[11px] font-medium text-gray-400 bg-gray-50 px-2 py-1 rounded">
+                          {documents.length} Files
+                       </span>
+                    </h2>
+                    <DocumentList 
+                       documents={documents}
+                       canReview={true}
+                       onReview={handleReview}
+                    />
+                 </div>
+               )}
             </div>
 
-            <div className="space-y-6">
-               <div className="bg-white border border-gray-200 rounded-md p-5 shadow-sm">
-                  <h3 className="text-[12px] font-bold text-gray-900 uppercase tracking-wide mb-4">Internship Status</h3>
-                  <div className="space-y-4">
-                     <div className="flex items-center justify-between text-[13px]">
-                        <span className="text-gray-500">Creation Date</span>
-                        <span className="text-gray-900">{format(new Date(internship.createdAt), "PP")}</span>
-                     </div>
-                     <div className="flex items-center justify-between text-[13px]">
-                        <span className="text-gray-500">Academic Year</span>
-                        <span className="text-gray-900 font-medium">{internship.academicYear}</span>
-                     </div>
-                     {internship.startDate && (
-                       <>
-                         <div className="pt-2 border-t border-gray-50 mt-2">
-                            <span className="text-[11px] font-bold text-gray-400 uppercase tracking-widest block mb-2">Duration</span>
-                            <div className="flex items-center gap-2 text-[13px] text-gray-900">
-                               <Calendar className="h-4 w-4 text-indigo-500" />
-                               {format(new Date(internship.startDate), "PP")} — {internship.endDate ? format(new Date(internship.endDate), "PP") : "..."}
-                            </div>
-                         </div>
-                         {internship.technicalSupervisorName && (
-                            <div className="pt-2 mt-2 border-t border-gray-50">
-                               <span className="text-[11px] font-bold text-gray-400 uppercase tracking-widest block mb-2">Technical Supervisor</span>
-                               <div className="text-[13px] text-gray-900">
-                                  <p className="font-medium">{internship.technicalSupervisorName}</p>
-                                  <p className="text-gray-500 text-[11px]">{internship.technicalSupervisorEmail}</p>
+               <div className="space-y-6">
+                  <div className="bg-white border border-gray-200 rounded-md p-5 shadow-sm">
+                     <h3 className="text-[12px] font-bold text-gray-900 uppercase tracking-wide mb-4">Internship Status</h3>
+                     <div className="space-y-4">
+                        <div className="flex items-center justify-between text-[13px]">
+                           <span className="text-gray-500">Creation Date</span>
+                           <span className="text-gray-900">{format(new Date(internship.createdAt), "PP")}</span>
+                        </div>
+                        <div className="flex items-center justify-between text-[13px]">
+                           <span className="text-gray-500">Academic Year</span>
+                           <span className="text-gray-900 font-medium">{internship.academicYear}</span>
+                        </div>
+                        {internship.internshipType && (
+                           <div className="flex items-center justify-between text-[13px]">
+                              <span className="text-gray-500">Type</span>
+                              <span className={`px-2 py-0.5 rounded text-[11px] font-bold uppercase ${
+                                 internship.internshipType === 'PFE' ? 'bg-purple-50 text-purple-700' : 'bg-blue-50 text-blue-700'
+                              }`}>{internship.internshipType}</span>
+                           </div>
+                        )}
+                        {internship.midtermDeadline && (
+                           <div className="flex items-center justify-between text-[13px]">
+                              <span className="text-gray-500">Mid-Report Deadline</span>
+                              <span className="text-gray-900 font-medium">{format(new Date(internship.midtermDeadline), "PP")}</span>
+                           </div>
+                        )}
+                        {internship.finalDeadline && (
+                           <div className="flex items-center justify-between text-[13px]">
+                              <span className="text-gray-500">Final Deadline</span>
+                              <span className="text-indigo-700 font-bold">{format(new Date(internship.finalDeadline), "PP")}</span>
+                           </div>
+                        )}
+                        {internship.startDate && (
+                          <>
+                            <div className="pt-2 border-t border-gray-50 mt-2">
+                               <span className="text-[11px] font-bold text-gray-400 uppercase tracking-widest block mb-2">Duration</span>
+                               <div className="flex items-center gap-2 text-[13px] text-gray-900">
+                                  <Calendar className="h-4 w-4 text-indigo-500" />
+                                  {format(new Date(internship.startDate), "PP")} — {internship.endDate ? format(new Date(internship.endDate), "PP") : "..."}
                                </div>
                             </div>
-                         )}
-                       </>
-                     )}
+                            {internship.technicalSupervisorName && (
+                               <div className="pt-2 mt-2 border-t border-gray-50">
+                                  <span className="text-[11px] font-bold text-gray-400 uppercase tracking-widest block mb-2">Technical Supervisor</span>
+                                  <div className="text-[13px] text-gray-900">
+                                     <p className="font-medium">{internship.technicalSupervisorName}</p>
+                                     <p className="text-gray-500 text-[11px]">{internship.technicalSupervisorEmail}</p>
+                                  </div>
+                               </div>
+                            )}
+                          </>
+                        )}
+                     </div>
+                  </div>
+
+                  {/* Set Final Deadline Panel (Admin Action) */}
+                  {!session?.user?.isSuperAdmin && internship.status !== 'COMPLETED' && internship.status !== 'CANCELLED' && (
+                     <div className="bg-white border border-amber-200 rounded-md p-5 shadow-sm">
+                        <h3 className="text-[12px] font-bold text-amber-800 uppercase tracking-wide mb-1 flex items-center gap-1.5">
+                           <Clock className="h-3.5 w-3.5" />
+                           Set Final Report Deadline
+                        </h3>
+                        {internship.internshipType === 'PFE' && (
+                           <p className="text-[11px] text-amber-700 mb-3 bg-amber-50 rounded p-2">
+                              ⚠️ PFE: Setting this deadline will automatically update the internship <strong>end date</strong> to match.
+                           </p>
+                        )}
+                        <div className="space-y-3">
+                           <input
+                              type="date"
+                              className="admin-input text-[13px]"
+                              value={deadlineInput}
+                              onChange={(e) => setDeadlineInput(e.target.value)}
+                           />
+                           <Button
+                              size="sm"
+                              className="w-full bg-amber-600 hover:bg-amber-700 text-white"
+                              onClick={handleSetDeadline}
+                              isLoading={isSettingDeadline}
+                              disabled={!deadlineInput}
+                           >
+                              <CheckCircle2 className="h-3.5 w-3.5 mr-1.5" />
+                              {internship.finalDeadline ? 'Update Deadline' : 'Set Deadline'}
+                           </Button>
+                        </div>
+                     </div>
+                  )}
+
+                  <div className="bg-indigo-600 rounded-md p-5 text-white shadow-lg">
+                     <FileText className="h-6 w-6 mb-4 text-indigo-200" />
+                     <h3 className="text-[15px] font-bold">Admin Checklist</h3>
+                     <ul className="mt-4 space-y-3 text-[12px]">
+                        <li className="flex items-center gap-2">
+                           <CheckCircle2 className="h-4 w-4 text-indigo-300" />
+                           Topic Approved
+                        </li>
+                        <li className="flex items-center gap-2">
+                           <CheckCircle2 className="h-4 w-4 text-indigo-300" />
+                           Supervisor Assigned
+                        </li>
+                        <li className={`flex items-center gap-2 ${internship.finalDeadline ? 'text-white' : 'text-indigo-200'}`}>
+                           {internship.finalDeadline ? <CheckCircle2 className="h-4 w-4 text-green-300" /> : <Clock className="h-4 w-4" />}
+                           Final Deadline {internship.finalDeadline ? 'Set ✓' : 'Pending'}
+                        </li>
+                        <li className="flex items-center gap-2 text-indigo-200">
+                           <Clock className="h-4 w-4" />
+                           Pending Convention Signature
+                        </li>
+                     </ul>
                   </div>
                </div>
-
-               <div className="bg-indigo-600 rounded-md p-5 text-white shadow-lg">
-                  <FileText className="h-6 w-6 mb-4 text-indigo-200" />
-                  <h3 className="text-[15px] font-bold">Admin Checklist</h3>
-                  <ul className="mt-4 space-y-3 text-[12px]">
-                     <li className="flex items-center gap-2">
-                        <CheckCircle2 className="h-4 w-4 text-indigo-300" />
-                        Topic Approved
-                     </li>
-                     <li className="flex items-center gap-2">
-                        <CheckCircle2 className="h-4 w-4 text-indigo-300" />
-                        Supervisor Assigned
-                     </li>
-                     <li className="flex items-center gap-2 text-indigo-200">
-                        <Clock className="h-4 w-4" />
-                        Pending Convention Signature
-                     </li>
-                  </ul>
-               </div>
-            </div>
          </div>
       </div>
    );

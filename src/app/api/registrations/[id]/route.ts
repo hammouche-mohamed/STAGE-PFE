@@ -71,6 +71,9 @@ export async function PATCH(
         console.error('Rejection mail failed:', e);
       }
 
+      // Clear original submission notifications
+      await NotificationService.clearRelated(id, 'REGISTRATION_REQUEST');
+
       return NextResponse.json({ message: 'Request rejected successfully' });
     }
 
@@ -101,7 +104,7 @@ export async function PATCH(
             studentId: request.studentId || 'PENDING',
             promotion: request.promotion || 'N/A',
             speciality: request.speciality || 'N/A',
-            academicYear: request.academicYear || '2024-2025',
+            academicYear: request.academicYear || 'N/A',
             // Denormalize level on StudentProfile for fast eligibility queries
             level: (request.level as any) ?? null,
           },
@@ -152,6 +155,9 @@ export async function PATCH(
       targetType: 'User',
       targetId: result.name,
     });
+
+    // 5. Clear original submission notifications for all admins
+    await NotificationService.clearRelated(id, 'REGISTRATION_REQUEST');
 
     return NextResponse.json({
       message: 'Registration approved and account created successfully',

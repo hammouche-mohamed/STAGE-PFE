@@ -45,6 +45,11 @@ export class StudentProposalService {
 
     const academicYear = await SettingsService.getCurrentAcademicYear();
 
+    const studentProfile = await prisma.studentProfile.findUnique({
+      where: { userId: studentId },
+      select: { filiereId: true },
+    });
+
     const topic = await prisma.$transaction(async (tx) => {
       const created = await tx.topic.create({
         data: {
@@ -57,6 +62,7 @@ export class StudentProposalService {
           status: 'PENDING_ADMIN',
           academicYear,
           proposedById: studentId,
+          filiereId: studentProfile?.filiereId,
           // PATH B specific fields
           proposedByStudent: true,
           directAssigneeId: studentId,
@@ -93,6 +99,31 @@ export class StudentProposalService {
       targetId: topic.id,
       details: { internshipType: data.internshipType, companyName: data.companyName },
     });
+
+    // 3. Notify relevant administrators (NFR-RDI1)
+    const student = await prisma.user.findUnique({ where: { id: studentId }, select: { name: true } });
+    const admins = await prisma.user.findMany({
+      where: {
+        role: 'ADMIN',
+        OR: [
+          { adminProfile: { isSuperAdmin: true } },
+          { adminProfile: { filiereId: studentProfile?.filiereId } }
+        ]
+      },
+      select: { id: true },
+    });
+
+    for (const admin of admins) {
+      await NotificationService.trigger({
+        userId: admin.id,
+        type: 'TOPIC_SUBMITTED',
+        title: 'New Student Proposal',
+        message: `${student?.name || 'A student'} has submitted a new topic proposal: "${data.title}"`,
+        relatedId: topic.id,
+        relatedType: 'Topic',
+        link: `/admin/topics/${topic.id}`,
+      });
+    }
 
     return topic;
   }

@@ -15,6 +15,7 @@ import { useSession } from "next-auth/react";
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
 import { useRouter } from "next/navigation";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 const LANGS: { code: Language; label: string }[] = [
   { code: "en", label: "EN" },
@@ -57,12 +58,12 @@ export default function LandingClient({ logoUrl, academicYear, registrationOpen 
   };
 
   return (
-    <div className={`min-h-screen bg-gradient-to-br from-blue-50 to-slate-100 font-sans text-gray-900 ${isRTL ? "rtl" : "ltr"} relative overflow-hidden`}>
+    <div className={`min-h-screen bg-gradient-to-br from-blue-50 to-slate-100 dark:from-gray-950 dark:to-gray-900 font-sans text-gray-900 dark:text-gray-100 ${isRTL ? "rtl" : "ltr"} relative overflow-hidden transition-colors duration-300`}>
 
       {/* Background elements */}
-      <div className="fixed inset-0 bg-linkedin-neutral/30 pointer-events-none -z-10" />
+      <div className="fixed inset-0 bg-linkedin-neutral/30 dark:bg-gray-900/10 pointer-events-none -z-10" />
 
-      <header className="fixed top-0 left-0 right-0 h-16 bg-blue-50/80 backdrop-blur-md z-50 border-b border-blue-100/50">
+      <header className="fixed top-0 left-0 right-0 h-16 bg-blue-50/80 dark:bg-gray-900/80 backdrop-blur-md z-50 border-b border-blue-100/50 dark:border-gray-800 transition-colors duration-300">
         <div className="max-w-7xl mx-auto px-6 h-full flex items-center justify-between">
           <div className="flex items-center gap-8">
             <Link href="/" className="flex items-center gap-3">
@@ -70,27 +71,29 @@ export default function LandingClient({ logoUrl, academicYear, registrationOpen 
                 {logoUrl ? (
                   <img src={logoUrl} alt="ESST" className="h-full w-full object-contain" />
                 ) : (
-                  <div className="h-9 w-9 bg-brand-deep rounded-lg flex items-center justify-center text-white font-black text-xs">ESST</div>
+                  <div className="h-9 w-9 bg-brand-deep dark:bg-indigo-600 rounded-lg flex items-center justify-center text-white font-black text-xs">ESST</div>
                 )}
               </div>
-              <span className="font-black text-[16px] md:text-[22px] tracking-tight text-brand-deep hidden min-[500px]:block">ESST Internship Portal</span>
+              <span className="font-black text-[16px] md:text-[22px] tracking-tight text-brand-deep dark:text-white hidden min-[500px]:block">ESST Internship Portal</span>
             </Link>
           </div>
 
           <div className="flex items-center gap-6">
             <div className="flex items-center gap-4">
-              <div className="flex items-center bg-gray-100 rounded-full p-1 gap-1">
+              <ThemeToggle />
+              
+              <div className="flex items-center bg-gray-100 dark:bg-gray-800 rounded-full p-1 gap-1">
                 {LANGS.map(({ code, label }) => (
                   <button key={code} onClick={() => setLanguage(code)}
                     className={`h-7 px-3 rounded-full text-[11px] font-bold transition-all
-                      ${language === code ? "bg-white text-brand-deep shadow-sm" : "text-gray-400 hover:text-gray-600"}`}>
+                      ${language === code ? "bg-white dark:bg-gray-700 text-brand-deep dark:text-white shadow-sm" : "text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"}`}>
                     {label}
                   </button>
                 ))}
               </div>
 
               <div className="flex items-center gap-3">
-                <Link href={dashboardUrl} className="px-4 py-1.5 md:px-6 md:py-2 border border-brand-deep text-brand-deep text-[13px] md:text-[16px] font-bold rounded-full hover:bg-gray-50 transition-all whitespace-nowrap">
+                <Link href={dashboardUrl} className="px-4 py-1.5 md:px-6 md:py-2 border border-brand-deep dark:border-white text-brand-deep dark:text-white text-[13px] md:text-[16px] font-bold rounded-full hover:bg-gray-50 dark:hover:bg-gray-800 transition-all whitespace-nowrap">
                   {session ? t("common.dashboard") : t("auth.login")}
                 </Link>
               </div>
@@ -167,8 +170,8 @@ export default function LandingClient({ logoUrl, academicYear, registrationOpen 
                   {session ? t("common.dashboard") : t("auth.login")}
                 </Link>
                 {!session && (
-                  <Link 
-                    href="/register" 
+                  <Link
+                    href="/register"
                     onClick={handleRegisterClick}
                     className="px-6 py-2.5 md:px-8 md:py-3 bg-white text-brand-deep rounded-full text-[14px] md:text-[16px] font-bold hover:bg-gray-100 transition-all min-w-[140px] md:min-w-[160px] text-center shadow-md"
                   >
@@ -184,7 +187,7 @@ export default function LandingClient({ logoUrl, academicYear, registrationOpen 
         {/* Visual Dashboard Cards */}
         <section className="pt-12 md:pt-20 pb-16 md:pb-32 bg-transparent relative">
           <div className="max-w-7xl mx-auto px-6">
-            <h2 className="text-[20px] md:text-[32px] font-black text-center mb-8 md:mb-12 text-brand-deep uppercase tracking-widest">
+            <h2 className="text-[20px] md:text-[32px] font-black text-center mb-8 md:mb-12 text-brand-deep dark:text-white uppercase tracking-widest transition-colors">
               {t("landing.preview.title")}
             </h2>
             <DashboardVisual />
@@ -196,17 +199,17 @@ export default function LandingClient({ logoUrl, academicYear, registrationOpen 
         <div className="h-[2px] w-[80%] mx-auto bg-brand-deep/15 mt-4 mb-4" />
 
         {/* Feature Grid */}
-        <section className="bg-slate-100/50 pt-10 pb-10 relative">
+        <section className="bg-slate-100/50 dark:bg-slate-900/50 pt-10 pb-10 relative transition-colors duration-300">
           <div className="max-w-7xl mx-auto px-6">
             <div className="grid lg:grid-cols-12 gap-20 items-center mb-24">
               <div className="lg:col-span-5">
-                <h2 className="text-[32px] md:text-[48px] font-light text-gray-800 leading-tight mb-6">
+                <h2 className="text-[32px] md:text-[48px] font-light text-gray-800 dark:text-gray-100 leading-tight mb-6">
                   {t("landing.topics.title")}
                 </h2>
-                <p className="text-[20px] text-gray-500 leading-relaxed mb-10">
+                <p className="text-[20px] text-gray-500 dark:text-gray-400 leading-relaxed mb-10">
                   {t("landing.topics.subtitle")}
                 </p>
-                <Link href="/login" className="px-10 py-4 border border-gray-800 text-gray-800 rounded-full text-lg font-bold hover:bg-gray-100 transition-all">
+                <Link href="/login" className="px-10 py-4 border border-gray-800 dark:border-gray-200 text-gray-800 dark:text-gray-100 rounded-full text-lg font-bold hover:bg-gray-100 dark:hover:bg-gray-800 transition-all">
                   {t("landing.topics.seeAll")}
                 </Link>
               </div>
@@ -251,9 +254,9 @@ export default function LandingClient({ logoUrl, academicYear, registrationOpen 
               </div>
             </div>
             <div className="order-1 md:order-2 text-center md:text-left">
-              <h2 className="text-[32px] md:text-[48px] font-light text-gray-800 leading-tight mb-8">{t("landing.postTopic.title")}</h2>
-              <p className="text-[16px] md:text-[20px] text-gray-500 leading-relaxed mb-10">{t("landing.postTopic.subtitle")}</p>
-              <Link href="/login" className="px-10 py-4 bg-brand-deep text-white rounded-full text-lg font-bold hover:bg-black transition-all shadow-xl">
+              <h2 className="text-[32px] md:text-[48px] font-light text-gray-800 dark:text-gray-100 leading-tight mb-8">{t("landing.postTopic.title")}</h2>
+              <p className="text-[16px] md:text-[20px] text-gray-500 dark:text-gray-400 leading-relaxed mb-10">{t("landing.postTopic.subtitle")}</p>
+              <Link href="/login" className="px-10 py-4 bg-brand-deep dark:bg-indigo-600 text-white rounded-full text-lg font-bold hover:bg-black dark:hover:bg-indigo-700 transition-all shadow-xl">
                 {t("landing.postTopic.button")}
               </Link>
             </div>
@@ -266,16 +269,16 @@ export default function LandingClient({ logoUrl, academicYear, registrationOpen 
         <section className="bg-transparent pt-10 pb-12 relative overflow-hidden">
 
           <div className="max-w-4xl mx-auto px-6 text-center relative z-10">
-            <h2 className="text-[42px] font-light text-gray-800 mb-8">{t("landing.cta.title")}</h2>
+            <h2 className="text-[42px] font-light text-gray-800 dark:text-gray-100 mb-8">{t("landing.cta.title")}</h2>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <Link 
-                href="/register" 
+              <Link
+                href="/register"
                 onClick={handleRegisterClick}
-                className="w-full sm:w-auto px-10 py-4 bg-brand-deep text-white rounded-full text-lg font-bold hover:bg-black transition-all shadow-xl"
+                className="w-full sm:w-auto px-10 py-4 bg-brand-deep dark:bg-indigo-600 text-white rounded-full text-lg font-bold hover:bg-black dark:hover:bg-indigo-700 transition-all shadow-xl"
               >
                 {t("landing.cta.join")}
               </Link>
-              <Link href="/login" className="w-full sm:w-auto px-10 py-4 border border-gray-800 text-gray-800 rounded-full text-lg font-bold hover:bg-gray-100 transition-all">
+              <Link href="/login" className="w-full sm:w-auto px-10 py-4 border border-gray-800 dark:border-gray-200 text-gray-800 dark:text-gray-100 rounded-full text-lg font-bold hover:bg-gray-100 dark:hover:bg-gray-800 transition-all">
                 {t("auth.login")}
               </Link>
             </div>
@@ -304,15 +307,15 @@ export default function LandingClient({ logoUrl, academicYear, registrationOpen 
                 </div>
               </div>
             </div>
-            
+
             {/* Right Group: Links */}
             <div className="lg:col-span-7 grid grid-cols-2 gap-8 text-[12px] lg:pl-20">
               <div>
                 <h5 className="text-white font-bold mb-6 uppercase tracking-widest text-[10px] opacity-50">{t("landing.footer.registrations")}</h5>
                 <ul className="space-y-4">
                   <li>
-                    <Link 
-                      href="/register" 
+                    <Link
+                      href="/register"
                       onClick={handleRegisterClick}
                       className="text-white/70 hover:text-white transition-colors text-[14px]"
                     >
@@ -374,10 +377,10 @@ function TopicCard({ title, desc, icon }: { title: string; desc: string; icon: R
 function FeatureItem({ num, title, desc }: { num: string; title: string; desc: string }) {
   return (
     <div className="flex items-center gap-6 group">
-      <div className="h-12 w-12 rounded-xl bg-brand-deep/5 flex items-center justify-center text-brand-deep font-bold text-lg">{num}</div>
+      <div className="h-12 w-12 rounded-xl bg-brand-deep/5 dark:bg-white/5 flex items-center justify-center text-brand-deep dark:text-indigo-400 font-bold text-lg transition-colors">{num}</div>
       <div>
-        <h4 className="text-[16px] font-bold text-gray-900">{title}</h4>
-        <p className="text-[13px] text-gray-500 uppercase tracking-wider font-medium">{desc}</p>
+        <h4 className="text-[16px] font-bold text-gray-900 dark:text-gray-100 transition-colors">{title}</h4>
+        <p className="text-[13px] text-gray-500 dark:text-gray-400 uppercase tracking-wider font-medium transition-colors">{desc}</p>
       </div>
     </div>
   );

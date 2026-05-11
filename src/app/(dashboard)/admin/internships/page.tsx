@@ -48,10 +48,26 @@ export default function AdminInternshipsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
+  const [filiereFilter, setFiliereFilter] = useState("ALL");
+  const [filieres, setFilieres] = useState<any[]>([]);
+
+  const fetchFilieres = async () => {
+    try {
+      const res = await fetch("/api/filieres");
+      const data = await res.json();
+      setFilieres(data.data || []);
+    } catch (error) {
+      console.error("Failed to load filieres");
+    }
+  };
 
   const fetchInternships = async () => {
     try {
-      const res = await fetch("/api/internships");
+      const params = new URLSearchParams();
+      if (statusFilter !== "ALL") params.append("status", statusFilter);
+      if (filiereFilter !== "ALL") params.append("filiereId", filiereFilter);
+      
+      const res = await fetch(`/api/internships?${params.toString()}`);
       const data = await res.json();
       setInternships(data.data || []);
     } catch (error) {
@@ -63,7 +79,8 @@ export default function AdminInternshipsPage() {
 
   useEffect(() => {
     fetchInternships();
-  }, []);
+    fetchFilieres();
+  }, [statusFilter, filiereFilter]);
 
   const filteredInternships = internships.filter(i => {
     const matchesSearch = i.topic.title.toLowerCase().includes(search.toLowerCase()) || 
@@ -76,8 +93,8 @@ export default function AdminInternshipsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-[17px] font-semibold text-gray-900">{t("common.internships")}</h1>
-          <p className="text-[13px] text-gray-500 mt-0.5">{t("common.appSubtitle")}</p>
+          <h1 className="text-[17px] font-semibold text-gray-900 dark:text-white">{t("common.internships")}</h1>
+          <p className="text-[13px] text-gray-500 dark:text-gray-400 mt-0.5">{t("common.appSubtitle")}</p>
         </div>
       </div>
 
@@ -92,6 +109,18 @@ export default function AdminInternshipsPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
+        </div>
+        <div className="flex gap-2">
+          <select 
+            className="admin-input min-w-[180px]"
+            value={filiereFilter}
+            onChange={(e) => setFiliereFilter(e.target.value)}
+          >
+            <option value="ALL">All Departments</option>
+            {filieres.map(f => (
+              <option key={f.id} value={f.id}>{f.name}</option>
+            ))}
+          </select>
         </div>
         <div className="flex gap-2">
           <select 
@@ -113,7 +142,7 @@ export default function AdminInternshipsPage() {
       </div>
 
       {/* Internships List */}
-      <div className="admin-table-container sm:bg-white sm:border sm:border-gray-200 sm:rounded-md">
+      <div className="admin-table-container">
         <table className="admin-table stacked-table">
           <thead className="admin-table-header">
             <tr>
@@ -140,16 +169,16 @@ export default function AdminInternshipsPage() {
                     <div className="flex flex-col max-w-[400px] items-start">
                       <div className="flex flex-wrap items-center gap-1 mb-1">
                         {internship.students.map((s, idx) => (
-                          <span key={s.student.email} className="text-[13px] font-semibold text-gray-900">
+                          <span key={s.student.email} className="text-[13px] font-semibold text-gray-900 dark:text-white">
                             {s.student.name}{idx < internship.students.length - 1 ? ", " : ""}
                           </span>
                         ))}
                       </div>
-                      <span className="text-[12px] text-indigo-600 font-medium line-clamp-2 text-left">
+                      <span className="text-[12px] text-indigo-600 dark:text-indigo-400 font-medium line-clamp-2 text-left">
                         {internship.topic.title}
                       </span>
                       {internship.startDate && internship.endDate && (
-                        <div className="flex items-center gap-2 mt-1 text-[11px] text-gray-500">
+                        <div className="flex items-center gap-2 mt-1 text-[11px] text-gray-500 dark:text-gray-400">
                           <Clock className="h-3 w-3" />
                           {format(new Date(internship.startDate), "MMM d")} - {format(new Date(internship.endDate), "MMM d, yyyy")}
                         </div>
@@ -157,20 +186,25 @@ export default function AdminInternshipsPage() {
                     </div>
                   </td>
                   <td data-label="Supervisor">
-                    <div className="flex items-center gap-2">
-                      <GraduationCap className="h-4 w-4 text-gray-400" />
-                      <span className="text-[13px] text-gray-600">{internship.teacher.name}</span>
+                    <div className="flex flex-col items-start gap-0.5">
+                      <div className="flex items-center gap-2">
+                        <GraduationCap className="h-4 w-4 text-gray-400 dark:text-gray-500" />
+                        <span className="text-[13px] text-gray-900 dark:text-white font-medium">{(internship.teacher as any).name}</span>
+                      </div>
+                      <span className="text-[10px] text-gray-400 dark:text-gray-500 px-1.5 py-0.5 font-semibold bg-gray-50 dark:bg-slate-800 rounded border border-gray-100 dark:border-slate-700 uppercase tracking-tight ml-6">
+                        {(internship.teacher as any).filiereName}
+                      </span>
                     </div>
                   </td>
                   <td data-label="Progress">
                     <div className="flex items-center gap-4">
                       <div className="flex items-center gap-1.5" title="Documents uploaded">
-                        <FileText className="h-3.5 w-3.5 text-gray-400" />
-                        <span className="text-[12px] font-medium text-gray-600">{internship._count.documents} docs</span>
+                        <FileText className="h-3.5 w-3.5 text-gray-400 dark:text-gray-500" />
+                        <span className="text-[12px] font-medium text-gray-600 dark:text-gray-400">{internship._count.documents} docs</span>
                       </div>
                       <div className="flex items-center gap-1.5" title="Messages exchanged">
-                        <MessageSquare className="h-3.5 w-3.5 text-gray-400" />
-                        <span className="text-[12px] font-medium text-gray-600">{internship._count.messages} msg</span>
+                        <MessageSquare className="h-3.5 w-3.5 text-gray-400 dark:text-gray-500" />
+                        <span className="text-[12px] font-medium text-gray-600 dark:text-gray-400">{internship._count.messages} msg</span>
                       </div>
                     </div>
                   </td>

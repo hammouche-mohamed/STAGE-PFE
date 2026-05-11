@@ -66,11 +66,11 @@ export default function StatisticsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-[17px] font-semibold text-gray-900 flex items-center gap-2">
-            <BarChart2 className="h-5 w-5 text-indigo-600" />
+          <h1 className="text-[17px] font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+            <BarChart2 className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
             {t("common.internships")}
           </h1>
-          <p className="text-[13px] text-gray-500 mt-0.5">
+          <p className="text-[13px] text-gray-500 dark:text-gray-400 mt-0.5">
             {stats ? `Academic Year: ${stats.academicYear}` : "Loading…"}
           </p>
         </div>
@@ -85,7 +85,7 @@ export default function StatisticsPage() {
               className={`px-3 py-1.5 rounded-md text-[12px] font-medium transition-colors ${
                 typeFilter === t
                   ? "bg-indigo-600 text-white"
-                  : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-50"
+                  : "bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800"
               }`}
             >
               {t === "" ? "All" : t}
@@ -130,8 +130,8 @@ export default function StatisticsPage() {
           {/* Charts row */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* PFE vs NORMAL pie chart */}
-            <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
-              <h2 className="text-[13px] font-semibold text-gray-900 mb-4 uppercase tracking-wider">
+            <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-lg p-6 shadow-sm">
+              <h2 className="text-[13px] font-semibold text-gray-900 dark:text-white mb-4 uppercase tracking-wider">
                 Internships by Type
               </h2>
               {stats.byType.length === 0 ? (
@@ -165,9 +165,9 @@ export default function StatisticsPage() {
             </div>
 
             {/* Top companies bar chart */}
-            <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
-              <h2 className="text-[13px] font-semibold text-gray-900 mb-4 uppercase tracking-wider flex items-center gap-2">
-                <Users className="h-4 w-4 text-indigo-600" />
+            <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-lg p-6 shadow-sm">
+              <h2 className="text-[13px] font-semibold text-gray-900 dark:text-white mb-4 uppercase tracking-wider flex items-center gap-2">
+                <Users className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
                 Top 5 Host Companies
               </h2>
               {stats.topCompanies.length === 0 ? (

@@ -19,11 +19,40 @@ export async function GET(
         proposedBy: { select: { id: true, name: true, email: true } },
         assignedTeacher: { select: { id: true, name: true } },
         filiere: { select: { id: true, name: true, code: true } },
+        ...(session.user.role === "ADMIN" && {
+          teacherApplications: {
+            include: {
+              teacher: { select: { id: true, name: true, email: true } }
+            },
+            orderBy: { appliedAt: 'desc' }
+          }
+        })
       },
     });
 
     if (!topic) return NextResponse.json({ error: "Topic not found." }, { status: 404 });
-    return NextResponse.json({ data: topic });
+
+    // Fetch Student Applications and include the Team and its members
+    const applications = await prisma.studentApplication.findMany({
+      where: { topicId: id },
+      include: {
+        team: {
+          include: {
+            members: {
+              include: { student: { select: { id: true, name: true, email: true } } }
+            }
+          }
+        }
+      },
+      orderBy: { appliedAt: 'desc' }
+    });
+
+    return NextResponse.json({ 
+      data: {
+        ...topic,
+        studentApplications: applications
+      }
+    });
   } catch (error) {
     console.error("[topics/[id] GET]", error);
     return NextResponse.json({ error: "Failed to load topic." }, { status: 500 });
@@ -96,6 +125,11 @@ export async function PATCH(
     // ── ADMIN: direct edit or approve/reject pending company edit ──────────
     if (session.user.role !== "ADMIN") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    // Dept Admin Scoping Check
+    if (!session.user.isSuperAdmin && session.user.filiereId && topic.filiereId && topic.filiereId !== session.user.filiereId) {
+      return NextResponse.json({ error: "Forbidden: Topic belongs to another department" }, { status: 403 });
     }
 
     const {
@@ -209,6 +243,26 @@ export async function PATCH(
       });
     }
 
+    // Notify Super Admins if a Department Admin took action
+    if (!session.user.isSuperAdmin) {
+      const superAdmins = await prisma.user.findMany({
+        where: { adminProfile: { isSuperAdmin: true } },
+        select: { id: true }
+      });
+
+      for (const sa of superAdmins) {
+        await NotificationService.trigger({
+          userId: sa.id,
+          type: "TOPIC_UPDATED_BY_ADMIN",
+          title: "Department Admin Action",
+          message: `Admin ${session.user.name} has updated topic: "${topic.title}" (Status: ${status || topic.status}).`,
+          relatedId: topic.id,
+          relatedType: "Topic",
+          link: `/admin/topics/${topic.id}`
+        });
+      }
+    }
+
     await AuditService.log({
       userId: session.user.id,
       action: "TOPIC_UPDATED_BY_ADMIN",
@@ -216,6 +270,9 @@ export async function PATCH(
       targetId: updated.id,
       details: { status, teacherId, filiereId, targetLevels },
     });
+
+    // Clear related notifications for all admins
+    await NotificationService.clearRelated(id, 'Topic');
 
     return NextResponse.json({ data: updated });
   } catch (error) {
@@ -238,7 +295,11 @@ export async function DELETE(
     if (!topic) return NextResponse.json({ error: "Topic not found" }, { status: 404 });
 
     if (session.user.role === "ADMIN") {
-      // Admin can always delete
+      // Dept Admin Scoping Check
+      if (!session.user.isSuperAdmin && session.user.filiereId && topic.filiereId && topic.filiereId !== session.user.filiereId) {
+        return NextResponse.json({ error: "Forbidden: Topic belongs to another department" }, { status: 403 });
+      }
+      // Admin can always delete if scoped correctly
     } else if (session.user.role === "STUDENT") {
       // Student can only delete their own PENDING_ADMIN student-proposed topics
       if (topic.directAssigneeId !== session.user.id || !topic.proposedByStudent) {

@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { Check, X, Eye, AlertTriangle } from "lucide-react";
 import { useTranslation } from "@/lib/i18n/LanguageContext";
+import { useSession } from "next-auth/react";
 import { Modal } from "@/components/ui/Modal";
 
 interface RegistrationRequest {
@@ -29,6 +30,17 @@ interface RegistrationRequest {
 
 export default function AdminRegistrationsPage() {
   const { t } = useTranslation();
+  const { data: session } = useSession();
+  
+  // Protect route for super admins only
+  if (session && !session.user.isSuperAdmin) {
+    return (
+      <div className="p-8 text-center text-gray-500 dark:text-gray-400 mt-20">
+        You do not have permission to view this page. This area is restricted to Super Administrators.
+      </div>
+    );
+  }
+
   const [requests, setRequests] = useState<RegistrationRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedRequest, setSelectedRequest] = useState<RegistrationRequest | null>(null);
@@ -57,7 +69,9 @@ export default function AdminRegistrationsPage() {
     try {
       const res = await fetch("/api/settings/public");
       const d = await res.json();
-      if (d.data?.availableSpecialities) {
+      if (d.data?.filieres && d.data.filieres.length > 0) {
+        setSpecialities(d.data.filieres.map((f: any) => f.name));
+      } else if (d.data?.availableSpecialities) {
         setSpecialities(d.data.availableSpecialities.split(",").map((s: string) => s.trim()).filter(Boolean));
       }
       if (d.data?.availablePromotions) {
@@ -134,12 +148,12 @@ export default function AdminRegistrationsPage() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-[16px] sm:text-[17px] font-semibold text-gray-900">{t("common.registrations")}</h1>
-          <p className="text-[12px] sm:text-[13px] text-gray-500 mt-0.5">{t("settings.subtitle")}</p>
+          <h1 className="text-[16px] sm:text-[17px] font-semibold text-gray-900 dark:text-white">{t("common.registrations")}</h1>
+          <p className="text-[12px] sm:text-[13px] text-gray-500 dark:text-gray-400 mt-0.5">{t("settings.subtitle")}</p>
         </div>
       </div>
 
-      <div className="admin-table-container sm:bg-white sm:border sm:border-gray-200 sm:rounded-md">
+      <div className="admin-table-container">
         <table className="admin-table stacked-table">
           <thead className="admin-table-header">
             <tr>
@@ -164,8 +178,8 @@ export default function AdminRegistrationsPage() {
                 <tr key={req.id} className="admin-table-row">
                   <td data-label="Applicant" className="py-3 sm:py-0">
                     <div className="flex flex-col min-w-0 items-start">
-                      <span className="font-medium text-gray-900 truncate">{req.name}</span>
-                      <span className="text-[11px] text-gray-400 truncate">{req.email}</span>
+                      <span className="font-medium text-gray-900 dark:text-white truncate">{req.name}</span>
+                      <span className="text-[11px] text-gray-400 dark:text-slate-300 truncate">{req.email}</span>
                     </div>
                   </td>
                   <td data-label="Role">
@@ -180,7 +194,7 @@ export default function AdminRegistrationsPage() {
                   <td data-label="Actions" className="text-right">
                     <button 
                       onClick={() => setSelectedRequest(req)}
-                      className="p-1 text-gray-400 hover:bg-gray-50 rounded" 
+                      className="p-1 text-gray-400 dark:text-gray-500 hover:bg-gray-50 dark:hover:bg-slate-800 rounded" 
                       title="View Details"
                     >
                       <Eye className="h-4 w-4" />
@@ -195,11 +209,11 @@ export default function AdminRegistrationsPage() {
 
       {/* Details Modal */}
       {selectedRequest && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 overflow-y-auto">
-          <div className="bg-white rounded-md shadow-xl w-full max-w-lg mt-10 mb-10">
-            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between sticky top-0 bg-white rounded-t-lg">
-              <h2 className="text-[15px] font-semibold text-gray-900">{t("common.registrations")}</h2>
-              <button onClick={() => setSelectedRequest(null)} className="text-gray-400 hover:text-gray-600">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm overflow-y-auto">
+          <div className="bg-white dark:bg-slate-900 rounded-md shadow-xl w-full max-w-lg mt-10 mb-10 border border-gray-100 dark:border-slate-800">
+            <div className="px-6 py-4 border-b border-gray-100 dark:border-slate-800 flex items-center justify-between sticky top-0 bg-white dark:bg-slate-900 rounded-t-lg">
+              <h2 className="text-[15px] font-semibold text-gray-900 dark:text-white">{t("common.registrations")}</h2>
+              <button onClick={() => setSelectedRequest(null)} className="text-gray-400 hover:text-gray-600 dark:hover:text-white">
                 <X className="h-5 w-5" />
               </button>
             </div>
@@ -207,7 +221,7 @@ export default function AdminRegistrationsPage() {
             <div className="p-6 space-y-4 text-[13px]">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-gray-400 block mb-1">{t("common.name")}</label>
+                  <label className="text-gray-400 dark:text-gray-500 block mb-1">{t("common.name")}</label>
                   <input 
                     className="admin-input" 
                     value={editData?.name || ""} 
@@ -215,7 +229,7 @@ export default function AdminRegistrationsPage() {
                   />
                 </div>
                 <div>
-                  <label className="text-gray-400 block mb-1">{t("common.role")}</label>
+                  <label className="text-gray-400 dark:text-gray-500 block mb-1">{t("common.role")}</label>
                   <select 
                     className="admin-input" 
                     value={editData?.role || ""} 
@@ -227,7 +241,7 @@ export default function AdminRegistrationsPage() {
                   </select>
                 </div>
                 <div className="col-span-2">
-                  <label className="text-gray-400 block mb-1">{t("common.email")}</label>
+                  <label className="text-gray-400 dark:text-gray-500 block mb-1">{t("common.email")}</label>
                   <input 
                     className="admin-input" 
                     value={editData?.email || ""} 
@@ -236,11 +250,11 @@ export default function AdminRegistrationsPage() {
                 </div>
               </div>
 
-              <div className="pt-4 border-t border-gray-50 space-y-3">
+              <div className="pt-4 border-t border-gray-50 dark:border-slate-800 space-y-3">
                 {editData?.role === "STUDENT" && (
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="text-gray-400 block mb-1">Student ID</label>
+                      <label className="text-gray-400 dark:text-gray-500 block mb-1">Student ID</label>
                       <input 
                         className="admin-input" 
                         value={editData?.studentId || ""} 
@@ -248,7 +262,7 @@ export default function AdminRegistrationsPage() {
                       />
                     </div>
                     <div>
-                      <label className="text-gray-400 block mb-1">Promotion</label>
+                      <label className="text-gray-400 dark:text-gray-500 block mb-1">Promotion</label>
                       <select 
                         className="admin-input" 
                         value={editData?.promotion || ""} 
@@ -259,7 +273,7 @@ export default function AdminRegistrationsPage() {
                       </select>
                     </div>
                     <div>
-                      <label className="text-gray-400 block mb-1">Speciality</label>
+                      <label className="text-gray-400 dark:text-gray-500 block mb-1">Speciality</label>
                       <select 
                         className="admin-input" 
                         value={editData?.speciality || ""} 
@@ -270,8 +284,8 @@ export default function AdminRegistrationsPage() {
                       </select>
                     </div>
                     <div>
-                      <label className="text-gray-400 block mb-1">Academic Year</label>
-                      <div className="admin-input bg-gray-50 text-gray-500 cursor-not-allowed flex items-center">
+                      <label className="text-gray-400 dark:text-gray-500 block mb-1">Academic Year</label>
+                      <div className="admin-input bg-gray-50 dark:bg-slate-800 text-gray-500 dark:text-gray-400 cursor-not-allowed flex items-center">
                         {currentYear || "N/A"}
                       </div>
                       <input type="hidden" value={currentYear} />
@@ -282,7 +296,7 @@ export default function AdminRegistrationsPage() {
                 {editData?.role === "TEACHER" && (
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="text-gray-400 block mb-1">Speciality</label>
+                      <label className="text-gray-400 dark:text-gray-500 block mb-1">Speciality</label>
                       <select 
                         className="admin-input" 
                         value={editData?.speciality || ""} 
@@ -293,7 +307,7 @@ export default function AdminRegistrationsPage() {
                       </select>
                     </div>
                     <div>
-                      <label className="text-gray-400 block mb-1">Grade</label>
+                      <label className="text-gray-400 dark:text-gray-500 block mb-1">Grade</label>
                       <input 
                         className="admin-input" 
                         value={editData?.grade || ""} 
@@ -306,7 +320,7 @@ export default function AdminRegistrationsPage() {
                 {editData?.role === "COMPANY" && (
                   <div className="space-y-3">
                     <div>
-                      <label className="text-gray-400 block mb-1">Company</label>
+                      <label className="text-gray-400 dark:text-gray-500 block mb-1">Company</label>
                       <input 
                         className="admin-input" 
                         value={editData?.companyName || ""} 
@@ -315,7 +329,7 @@ export default function AdminRegistrationsPage() {
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <label className="text-gray-400 block mb-1">Sector</label>
+                        <label className="text-gray-400 dark:text-gray-500 block mb-1">Sector</label>
                         <input 
                           className="admin-input" 
                           value={editData?.sector || ""} 
@@ -323,7 +337,7 @@ export default function AdminRegistrationsPage() {
                         />
                       </div>
                       <div>
-                        <label className="text-gray-400 block mb-1">Wilaya</label>
+                        <label className="text-gray-400 dark:text-gray-500 block mb-1">Wilaya</label>
                         <input 
                           className="admin-input" 
                           value={editData?.wilaya || ""} 
@@ -336,17 +350,17 @@ export default function AdminRegistrationsPage() {
               </div>
 
               {selectedRequest.motivation && (
-                <div className="pt-4 border-t border-gray-50">
-                  <label className="text-gray-400 block mb-1">Motivation / Extra Info</label>
-                  <div className="bg-gray-50 p-3 rounded text-gray-700 whitespace-pre-wrap leading-relaxed">
+                <div className="pt-4 border-t border-gray-50 dark:border-slate-800">
+                  <label className="text-gray-400 dark:text-gray-500 block mb-1">Motivation / Extra Info</label>
+                  <div className="bg-gray-50 dark:bg-slate-800/50 p-3 rounded text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">
                     {selectedRequest.motivation}
                   </div>
                 </div>
               )}
             </div>
 
-            <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex items-center justify-end space-x-3 rounded-b-lg">
-              {selectedRequest.status === "PENDING" && (
+            <div className="px-6 py-4 bg-gray-50 dark:bg-slate-800/50 border-t border-gray-100 dark:border-slate-800 flex items-center justify-end space-x-3 rounded-b-lg">
+              {session?.user?.isSuperAdmin && selectedRequest.status === "PENDING" && (
                 <>
                   <Button 
                     variant="danger" 
@@ -396,14 +410,14 @@ export default function AdminRegistrationsPage() {
         }
       >
         <div className="space-y-4">
-          <div className="flex items-center gap-3 text-amber-600 bg-amber-50 p-3 rounded-lg border border-amber-100">
+          <div className="flex items-center gap-3 text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 p-3 rounded-lg border border-amber-100 dark:border-amber-800/50">
             <AlertTriangle className="h-5 w-5 flex-shrink-0" />
             <p className="text-[12px] font-medium leading-tight">
               Please provide a clear reason for rejecting this registration. The user will receive this in their notification email.
             </p>
           </div>
           <div>
-            <label className="text-[12px] font-bold text-gray-700 block mb-2 uppercase tracking-wide">
+            <label className="text-[12px] font-bold text-gray-700 dark:text-white block mb-2 uppercase tracking-wide">
               Rejection Note
             </label>
             <textarea
@@ -414,17 +428,29 @@ export default function AdminRegistrationsPage() {
               autoFocus
             />
             
-            <div className="mt-4 flex items-center gap-2">
-              <input 
-                type="checkbox" 
-                id="blockEmail" 
-                className="rounded border-gray-300 text-red-600 focus:ring-red-500"
-                checked={blockEmail}
-                onChange={(e) => setBlockEmail(e.target.checked)}
-              />
-              <label htmlFor="blockEmail" className="text-[12px] font-medium text-gray-700 select-none cursor-pointer">
-                Also permanently block this email address
-              </label>
+            <div className="mt-6 p-4 bg-red-50/50 dark:bg-red-900/10 border border-red-100 dark:border-red-900/20 rounded-xl flex items-center justify-between transition-all hover:bg-red-50 dark:hover:bg-red-900/20">
+              <div className="flex items-center gap-3">
+                <div className={`p-2 rounded-lg ${blockEmail ? 'bg-red-100 dark:bg-red-900/40 text-red-600' : 'bg-gray-100 dark:bg-slate-800 text-gray-400'}`}>
+                  <AlertTriangle className="h-4 w-4" />
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-[12px] font-bold text-gray-900 dark:text-white uppercase tracking-wider">Blacklist Domain</span>
+                  <span className="text-[11px] text-gray-500 dark:text-gray-400">Permanently block this email address</span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setBlockEmail(!blockEmail)}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-all duration-300 focus:outline-none ${
+                  blockEmail ? 'bg-red-600 shadow-[0_0_10px_rgba(220,38,38,0.3)]' : 'bg-gray-200 dark:bg-slate-700'
+                }`}
+              >
+                <span
+                  className={`${
+                    blockEmail ? 'translate-x-6' : 'translate-x-1'
+                  } inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-300 shadow-sm`}
+                />
+              </button>
             </div>
           </div>
         </div>

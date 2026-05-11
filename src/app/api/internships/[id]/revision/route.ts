@@ -23,6 +23,17 @@ export async function POST(
 
   try {
     const { id } = await params;
+
+    // Dept Admin Scoping Check
+    if (session.user.role === 'ADMIN' && !session.user.isSuperAdmin && session.user.filiereId) {
+      const internship = await prisma.internship.findUnique({
+        where: { id },
+        include: { topic: { select: { filiereId: true } } }
+      });
+      if (internship && internship.topic.filiereId && internship.topic.filiereId !== session.user.filiereId) {
+        return NextResponse.json({ error: "Forbidden: Internship belongs to another department" }, { status: 403 });
+      }
+    }
     const body = await req.json();
     const { comment } = revisionSchema.parse(body);
 

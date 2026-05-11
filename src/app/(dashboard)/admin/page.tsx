@@ -10,6 +10,14 @@ export default async function AdminDashboardPage() {
 
   const currentAcademicYear = await SettingsService.getCurrentAcademicYear();
 
+  const isSuperAdmin = session.user.isSuperAdmin;
+  const filiereId = session.user.filiereId;
+
+  // Pre-fetch topic IDs for this filiere to bypass missing Prisma relations
+  const filiereTopicIds = (!isSuperAdmin && filiereId)
+    ? (await prisma.topic.findMany({ where: { filiereId }, select: { id: true } })).map(t => t.id)
+    : null;
+
   const [
     studentCount,
     teacherCount,
@@ -19,18 +27,42 @@ export default async function AdminDashboardPage() {
     pendingRegistrations,
     recentTopics,
   ] = await Promise.all([
-    prisma.user.count({ where: { role: "STUDENT", isActive: true } }),
+    prisma.studentProfile.count({ 
+      where: { 
+        academicYear: currentAcademicYear,
+        ...( !isSuperAdmin && filiereId ? { filiereId } : {} )
+      } 
+    }),
     prisma.user.count({ where: { role: "TEACHER", isActive: true } }),
     prisma.user.count({ where: { role: "COMPANY", isActive: true } }),
-    prisma.internship.count({ where: { status: "IN_PROGRESS", academicYear: currentAcademicYear } }),
-    prisma.internship.count({ where: { status: "PENDING_ADMIN_CONFIRMATION" } }),
+    prisma.internship.count({ 
+      where: { 
+        status: "IN_PROGRESS", 
+        academicYear: currentAcademicYear,
+        ...( filiereTopicIds ? { topicId: { in: filiereTopicIds } } : {} )
+      }
+    }),
+    prisma.internship.count({ 
+      where: { 
+        status: "PENDING_ADMIN_CONFIRMATION",
+        ...( filiereTopicIds ? { topicId: { in: filiereTopicIds } } : {} )
+      }
+    }),
     prisma.registrationRequest.findMany({
-      where: { status: "PENDING" },
+      where: { 
+        status: "PENDING",
+        // Registration requests are usually global, but we could scope them if needed
+      },
       orderBy: { createdAt: "desc" },
       take: 5,
-      select: { id: true, name: true, email: true, role: true, createdAt: true },
+      select: { id: true, name: true, email: true, role: true, createdAt: true, status: true },
     }),
-    prisma.topic.count({ where: { status: "PENDING_ADMIN" } }),
+    prisma.topic.count({ 
+      where: { 
+        status: "PENDING_ADMIN",
+        ...( !isSuperAdmin && filiereId ? { filiereId } : {} )
+      } as any
+    }),
   ]);
 
   return (

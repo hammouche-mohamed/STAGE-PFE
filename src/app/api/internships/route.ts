@@ -27,9 +27,14 @@ export async function GET(req: NextRequest) {
   const skip = (page - 1) * limit;
 
   try {
-    const where: Record<string, unknown> = archivedOnly
+    const where: Record<string, any> = archivedOnly
       ? { archivedAt: { not: null } }
-      : { academicYear };
+      : {
+          OR: [
+            { academicYear },
+            { NOT: { status: { in: ['COMPLETED', 'CANCELLED'] } } }
+          ]
+        };
 
     if (role === 'STUDENT') {
       where.students = { some: { studentId: session.user.id } };
@@ -37,8 +42,18 @@ export async function GET(req: NextRequest) {
       where.teacherId = session.user.id;
     } else if (role === 'COMPANY') {
       where.topic = { proposedById: session.user.id };
-    } else if (role === 'ADMIN' && showAll) {
-      delete where.academicYear;
+    } else if (role === 'ADMIN') {
+      if (showAll && session.user.isSuperAdmin) {
+        delete where.academicYear;
+      }
+      if (!session.user.isSuperAdmin) {
+        if (session.user.filiereId) {
+          where.topic = { filiereId: session.user.filiereId };
+        } else {
+          // If a normal admin is not assigned to a department, they see nothing.
+          where.id = "UNASSIGNED_ADMIN_BLOCK";
+        }
+      }
     }
     // ADMIN sees all
 
@@ -58,15 +73,18 @@ export async function GET(req: NextRequest) {
           endDate: true,
           midtermDeadline: true,
           finalDeadline: true,
+          technicalSupervisorName: true,
+          technicalSupervisorEmail: true,
           archivedAt: true,
           chatArchivedAt: true,
           teacherValidatedFinalReport: true,
           companyValidatedFinalReport: true,
           createdAt: true,
-          topic: { select: { title: true, type: true, internshipType: true, companyName: true } },
+          topic: { select: { title: true, type: true, internshipType: true, companyName: true, description: true } },
           teacher: { select: { id: true, name: true, email: true } },
           students: { include: { student: { select: { id: true, name: true, email: true } } } },
           _count: { select: { documents: true, messages: true } },
+
         },
         orderBy: { createdAt: 'desc' },
         take: limit,
@@ -75,8 +93,28 @@ export async function GET(req: NextRequest) {
       prisma.internship.count({ where }),
     ]);
 
+    // Stitch in teacher departments manually to bypass missing schema relations
+    const teacherIds = [...new Set(internships.map(i => i.teacher.id))];
+    const [teacherProfiles, allFilieres] = await Promise.all([
+      prisma.teacherProfile.findMany({ where: { userId: { in: teacherIds } } }),
+      prisma.filiere.findMany()
+    ]);
+
+    const stitchedInternships = internships.map(i => {
+      const prof = teacherProfiles.find(p => p.userId === i.teacher.id);
+      const filiere = prof ? allFilieres.find(f => f.id === prof.filiereId) : null;
+      
+      return {
+        ...i,
+        teacher: {
+          ...i.teacher,
+          filiereName: filiere?.name || "No Dept"
+        }
+      };
+    });
+
     return NextResponse.json({
-      data: internships,
+      data: stitchedInternships,
       pagination: { page, limit, total, pages: Math.ceil(total / limit) },
     });
   } catch (error) {
@@ -94,6 +132,14 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const { topicId, teacherId, academicYear, studentIds } = internshipSchema.parse(body);
+
+    // Dept Admin Scoping Check
+    if (!session.user.isSuperAdmin && session.user.filiereId) {
+      const topic = await prisma.topic.findUnique({ where: { id: topicId }, select: { filiereId: true } });
+      if (topic && topic.filiereId && topic.filiereId !== session.user.filiereId) {
+        return NextResponse.json({ error: "Forbidden: Topic belongs to another department" }, { status: 403 });
+      }
+    }
 
     if (studentIds.length > 2) {
       return NextResponse.json({ error: 'Maximum 2 students per internship.' }, { status: 409 });
@@ -165,6 +211,26 @@ export async function POST(req: NextRequest) {
         relatedType: 'Internship',
         link: '/student/internship',
       });
+    }
+
+    // Notify Super Admins if a Department Admin created the internship
+    if (!session.user.isSuperAdmin) {
+      const superAdmins = await prisma.user.findMany({
+        where: { adminProfile: { isSuperAdmin: true } },
+        select: { id: true }
+      });
+
+      for (const sa of superAdmins) {
+        await NotificationService.trigger({
+          userId: sa.id,
+          type: "INTERNSHIP_STARTED",
+          title: "New Team Created by Department Admin",
+          message: `Admin ${session.user.name} has created a new internship team for topic ID: ${topicId}.`,
+          relatedId: internship.id,
+          relatedType: "Internship",
+          link: `/admin/internships`
+        });
+      }
     }
 
     await AuditService.log({

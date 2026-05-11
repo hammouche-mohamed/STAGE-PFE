@@ -15,7 +15,6 @@ export async function GET(req: NextRequest) {
     select: {
       id: true, name: true, email: true, role: true, avatarUrl: true,
       isActive: true, mustChangePassword: true, createdAt: true, updatedAt: true,
-      studentProfile: true, teacherProfile: true, companyProfile: true,
     },
   });
 
@@ -23,7 +22,32 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Profile not found" }, { status: 404 });
   }
 
-  return NextResponse.json({ data: user });
+  // Fetch the role-specific profile separately to bypass missing schema relations
+  let extendedUser = { ...user } as any;
+  
+  if (user.role === 'STUDENT') {
+    extendedUser.studentProfile = await prisma.studentProfile.findUnique({ 
+      where: { userId: user.id } 
+    });
+  } else if (user.role === 'TEACHER') {
+    extendedUser.teacherProfile = await prisma.teacherProfile.findUnique({ 
+      where: { userId: user.id } 
+    });
+  } else if (user.role === 'COMPANY') {
+    extendedUser.companyProfile = await prisma.companyProfile.findUnique({ 
+      where: { userId: user.id } 
+    });
+  } else if (user.role === 'ADMIN') {
+    extendedUser.adminProfile = await prisma.adminProfile.findUnique({ 
+      where: { userId: user.id } 
+    });
+  }
+
+  if (!user) {
+    return NextResponse.json({ error: "Profile not found" }, { status: 404 });
+  }
+
+  return NextResponse.json({ data: extendedUser });
 }
 
 export async function PUT(req: NextRequest) {
@@ -47,8 +71,8 @@ export async function PUT(req: NextRequest) {
   if (email !== undefined && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return NextResponse.json({ error: "Please provide a valid email address." }, { status: 400 });
   }
-  if (newPassword && newPassword.length < 8) {
-    return NextResponse.json({ error: "New password must be at least 8 characters." }, { status: 400 });
+  if (newPassword && (newPassword.length < 12 || !/[0-9]/.test(newPassword))) {
+    return NextResponse.json({ error: "New password must be at least 12 characters and include at least one number." }, { status: 400 });
   }
 
   if (email && email !== user.email) {

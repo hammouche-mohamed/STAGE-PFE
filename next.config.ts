@@ -1,6 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  reactStrictMode: false,
+  compress: true,
+  poweredByHeader: true,
   logging: {
     fetches: {
       fullUrl: true,
@@ -13,9 +16,8 @@ const nextConfig: NextConfig = {
     ignoreBuildErrors: true,
   },
   experimental: {
-    optimizePackageImports: ["lucide-react", "recharts", "date-fns"],
+    optimizePackageImports: ["lucide-react", "recharts", "date-fns", "sonner", "lucide-react"],
   },
-  /* config options here */
 };
 
 export default nextConfig;

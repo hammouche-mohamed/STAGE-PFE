@@ -92,6 +92,34 @@ export async function GET(req: NextRequest) {
   if (!internshipId) return NextResponse.json({ error: "InternshipId required" }, { status: 400 });
 
   try {
+    const internship = await prisma.internship.findUnique({
+      where: { id: internshipId },
+      include: { topic: true }
+    });
+
+    if (!internship) return NextResponse.json({ error: "Internship not found" }, { status: 404 });
+
+    const participation = await prisma.internshipStudent.findFirst({
+      where: { internshipId, studentId: session.user.id }
+    });
+
+    let isAdminAuthorized = false;
+    if (session.user.role === "ADMIN") {
+      if (session.user.isSuperAdmin) {
+        isAdminAuthorized = true;
+      } else if (session.user.filiereId && internship.topic?.filiereId === session.user.filiereId) {
+        isAdminAuthorized = true;
+      }
+    }
+
+    const isCompanyOwner = session.user.role === "COMPANY" && internship.topic?.proposedById === session.user.id;
+    const isTeacher = internship.teacherId === session.user.id;
+    const isStudent = !!participation;
+
+    const isAuthorized = isStudent || isAdminAuthorized || isTeacher || isCompanyOwner;
+    if (!isAuthorized) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
+
     const documents = await prisma.document.findMany({
       where: { internshipId },
       include: {

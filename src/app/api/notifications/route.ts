@@ -13,11 +13,14 @@ export async function GET(req: NextRequest) {
     const countOnly = searchParams.get("count") === "true";
     const unreadOnly = searchParams.get("unread") === "true";
 
+    const securitySeen = req.cookies.get("security_notif_seen")?.value === "true";
+
     if (countOnly) {
-      const count = await prisma.notification.count({
+      const dbCount = await prisma.notification.count({
         where: { userId: session.user.id, isRead: false },
       });
-      return NextResponse.json({ count });
+      const totalCount = (session.user.mustChangePassword && !securitySeen) ? dbCount + 1 : dbCount;
+      return NextResponse.json({ count: totalCount });
     }
 
     const notifications = await prisma.notification.findMany({
@@ -28,6 +31,25 @@ export async function GET(req: NextRequest) {
       orderBy: { createdAt: "desc" },
       take: 50,
     });
+
+    if (session.user.mustChangePassword) {
+      // If unreadOnly is requested, and the security notice is "seen", don't include it
+      if (unreadOnly && securitySeen) {
+        // Skip
+      } else {
+        const securityNotif = {
+          id: "security-password-change",
+          title: "Security Action Required",
+          message: "Your account requires a password update. Please change your password in the profile settings to secure your account.",
+          isRead: securitySeen,
+          createdAt: new Date().toISOString(),
+          type: "SECURITY",
+          relatedType: "SECURITY",
+          link: "/profile"
+        };
+        notifications.unshift(securityNotif as any);
+      }
+    }
 
     return NextResponse.json({ data: notifications });
   } catch (error) {
@@ -49,7 +71,14 @@ export async function PATCH(req: NextRequest) {
         where: { userId: session.user.id, isRead: false },
         data: { isRead: true },
       });
-      return NextResponse.json({ success: true });
+      
+      const response = NextResponse.json({ success: true });
+      // Mark the virtual security notification as "seen" for the current session/day
+      response.cookies.set("security_notif_seen", "true", { 
+        maxAge: 60 * 60 * 24, // 24 hours
+        path: '/',
+      });
+      return response;
     }
 
     return NextResponse.json({ error: "Unsupported action" }, { status: 400 });

@@ -24,6 +24,7 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { useTranslation } from "@/lib/i18n/LanguageContext";
+import { useSession } from "next-auth/react";
 
 const Badge = ({ children, className = "" }: { children: React.ReactNode; className?: string }) => (
   <span className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold uppercase tracking-wider ${className}`}>
@@ -47,6 +48,7 @@ interface Topic {
   maxStudents: number;
   academicYear: string;
   proposedBy: { id: string; name: string; email: string };
+  assignedTeacherId?: string | null;
   assignedTeacher?: { id: string; name: string } | null;
   rejectionReason?: string;
   filiereId?: string | null;
@@ -67,6 +69,7 @@ export default function AdminTopicDetailPage() {
   const { id } = useParams();
   const router = useRouter();
   const { t } = useTranslation();
+  const { data: session } = useSession();
   const { setLabel } = useBreadcrumbs();
   const [topic, setTopic] = useState<Topic | null>(null);
   const [teachers, setTeachers] = useState<Teacher[]>([]);
@@ -212,25 +215,27 @@ export default function AdminTopicDetailPage() {
           {t("common.back")}
         </Link>
 
-        <div className="flex items-center gap-3">
-          <Button 
-            variant="outline" 
-            onClick={() => setIsDeleteDialogOpen(true)}
-            size="sm"
-            className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-100"
-          >
-            <Trash2 className="h-4 w-4 mr-2" />
-            {t("common.delete")}
-          </Button>
-          <Button 
-            onClick={handleUpdate} 
-            isLoading={isUpdating}
-            size="sm"
-            className="shadow-md"
-          >
-            {t("common.save")}
-          </Button>
-        </div>
+        {!session?.user?.isSuperAdmin && (
+          <div className="flex items-center gap-3">
+            <Button 
+              variant="outline" 
+              onClick={() => setIsDeleteDialogOpen(true)}
+              size="sm"
+              className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-100"
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              {t("common.delete")}
+            </Button>
+            <Button 
+              onClick={handleUpdate} 
+              isLoading={isUpdating}
+              size="sm"
+              className="shadow-md"
+            >
+              {t("common.save")}
+            </Button>
+          </div>
+        )}
       </div>
 
       <div className="flex flex-col lg:flex-row gap-6">
@@ -247,11 +252,12 @@ export default function AdminTopicDetailPage() {
             <div className="space-y-4">
               <div className="space-y-2">
                 <label className="text-[12px] font-bold text-gray-500 uppercase">{t("topics.title")} <span className="text-red-500">*</span></label>
-                <input 
-                  className="admin-input font-semibold text-[16px]" 
-                  value={editData.title}
-                  onChange={(e) => setEditData({...editData, title: e.target.value})}
-                />
+                  <input 
+                    className="admin-input font-semibold text-[16px]" 
+                    value={editData.title}
+                    onChange={(e) => setEditData({...editData, title: e.target.value})}
+                    disabled={session?.user?.isSuperAdmin}
+                  />
               </div>
 
               <div className="space-y-2">
@@ -260,6 +266,7 @@ export default function AdminTopicDetailPage() {
                   className="admin-input min-h-[150px] text-[14px] leading-relaxed py-3"
                   value={editData.description}
                   onChange={(e) => setEditData({...editData, description: e.target.value})}
+                  disabled={session?.user?.isSuperAdmin}
                 />
               </div>
             </div>
@@ -281,6 +288,7 @@ export default function AdminTopicDetailPage() {
                       className="w-full text-[13px] p-2 border border-gray-200 rounded-md focus:ring-1 focus:ring-indigo-500"
                       value={editData.status}
                       onChange={(e) => setEditData({...editData, status: e.target.value})}
+                      disabled={session?.user?.isSuperAdmin}
                     >
                       <option value="PENDING_ADMIN">Waiting Review</option>
                       <option value="PENDING_TEACHER">Waiting Supervisor Approval</option>
@@ -296,6 +304,7 @@ export default function AdminTopicDetailPage() {
                       className="w-full text-[13px] p-2 border border-gray-200 rounded-md focus:ring-1 focus:ring-indigo-500"
                       value={editData.type}
                       onChange={(e) => setEditData({...editData, type: e.target.value})}
+                      disabled={session?.user?.isSuperAdmin}
                     >
                       <option value="STUDENT_PROPOSED">Student Initiative</option>
                       <option value="COMPANY_PROPOSED">Company Partnership</option>
@@ -309,6 +318,7 @@ export default function AdminTopicDetailPage() {
                       className="w-full text-[13px] p-2 border border-gray-200 rounded-md focus:ring-1 focus:ring-indigo-500"
                       value={editData.maxStudents}
                       onChange={(e) => setEditData({...editData, maxStudents: parseInt(e.target.value)})}
+                      disabled={session?.user?.isSuperAdmin}
                     />
                   </div>
                 </div>
@@ -320,6 +330,7 @@ export default function AdminTopicDetailPage() {
                       className="w-full text-[13px] p-2 border border-gray-200 rounded-md focus:ring-1 focus:ring-indigo-500"
                       value={editData.teacherId}
                       onChange={(e) => setEditData({...editData, teacherId: e.target.value})}
+                      disabled={session?.user?.isSuperAdmin}
                     >
                       <option value="">No Supervisor Assigned</option>
                       {teachers.map(t => (
@@ -334,6 +345,7 @@ export default function AdminTopicDetailPage() {
                       className="w-full text-[13px] p-2 border border-gray-200 rounded-md focus:ring-1 focus:ring-indigo-500"
                       value={editData.filiereId}
                       onChange={(e) => setEditData({...editData, filiereId: e.target.value})}
+                      disabled={session?.user?.isSuperAdmin}
                     >
                       <option value="">Select Filière...</option>
                       {filieres.map(f => (
@@ -350,12 +362,12 @@ export default function AdminTopicDetailPage() {
                       <button
                         key={level}
                         type="button"
-                        onClick={() => toggleLevel(level)}
+                        onClick={() => !session?.user?.isSuperAdmin && toggleLevel(level)}
                         className={`px-4 py-1.5 rounded-md text-[12px] font-bold transition-all ${
                           selectedLevels.includes(level)
                             ? "bg-indigo-600 text-white shadow-sm"
                             : "bg-gray-100 text-gray-500 hover:bg-gray-200"
-                        }`}
+                        } ${session?.user?.isSuperAdmin ? "cursor-default" : "cursor-pointer"}`}
                       >
                         {level}
                       </button>
@@ -424,6 +436,146 @@ export default function AdminTopicDetailPage() {
                </div>
              )}
           </div>
+
+          {/* Student Applications Section */}
+          {session?.user?.role === "ADMIN" && (topic as any).studentApplications && (topic as any).studentApplications.length > 0 && (
+            <div className="bg-white border border-gray-200 rounded-md shadow-sm overflow-hidden">
+               <div className="border-b border-gray-100 bg-green-50/30 px-6 py-4">
+                 <h3 className="text-[14px] font-bold text-gray-900 flex items-center">
+                    <Users className="h-4 w-4 mr-2 text-green-600" />
+                    Student Team Applications
+                    <span className="ml-2 px-2 py-0.5 bg-green-600 text-white text-[10px] rounded-full">{(topic as any).studentApplications.length}</span>
+                 </h3>
+               </div>
+               <div className="divide-y divide-gray-50">
+                 {(topic as any).studentApplications.map((app: any) => (
+                   <div key={app.id} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-gray-50/50 transition-colors">
+                     <div className="flex items-start gap-3">
+                       <div className="h-10 w-10 rounded-lg bg-gray-100 flex items-center justify-center">
+                         <Users className="h-5 w-5 text-gray-400" />
+                       </div>
+                       <div>
+                         <div className="flex flex-wrap items-center gap-1">
+                           {app.team?.members?.map((m: any, index: number) => (
+                             <React.Fragment key={m.id}>
+                               {index > 0 && <span className="text-gray-300 mx-1">&</span>}
+                               <p className="text-[13px] font-bold text-gray-900">
+                                 {m.student.name} {m.isLeader && "(L)"}
+                               </p>
+                             </React.Fragment>
+                           ))}
+                         </div>
+                         <p className="text-[11px] text-gray-400">Applied on {format(new Date(app.appliedAt), "MMM d, yyyy")}</p>
+                         <div className="flex items-center gap-2 mt-1">
+                           <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold uppercase ${app.team?.members?.length > 1 ? "bg-blue-50 text-blue-600 border border-blue-100" : "bg-gray-50 text-gray-600 border border-gray-100"}`}>
+                             {app.team?.members?.length} Member(s)
+                           </span>
+                           {topic.type === "COMPANY_PROPOSED" && (
+                             <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold uppercase ${
+                               app.status === "ACCEPTED" ? "bg-green-50 text-green-600 border border-green-100" :
+                               app.status === "REJECTED" ? "bg-red-50 text-red-600 border border-red-100" :
+                               "bg-amber-50 text-amber-600 border border-amber-100"
+                             }`}>
+                               Company: {app.status}
+                             </span>
+                           )}
+                         </div>
+                       </div>
+                     </div>
+                     {app.message && (
+                       <div className="w-full mt-3 bg-indigo-50/50 border border-indigo-100 rounded-lg p-3">
+                         <p className="text-[11px] font-bold text-indigo-400 uppercase tracking-wider mb-1">Motivation Letter</p>
+                         <p className="text-[12px] text-gray-600 whitespace-pre-wrap">{app.message}</p>
+                       </div>
+                     )}
+                     <div className="flex gap-2 mt-3 sm:mt-0">
+                       <Button 
+                         size="sm" 
+                         className="bg-indigo-600 hover:bg-indigo-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                         disabled={topic.type === "COMPANY_PROPOSED" && app.status !== "ACCEPTED"}
+                         title={topic.type === "COMPANY_PROPOSED" && app.status !== "ACCEPTED" ? "Waiting for Company Validation" : "Approve & Create Internship"}
+                         onClick={async () => {
+                           if (!topic.assignedTeacherId) {
+                             toast.error("Please assign a supervisor before approving a team.");
+                             return;
+                           }
+                           setIsUpdating(true);
+                           try {
+                             const studentIds = app.team.members.map((m: any) => m.studentId);
+
+                             const res = await fetch("/api/internships", {
+                               method: "POST",
+                               headers: { "Content-Type": "application/json" },
+                               body: JSON.stringify({
+                                 topicId: topic.id,
+                                 teacherId: topic.assignedTeacherId,
+                                 academicYear: topic.academicYear,
+                                 studentIds
+                               }),
+                             });
+
+                             if (!res.ok) {
+                               const error = await res.json();
+                               throw new Error(error.error || "Failed to approve team");
+                             }
+
+                             toast.success("Team approved and internship created!");
+                             router.push("/admin/internships");
+                           } catch (err: any) {
+                             toast.error(err.message);
+                           } finally {
+                             setIsUpdating(false);
+                           }
+                         }}
+                         isLoading={isUpdating}
+                         disabled={topic.status === "TAKEN"}
+                       >
+                         {topic.status === "TAKEN" ? "Already Assigned" : "Approve & Create Internship"}
+                       </Button>
+                     </div>
+                   </div>
+                 ))}
+               </div>
+            </div>
+          )}
+
+          {/* Teacher Applications Section */}
+          {session?.user?.role === "ADMIN" && (topic as any).teacherApplications && (topic as any).teacherApplications.length > 0 && (
+            <div className="bg-white border border-gray-200 rounded-md shadow-sm overflow-hidden">
+               <div className="border-b border-gray-100 bg-indigo-50/30 px-6 py-4">
+                 <h3 className="text-[14px] font-bold text-gray-900 flex items-center">
+                    <GraduationCap className="h-4 w-4 mr-2 text-indigo-500" />
+                    Supervision Requests
+                    <span className="ml-2 px-2 py-0.5 bg-indigo-600 text-white text-[10px] rounded-full">{(topic as any).teacherApplications.length}</span>
+                 </h3>
+               </div>
+               <div className="divide-y divide-gray-50">
+                 {(topic as any).teacherApplications.map((app: any) => (
+                   <div key={app.id} className="p-4 flex items-center justify-between hover:bg-gray-50/50 transition-colors">
+                     <div className="flex items-center gap-3">
+                       <div className="h-9 w-9 rounded-full bg-gray-100 flex items-center justify-center font-bold text-gray-500 text-[12px]">
+                         {app.teacher.name.charAt(0)}
+                       </div>
+                       <div>
+                         <p className="text-[13px] font-bold text-gray-900">{app.teacher.name}</p>
+                         <p className="text-[11px] text-gray-400">{format(new Date(app.appliedAt), "MMM d, HH:mm")}</p>
+                       </div>
+                     </div>
+                     <Button 
+                       size="sm" 
+                       variant="outline" 
+                       className="text-indigo-600 border-indigo-100 hover:bg-indigo-50"
+                       onClick={() => handleUpdate({ teacherId: app.teacherId, status: "OPEN_FOR_SELECTION" })}
+                       isLoading={isUpdating}
+                       disabled={topic.assignedTeacherId === app.teacherId}
+                     >
+                       {topic.assignedTeacherId === app.teacherId ? "Assigned" : "Assign Supervisor"}
+                     </Button>
+                   </div>
+                 ))}
+               </div>
+            </div>
+          )}
         </div>
 
         {/* Sidebar Info */}

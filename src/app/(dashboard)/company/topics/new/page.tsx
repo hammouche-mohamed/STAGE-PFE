@@ -24,21 +24,29 @@ export default function NewTopicPage() {
     defaultValues: {
       type: "COMPANY_PROPOSED",
       maxStudents: 1,
-      academicYear: "2024-2025", // will be overridden from settings
+      academicYear: "N/A", // will be overridden from settings
     }
   });
 
+  const [filieres, setFilieres] = useState<any[]>([]);
+  
   useEffect(() => {
-    const fetchYear = async () => {
+    const fetchData = async () => {
       try {
-        const res = await fetch("/api/settings/public");
-        const data = await res.json();
-        if (data.data?.currentAcademicYear) {
-          reset((values: Record<string, unknown>) => ({ ...values, academicYear: data.data.currentAcademicYear }));
+        const [settingsRes, filieresRes] = await Promise.all([
+          fetch("/api/settings/public"),
+          fetch("/api/filieres")
+        ]);
+        const settingsData = await settingsRes.json();
+        const filieresData = await filieresRes.json();
+        
+        if (settingsData.data?.currentAcademicYear) {
+          reset((values: Record<string, unknown>) => ({ ...values, academicYear: settingsData.data.currentAcademicYear }));
         }
+        setFilieres(filieresData.data || []);
       } catch { /* keep default */ }
     };
-    fetchYear();
+    fetchData();
   }, [reset]);
 
   const onSubmit = async (data: any) => {
@@ -103,6 +111,20 @@ export default function NewTopicPage() {
               className="admin-input h-auto py-2"
               placeholder="e.g. React, Python, Machine Learning basics..."
             />
+          </div>
+
+          <div className="w-full">
+            <label className="admin-form-label">Target Department (Filière) <span className="text-red-500">*</span></label>
+            <select 
+              {...register("filiereId")} 
+              className={`admin-input ${errors.filiereId ? "border-red-500" : ""}`}
+            >
+              <option value="">Select a department...</option>
+              {filieres.map(f => (
+                <option key={f.id} value={f.id}>{f.name} ({f.code})</option>
+              ))}
+            </select>
+            {errors.filiereId && <p className="admin-error">{errors.filiereId.message as string}</p>}
           </div>
 
           <div className="grid grid-cols-2 gap-6">

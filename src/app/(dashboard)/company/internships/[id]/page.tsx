@@ -31,6 +31,8 @@ interface Internship {
   students: { student: { name: string; email: string } }[];
   status: string;
   academicYear: string;
+  internshipType?: string | null;
+  finalDeadline?: string | null;
   defense?: { id: string; scheduledAt: string; room: string } | null;
 }
 
@@ -173,16 +175,28 @@ export default function CompanyInternshipDetailPage() {
         </p>
       </div>
 
-      {/* Activation Form (Only for DOCUMENT_SENT status) */}
       {internship.status === "DOCUMENT_SENT" && (
         <div className="bg-indigo-50 border border-indigo-200 rounded-md p-6 shadow-sm">
           <h2 className="text-[15px] font-bold text-indigo-900 mb-2 flex items-center">
             <CheckCircle2 className="h-5 w-5 mr-2 text-indigo-600" />
-            Confirm Internship Dates & Supervisor
+            Confirm Internship Dates &amp; Supervisor
           </h2>
-          <p className="text-[12px] text-indigo-700 mb-6">
-            The administration has sent the convention. Please confirm the actual start/end dates and provide the contact info for the technical supervisor.
-          </p>
+
+          {internship.internshipType === "PFE" ? (
+            <div className="bg-purple-50 border border-purple-200 rounded-md p-4 mb-4">
+              <p className="text-[13px] text-purple-800 font-semibold mb-1">📌 PFE Internship — End Date Managed by Administration</p>
+              <p className="text-[12px] text-purple-700">
+                For PFE internships, the end date is automatically set by the administration's final report deadline.
+                {internship.finalDeadline
+                  ? ` The current end date is: ${format(new Date(internship.finalDeadline), "PPP")}.`
+                  : " The administration has not yet set a final deadline. You can still provide the start date and supervisor info now."}
+              </p>
+            </div>
+          ) : (
+            <p className="text-[12px] text-indigo-700 mb-6">
+              The administration has sent the convention. Please confirm the actual start/end dates and provide the contact info for the technical supervisor.
+            </p>
+          )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
             <Input
@@ -191,12 +205,14 @@ export default function CompanyInternshipDetailPage() {
               value={activationData.startDate}
               onChange={(e) => setActivationData({ ...activationData, startDate: e.target.value })}
             />
-            <Input
-              label="End Date"
-              type="date"
-              value={activationData.endDate}
-              onChange={(e) => setActivationData({ ...activationData, endDate: e.target.value })}
-            />
+            {internship.internshipType !== "PFE" && (
+              <Input
+                label="End Date"
+                type="date"
+                value={activationData.endDate}
+                onChange={(e) => setActivationData({ ...activationData, endDate: e.target.value })}
+              />
+            )}
             <Input
               label="Technical Supervisor Name"
               placeholder="e.g. Jean Dupont"
@@ -216,7 +232,7 @@ export default function CompanyInternshipDetailPage() {
             onClick={handleActivate}
             isLoading={isSubmitting}
           >
-            Confirm Dates & Activate
+            Confirm &amp; Activate
           </Button>
         </div>
       )}

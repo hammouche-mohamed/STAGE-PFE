@@ -17,8 +17,8 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   const session = await auth();
-  if (!session?.user || session.user.role !== "ADMIN") {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!session?.user || session.user.role !== "ADMIN" || !session.user.isSuperAdmin) {
+    return NextResponse.json({ error: "Forbidden: Only Super Admins can manage departments" }, { status: 403 });
   }
   try {
     const { name, code } = await req.json();

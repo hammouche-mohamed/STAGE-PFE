@@ -59,6 +59,7 @@ export async function POST(req: NextRequest) {
           maxStudents: validatedData.maxStudents,
           academicYear: validatedData.academicYear,
           proposedById: session.user.id,
+          filiereId: validatedData.filiereId,
           assignedTeacherId: validatedData.assignedTeacherId,
           status: 'PENDING_ADMIN',
           updatedAt: new Date(),
@@ -185,9 +186,24 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const where: Record<string, unknown> = {
-      academicYear,
-      ...(filiereFilter && { filiereId: filiereFilter }),
+    // Get IDs of topics that are linked to COMPLETED or CANCELLED internships
+    const completedInternships = await prisma.internship.findMany({
+      where: { status: { in: ['COMPLETED', 'CANCELLED'] } },
+      select: { topicId: true }
+    });
+    const completedTopicIds = completedInternships.map(i => i.topicId);
+
+    const where: Record<string, any> = {
+      id: { notIn: completedTopicIds },
+      OR: [
+        { academicYear },
+        { status: { in: ['OPEN_FOR_SELECTION', 'APPROVED', 'PENDING_ADMIN', 'UNDER_REVIEW', 'TAKEN'] } }
+      ],
+      ...(session.user.role === 'ADMIN' && !session.user.isSuperAdmin 
+        ? (session.user.filiereId 
+            ? { filiereId: session.user.filiereId } 
+            : { id: "UNASSIGNED_ADMIN_BLOCK" })
+        : filiereFilter && { filiereId: filiereFilter }),
       ...(typeFilter && { type: typeFilter as never }),
       ...(allowedInternshipTypes
         ? { internshipType: { in: allowedInternshipTypes as never[] } }
@@ -196,7 +212,19 @@ export async function GET(req: NextRequest) {
         : {}),
       // Role-specific visibility rules
       ...(session.user.role === 'STUDENT' && { status: 'OPEN_FOR_SELECTION' }),
-      ...((session.user.role === 'COMPANY' || session.user.role === 'TEACHER') && {
+      ...(session.user.role === 'TEACHER' && {
+        OR: [
+          { proposedById: session.user.id },
+          { 
+            AND: [
+              { status: 'APPROVED' },
+              { assignedTeacherId: null },
+              session.user.filiereId ? { filiereId: session.user.filiereId } : {},
+            ]
+          }
+        ]
+      }),
+      ...(session.user.role === 'COMPANY' && {
         proposedById: session.user.id,
       }),
       // Optional status filter for admin

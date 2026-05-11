@@ -8,6 +8,8 @@ declare module 'next-auth' {
       role: string;
       isActive: boolean;
       mustChangePassword: boolean;
+      isSuperAdmin?: boolean;
+      filiereId?: string | null;
       level?: StudentLevel | null;
     } & DefaultSession['user'];
   }
@@ -16,6 +18,8 @@ declare module 'next-auth' {
     role: string;
     isActive: boolean;
     mustChangePassword: boolean;
+    isSuperAdmin?: boolean;
+    filiereId?: string | null;
     level?: StudentLevel | null;
   }
 }
@@ -31,11 +35,41 @@ export const authConfig = {
         token.isActive = user.isActive;
         token.mustChangePassword = user.mustChangePassword;
         token.level = user.level ?? null;
+
+        // Fetch role-specific fields (isSuperAdmin for Admin, filiereId for Admin/Teacher)
+        if (user.role === "ADMIN" || user.role === "TEACHER") {
+          try {
+            // Dynamically import prisma to prevent it from loading in the Edge/Middleware runtime
+            const { default: prisma } = await import('./prisma');
+            
+            if (user.role === "ADMIN") {
+              const adminProfile = await prisma.adminProfile.findUnique({
+                where: { userId: user.id }
+              });
+              if (adminProfile) {
+                token.isSuperAdmin = adminProfile.isSuperAdmin;
+                token.filiereId = adminProfile.filiereId || null;
+              }
+            } else if (user.role === "TEACHER") {
+              const teacherProfile = await prisma.teacherProfile.findUnique({
+                where: { userId: user.id }
+              });
+              if (teacherProfile) {
+                token.filiereId = teacherProfile.filiereId || null;
+              }
+            }
+          } catch (error) {
+            console.error("JWT Callback Error:", error);
+          }
+        }
       }
       if (trigger === "update" && session?.user) {
         if (session.user.image) token.image = session.user.image;
         if (session.user.name) token.name = session.user.name;
         if (session.user.email) token.email = session.user.email;
+        if (typeof session.user.mustChangePassword === 'boolean') {
+          token.mustChangePassword = session.user.mustChangePassword;
+        }
       }
       return token;
     },
@@ -49,6 +83,8 @@ export const authConfig = {
         session.user.isActive = token.isActive as boolean;
         session.user.mustChangePassword = token.mustChangePassword as boolean;
         session.user.level = (token.level as StudentLevel | null) ?? null;
+        session.user.isSuperAdmin = token.isSuperAdmin as boolean;
+        session.user.filiereId = token.filiereId as string | null;
       }
       return session;
     },
@@ -59,7 +95,7 @@ export const authConfig = {
   },
   session: {
     strategy: 'jwt',
-    maxAge: 24 * 60 * 60,
-    updateAge: 60 * 60,
+    maxAge: 24 * 60 * 60, // 24 hours
+    updateAge: 0, // Update session on every request to accurately track inactivity
   },
 } satisfies NextAuthConfig;

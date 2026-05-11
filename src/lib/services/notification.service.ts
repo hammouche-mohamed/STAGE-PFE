@@ -103,6 +103,43 @@ export class NotificationService {
     return retried;
   }
 
+  /**
+   * Mark all notifications related to a specific entity as read for all users.
+   * Useful when an action is taken that resolves the notification (e.g. approving a request).
+   */
+  static async clearRelated(relatedId: string, relatedType?: string) {
+    try {
+      await prisma.notification.updateMany({
+        where: {
+          relatedId,
+          ...(relatedType ? { relatedType } : {}),
+          isRead: false,
+        },
+        data: { isRead: true },
+      });
+    } catch (error) {
+      console.error('[Notification] Failed to clear related notifications:', error);
+    }
+  }
+
+  /**
+   * Mark all notifications of a specific type as read for a specific user.
+   */
+  static async clearUserNotificationsByType(userId: string, type: string) {
+    try {
+      await prisma.notification.updateMany({
+        where: {
+          userId,
+          type: type as any,
+          isRead: false,
+        },
+        data: { isRead: true },
+      });
+    } catch (error) {
+      console.error('[Notification] Failed to clear user notifications by type:', error);
+    }
+  }
+
   /** Shared HTML email template */
   private static _buildEmailHtml(
     title: string,
@@ -114,7 +151,7 @@ export class NotificationService {
       <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;border:1px solid #e1e1e1;">
         <h2 style="color:#4f46e5;text-align:center;">${title}</h2>
         <p>Hello ${userName},</p>
-        <p>${message}</p>
+        <p>${message.replace(/\n/g, '<br />')}</p>
         ${
           link
             ? `<p style="text-align:center;margin-top:20px;">

@@ -127,12 +127,14 @@ export class MailService {
         ` : ""}
       </div>
       
+      ${isApproved ? `
       <div style="text-align: center;">
         <a href="${process.env.NEXT_PUBLIC_APP_URL}/login" 
            style="display: inline-block; background-color: ${NAVY}; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 15px;">
           Sign In to Portal
         </a>
       </div>
+      ` : ""}
     `);
 
     return transporter.sendMail({
@@ -141,5 +143,75 @@ export class MailService {
       subject: `Portal Update: Registration ${status}`,
       html,
     });
+  }
+  static async sendAdminInvitation(email: string, name: string, password: string, isSuperAdmin: boolean) {
+    const roleText = isSuperAdmin ? "Administrator" : "Department Administrator";
+    
+    const html = this.getEmailLayout(`
+      <h2 style="color: ${NAVY}; margin: 0 0 20px; font-size: 24px; font-weight: 600;">Welcome to ESST Portal</h2>
+      <p style="color: ${TEXT_GRAY}; line-height: 1.6; font-size: 16px; margin: 0 0 24px;">
+        Dear ${name},<br><br>
+        You have been invited to join the ESST Internship Management Portal as an <strong>${roleText}</strong>.
+      </p>
+      
+      <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 24px; margin-bottom: 32px;">
+        <p style="color: ${NAVY}; font-weight: 700; margin: 0 0 16px; font-size: 14px; text-transform: uppercase; letter-spacing: 0.05em;">
+          Your Access Credentials
+        </p>
+        <p style="margin: 0 0 8px; font-size: 15px; color: ${TEXT_GRAY};">
+          <strong>Email:</strong> ${email}
+        </p>
+        <p style="margin: 0; font-size: 15px; color: ${TEXT_GRAY};">
+          <strong>Temporary Password:</strong> <span style="font-family: monospace; background: #e2e8f0; padding: 2px 6px; border-radius: 4px;">${password}</span>
+        </p>
+      </div>
+
+      <p style="color: ${TEXT_GRAY}; line-height: 1.6; font-size: 15px; margin: 0 0 32px;">
+        For security reasons, you will be required to change this temporary password immediately upon your first login.
+      </p>
+      
+      <div style="text-align: left;">
+        <a href="${process.env.NEXT_PUBLIC_APP_URL}/login" 
+           style="display: inline-block; background-color: ${ACCENT}; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 15px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+          Sign In to Portal
+        </a>
+      </div>
+    `);
+
+    return transporter.sendMail({
+      from: `"${APP_NAME}" <${process.env.SMTP_USER}>`,
+      to: email,
+      subject: `Invitation: ESST Portal ${roleText} Access`,
+      html,
+    });
+  }
+
+  static async sendRegistrationReceived(email: string, name: string) {
+    const html = this.getEmailLayout(`
+      <h2 style="color: ${NAVY}; margin: 0 0 20px; font-size: 24px; font-weight: 600;">Registration Received</h2>
+      <p style="color: ${TEXT_GRAY}; line-height: 1.6; font-size: 16px; margin: 0 0 24px;">
+        Dear ${name},<br><br>
+        Thank you for registering with the ESST Internship Management Portal. We have successfully received your request.
+      </p>
+      <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 24px; margin-bottom: 32px;">
+        <p style="color: ${TEXT_GRAY}; line-height: 1.6; margin: 0; font-size: 15px;">
+          Your request is currently being reviewed by the administration. You will receive another email once your account has been activated.
+        </p>
+      </div>
+      <p style="color: #64748b; font-size: 14px; margin: 0;">
+        If you have any questions, please contact the department administration.
+      </p>
+    `);
+
+    try {
+      return await transporter.sendMail({
+        from: `"${APP_NAME}" <${process.env.SMTP_USER}>`,
+        to: email,
+        subject: "Registration Received - ESST Portal",
+        html,
+      });
+    } catch (error) {
+      console.error("Failed to send registration confirmation email:", error);
+    }
   }
 }

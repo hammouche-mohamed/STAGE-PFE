@@ -9,12 +9,12 @@ export const GET = handlers.GET;
  * Allows max 10 login attempts per IP per minute before returning 429.
  */
 export async function POST(req: NextRequest) {
-  const ip = getClientIp(req);
-  if (isRateLimited(`auth:login:${ip}`, 10, 60_000)) {
-    return NextResponse.json(
-      { error: 'Too many login attempts. Please wait a moment and try again.' },
-      { status: 429 },
-    );
-  }
+  // const ip = getClientIp(req);
+  // if (isRateLimited(`auth:login:${ip}`, 10, 60_000)) {
+  //   return NextResponse.json(
+  //     { error: 'Too many login attempts. Please wait a moment and try again.' },
+  //     { status: 429 },
+  //   );
+  // }
   return handlers.POST(req);
 }

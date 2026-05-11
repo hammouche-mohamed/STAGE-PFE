@@ -49,27 +49,27 @@ export const Modal: React.FC<ModalProps> = ({
 
       {/* Modal Container */}
       <div 
-        className={`relative w-full ${sizeClasses[size]} bg-white rounded-xl shadow-2xl overflow-hidden animate-in zoom-in-95 fade-in duration-300 flex flex-col max-h-[90vh]`}
+        className={`relative w-full ${sizeClasses[size]} bg-white dark:bg-slate-900 rounded-xl shadow-2xl overflow-hidden animate-in zoom-in-95 fade-in duration-300 flex flex-col max-h-[90vh] border border-transparent dark:border-slate-800 transition-colors duration-300`}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-          <h3 className="text-[16px] font-bold text-gray-900">{title}</h3>
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-slate-800">
+          <h3 className="text-[16px] font-bold text-gray-900 dark:text-white">{title}</h3>
           <button 
             onClick={onClose}
-            className="p-1 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-all"
+            className="p-1 rounded-md text-gray-400 hover:text-gray-600 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-slate-800 transition-all"
           >
             <X className="h-5 w-5" />
           </button>
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto px-6 py-6 font-sans">
+        <div className="flex-1 overflow-y-auto px-6 py-6 font-sans text-gray-600 dark:text-gray-400">
           {children}
         </div>
 
         {/* Footer */}
         {footer && (
-          <div className="px-6 py-4 border-t border-gray-100 bg-gray-50/50 flex justify-end gap-3">
+          <div className="px-6 py-4 border-t border-gray-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 flex justify-end gap-3">
             {footer}
           </div>
         )}

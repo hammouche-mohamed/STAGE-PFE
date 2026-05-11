@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/Input";
 import { toast } from "sonner";
 import { Settings, Lock, Unlock, Calendar, Palette, FileText, Trash2 } from "lucide-react";
 import { useTranslation } from "@/lib/i18n/LanguageContext";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 
 export default function AdminSettingsPage() {
   const router = useRouter();
@@ -23,12 +24,18 @@ export default function AdminSettingsPage() {
     availableSpecialities: "",
     availablePromotions: "",
     proposalFormTemplateUrl: "",
+    MAX_TEAM_SIZE: "2",
   });
   const [loadingKey, setLoadingKey] = useState<string | null>(null);
   const [brandingFile, setBrandingFile] = useState<File | null>(null);
   const [brandingPreview, setBrandingPreview] = useState<string | null>(null);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const [isUploadingTemplate, setIsUploadingTemplate] = useState(false);
+  const [showLogoDeleteConfirm, setShowLogoDeleteConfirm] = useState(false);
+  const [showTemplateDeleteConfirm, setShowTemplateDeleteConfirm] = useState(false);
+  const [showAcademicYearDeleteConfirm, setShowAcademicYearDeleteConfirm] = useState(false);
+  const [yearStart, setYearStart] = useState<string>("");
+  const [yearEnd, setYearEnd] = useState<string>("");
 
   const fetchSettings = async () => {
     try {
@@ -40,6 +47,14 @@ export default function AdminSettingsPage() {
           return acc;
         }, {});
         setSettings(prev => ({ ...prev, ...settingMap }));
+        if (settingMap.currentAcademicYear && settingMap.currentAcademicYear.includes("-")) {
+          const [start, end] = settingMap.currentAcademicYear.split("-");
+          setYearStart(start || "");
+          setYearEnd(end || "");
+        } else {
+          setYearStart("");
+          setYearEnd("");
+        }
       }
     } catch (error) {
       console.error("Failed to load settings:", error);
@@ -47,6 +62,25 @@ export default function AdminSettingsPage() {
   };
 
   const handleUpdate = async (key: string, value: string) => {
+    if (key === "currentAcademicYear" && value !== "-") {
+      const [start, end] = value.split("-");
+      const startNum = parseInt(start);
+      const endNum = parseInt(end);
+      
+      if (start && (startNum < 2000 || startNum > 2099)) {
+        toast.error("Start year must be between 2000 and 2099");
+        return;
+      }
+      if (end && (endNum < 2000 || endNum > 2099)) {
+        toast.error("End year must be between 2000 and 2099");
+        return;
+      }
+      if (start && end && startNum >= endNum) {
+        toast.error("End year must be after start year");
+        return;
+      }
+    }
+
     setLoadingKey(key);
     try {
       const res = await fetch("/api/settings", {
@@ -72,14 +106,27 @@ export default function AdminSettingsPage() {
   };
 
   const handleDeleteTemplate = async () => {
-    if (!confirm("Are you sure you want to delete the official proposal template? Users will no longer be able to download it.")) return;
     await handleUpdate("proposalFormTemplateUrl", "");
+    setShowTemplateDeleteConfirm(false);
+  };
+
+  const handleDeleteLogo = async () => {
+    await handleUpdate("universityLogo", "");
+    setShowLogoDeleteConfirm(false);
+    router.refresh();
+  };
+
+  const handleDeleteAcademicYear = async () => {
+    await handleUpdate("currentAcademicYear", "");
+    setYearStart("");
+    setYearEnd("");
+    setShowAcademicYearDeleteConfirm(false);
   };
 
   // NFR-S2: client-side role guard — redirect non-admins immediately
   useEffect(() => {
     if (status === "loading") return;
-    if (!session || session.user.role !== "ADMIN") {
+    if (!session || !session.user.isSuperAdmin) {
       router.replace("/");
     }
   }, [session, status, router]);
@@ -89,8 +136,8 @@ export default function AdminSettingsPage() {
   }, []);
 
   // Block render until session is confirmed
-  if (status === "loading" || !session || session.user.role !== "ADMIN") {
-    return <div className="p-8 text-center text-gray-400 text-sm">Verifying access…</div>;
+  if (status === "loading" || !session || !session.user.isSuperAdmin) {
+    return <div className="p-8 text-center text-gray-400 dark:text-gray-500 text-sm">Verifying access…</div>;
   }
 
   const handleBrandingSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -160,47 +207,84 @@ export default function AdminSettingsPage() {
   return (
     <div className="max-w-[800px] space-y-6">
       <div>
-        <h1 className="text-[17px] font-semibold text-gray-900">System Configuration</h1>
-        <p className="text-[13px] text-gray-500 mt-0.5">Control global application behavior and internship campaign parameters.</p>
+        <h1 className="text-[17px] font-semibold text-gray-900 dark:text-white">{t("admin.settings.title")}</h1>
+        <p className="text-[13px] text-gray-500 dark:text-gray-400 mt-0.5">{t("admin.settings.subtitle")}</p>
       </div>
 
       <div className="grid grid-cols-1 gap-6">
         {/* Academic Year */}
-        <div className="bg-white border border-gray-200 rounded-md p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
+        <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-md p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
           <div className="flex items-center space-x-4">
-            <div className="p-3 bg-indigo-50 rounded-md text-indigo-600 flex-shrink-0">
+            <div className="p-3 bg-indigo-50 dark:bg-indigo-900/30 rounded-md text-indigo-600 dark:text-indigo-400 flex-shrink-0">
               <Calendar className="h-5 w-5" />
             </div>
             <div>
-              <h3 className="text-[14px] font-semibold text-gray-900">Active Academic Year</h3>
-              <p className="text-[12px] text-gray-500">Topics and internships will be labeled with this year.</p>
+              <h3 className="text-[14px] font-semibold text-gray-900 dark:text-white">{t("admin.settings.academicYear")}</h3>
+              <p className="text-[12px] text-gray-500 dark:text-gray-400">{t("admin.settings.academicYearDesc")}</p>
             </div>
           </div>
-          <div className="flex items-center space-x-3 w-full sm:w-auto">
-            <input 
-              className="admin-input flex-1 sm:w-[120px] text-center font-mono" 
-              value={settings.currentAcademicYear || "2024-2025"}
-              onChange={(e) => setSettings({...settings, currentAcademicYear: e.target.value})}
-            />
+          <div className="flex items-center space-x-2 w-full sm:w-auto">
+            <div className="flex items-center bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-md px-2 focus-within:ring-2 focus-within:ring-indigo-500/20 focus-within:border-indigo-500 transition-all">
+              <input 
+                type="number"
+                min="2000"
+                max="2099"
+                className="w-20 bg-transparent border-none focus:ring-0 text-center py-1.5 text-[13px] font-mono text-gray-900 dark:text-white" 
+                placeholder="20xx"
+                value={yearStart}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (val.length > 4) return;
+                  setYearStart(val);
+                  if (val.length === 4) {
+                    setYearEnd((parseInt(val) + 1).toString());
+                  }
+                }}
+              />
+              <span className="text-gray-300 dark:text-gray-600 font-bold px-1">/</span>
+              <input 
+                type="number"
+                min="2000"
+                max="2099"
+                className="w-20 bg-transparent border-none focus:ring-0 text-center py-1.5 text-[13px] font-mono text-gray-900 dark:text-white" 
+                placeholder="20xx"
+                value={yearEnd}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (val.length > 4) return;
+                  setYearEnd(val);
+                }}
+              />
+            </div>
             <Button 
               size="sm" 
               isLoading={loadingKey === "currentAcademicYear"}
-              onClick={() => handleUpdate("currentAcademicYear", settings.currentAcademicYear)}
+              onClick={() => handleUpdate("currentAcademicYear", `${yearStart}-${yearEnd}`)}
             >
-              Update
+              {t("common.update")}
             </Button>
+            {settings.currentAcademicYear && settings.currentAcademicYear !== "N/A" && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="text-red-600 border-red-100 hover:bg-red-50"
+                onClick={() => setShowAcademicYearDeleteConfirm(true)}
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </Button>
+            )}
           </div>
         </div>
 
         {/* Public Registration */}
-        <div className="bg-white border border-gray-200 rounded-md p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
+        <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-md p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
           <div className="flex items-center space-x-4">
-            <div className={`p-3 rounded-md flex-shrink-0 ${settings.registrationOpen === "true" ? "bg-green-50 text-green-600" : "bg-red-50 text-red-600"}`}>
+            <div className={`p-3 rounded-md flex-shrink-0 ${settings.registrationOpen === "true" ? "bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400" : "bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400"}`}>
               {settings.registrationOpen === "true" ? <Unlock className="h-5 w-5" /> : <Lock className="h-5 w-5" />}
             </div>
             <div>
-              <h3 className="text-[14px] font-semibold text-gray-900">Public Registration Portal</h3>
-              <p className="text-[12px] text-gray-500">Allow users to submit new registration requests.</p>
+              <h3 className="text-[14px] font-semibold text-gray-900 dark:text-white">{t("admin.settings.publicRegistration")}</h3>
+              <p className="text-[12px] text-gray-500 dark:text-gray-400">{t("admin.settings.publicRegistrationDesc")}</p>
             </div>
           </div>
           <div className="w-full sm:w-auto">
@@ -210,20 +294,20 @@ export default function AdminSettingsPage() {
               isLoading={loadingKey === "registrationOpen"}
               onClick={() => handleUpdate("registrationOpen", settings.registrationOpen === "true" ? "false" : "true")}
             >
-              {settings.registrationOpen === "true" ? "Close Registration" : "Open Registration"}
+              {settings.registrationOpen === "true" ? t("admin.settings.closeRegistration") : t("admin.settings.openRegistration")}
             </Button>
           </div>
         </div>
 
         {/* Rejection Limits */}
-        <div className="bg-white border border-gray-200 rounded-md p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
+        <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-md p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
           <div className="flex items-center space-x-4">
-            <div className="p-3 bg-amber-50 rounded-md text-amber-600 flex-shrink-0">
+            <div className="p-3 bg-amber-50 dark:bg-amber-900/30 rounded-md text-amber-600 dark:text-amber-400 flex-shrink-0">
               <Settings className="h-5 w-5" />
             </div>
             <div>
-              <h3 className="text-[14px] font-semibold text-gray-900">Max Topic Rejections</h3>
-              <p className="text-[12px] text-gray-500">Limit how many times a topic can be rejected.</p>
+              <h3 className="text-[14px] font-semibold text-gray-900 dark:text-white">{t("admin.settings.maxRejections")}</h3>
+              <p className="text-[12px] text-gray-500 dark:text-gray-400">{t("admin.settings.maxRejectionsDesc")}</p>
             </div>
           </div>
           <div className="flex items-center space-x-3 w-full sm:w-auto">
@@ -238,47 +322,39 @@ export default function AdminSettingsPage() {
               isLoading={loadingKey === "maxResubmissions"}
               onClick={() => handleUpdate("maxResubmissions", settings.maxResubmissions)}
             >
-              Save
+              {t("common.save")}
             </Button>
           </div>
         </div>
 
-        {/* Specialities Management */}
-        <SettingsList
-          title="Specialities Management"
-          description="Add or remove specialities available for student registration."
-          value={settings.availableSpecialities}
-          onUpdate={(val) => handleUpdate("availableSpecialities", val)}
-          isLoading={loadingKey === "availableSpecialities"}
-          icon={<Settings className="h-5 w-5" />}
-          colorClass="bg-blue-50 text-blue-600"
-        />
+        {/* Departments Management (Replaces Specialities) */}
+        <DepartmentsManager />
 
         {/* Promotions Management */}
         <SettingsList
-          title="Promotions Management"
-          description="Manage the promotion levels available (e.g., M1, M2)."
+          title={t("admin.settings.promotions")}
+          description={t("admin.settings.promotionsDesc")}
           value={settings.availablePromotions}
           onUpdate={(val) => handleUpdate("availablePromotions", val)}
           isLoading={loadingKey === "availablePromotions"}
           icon={<Calendar className="h-5 w-5" />}
-          colorClass="bg-purple-50 text-purple-600"
+          colorClass="bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400"
         />
 
         {/* Branding & Assets */}
-        <div className="bg-white border border-gray-200 rounded-md p-6 shadow-sm">
+        <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-md p-6 shadow-sm">
           <div className="flex items-center space-x-4 mb-6">
-            <div className="p-3 bg-rose-50 rounded-md text-rose-600">
+            <div className="p-3 bg-rose-50 dark:bg-rose-900/30 rounded-md text-rose-600 dark:text-rose-400">
               <Palette className="h-5 w-5" />
             </div>
             <div>
-              <h3 className="text-[14px] font-semibold text-gray-900">Branding & Assets</h3>
-              <p className="text-[12px] text-gray-500">Manage the official university logo and visuals.</p>
+              <h3 className="text-[14px] font-semibold text-gray-900 dark:text-white">{t("admin.settings.branding")}</h3>
+              <p className="text-[12px] text-gray-500 dark:text-gray-400">{t("admin.settings.brandingDesc")}</p>
             </div>
           </div>
           
-          <div className="flex flex-col md:flex-row items-center gap-8 p-4 bg-gray-50 rounded-md border border-gray-200 border-dashed">
-            <div className="h-24 w-24 bg-white rounded-md border border-gray-200 flex items-center justify-center overflow-hidden">
+          <div className="flex flex-col md:flex-row items-center gap-8 p-4 bg-gray-50 dark:bg-slate-800/50 rounded-md border border-gray-200 dark:border-slate-700 border-dashed">
+            <div className="h-24 w-24 bg-white dark:bg-slate-800 rounded-md border border-gray-200 dark:border-slate-700 flex items-center justify-center overflow-hidden shadow-inner">
               {brandingPreview || settings.universityLogo ? (() => {
                 const rawUrl = brandingPreview || settings.universityLogo;
                 const finalUrl = rawUrl.startsWith("/uploads/") ? `/api${rawUrl}` : rawUrl;
@@ -288,22 +364,33 @@ export default function AdminSettingsPage() {
               )}
             </div>
             <div className="flex-1 text-center md:text-left">
-              <p className="text-[13px] font-medium text-gray-900 mb-1">University Official Logo</p>
-              <p className="text-[12px] text-gray-500 mb-4">Recommended: PNG with transparent background (Min 200x200px).</p>
+              <p className="text-[13px] font-medium text-gray-900 dark:text-white mb-1">{t("admin.settings.logoLabel")}</p>
+              <p className="text-[12px] text-gray-500 dark:text-gray-400 mb-4">{t("admin.settings.logoHint")}</p>
               {!brandingFile ? (
-                <div>
+                <div className="flex items-center gap-3 justify-center md:justify-start">
                    <input type="file" id="logo-upload" className="hidden" accept="image/*" onChange={handleBrandingSelect} />
                    <label htmlFor="logo-upload" className="cursor-pointer inline-flex items-center justify-center bg-indigo-600 text-white hover:bg-indigo-700 text-[12px] font-semibold h-9 px-4 rounded-md shadow-sm transition-all">
-                     Choose File
+                     {t("admin.settings.chooseFile")}
                    </label>
+                   {settings.universityLogo && (
+                     <Button 
+                       variant="outline" 
+                       size="sm" 
+                       className="text-red-600 border-red-100 hover:bg-red-50"
+                       onClick={() => setShowLogoDeleteConfirm(true)}
+                     >
+                       <Trash2 className="h-3.5 w-3.5 mr-2" />
+                       Supprimer
+                     </Button>
+                   )}
                 </div>
               ) : (
                 <div className="flex items-center gap-3 justify-center md:justify-start">
                    <Button size="sm" onClick={handleLogoUpload} isLoading={isUploadingLogo}>
-                     Add System Logo
+                     {t("admin.settings.addLogo")}
                    </Button>
                    <Button size="sm" variant="outline" onClick={() => { setBrandingFile(null); setBrandingPreview(null); }} disabled={isUploadingLogo}>
-                     Cancel
+                     {t("common.cancel")}
                    </Button>
                 </div>
               )}
@@ -312,25 +399,25 @@ export default function AdminSettingsPage() {
         </div>
 
         {/* Topic Form Template */}
-        <div className="bg-white border border-gray-200 rounded-md p-6 shadow-sm">
+        <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-md p-6 shadow-sm">
           <div className="flex items-center space-x-4 mb-6">
-            <div className="p-3 bg-blue-50 rounded-md text-blue-600">
+            <div className="p-3 bg-blue-50 dark:bg-blue-900/30 rounded-md text-blue-600 dark:text-blue-400">
               <FileText className="h-5 w-5" />
             </div>
             <div>
-              <h3 className="text-[14px] font-semibold text-gray-900">Topic Proposal Template</h3>
-              <p className="text-[12px] text-gray-500">Official form template for students and companies.</p>
+              <h3 className="text-[14px] font-semibold text-gray-900 dark:text-white">{t("admin.settings.topicTemplate")}</h3>
+              <p className="text-[12px] text-gray-500 dark:text-gray-400">{t("admin.settings.topicTemplateDesc")}</p>
             </div>
           </div>
           
-          <div className="p-4 bg-gray-50 rounded-md border border-gray-200 border-dashed">
-            <div className="flex items-center justify-between gap-4">
+          <div className="p-4 bg-gray-50 dark:bg-slate-800/50 rounded-md border border-gray-200 dark:border-slate-700 border-dashed">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="flex items-center gap-3">
-                 <div className="h-10 w-10 bg-white rounded border border-gray-200 flex items-center justify-center">
-                    <FileText className="h-5 w-5 text-gray-400" />
+                 <div className="h-10 w-10 bg-white dark:bg-slate-800 rounded border border-gray-200 dark:border-slate-700 flex items-center justify-center flex-shrink-0">
+                    <FileText className="h-5 w-5 text-gray-400 dark:text-gray-500" />
                  </div>
                  <div>
-                    <p className="text-[13px] font-medium text-gray-900">Official Proposal Form</p>
+                    <p className="text-[13px] font-medium text-gray-900 dark:text-white">{t("admin.settings.officialForm")}</p>
                     {settings.proposalFormTemplateUrl ? (
                       <div className="flex items-center gap-2">
                         <a 
@@ -338,10 +425,10 @@ export default function AdminSettingsPage() {
                           target="_blank" 
                           className="text-[11px] text-indigo-600 hover:underline"
                         >
-                          Download current template
+                          {t("admin.settings.downloadCurrent")}
                         </a>
                         <button 
-                          onClick={handleDeleteTemplate}
+                          onClick={() => setShowTemplateDeleteConfirm(true)}
                           disabled={loadingKey === "proposalFormTemplateUrl"}
                           className="p-1 text-gray-400 hover:text-red-600 transition-colors disabled:opacity-50"
                           title="Delete template"
@@ -350,20 +437,50 @@ export default function AdminSettingsPage() {
                         </button>
                       </div>
                     ) : (
-                      <p className="text-[11px] text-gray-500">No template uploaded yet.</p>
+                      <p className="text-[11px] text-gray-500">{t("admin.settings.noTemplate")}</p>
                     )}
                  </div>
               </div>
-              <div>
+              <div className="w-full sm:w-auto">
                  <input type="file" id="template-upload" className="hidden" accept=".pdf,.doc,.docx" onChange={handleTemplateSelect} />
-                 <label htmlFor="template-upload" className={`cursor-pointer inline-flex items-center justify-center bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 text-[12px] font-semibold h-9 px-4 rounded-md shadow-sm transition-all ${isUploadingTemplate ? "opacity-50 cursor-not-allowed" : ""}`}>
-                   {isUploadingTemplate ? "Uploading..." : "Upload New Template"}
+                 <label htmlFor="template-upload" className={`cursor-pointer inline-flex items-center justify-center w-full sm:w-auto bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 text-[12px] font-semibold h-9 px-4 rounded-md shadow-sm transition-all ${isUploadingTemplate ? "opacity-50 cursor-not-allowed" : ""}`}>
+                   {isUploadingTemplate ? t("admin.settings.uploading") : t("admin.settings.uploadNew")}
                  </label>
               </div>
             </div>
           </div>
         </div>
       </div>
+
+      <ConfirmDialog
+        isOpen={showLogoDeleteConfirm}
+        onClose={() => setShowLogoDeleteConfirm(false)}
+        onConfirm={handleDeleteLogo}
+        title="Delete University Logo"
+        description="Are you sure you want to delete the university logo? The system will revert to the default placeholder."
+        confirmLabel="Yes, Delete"
+        isLoading={loadingKey === "universityLogo"}
+      />
+
+      <ConfirmDialog
+        isOpen={showTemplateDeleteConfirm}
+        onClose={() => setShowTemplateDeleteConfirm(false)}
+        onConfirm={handleDeleteTemplate}
+        title="Delete Proposal Template"
+        description="Are you sure you want to delete the official proposal template? Users will no longer be able to download it."
+        confirmLabel="Yes, Delete"
+        isLoading={loadingKey === "proposalFormTemplateUrl"}
+      />
+
+      <ConfirmDialog
+        isOpen={showAcademicYearDeleteConfirm}
+        onClose={() => setShowAcademicYearDeleteConfirm(false)}
+        onConfirm={handleDeleteAcademicYear}
+        title="Clear Academic Year"
+        description="Are you sure you want to clear the current academic year? The system will use the default cycle calculation until a new one is set."
+        confirmLabel="Yes, Clear"
+        isLoading={loadingKey === "currentAcademicYear"}
+      />
     </div>
   );
 }
@@ -379,6 +496,7 @@ interface SettingsListProps {
 }
 
 function SettingsList({ title, description, value, onUpdate, isLoading, icon, colorClass }: SettingsListProps) {
+  const { t } = useTranslation();
   const [newItem, setNewItem] = useState("");
   const items = value.split(",").map(s => s.trim()).filter(Boolean);
 
@@ -399,36 +517,36 @@ function SettingsList({ title, description, value, onUpdate, isLoading, icon, co
   };
 
   return (
-    <div className="bg-white border border-gray-200 rounded-md p-6 shadow-sm">
+    <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-md p-6 shadow-sm">
       <div className="flex items-center space-x-4 mb-6">
         <div className={`p-3 rounded-md ${colorClass}`}>
           {icon}
         </div>
         <div>
-          <h3 className="text-[14px] font-semibold text-gray-900">{title}</h3>
-          <p className="text-[12px] text-gray-500">{description}</p>
+          <h3 className="text-[14px] font-semibold text-gray-900 dark:text-white">{title}</h3>
+          <p className="text-[12px] text-gray-500 dark:text-gray-400">{description}</p>
         </div>
       </div>
       
       <div className="space-y-4">
-        <div className="flex flex-wrap gap-2 min-h-[40px] p-3 bg-gray-50 rounded-md border border-gray-200">
+        <div className="flex flex-wrap gap-2 min-h-[40px] p-3 bg-gray-50 dark:bg-slate-800/50 rounded-md border border-gray-200 dark:border-slate-700">
           {items.map(item => (
-            <div key={item} className="flex items-center bg-white border border-gray-200 rounded-md px-2 py-1 text-[12px] font-medium text-gray-700 shadow-sm">
+            <div key={item} className="flex items-center bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-md px-2 py-1 text-[12px] font-medium text-gray-700 dark:text-gray-200 shadow-sm">
               {item}
               <button 
                 onClick={() => removeItem(item)}
-                className="ml-2 text-gray-400 hover:text-red-600 transition-colors"
+                className="ml-2 text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 transition-colors"
               >
                 ×
               </button>
             </div>
           ))}
-          {items.length === 0 && <span className="text-gray-400 text-[12px]">No items configured</span>}
+          {items.length === 0 && <span className="text-gray-400 dark:text-gray-500 text-[12px]">{t("admin.settings.noItems")}</span>}
         </div>
 
         <div className="flex flex-col sm:flex-row sm:items-center gap-3">
           <Input 
-            placeholder="Add new item..." 
+            placeholder={t("admin.settings.newItemPlaceholder")} 
             value={newItem}
             onChange={(e) => setNewItem(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && addItem()}
@@ -441,7 +559,123 @@ function SettingsList({ title, description, value, onUpdate, isLoading, icon, co
             isLoading={isLoading}
             disabled={!newItem.trim()}
           >
-            Add Item
+            {t("admin.settings.addItem")}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DepartmentsManager() {
+  const { t } = useTranslation();
+  const [departments, setDepartments] = useState<any[]>([]);
+  const [newDept, setNewDept] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [isFetching, setIsFetching] = useState(true);
+
+  const fetchDepartments = async () => {
+    setIsFetching(true);
+    try {
+      const res = await fetch("/api/filieres");
+      const data = await res.json();
+      if (data.data) {
+        setDepartments(data.data);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsFetching(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchDepartments();
+  }, []);
+
+  const handleAdd = async () => {
+    if (!newDept.trim()) return;
+    setIsLoading(true);
+    try {
+      const res = await fetch("/api/filieres", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: newDept }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to add department");
+      
+      toast.success("Department added successfully");
+      setNewDept("");
+      await fetchDepartments();
+    } catch (error: any) {
+      toast.error(error.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleRemove = async (id: string) => {
+    try {
+      const res = await fetch(`/api/filieres/${id}`, { method: "DELETE" });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Failed to delete department");
+      }
+      toast.success("Department removed");
+      await fetchDepartments();
+    } catch (error: any) {
+      toast.error(error.message);
+    }
+  };
+
+  return (
+    <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-md p-6 shadow-sm">
+      <div className="flex items-center space-x-4 mb-6">
+        <div className="p-3 rounded-md bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400">
+          <Settings className="h-5 w-5" />
+        </div>
+        <div>
+          <h3 className="text-[14px] font-semibold text-gray-900 dark:text-white">{t("admin.settings.departments")}</h3>
+          <p className="text-[12px] text-gray-500 dark:text-gray-400">{t("admin.settings.departmentsDesc")}</p>
+        </div>
+      </div>
+      
+      <div className="space-y-4">
+        <div className="flex flex-wrap gap-2 min-h-[40px] p-3 bg-gray-50 dark:bg-slate-800/50 rounded-md border border-gray-200 dark:border-slate-700">
+          {isFetching ? (
+            <span className="text-gray-400 dark:text-gray-500 text-[12px]">{t("admin.settings.loading")}</span>
+          ) : departments.map(dept => (
+            <div key={dept.id} className="flex items-center bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-md px-2 py-1 text-[12px] font-medium text-gray-700 dark:text-gray-200 shadow-sm">
+              {dept.name}
+              <button 
+                onClick={() => handleRemove(dept.id)}
+                className="ml-2 text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 transition-colors"
+                title="Delete Department"
+              >
+                ×
+              </button>
+            </div>
+          ))}
+          {!isFetching && departments.length === 0 && <span className="text-gray-400 dark:text-gray-500 text-[12px]">{t("admin.settings.noDepartments")}</span>}
+        </div>
+
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+          <Input 
+            placeholder={t("admin.settings.newDeptPlaceholder")} 
+            value={newDept}
+            onChange={(e) => setNewDept(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleAdd()}
+            containerClassName="w-full sm:flex-1"
+          />
+          <Button 
+            className="w-full sm:w-auto"
+            size="sm" 
+            onClick={handleAdd}
+            isLoading={isLoading}
+            disabled={!newDept.trim()}
+          >
+            {t("admin.settings.addDepartment")}
           </Button>
         </div>
       </div>

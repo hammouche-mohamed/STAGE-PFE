@@ -14,14 +14,26 @@ export async function GET(req: NextRequest) {
     const counts: Record<string, number> = {};
 
     if (role === "ADMIN") {
-      counts["/admin/registrations"] = await prisma.registrationRequest.count({
-        where: { status: "PENDING" },
-      });
+      const filiereId = session.user.isSuperAdmin ? null : session.user.filiereId;
+
+      if (session.user.isSuperAdmin) {
+        counts["/admin/registrations"] = await prisma.registrationRequest.count({
+          where: { status: "PENDING" },
+        });
+      }
+
       counts["/admin/topics"] = await prisma.topic.count({
-        where: { status: "PENDING_ADMIN" },
+        where: { 
+          status: "PENDING_ADMIN",
+          ...(filiereId ? { filiereId } : {})
+        } as any,
       });
+      
       counts["/admin/internships"] = await prisma.internship.count({
-        where: { status: "REQUESTED" },
+        where: { 
+          status: "REQUESTED",
+          ...(filiereId ? { topic: { filiereId } } : {})
+        } as any,
       });
     } else if (role === "TEACHER") {
       counts["/teacher/internships"] = await prisma.internship.count({
@@ -62,6 +74,10 @@ export async function GET(req: NextRequest) {
           reads: { none: { userId } },
         },
       });
+    }
+
+    if (session.user.mustChangePassword) {
+      counts["/profile"] = 1;
     }
 
     return NextResponse.json(counts);

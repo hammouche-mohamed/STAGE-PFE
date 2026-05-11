@@ -42,7 +42,6 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    console.log(`[cron/archive] Archived ${toArchive.length} internships`);
     return NextResponse.json({ archived: toArchive.length, chatArchivedAt: chatArchiveDate });
   } catch (error) {
     console.error("[cron/archive] Error:", error);

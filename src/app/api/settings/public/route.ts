@@ -9,22 +9,27 @@ let cachedPublicSettings: { data: Record<string, string>; expiry: number } | nul
 const CACHE_TTL = 5 * 60 * 1000;
 
 export async function GET() {
-  if (cachedPublicSettings && cachedPublicSettings.expiry > Date.now()) {
-    return NextResponse.json({ data: cachedPublicSettings.data });
-  }
-
   try {
-    const settings = await prisma.systemSettings.findMany({
-      where: { key: { in: PUBLIC_KEYS } },
-      select: { key: true, value: true },
-    });
+    const [settings, filieres] = await Promise.all([
+      prisma.systemSettings.findMany({
+        where: { key: { in: PUBLIC_KEYS } },
+        select: { key: true, value: true },
+      }),
+      prisma.filiere.findMany({
+        where: { isActive: true },
+        select: { id: true, name: true }
+      })
+    ]);
     
     const result: Record<string, any> = {};
     for (const s of settings) result[s.key] = s.value;
 
-    cachedPublicSettings = { data: result, expiry: Date.now() + CACHE_TTL };
+    // Merge Filieres into result
+    result.filieres = filieres;
+
+
     return NextResponse.json({ data: result });
   } catch {
-    return NextResponse.json({ data: {} });
+    return NextResponse.json({ data: { filieres: [] } });
   }
 }

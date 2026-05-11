@@ -15,7 +15,7 @@ export const dynamic = "force-dynamic";
 
 export default async function Home() {
   let logoUrl = "";
-  let academicYear = "2024-2025";
+  let academicYear = "N/A";
   let registrationOpen = "false";
 
   try {
@@ -23,7 +23,7 @@ export default async function Home() {
     const baseLogoUrl = logoSetting?.value || "";
     const routedLogoUrl = baseLogoUrl.startsWith("/uploads/") ? `/api${baseLogoUrl}` : baseLogoUrl;
     logoUrl = routedLogoUrl ? `${routedLogoUrl}?v=${logoSetting?.updatedAt?.getTime() || Date.now()}` : "";
-    academicYear = yearSetting?.value || "2024-2025";
+    academicYear = yearSetting?.value || "N/A";
     registrationOpen = regSetting?.value || "false";
   } catch {
     // DB unavailable — render with defaults

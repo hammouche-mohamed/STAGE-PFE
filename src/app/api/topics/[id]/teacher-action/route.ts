@@ -67,6 +67,9 @@ export async function PATCH(
       targetId: topic.title,
     });
 
+    // Clear supervision notifications for the teacher
+    await NotificationService.clearRelated(id, 'Topic');
+
     return NextResponse.json({ message: `Topic ${action.toLowerCase()}ed successfully` });
   } catch (error) {
     return NextResponse.json({ error: "Action failed" }, { status: 500 });

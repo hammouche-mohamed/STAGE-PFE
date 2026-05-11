@@ -76,8 +76,8 @@ export default async function TeacherDashboardPage() {
     <div className="space-y-6 pb-8">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-[17px] font-bold text-gray-900 leading-none">Teacher Workspace</h1>
-          <p className="text-[13px] text-gray-500 mt-1.5">
+          <h1 className="text-[17px] font-bold text-gray-900 dark:text-white leading-none">Teacher Workspace</h1>
+          <p className="text-[13px] text-gray-500 dark:text-gray-400 mt-1.5">
             Welcome back, {teacher.name}. Monitor your student supervisions and academic progress.
           </p>
         </div>
@@ -118,13 +118,13 @@ export default async function TeacherDashboardPage() {
         {/* Active Supervisions List */}
         <div className="lg:col-span-2 space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-[14px] font-bold text-gray-900 flex items-center">
-              <Clock className="h-4 w-4 mr-2 text-indigo-600" />
+            <h2 className="text-[14px] font-bold text-gray-900 dark:text-white flex items-center">
+              <Clock className="h-4 w-4 mr-2 text-indigo-600 dark:text-indigo-400" />
               Active Supervisions
             </h2>
             <Link
               href="/teacher/internships"
-              className="text-[12px] font-bold text-indigo-600 hover:text-indigo-700 flex items-center"
+              className="text-[12px] font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 flex items-center"
             >
               View all <ArrowRight className="ml-1 h-3 w-3" />
             </Link>
@@ -132,27 +132,27 @@ export default async function TeacherDashboardPage() {
 
           <div className="space-y-3">
             {activeInternships.length === 0 ? (
-              <div className="bg-white border border-gray-100 rounded-xl p-10 text-center shadow-sm">
-                <Briefcase className="h-10 w-10 text-gray-100 mx-auto mb-3" />
-                <p className="text-[13px] text-gray-400">No active supervisions found.</p>
+              <div className="bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-xl p-10 text-center shadow-sm">
+                <Briefcase className="h-10 w-10 text-gray-100 dark:text-gray-800 mx-auto mb-3" />
+                <p className="text-[13px] text-gray-400 dark:text-gray-500">No active supervisions found.</p>
               </div>
             ) : (
               activeInternships.map((internship) => (
                 <Link
                   key={internship.id}
                   href={`/teacher/internships/${internship.id}`}
-                  className="block bg-white border border-gray-100 rounded-xl p-4 shadow-sm hover:shadow-md hover:border-indigo-100 transition-all group"
+                  className="block bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-xl p-4 shadow-sm hover:shadow-md hover:border-indigo-100 dark:hover:border-indigo-900 transition-all group"
                 >
                   <div className="flex items-center justify-between">
                     <div className="min-w-0 flex-1">
-                      <p className="text-[13px] font-bold text-gray-900 truncate group-hover:text-indigo-700 transition-colors">
+                      <p className="text-[13px] font-bold text-gray-900 dark:text-white truncate group-hover:text-indigo-700 dark:group-hover:text-indigo-400 transition-colors">
                         {internship.topic.title}
                       </p>
-                      <p className="text-[11px] text-gray-500 mt-1 truncate">
+                      <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1 truncate">
                         {internship.students.map(s => s.student.name).join(" · ")}
                       </p>
                     </div>
-                    <div className="h-8 w-8 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white transition-all">
+                    <div className="h-8 w-8 rounded-full bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400 group-hover:bg-indigo-600 group-hover:text-white transition-all">
                       <ArrowRight className="h-4 w-4" />
                     </div>
                   </div>
@@ -166,32 +166,32 @@ export default async function TeacherDashboardPage() {
         <div className="space-y-6">
           {/* Recent Messages */}
           <div className="space-y-4">
-            <h2 className="text-[14px] font-bold text-gray-900 flex items-center">
-              <MessageSquare className="h-4 w-4 mr-2 text-indigo-600" />
+            <h2 className="text-[14px] font-bold text-gray-900 dark:text-white flex items-center">
+              <MessageSquare className="h-4 w-4 mr-2 text-indigo-600 dark:text-indigo-400" />
               Recent Activity
             </h2>
-            <div className="bg-white border border-gray-100 rounded-xl p-1 shadow-sm">
+            <div className="bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-xl p-1 shadow-sm">
               {recentMessages.length === 0 ? (
                 <p className="p-6 text-center text-[12px] text-gray-400">No recent messages.</p>
               ) : (
                 recentMessages.map((m) => (
-                  <div key={m.id} className="p-3 border-b border-gray-50 last:border-0">
+                  <div key={m.id} className="p-3 border-b border-gray-50 dark:border-slate-800 last:border-0">
                     <div className="flex justify-between items-start gap-2">
-                      <p className="text-[12px] font-bold text-gray-900 truncate">{m.sender.name}</p>
-                      <span className="text-[9px] text-gray-400 shrink-0 font-medium uppercase tracking-tighter">
+                      <p className="text-[12px] font-bold text-gray-900 dark:text-white truncate">{m.sender.name}</p>
+                      <span className="text-[9px] text-gray-400 dark:text-gray-500 shrink-0 font-medium uppercase tracking-tighter">
                         {new Date(m.sentAt).toLocaleDateString([], { month: 'short', day: 'numeric' })}
                       </span>
                     </div>
-                    <p className="text-[11px] text-gray-500 truncate mt-0.5" title={m.internship.topic.title}>
+                    <p className="text-[11px] text-gray-500 dark:text-gray-400 truncate mt-0.5" title={m.internship.topic.title}>
                       {m.internship.topic.title}
                     </p>
-                    <p className="text-[12px] text-gray-600 line-clamp-1 mt-1 italic">
+                    <p className="text-[12px] text-gray-600 dark:text-gray-300 line-clamp-1 mt-1 italic">
                       &quot;{m.content.replace(/^↩ .*?\n\n/, "").slice(0, 50)}...&quot;
                     </p>
                   </div>
                 ))
               )}
-              <Link href="/teacher/messages" className="block p-3 text-center text-[11px] font-bold text-indigo-600 hover:bg-gray-50 transition-colors rounded-b-xl border-t border-gray-50">
+              <Link href="/teacher/messages" className="block p-3 text-center text-[11px] font-bold text-indigo-600 dark:text-indigo-400 hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-colors rounded-b-xl border-t border-gray-50 dark:border-slate-800">
                 Open All Messages →
               </Link>
             </div>

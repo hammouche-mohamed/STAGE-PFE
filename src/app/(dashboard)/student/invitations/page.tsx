@@ -11,13 +11,14 @@ import { useTranslation } from "@/lib/i18n/LanguageContext";
 
 interface Invitation {
   id: string;
-  status: "PENDING" | "ACCEPTED" | "DECLINED" | "EXPIRED";
+  status: "PENDING" | "ACCEPTED" | "REJECTED" | "EXPIRED";
   message: string | null;
   expiresAt: string;
   createdAt: string;
-  application: {
-    topic: { title: string; internshipType: string | null };
-    leader: { name: string; email: string };
+  team: {
+    members: Array<{
+      student: { name: string; email: string };
+    }>;
   };
 }
 
@@ -31,7 +32,7 @@ export default function InvitationsPage() {
   const fetchInvitations = async () => {
     setIsLoading(true);
     try {
-      const res = await fetch("/api/binome-invitations");
+      const res = await fetch("/api/teams/invitations");
       const data = await res.json();
       setInvitations(data.data || []);
     } catch {
@@ -48,10 +49,10 @@ export default function InvitationsPage() {
   const respond = async (invitationId: string, accept: boolean) => {
     setResponding(invitationId);
     try {
-      const res = await fetch(`/api/binome-invitations/${invitationId}`, {
+      const res = await fetch(`/api/teams/invitations/${invitationId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ accept }),
+        body: JSON.stringify({ accept, comment: "" }),
       });
       const result = await res.json();
       if (!res.ok) throw new Error(result.error);
@@ -102,17 +103,16 @@ export default function InvitationsPage() {
               <div className="flex items-start justify-between">
                 <div className="space-y-1">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <BookOpen className="h-4 w-4 text-indigo-500" />
+                    <Users className="h-4 w-4 text-indigo-500" />
                     <span className="text-[14px] font-medium text-gray-900">
-                      {inv.application.topic.title}
+                      Team Invitation
                     </span>
-                    <InternshipTypeBadge type={inv.application.topic.internshipType} />
                   </div>
                   <div className="flex items-center gap-1.5 text-[12px] text-gray-500">
                     <User className="h-3.5 w-3.5" />
                     <span>
-                      {t("invitationsPage.from", { name: inv.application.leader.name })}
-                      {" "}({inv.application.leader.email})
+                      {t("invitationsPage.from", { name: inv.team.members[0]?.student.name })}
+                      {" "}({inv.team.members[0]?.student.email})
                     </span>
                   </div>
                 </div>
@@ -165,18 +165,18 @@ export default function InvitationsPage() {
               <div key={inv.id} className="p-4 flex items-center justify-between">
                 <div>
                   <p className="text-[13px] font-medium text-gray-800">
-                    {inv.application.topic.title}
+                    Team Invitation
                   </p>
                   <p className="text-[11px] text-gray-400 mt-0.5">
                     {format(new Date(inv.createdAt), "MMM d, yyyy")} ·{" "}
-                    {inv.application.leader.name}
+                    {inv.team.members[0]?.student.name}
                   </p>
                 </div>
                 <span
                   className={`text-[11px] font-semibold px-2 py-0.5 rounded uppercase ${
                     inv.status === "ACCEPTED"
                       ? "bg-emerald-100 text-emerald-700"
-                      : inv.status === "DECLINED"
+                      : inv.status === "REJECTED"
                       ? "bg-red-100 text-red-700"
                       : "bg-gray-100 text-gray-500"
                   }`}

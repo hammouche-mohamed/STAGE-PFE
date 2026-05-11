@@ -19,9 +19,22 @@ export async function GET(
 
     const internship = await prisma.internship.findUnique({ where: { id: internshipId } });
 
+    let isAdminAuthorized = false;
+    if (session.user.role === "ADMIN") {
+      if (session.user.isSuperAdmin) {
+        isAdminAuthorized = true;
+      } else if (session.user.filiereId) {
+        const topic = await prisma.topic.findUnique({
+          where: { id: internship?.topicId || "" },
+          select: { filiereId: true },
+        });
+        isAdminAuthorized = topic?.filiereId === session.user.filiereId;
+      }
+    }
+
     const isAuthorized =
       isStudent ||
-      session.user.role === "ADMIN" ||
+      isAdminAuthorized ||
       internship?.teacherId === session.user.id;
 
     // Company: allow if they own the topic

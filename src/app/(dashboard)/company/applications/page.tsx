@@ -18,17 +18,22 @@ import { useTranslation } from "@/lib/i18n/LanguageContext";
 
 interface Application {
   id: string;
+  topicId: string;
   topic: { title: string };
   status: string;
   appliedAt: string;
-  leaderId: string;
-  partnerId?: string | null;
+  message?: string | null;
+  team?: {
+    members: Array<{ student: { name: string; email: string } }>;
+  };
 }
 
 export default function CompanyApplicationsPage() {
   const { t, isRTL } = useTranslation();
   const [applications, setApplications] = useState<Application[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedApp, setSelectedApp] = useState<Application | null>(null);
+  const [isProcessing, setIsProcessing] = useState<string | null>(null);
 
   const fetchApplications = async () => {
     try {
@@ -47,11 +52,21 @@ export default function CompanyApplicationsPage() {
   }, []);
 
   const handleAction = async (id: string, status: "ACCEPTED" | "REJECTED") => {
+    setIsProcessing(id);
     try {
-      // In a real app we'd have a specific patch route for applications
-      toast.info(`Application ${status.toLowerCase()} (Ready for next step)`);
-    } catch (error) {
-      toast.error(t("toast.actionFailed"));
+      const res = await fetch(`/api/applications/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to update");
+      toast.success(data.message);
+      fetchApplications();
+    } catch (error: any) {
+      toast.error(error.message || t("toast.actionFailed"));
+    } finally {
+      setIsProcessing(null);
     }
   };
 
@@ -103,19 +118,32 @@ export default function CompanyApplicationsPage() {
                   <td data-label="Review" className="text-right">
                     <div className="flex items-center justify-end gap-1">
                       <button 
-                        onClick={() => handleAction(app.id, "ACCEPTED")}
-                        className="p-1.5 text-green-600 hover:bg-green-50 rounded"
-                        title="Accept"
+                        onClick={() => setSelectedApp(app)}
+                        className="p-1.5 text-blue-600 hover:bg-blue-50 rounded"
+                        title="View Details"
                       >
-                        <CheckCircle2 className="h-4 w-4" />
+                        <Eye className="h-4 w-4" />
                       </button>
-                      <button 
-                        onClick={() => handleAction(app.id, "REJECTED")}
-                        className="p-1.5 text-red-600 hover:bg-red-50 rounded"
-                        title="Reject"
-                      >
-                        <XCircle className="h-4 w-4" />
-                      </button>
+                      {app.status === "PENDING" && (
+                        <>
+                          <button 
+                            onClick={() => handleAction(app.id, "ACCEPTED")}
+                            className="p-1.5 text-green-600 hover:bg-green-50 rounded"
+                            title="Accept"
+                            disabled={isProcessing === app.id}
+                          >
+                            <CheckCircle2 className="h-4 w-4" />
+                          </button>
+                          <button 
+                            onClick={() => handleAction(app.id, "REJECTED")}
+                            className="p-1.5 text-red-600 hover:bg-red-50 rounded"
+                            title="Reject"
+                            disabled={isProcessing === app.id}
+                          >
+                            <XCircle className="h-4 w-4" />
+                          </button>
+                        </>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -124,6 +152,62 @@ export default function CompanyApplicationsPage() {
           </tbody>
         </table>
       </div>
+
+      {/* Application Details Modal */}
+      {selectedApp && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-xl shadow-xl w-full max-w-lg overflow-hidden border border-gray-100 dark:border-slate-800">
+            <div className="px-6 py-4 border-b border-gray-100 dark:border-slate-800 flex justify-between items-center bg-gray-50/50 dark:bg-slate-800/50">
+              <h3 className="font-semibold text-gray-900 dark:text-white">Application Details</h3>
+              <button onClick={() => setSelectedApp(null)} className="text-gray-400 hover:text-gray-500">
+                <XCircle className="h-5 w-5" />
+              </button>
+            </div>
+            
+            <div className="p-6 space-y-6">
+              <div>
+                <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Topic</p>
+                <p className="text-[14px] font-medium text-gray-900 dark:text-gray-100">{selectedApp.topic.title}</p>
+              </div>
+              
+              <div>
+                <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2">Team Members</p>
+                <div className="flex flex-col gap-2">
+                  {selectedApp.team?.members.map((m, idx) => (
+                    <div key={idx} className="flex items-center gap-2 bg-gray-50 dark:bg-slate-800 p-2 rounded-md">
+                      <User className="h-4 w-4 text-indigo-500" />
+                      <span className="text-[13px] text-gray-700 dark:text-gray-300 font-medium">{m.student.name}</span>
+                      <span className="text-[12px] text-gray-500">({m.student.email})</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2">Motivation Letter</p>
+                <div className="bg-gray-50 dark:bg-slate-800 p-4 rounded-lg border border-gray-100 dark:border-slate-700 max-h-48 overflow-y-auto">
+                  {selectedApp.message ? (
+                    <p className="text-[13px] text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">
+                      {selectedApp.message}
+                    </p>
+                  ) : (
+                    <p className="text-[13px] text-gray-400 italic">No motivation letter provided.</p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="px-6 py-4 bg-gray-50 dark:bg-slate-800/50 border-t border-gray-100 dark:border-slate-800 flex justify-end gap-3">
+              <button 
+                onClick={() => setSelectedApp(null)}
+                className="px-4 py-2 text-[13px] font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

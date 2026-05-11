@@ -1,11 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { InternshipService } from '@/lib/services/internship.service';
+import prisma from '@/lib/prisma';
 import { z } from 'zod';
 
-const activationSchema = z.object({
+// NORMAL internships: company sets start+end dates
+const normalActivationSchema = z.object({
   startDate: z.string().datetime(),
   endDate: z.string().datetime(),
+  technicalSupervisorName: z.string().min(2),
+  technicalSupervisorEmail: z.string().email(),
+});
+
+// PFE internships: company only sets start date; end date comes from admin's final deadline
+const pfeActivationSchema = z.object({
+  startDate: z.string().datetime(),
   technicalSupervisorName: z.string().min(2),
   technicalSupervisorEmail: z.string().email(),
 });
@@ -26,26 +35,62 @@ export async function POST(
 
   try {
     const { id } = await params;
+
+    // Check internship type first
+    const internship = await prisma.internship.findUnique({
+      where: { id },
+      select: { internshipType: true, finalDeadline: true },
+    });
+
+    if (!internship) return NextResponse.json({ error: 'Internship not found' }, { status: 404 });
+
+    const isPFE = internship.internshipType === 'PFE';
     const body = await req.json();
-    const { startDate, endDate, technicalSupervisorName, technicalSupervisorEmail } = activationSchema.parse(body);
 
-    const start = new Date(startDate);
-    const end = new Date(endDate);
+    let startDate: Date;
+    let endDate: Date;
+    let technicalSupervisorName: string;
+    let technicalSupervisorEmail: string;
 
-    if (end <= start) {
+    if (isPFE) {
+      // PFE: end date is driven by admin's final deadline
+      if (!internship.finalDeadline) {
+        return NextResponse.json({
+          error: 'The administration must set the final report deadline before the company can activate a PFE internship.',
+        }, { status: 400 });
+      }
+      const parsed = pfeActivationSchema.parse(body);
+      startDate = new Date(parsed.startDate);
+      endDate = internship.finalDeadline; // locked to admin deadline
+      technicalSupervisorName = parsed.technicalSupervisorName;
+      technicalSupervisorEmail = parsed.technicalSupervisorEmail;
+    } else {
+      // NORMAL: company provides both start and end
+      const parsed = normalActivationSchema.parse(body);
+      startDate = new Date(parsed.startDate);
+      endDate = new Date(parsed.endDate);
+      technicalSupervisorName = parsed.technicalSupervisorName;
+      technicalSupervisorEmail = parsed.technicalSupervisorEmail;
+    }
+
+    if (endDate <= startDate) {
       return NextResponse.json({ error: 'End date must be after start date' }, { status: 400 });
     }
 
     await InternshipService.activateInternship(
       id,
-      start,
-      end,
+      startDate,
+      endDate,
       technicalSupervisorName,
       technicalSupervisorEmail,
       session.user.id,
     );
 
-    return NextResponse.json({ message: 'Internship activated. Deadlines have been calculated.' });
+    return NextResponse.json({
+      message: isPFE
+        ? 'PFE internship activated. End date is locked to the admin-set final report deadline.'
+        : 'Internship activated. Deadlines have been calculated.',
+    });
   } catch (error: unknown) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: 'Validation failed', details: error.issues }, { status: 400 });
@@ -54,3 +99,4 @@ export async function POST(
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
+

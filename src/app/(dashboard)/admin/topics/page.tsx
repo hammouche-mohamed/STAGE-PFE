@@ -23,6 +23,7 @@ import Link from "next/link";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Button } from "@/components/ui/Button";
 import { useTranslation } from "@/lib/i18n/LanguageContext";
+import { useSession } from "next-auth/react";
 import { EmptyState } from "@/components/ui/EmptyState";
 
 interface Topic {
@@ -41,16 +42,32 @@ interface Topic {
 
 export default function AdminTopicsPage() {
   const { t, isRTL } = useTranslation();
+  const { data: session } = useSession();
   const [topics, setTopics] = useState<Topic[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [topicToDelete, setTopicToDelete] = useState<Topic | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [filiereFilter, setFiliereFilter] = useState("ALL");
+  const [filieres, setFilieres] = useState<any[]>([]);
+
+  const fetchFilieres = async () => {
+    try {
+      const res = await fetch("/api/filieres");
+      const data = await res.json();
+      setFilieres(data.data || []);
+    } catch (error) {
+      console.error("Failed to load filieres");
+    }
+  };
 
   const fetchTopics = useCallback(async () => {
     try {
-      const res = await fetch("/api/topics");
+      const params = new URLSearchParams();
+      if (filiereFilter !== "ALL") params.append("filiereId", filiereFilter);
+      
+      const res = await fetch(`/api/topics?${params.toString()}`);
       const data = await res.json();
       setTopics(data.data || []);
     } catch (error) {
@@ -58,7 +75,7 @@ export default function AdminTopicsPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [t]);
+  }, [t, filiereFilter]);
 
   const handleDelete = async () => {
     if (!topicToDelete) return;
@@ -82,6 +99,7 @@ export default function AdminTopicsPage() {
 
   useEffect(() => {
     fetchTopics();
+    fetchFilieres();
   }, [fetchTopics]);
 
   const filteredTopics = topics.filter(t => {
@@ -100,13 +118,13 @@ export default function AdminTopicsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-[17px] font-semibold text-gray-900">{t("common.topics")}</h1>
-          <p className="text-[13px] text-gray-500 mt-0.5">{t("topics.pendingApproval")}</p>
+          <h1 className="text-[17px] font-semibold text-gray-900 dark:text-white">{t("common.topics")}</h1>
+          <p className="text-[13px] text-gray-500 dark:text-gray-400 mt-0.5">{t("topics.pendingApproval")}</p>
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="flex border-b border-gray-200">
+      <div className="flex border-b border-gray-200 dark:border-slate-800 overflow-x-auto overflow-y-hidden whitespace-nowrap scrollbar-hide">
         {[
           { id: "ALL", label: t("common.all") },
           { id: "PENDING_ADMIN", label: t("status.PENDING_ADMIN") },
@@ -119,8 +137,8 @@ export default function AdminTopicsPage() {
             onClick={() => setStatusFilter(tab.id)}
             className={`px-4 py-2 text-[13px] font-medium transition-colors border-b-2 -mb-px ${
               statusFilter === tab.id
-                ? "border-indigo-600 text-indigo-700"
-                : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                ? "border-indigo-600 text-indigo-700 dark:text-indigo-400"
+                : "border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:border-gray-300 dark:hover:border-slate-700"
             }`}
           >
             {tab.label}
@@ -141,12 +159,24 @@ export default function AdminTopicsPage() {
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
+        <div className="flex gap-2">
+          <select 
+            className="admin-input min-w-[180px]"
+            value={filiereFilter}
+            onChange={(e) => setFiliereFilter(e.target.value)}
+          >
+            <option value="ALL">All Departments</option>
+            {filieres.map(f => (
+              <option key={f.id} value={f.id}>{f.name}</option>
+            ))}
+          </select>
+        </div>
       </div>
 
       {/* Topics List - Using Cards for better detail display */}
       <div className="space-y-3">
         {isLoading ? (
-          <div className="text-center py-12 text-gray-400 bg-white border border-gray-200 rounded-md">{t("common.loading")}</div>
+          <div className="text-center py-12 text-gray-400 dark:text-gray-500 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-md">{t("common.loading")}</div>
         ) : filteredTopics.length === 0 ? (
           <EmptyState 
             icon={BookOpen}
@@ -158,56 +188,58 @@ export default function AdminTopicsPage() {
             <Link 
               key={topic.id} 
               href={`/admin/topics/${topic.id}`}
-              className="bg-white border border-gray-200 rounded-md p-4 hover:border-indigo-300 transition-all group cursor-pointer shadow-sm hover:shadow-md active:scale-[0.99] block"
+              className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-md p-4 hover:border-indigo-300 dark:hover:border-indigo-500 transition-all group cursor-pointer shadow-sm hover:shadow-md active:scale-[0.99] block"
             >
               <div className="flex items-start justify-between">
                 <div className="space-y-1 pr-6 flex-1">
                   <div className="flex items-center gap-2 mb-1">
                     <StatusBadge status={topic.status} />
                     {topic.pendingEditData && (
-                       <span className="text-[10px] font-bold text-amber-600 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded flex items-center">
+                       <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 px-1.5 py-0.5 rounded flex items-center">
                          <AlertCircle className="h-3 w-3 mr-1" />
                          PENDING EDIT
                        </span>
                     )}
-                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{topic.academicYear}</span>
+                    <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">{topic.academicYear}</span>
                   </div>
-                  <h3 className="text-[15px] font-semibold text-gray-900 group-hover:text-indigo-600 transition-colors">
+                  <h3 className="text-[15px] font-semibold text-gray-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
                     {topic.title}
                   </h3>
                   <div className="flex flex-wrap items-center gap-y-2 gap-x-4 mt-3">
-                    <div className="flex items-center text-[12px] text-gray-500">
-                      <User className="h-3.5 w-3.5 mr-1.5 text-gray-400" />
-                      <span className="font-medium text-gray-700">{topic.proposedBy.name}</span>
-                      <span className="mx-1 text-gray-300">•</span>
+                    <div className="flex items-center text-[12px] text-gray-500 dark:text-gray-400">
+                      <User className="h-3.5 w-3.5 mr-1.5 text-gray-400 dark:text-gray-500" />
+                      <span className="font-medium text-gray-700 dark:text-gray-200">{topic.proposedBy.name}</span>
+                      <span className="mx-1 text-gray-300 dark:text-gray-700">•</span>
                       <span className="text-[11px] uppercase">{topic.type.replace('_', ' ')}</span>
                     </div>
                     {topic.assignedTeacher && (
-                      <div className="flex items-center text-[12px] text-gray-500">
+                      <div className="flex items-center text-[12px] text-gray-500 dark:text-gray-400">
                         <GraduationCap className="h-3.5 w-3.5 mr-1.5 text-indigo-400" />
                         <span>Supervised by: {topic.assignedTeacher.name}</span>
                       </div>
                     )}
-                    <div className="flex items-center text-[12px] text-gray-500">
-                      <Users className="h-3.5 w-3.5 mr-1.5 text-gray-400" />
+                    <div className="flex items-center text-[12px] text-gray-500 dark:text-gray-400">
+                      <Users className="h-3.5 w-3.5 mr-1.5 text-gray-400 dark:text-gray-500" />
                       <span>Capacity: {topic.maxStudents} {topic.maxStudents > 1 ? "students" : "student"}</span>
                     </div>
                   </div>
                 </div>
                 <div className="flex flex-col items-end gap-3 self-center">
                   <div className="flex items-center gap-2">
-                    <button 
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        setTopicToDelete(topic);
-                      }}
-                      className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
-                      title="Delete topic"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                    <ChevronRight className={`h-5 w-5 text-gray-300 group-hover:text-indigo-500 transition-all ${
+                    {!session?.user?.isSuperAdmin && (
+                      <button 
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setTopicToDelete(topic);
+                        }}
+                        className="p-2 text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition-colors"
+                        title="Delete topic"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    )}
+                    <ChevronRight className={`h-5 w-5 text-gray-300 dark:text-slate-600 group-hover:text-indigo-500 transition-all ${
                       isRTL ? "rotate-180 group-hover:-translate-x-1" : "group-hover:translate-x-1"
                     }`} />
                   </div>

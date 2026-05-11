@@ -7,14 +7,13 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-
 model AdminProfile {
   id           String  @id @default(uuid())
   userId       String  @unique(map: "AdminProfile_userId_key")
   isSuperAdmin Boolean @default(false)
+  filiereId    String?
 
-  user User? @relation(fields: [userId], references: [id], map: "AdminProfile_userId_fkey")
-
+  @@index([filiereId], map: "AdminProfile_filiereId_idx")
   @@map("adminprofile")
 }
 
@@ -27,8 +26,6 @@ model AuditLog {
   details    String?  @db.LongText
   ipAddress  String?
   createdAt  DateTime @default(now())
-
-  user User @relation(fields: [userId], references: [id], map: "AuditLog_userId_fkey")
 
   @@index([userId], map: "AuditLog_userId_idx")
   @@map("auditlog")
@@ -43,20 +40,47 @@ model BlockedEmail {
   @@map("blockedemail")
 }
 
-model BinomeInvitation {
-  id                   String                  @id @default(uuid())
-  studentApplicationId String                  @unique(map: "BinomeInvitation_studentApplicationId_key")
-  invitedStudentId     String
-  status               binomeinvitation_status @default(PENDING)
-  message              String?                 @db.Text
-  respondedAt          DateTime?
-  expiresAt            DateTime
-  createdAt            DateTime                @default(now())
+model TeamInvitation {
+  id               String                  @id @default(uuid())
+  teamId           String
+  invitedStudentId String
+  status           teaminvitation_status   @default(PENDING)
+  message          String?                 @db.Text
+  responseComment  String?                 @db.Text
+  respondedAt      DateTime?
+  expiresAt        DateTime
+  createdAt        DateTime                @default(now())
 
-  application StudentApplication @relation(fields: [studentApplicationId], references: [id], map: "BinomeInvitation_applicationId_fkey")
+  @@index([teamId], map: "TeamInvitation_teamId_idx")
+  @@index([invitedStudentId], map: "TeamInvitation_invitedStudentId_idx")
+  @@index([status], map: "TeamInvitation_status_idx")
+  @@map("teaminvitation")
+}
 
-  @@index([status], map: "BinomeInvitation_status_idx")
-  @@map("binomeinvitation")
+model StudentTeam {
+  id           String       @id @default(uuid())
+  leaderId     String
+  filiereId    String?
+  academicYear String
+  reason       String?      @db.Text
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  @@index([leaderId], map: "StudentTeam_leaderId_idx")
+  @@index([filiereId], map: "StudentTeam_filiereId_idx")
+  @@map("studentteam")
+}
+
+model TeamMember {
+  id        String   @id @default(uuid())
+  teamId    String
+  studentId String
+  isLeader  Boolean  @default(false)
+  joinedAt  DateTime @default(now())
+
+  @@unique([teamId, studentId], map: "TeamMember_teamId_studentId_key")
+  @@index([studentId], map: "TeamMember_studentId_idx")
+  @@map("teammember")
 }
 
 model CompanyProfile {
@@ -68,8 +92,6 @@ model CompanyProfile {
   wilaya          String?
   contactPhone    String?
   supervisorTitle String?
-
-  user User? @relation(fields: [userId], references: [id], map: "CompanyProfile_userId_fkey")
 
   @@map("companyprofile")
 }
@@ -85,9 +107,6 @@ model Deadline {
   createdById  String
   createdAt    DateTime      @default(now())
 
-  createdBy  User        @relation(fields: [createdById], references: [id], map: "Deadline_createdById_fkey")
-  internship Internship? @relation(fields: [internshipId], references: [id], map: "Deadline_internshipId_fkey")
-
   @@index([createdById], map: "Deadline_createdById_idx")
   @@index([internshipId], map: "Deadline_internshipId_idx")
   @@index([dueDate], map: "Deadline_dueDate_idx")
@@ -95,77 +114,57 @@ model Deadline {
 }
 
 model Document {
-  id               String          @id @default(uuid())
-  internshipId     String
-  uploadedById     String
-  type             document_type
-  fileName         String
-  fileUrl          String
-  fileSize         Int
-  version          Int             @default(1)
-  status           document_status @default(UPLOADED)
-  reviewComment    String?
-  reviewedById     String?
-  // Teacher approval flag (advisory)
-  approvedByTeacher Boolean        @default(false)
-  // Company approval flag (advisory)
-  approvedByCompany Boolean        @default(false)
+  id                String          @id @default(uuid())
+  internshipId      String
+  uploadedById      String
+  type              document_type
+  fileName          String
+  fileUrl           String
+  fileSize          Int
+  version           Int             @default(1)
+  status            document_status @default(UPLOADED)
+  reviewComment     String?
+  reviewedById      String?
+  approvedByTeacher Boolean         @default(false)
+  approvedByCompany Boolean         @default(false)
   reviewedByCompany String?
-  companyComment    String?        @db.Text
-  uploadedAt        DateTime       @default(now())
-
-  internship Internship @relation(fields: [internshipId], references: [id], map: "Document_internshipId_fkey")
-  uploadedBy User       @relation("UploadedBy", fields: [uploadedById], references: [id], map: "Document_uploadedById_fkey")
-  reviewer   User?      @relation("ReviewedBy", fields: [reviewedById], references: [id], map: "Document_reviewedById_fkey")
+  companyComment    String?         @db.Text
+  uploadedAt        DateTime        @default(now())
 
   @@index([internshipId], map: "Document_internshipId_idx")
   @@index([uploadedById], map: "Document_uploadedById_idx")
   @@index([reviewedById], map: "Document_reviewedById_idx")
-  // NFR-P2: index on type for filtered document queries
   @@index([type], map: "Document_type_idx")
   @@index([status], map: "Document_status_idx")
   @@map("document")
 }
 
 model Internship {
-  id           String            @id @default(uuid())
-  topicId      String            @unique(map: "Internship_topicId_key")
-  teacherId    String
-  academicYear String
-  status       internship_status @default(REQUESTED)
-  // Internship type: PFE (mandatory midterm) or NORMAL (optional midterm)
-  internshipType           internship_type?
-  // midtermDeadline is NULL for NORMAL internships — never required, never alerted
-  midtermDeadline          DateTime?
-  finalDeadline            DateTime?
-  technicalSupervisorName  String?
-  technicalSupervisorEmail String?
-  activatedAt              DateTime?
-  completedAt              DateTime?
-  startDate                DateTime?
-  endDate                  DateTime?
-  // Final-report validation tracking (NFR-RDI1: all flags updated in transactions)
-  teacherValidatedFinalReport Boolean        @default(false)
+  id                          String            @id @default(uuid())
+  topicId                     String            @unique(map: "Internship_topicId_key")
+  teacherId                   String
+  academicYear                String
+  status                      internship_status @default(REQUESTED)
+  internshipType              internship_type?
+  midtermDeadline             DateTime?
+  finalDeadline               DateTime?
+  technicalSupervisorName     String?
+  technicalSupervisorEmail    String?
+  activatedAt                 DateTime?
+  completedAt                 DateTime?
+  startDate                   DateTime?
+  endDate                     DateTime?
+  teacherValidatedFinalReport Boolean           @default(false)
   teacherValidatedAt          DateTime?
-  companyValidatedFinalReport Boolean        @default(false)
+  companyValidatedFinalReport Boolean           @default(false)
   companyValidatedAt          DateTime?
-  // Auto-archiving after finalDeadline
-  archivedAt               DateTime?
-  chatArchivedAt           DateTime?  // chat locked 3 days after archivedAt
-  createdAt                DateTime          @default(now())
-  updatedAt                DateTime
-
-  topic             Topic               @relation(fields: [topicId], references: [id], map: "Internship_topicId_fkey")
-  teacher           User                @relation(fields: [teacherId], references: [id], map: "Internship_teacherId_fkey")
-  students          InternshipStudent[]
-  documents         Document[]
-  messages          Message[]
-  deadlines         Deadline[]
-  miniPresentations MiniPresentation[]
+  archivedAt                  DateTime?
+  chatArchivedAt              DateTime?
+  createdAt                   DateTime          @default(now())
+  updatedAt                   DateTime
 
   @@index([teacherId], map: "Internship_teacherId_idx")
   @@index([status], map: "Internship_status_idx")
-  // NFR-P2: indexes on frequently queried filter columns
   @@index([academicYear], map: "Internship_academicYear_idx")
   @@index([internshipType], map: "Internship_internshipType_idx")
   @@map("internship")
@@ -176,9 +175,6 @@ model InternshipStudent {
   internshipId String
   studentId    String
   isLeader     Boolean @default(false)
-
-  internship Internship @relation(fields: [internshipId], references: [id], map: "InternshipStudent_internshipId_fkey")
-  student    User       @relation(fields: [studentId], references: [id], map: "InternshipStudent_studentId_fkey")
 
   @@unique([internshipId, studentId], map: "InternshipStudent_internshipId_studentId_key")
   @@index([studentId], map: "InternshipStudent_studentId_idx")
@@ -200,11 +196,6 @@ model Message {
   actionById     String?
   sentAt         DateTime @default(now())
 
-  internship Internship    @relation(fields: [internshipId], references: [id], map: "Message_internshipId_fkey")
-  sender     User          @relation("SentMessages", fields: [senderId], references: [id], map: "Message_senderId_fkey")
-  actionBy   User?         @relation("ActionBy", fields: [actionById], references: [id], map: "Message_actionById_fkey")
-  reads      MessageRead[]
-
   @@index([internshipId], map: "Message_internshipId_idx")
   @@index([senderId], map: "Message_senderId_idx")
   @@index([actionById], map: "Message_actionById_idx")
@@ -216,9 +207,6 @@ model MessageRead {
   messageId String
   userId    String
   readAt    DateTime @default(now())
-
-  message Message @relation(fields: [messageId], references: [id], map: "MessageRead_messageId_fkey")
-  user    User    @relation(fields: [userId], references: [id], map: "MessageRead_userId_fkey")
 
   @@unique([messageId, userId], map: "MessageRead_messageId_userId_key")
   @@index([messageId], map: "MessageRead_messageId_idx")
@@ -241,8 +229,6 @@ model MiniPresentation {
   adminComment     String?
   createdAt        DateTime                @default(now())
 
-  internship Internship @relation(fields: [internshipId], references: [id], map: "MiniPresentation_internshipId_fkey")
-
   @@index([internshipId], map: "MiniPresentation_internshipId_idx")
   @@map("minipresentation")
 }
@@ -251,11 +237,9 @@ model PasswordResetToken {
   id        String   @id @default(uuid())
   userId    String
   email     String
-  code      String   // The verification code (OTP - digit based)
+  code      String
   expiresAt DateTime
   createdAt DateTime @default(now())
-
-  user User @relation(fields: [userId], references: [id], map: "PasswordResetToken_userId_fkey")
 
   @@index([userId], map: "PasswordResetToken_userId_idx")
   @@map("passwordresettoken")
@@ -271,11 +255,8 @@ model Notification {
   emailSent   Boolean           @default(false)
   relatedId   String?
   relatedType String?
-  // Deep link to the relevant entity (e.g. /student/internship)
   link        String?
   createdAt   DateTime          @default(now())
-
-  user User @relation(fields: [userId], references: [id], map: "Notification_userId_fkey")
 
   @@index([userId], map: "Notification_userId_idx")
   @@map("notification")
@@ -292,7 +273,6 @@ model RegistrationRequest {
   studentId    String?
   promotion    String?
   speciality   String?
-  // Student level for eligibility enforcement
   level        String?
   academicYear String?
   grade        String?
@@ -304,8 +284,6 @@ model RegistrationRequest {
   createdAt    DateTime                   @default(now())
   reviewedAt   DateTime?
 
-  user User? @relation(fields: [userId], references: [id], map: "RegistrationRequest_userId_fkey")
-
   @@index([userId], map: "RegistrationRequest_userId_idx")
   @@index([status], map: "RegistrationRequest_status_idx")
   @@index([name], map: "RegistrationRequest_name_idx")
@@ -315,39 +293,29 @@ model RegistrationRequest {
 model StudentApplication {
   id         String                    @id @default(uuid())
   topicId    String
-  leaderId   String
-  partnerId  String?
-  // Whether this is a binôme (pair) application
-  isBinome   Boolean                   @default(false)
+  teamId     String
+  message    String?                   @db.Text
   status     studentapplication_status @default(PENDING)
   appliedAt  DateTime                  @default(now())
   reviewedAt DateTime?
 
-  topic            Topic             @relation(fields: [topicId], references: [id], map: "StudentApplication_topicId_fkey")
-  leader           User              @relation("ApplicationLeader", fields: [leaderId], references: [id], map: "StudentApplication_leaderId_fkey")
-  partner          User?             @relation("ApplicationPartner", fields: [partnerId], references: [id], map: "StudentApplication_partnerId_fkey")
-  binomeInvitation BinomeInvitation?
-
   @@index([topicId], map: "StudentApplication_topicId_idx")
-  @@index([leaderId], map: "StudentApplication_leaderId_idx")
-  @@index([partnerId], map: "StudentApplication_partnerId_idx")
-  // NFR-P2: index on status for pending-applications filter queries
+  @@index([teamId], map: "StudentApplication_teamId_idx")
   @@index([status], map: "StudentApplication_status_idx")
   @@map("studentapplication")
 }
 
 model StudentProfile {
-  id           String         @id @default(uuid())
-  userId       String         @unique(map: "StudentProfile_userId_key")
-  studentId    String         @unique(map: "StudentProfile_studentId_key")
+  id           String  @id @default(uuid())
+  userId       String  @unique(map: "StudentProfile_userId_key")
+  studentId    String  @unique(map: "StudentProfile_studentId_key")
   promotion    String
   speciality   String
   academicYear String
-  // Academic level for internship type eligibility (L1/L2/M1 → NORMAL only; L3/M2 → PFE or NORMAL)
   level        String?
+  filiereId    String?
 
-  user User? @relation(fields: [userId], references: [id], map: "StudentProfile_userId_fkey")
-
+  @@index([filiereId], map: "StudentProfile_filiereId_idx")
   @@map("studentprofile")
 }
 
@@ -364,7 +332,7 @@ model Upload {
   id        String   @id @default(uuid())
   fileName  String
   fileType  String
-  content   Bytes    @db.LongBlob
+  content   Bytes
   createdAt DateTime @default(now())
 
   @@map("upload")
@@ -389,9 +357,6 @@ model TeacherApplication {
   status    teacherapplication_status @default(PENDING)
   appliedAt DateTime                  @default(now())
 
-  teacher User  @relation(fields: [teacherId], references: [id], map: "TeacherApplication_teacherId_fkey")
-  topic   Topic @relation(fields: [topicId], references: [id], map: "TeacherApplication_topicId_fkey")
-
   @@unique([teacherId, topicId], map: "TeacherApplication_teacherId_topicId_key")
   @@index([topicId], map: "TeacherApplication_topicId_idx")
   @@map("teacherapplication")
@@ -405,32 +370,30 @@ model TeacherProfile {
   maxStudents Int     @default(5)
   currentLoad Int     @default(0)
   isAvailable Boolean @default(true)
+  filiereId   String?
 
-  user User? @relation(fields: [userId], references: [id], map: "TeacherProfile_userId_fkey")
-
+  @@index([filiereId], map: "TeacherProfile_filiereId_idx")
   @@map("teacherprofile")
 }
 
 model Topic {
-  id                       String       @id @default(uuid())
+  id                       String           @id @default(uuid())
   title                    String
-  description              String       @db.Text
-  requiredSkills           String?      @db.Text
+  description              String           @db.Text
+  requiredSkills           String?          @db.Text
   type                     topic_type
-  // Internship type this topic targets: PFE or NORMAL
   internshipType           internship_type?
-  status                   topic_status @default(PENDING_ADMIN)
-  maxStudents              Int          @default(1)
+  status                   topic_status     @default(PENDING_ADMIN)
+  maxStudents              Int              @default(1)
   academicYear             String
   proposedById             String
   assignedTeacherId        String?
-  supervisorRejectionCount Int          @default(0)
-  resubmissionCount        Int          @default(0)
-  maxResubmissions         Int          @default(3)
-  rejectionReason          String?      @db.Text
-  // PATH B: student-proposed topic fields
-  proposedByStudent        Boolean      @default(false)
-  directAssigneeId         String?      // Student who will be auto-assigned on admin approval
+  supervisorRejectionCount Int              @default(0)
+  resubmissionCount        Int              @default(0)
+  maxResubmissions         Int              @default(3)
+  rejectionReason          String?          @db.Text
+  proposedByStudent        Boolean          @default(false)
+  directAssigneeId         String?
   companyName              String?
   companySector            String?
   companyAddress           String?
@@ -439,22 +402,12 @@ model Topic {
   contactEmail             String?
   contactPhone             String?
   supportingDocUrl         String?
-  // Filière + level targeting (set by admin on approval)
   filiereId                String?
-  targetLevels             String?      // comma-separated: "L1,L2,M2"
-  // Company pending edit request
-  pendingEditData          String?      @db.LongText  // JSON of requested changes
+  targetLevels             String?
+  pendingEditData          String?          @db.LongText
   pendingEditRequestedAt   DateTime?
-  createdAt                DateTime     @default(now())
+  createdAt                DateTime         @default(now())
   updatedAt                DateTime
-
-  proposedBy          User                 @relation("ProposedTopics", fields: [proposedById], references: [id], map: "Topic_proposedById_fkey")
-  assignedTeacher     User?                @relation("SupervisedTopics", fields: [assignedTeacherId], references: [id], map: "Topic_assignedTeacherId_fkey")
-  filiere             Filiere?             @relation(fields: [filiereId], references: [id], map: "Topic_filiereId_fkey")
-  internship          Internship?
-  applications        StudentApplication[]
-  teacherApplications TeacherApplication[]
-  validations         Validation[]
 
   @@index([assignedTeacherId], map: "Topic_assignedTeacherId_idx")
   @@index([proposedById], map: "Topic_proposedById_idx")
@@ -463,42 +416,18 @@ model Topic {
 }
 
 model User {
-  id                 String         @id @default(uuid())
+  id                 String    @id @default(uuid())
   name               String
-  email              String         @unique(map: "User_email_key")
+  email              String    @unique(map: "User_email_key")
   password           String
   role               user_role
-  // Academic level — only meaningful for STUDENT role
   level              String?
   department         String?
   avatarUrl          String?
-  isActive           Boolean        @default(false)
-  mustChangePassword Boolean        @default(true)
-  createdAt          DateTime       @default(now())
-  updatedAt          DateTime
-
-  adminProfile             AdminProfile?
-  companyProfile           CompanyProfile?
-  studentProfile           StudentProfile?
-  teacherProfile           TeacherProfile?
-  proposedTopics           Topic[]               @relation("ProposedTopics")
-  supervisedTopics         Topic[]               @relation("SupervisedTopics")
-  supervisedInternships    Internship[]
-  studentParticipations    InternshipStudent[]
-  applications             StudentApplication[]  @relation("ApplicationLeader")
-  partnerApplications      StudentApplication[]  @relation("ApplicationPartner")
-  teacherApplications      TeacherApplication[]
-  notifications            Notification[]
-  sentMessages             Message[]             @relation("SentMessages")
-  actionMessages           Message[]             @relation("ActionBy")
-  messageReads             MessageRead[]
-  auditLogs                AuditLog[]
-  deadlinesCreated         Deadline[]
-  validations              Validation[]
-  registrationRequest      RegistrationRequest?
-  uploadedDocuments        Document[]            @relation("UploadedBy")
-  reviewedDocuments        Document[]            @relation("ReviewedBy")
-  passwordResetTokens      PasswordResetToken[]
+  isActive           Boolean   @default(false)
+  mustChangePassword Boolean   @default(true)
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
 
   @@index([name], map: "User_name_idx")
   @@index([role], map: "User_role_idx")
@@ -515,13 +444,22 @@ model Validation {
   validatedAt DateTime?
   createdAt   DateTime          @default(now())
 
-  topic     Topic @relation(fields: [topicId], references: [id], map: "Validation_topicId_fkey")
-  validator User  @relation(fields: [validatorId], references: [id], map: "Validation_validatorId_fkey")
-
   @@unique([topicId, step], map: "Validation_topicId_step_key")
   @@index([topicId], map: "Validation_topicId_idx")
   @@index([validatorId], map: "Validation_validatorId_idx")
   @@map("validation")
+}
+
+model LoginAttempt {
+  id           String    @id @default(uuid())
+  email        String
+  ip           String?
+  attempts     Int       @default(1)
+  lockoutUntil DateTime?
+  updatedAt    DateTime  @updatedAt
+
+  @@unique([email, ip], map: "LoginAttempt_email_ip_key")
+  @@map("loginattempt")
 }
 
 model Filiere {
@@ -530,12 +468,9 @@ model Filiere {
   code      String?
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
-  topics    Topic[]
 
   @@map("filiere")
 }
-
-// ─── ENUMS ───────────────────────────────────────────────────────────────────
 
 enum deadline_type {
   TOPIC_SUBMISSION
@@ -575,24 +510,22 @@ enum notification_type {
   ACCOUNT_CREATED
   PASSWORD_RESET
   ACCOUNT_MODIFIED
-  // Dual-track additions
   REVISION_REQUESTED
   STUDENT_TOPIC_SUBMITTED
   STUDENT_TOPIC_APPROVED
   STUDENT_TOPIC_REJECTED
   COMPANY_DATES_CONFIRMED
   DEADLINE_REMINDER
-  // Final-report 3-gate workflow notifications
   FINAL_REPORT_SUBMITTED
   FINAL_REPORT_TEACHER_VALIDATED
   FINAL_REPORT_COMPANY_VALIDATED
   FINAL_REPORT_ADMIN_CONFIRMED
 }
 
-enum binomeinvitation_status {
+enum teaminvitation_status {
   PENDING
   ACCEPTED
-  DECLINED
+  REJECTED
   EXPIRED
 }
 
@@ -622,9 +555,7 @@ enum internship_status {
   IN_PROGRESS
   NEEDS_REVISION
   APPROVED
-  // Student has submitted the final report; awaiting teacher AND company validation
   FINAL_REPORT_SUBMITTED
-  // Both teacher and company have validated; awaiting admin confirmation
   PENDING_ADMIN_CONFIRMATION
   COMPLETED
   CANCELLED
@@ -635,7 +566,6 @@ enum internship_type {
   PFE
   NORMAL
 }
-
 
 enum studentapplication_status {
   PENDING

@@ -9,13 +9,24 @@ export async function GET(req: NextRequest) {
   if (!session || session.user.role !== 'ADMIN') {
     return NextResponse.json({ error: 'Forbidden' }, { status: session ? 403 : 401 });
   }
-
   const { searchParams } = new URL(req.url);
   const year = searchParams.get('year');
+  const paramFiliereId = searchParams.get('filiereId');
+
+  // If super admin, they can see everything or filter by param
+  // If department admin, they only see their department
+  const filiereId = session.user.isSuperAdmin 
+    ? (paramFiliereId || null) 
+    : session.user.filiereId;
 
   try {
     const internships = await prisma.internship.findMany({
-      where: year ? { academicYear: year } : {},
+      where: {
+        academicYear: (year && year !== 'all') ? year : undefined,
+        // Archives usually means finished, but for oversight we should see Active too
+        status: { in: ['ACTIVE', 'COMPLETED', 'CANCELLED'] },
+        ...(filiereId && filiereId !== 'all' && { topic: { filiereId } })
+      },
       include: {
         topic: { select: { title: true, internshipType: true } },
         teacher: { select: { name: true } },

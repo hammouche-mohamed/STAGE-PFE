@@ -13,15 +13,23 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const year = searchParams.get('year') || '';
   const type = searchParams.get('type') || 'all';
+  const paramFiliereId = searchParams.get('filiereId');
+
+  // If super admin, they can see everything or filter by param
+  // If department admin, they only see their department
+  const filiereId = session.user.isSuperAdmin 
+    ? (paramFiliereId || null) 
+    : session.user.filiereId;
 
   const yearFilter = year ? { academicYear: year } : {};
+  const filiereFilter = filiereId ? { topic: { filiereId } } : {};
 
   try {
     const rows: string[] = [];
 
     if (type === 'internships' || type === 'all') {
       const internships = await prisma.internship.findMany({
-        where: yearFilter,
+        where: { ...yearFilter, ...filiereFilter },
         include: {
           topic: { select: { title: true, internshipType: true } },
           teacher: { select: { name: true, email: true } },
@@ -56,7 +64,7 @@ export async function GET(req: NextRequest) {
     if (type === 'documents' || type === 'all') {
       const documents = await prisma.document.findMany({
         where: {
-          internship: year ? { academicYear: year } : {},
+          internship: { ...(year ? { academicYear: year } : {}), ...(filiereId ? { topic: { filiereId } } : {}) },
         },
         include: {
           internship: {
@@ -94,7 +102,7 @@ export async function GET(req: NextRequest) {
     if (type === 'messages' || type === 'all') {
       const messages = await prisma.message.findMany({
         where: {
-          internship: year ? { academicYear: year } : {},
+          internship: { ...(year ? { academicYear: year } : {}), ...(filiereId ? { topic: { filiereId } } : {}) },
         },
         include: {
           sender: { select: { name: true, role: true } },

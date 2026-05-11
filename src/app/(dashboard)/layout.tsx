@@ -30,7 +30,7 @@ export default async function DashboardLayout({
   return (
     <SidebarProvider>
       <BreadcrumbProvider>
-        <div className="h-screen bg-gray-50 flex overflow-hidden relative">
+        <div className="h-screen bg-gray-50 dark:bg-slate-950 flex overflow-hidden relative">
           {/* Sidebar - Responsive */}
           <Sidebar role={role} logoUrl={logoUrl} />
 

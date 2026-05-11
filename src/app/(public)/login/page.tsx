@@ -14,6 +14,7 @@ import Image from "next/image";
 import { ShieldCheck, ArrowLeft, Globe } from "lucide-react";
 import { useTranslation } from "@/lib/i18n/LanguageContext";
 import { Language } from "@/lib/i18n/translations";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 const loginSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -45,8 +46,14 @@ function LoginForm() {
     setAuthError(null);
     try {
       const result = await signIn("credentials", { ...data, redirect: false });
+
       if (result?.error) {
-        setAuthError(t("errors.unauthorized"));
+        if (result.error.startsWith("TOO_MANY_ATTEMPTS:")) {
+          const waitTime = result.error.split(":")[1];
+          setAuthError(`Too many failed attempts. Please wait ${waitTime} minutes before trying again.`);
+        } else {
+          setAuthError(t("errors.unauthorized"));
+        }
         return;
       }
 
@@ -66,7 +73,7 @@ function LoginForm() {
     }
   };
   return (
-    <div className={"min-h-screen flex relative " + (isRTL ? "rtl" : "ltr")}>
+    <div className={"min-h-screen w-full flex relative " + (isRTL ? "rtl" : "ltr")}>
       {/* Background Image - Fixed on mobile, Left side on desktop */}
       <div className="fixed inset-0 lg:relative lg:w-1/2 bg-gray-900 z-0">
         <div className="absolute inset-0 bg-indigo-900/70 mix-blend-multiply z-10" />
@@ -91,18 +98,22 @@ function LoginForm() {
         </div>
       </div>
 
-      <div className="w-full lg:w-1/2 flex flex-col items-center justify-center p-4 sm:p-12 lg:bg-gray-50 relative z-10 min-h-screen lg:bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] lg:[background-size:20px_20px]">
-        <div className={`absolute top-6 ${isRTL ? "left-6" : "right-6"} z-50 flex items-center bg-white border border-gray-200 rounded-full p-0.5 gap-0.5 shadow-sm`}>
-          {LANGS.map(({ code, label }) => (
-            <button
-              key={code}
-              onClick={() => setLanguage(code)}
-              className={`h-7 px-2.5 rounded-full text-[11px] font-bold transition-all duration-200
-                ${language === code ? "bg-indigo-600 text-white shadow-sm" : "text-gray-500 hover:text-gray-800"}`}
-            >
-              {label}
-            </button>
-          ))}
+      <div className="w-full lg:w-1/2 flex flex-col items-center justify-center p-4 sm:p-12 lg:bg-gray-50 dark:lg:bg-slate-950 relative z-10 min-h-screen lg:bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] dark:lg:bg-[radial-gradient(#1e293b_1px,transparent_1px)] lg:[background-size:20px_20px]">
+        <div className={`absolute top-6 ${isRTL ? "left-6" : "right-6"} z-50 flex items-center gap-3`}>
+          <ThemeToggle />
+          
+          <div className="flex items-center bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-full p-0.5 gap-0.5 shadow-sm">
+            {LANGS.map(({ code, label }) => (
+              <button
+                key={code}
+                onClick={() => setLanguage(code)}
+                className={`h-7 px-2.5 rounded-full text-[11px] font-bold transition-all duration-200
+                  ${language === code ? "bg-indigo-600 text-white shadow-sm" : "text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200"}`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
         </div>
 
         <div className="w-full max-w-[460px] relative z-10">
@@ -114,17 +125,17 @@ function LoginForm() {
             <p className="text-[12px] text-white/80 uppercase tracking-widest font-medium mt-1 drop-shadow-sm">{t("common.appSubtitle")}</p>
           </div>
 
-          <div className="bg-white/95 backdrop-blur-sm lg:bg-white border border-white/20 lg:border-gray-200 rounded-xl lg:rounded-md p-8 shadow-2xl lg:shadow-sm">
-            <h2 className="text-[15px] font-medium text-gray-900 mb-6">{t("auth.login")}</h2>
+          <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl lg:rounded-md p-8 shadow-2xl lg:shadow-sm transition-colors duration-300">
+            <h2 className="text-[15px] font-medium text-gray-900 dark:text-white mb-6">{t("auth.login")}</h2>
 
             {error && (
-              <div className="mb-4 p-3 bg-red-50 border-l-2 border-red-600 text-[11px] text-red-700 font-medium rounded-r">
+              <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border-l-2 border-red-600 text-[11px] text-red-700 dark:text-red-400 font-medium rounded-r">
                 {t("errors.serverError")}: {error}
               </div>
             )}
 
             {authError && (
-              <div className="mb-6 p-4 bg-red-50 border border-red-200 text-[13px] text-red-700 font-medium rounded-lg flex items-center gap-3 animate-in fade-in slide-in-from-top-1">
+              <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/50 text-[13px] text-red-700 dark:text-red-400 font-medium rounded-lg flex items-center gap-3 animate-in fade-in slide-in-from-top-1">
                 <div className="h-2 w-2 bg-red-500 rounded-full animate-pulse flex-shrink-0" />
                 {authError}
               </div>
@@ -142,8 +153,8 @@ function LoginForm() {
 
               <div className="space-y-1">
                 <div className={`flex justify-between ${isRTL ? "flex-row-reverse" : ""}`}>
-                  <label className="admin-form-label" htmlFor="password">{t("common.password")}</label>
-                  <Link href="/forgot-password" className="text-[11px] text-indigo-600 hover:text-indigo-700">
+                  <label className="admin-form-label dark:text-gray-300" htmlFor="password">{t("common.password")}</label>
+                  <Link href="/forgot-password" className="text-[11px] text-indigo-600 dark:text-indigo-400 hover:text-indigo-700">
                     {t("auth.forgotPassword")}
                   </Link>
                 </div>
@@ -163,17 +174,17 @@ function LoginForm() {
 
               <Link
                 href="/"
-                className="flex items-center justify-center gap-2 w-full py-2 text-[13px] text-gray-500 hover:text-indigo-600 font-medium transition-colors cursor-pointer"
+                className="flex items-center justify-center gap-2 w-full py-2 text-[13px] text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 font-medium transition-colors cursor-pointer"
               >
                 <ArrowLeft className={`h-4 w-4 ${isRTL ? "rotate-180" : ""}`} />
                 {t("common.back")}
               </Link>
             </form>
 
-            <div className="mt-8 pt-6 border-t border-gray-100 text-center">
-              <p className="text-[13px] text-gray-500">
+            <div className="mt-8 pt-6 border-t border-gray-100 dark:border-slate-800 text-center">
+              <p className="text-[13px] text-gray-500 dark:text-gray-400">
                 {t("auth.register")}?{" "}
-                <Link href="/register" className="text-indigo-600 font-medium hover:text-indigo-700">
+                <Link href="/register" className="text-indigo-600 dark:text-indigo-400 font-medium hover:text-indigo-700">
                   {t("common.registrations")}
                 </Link>
               </p>
