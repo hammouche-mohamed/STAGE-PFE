@@ -1,11 +1,11 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Button } from "@/components/ui/Button";
 import { toast } from "sonner";
 import { format } from "date-fns";
-import { Check, X, Eye, AlertTriangle, Search, Trash2 } from "lucide-react";
+import { Eye, Search, Trash2, X } from "lucide-react";
 import { useTranslation } from "@/lib/i18n/LanguageContext";
 import { useSession } from "next-auth/react";
 import { Modal } from "@/components/ui/Modal";
@@ -26,6 +26,7 @@ interface RegistrationRequest {
   grade?: string;
   sector?: string;
   wilaya?: string;
+  adminComment?: string;
 }
 
 export default function AdminRegistrationsPage() {
@@ -50,14 +51,12 @@ export default function AdminRegistrationsPage() {
   const [specialities, setSpecialities] = useState<string[]>([]);
   const [promotions, setPromotions] = useState<string[]>([]);
   const [currentYear, setCurrentYear] = useState("");
-  const [isUpdating, setIsUpdating] = useState(false);
   const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
   const [blockEmail, setBlockEmail] = useState(false);
-
   const [filterStatus, setFilterStatus] = useState("PENDING");
 
-  const fetchRequests = async () => {
+  const fetchRequests = useCallback(async () => {
     try {
       const params = new URLSearchParams();
       if (search.trim()) params.append("search", search.trim());
@@ -71,12 +70,11 @@ export default function AdminRegistrationsPage() {
     } finally {
       setIsLoading(false);
     }
-  };
-
+  }, [search, filterStatus]);
 
   useEffect(() => {
     fetchRequests();
-  }, [search, filterStatus]);
+  }, [fetchRequests]);
 
   useEffect(() => {
     const loadSettings = async () => {
