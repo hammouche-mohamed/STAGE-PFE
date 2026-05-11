@@ -16,64 +16,63 @@ export async function GET(req: NextRequest) {
     if (role === "ADMIN") {
       const filiereId = session.user.isSuperAdmin ? null : session.user.filiereId;
 
-      if (session.user.isSuperAdmin) {
-        counts["/admin/registrations"] = await prisma.registrationRequest.count({
-          where: { status: "PENDING" },
-        });
-      }
+      const [regCount, topicCount, internCount] = await Promise.all([
+        session.user.isSuperAdmin ? prisma.registrationRequest.count({ where: { status: "PENDING" } }) : Promise.resolve(0),
+        prisma.topic.count({ 
+          where: { 
+            status: "PENDING_ADMIN",
+            ...(filiereId ? { filiereId } : {})
+          } as any,
+        }),
+        prisma.internship.count({ 
+          where: { 
+            status: "REQUESTED",
+            ...(filiereId ? { topic: { filiereId } } : {})
+          } as any,
+        })
+      ]);
 
-      counts["/admin/topics"] = await prisma.topic.count({
-        where: { 
-          status: "PENDING_ADMIN",
-          ...(filiereId ? { filiereId } : {})
-        } as any,
-      });
-      
-      counts["/admin/internships"] = await prisma.internship.count({
-        where: { 
-          status: "REQUESTED",
-          ...(filiereId ? { topic: { filiereId } } : {})
-        } as any,
-      });
+      if (session.user.isSuperAdmin) counts["/admin/registrations"] = regCount;
+      counts["/admin/topics"] = topicCount;
+      counts["/admin/internships"] = internCount;
     } else if (role === "TEACHER") {
-      counts["/teacher/internships"] = await prisma.internship.count({
-        where: { teacherId: userId, status: "REQUESTED" },
-      });
-      counts["/teacher/documents"] = await prisma.document.count({
-        where: { 
-          internship: { teacherId: userId },
-          status: "UPLOADED"
-        },
-      });
-      counts["/teacher/messages"] = await prisma.message.count({
-        where: {
-          internship: { teacherId: userId },
-          reads: { none: { userId } },
-        },
-      });
+      const [internCount, docCount, msgCount] = await Promise.all([
+        prisma.internship.count({ where: { teacherId: userId, status: "REQUESTED" } }),
+        prisma.document.count({ 
+          where: { internship: { teacherId: userId }, status: "UPLOADED" },
+        }),
+        prisma.message.count({
+          where: { internship: { teacherId: userId }, reads: { none: { userId } } },
+        })
+      ]);
+      counts["/teacher/internships"] = internCount;
+      counts["/teacher/documents"] = docCount;
+      counts["/teacher/messages"] = msgCount;
     } else if (role === "COMPANY") {
-      counts["/company/applications"] = await prisma.studentApplication.count({
-        where: { 
-          topic: { proposedById: userId },
-          status: "PENDING"
-        },
-      });
-      counts["/company/messages"] = await prisma.message.count({
-        where: {
-          internship: { topic: { proposedById: userId } },
-          reads: { none: { userId } },
-        },
-      });
+      const [appCount, msgCount] = await Promise.all([
+        prisma.studentApplication.count({ 
+          where: { topic: { proposedById: userId }, status: "PENDING" },
+        }),
+        prisma.message.count({
+          where: { internship: { topic: { proposedById: userId } }, reads: { none: { userId } } },
+        })
+      ]);
+      counts["/company/applications"] = appCount;
+      counts["/company/messages"] = msgCount;
     } else if (role === "STUDENT") {
-      counts["/student/invitations"] = await prisma.binomeInvitation.count({
-        where: { invitedStudentId: userId, status: "PENDING" },
-      });
-      counts["/student/messages"] = await prisma.message.count({
-        where: {
-          internship: { students: { some: { studentId: userId } } },
-          reads: { none: { userId } },
-        },
-      });
+      const [invitCount, msgCount] = await Promise.all([
+        prisma.binomeInvitation.count({ 
+          where: { invitedStudentId: userId, status: "PENDING" },
+        }),
+        prisma.message.count({
+          where: {
+            internship: { students: { some: { studentId: userId } } },
+            reads: { none: { userId } },
+          },
+        })
+      ]);
+      counts["/student/invitations"] = invitCount;
+      counts["/student/messages"] = msgCount;
     }
 
     if (session.user.mustChangePassword) {

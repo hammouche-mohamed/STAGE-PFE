@@ -66,7 +66,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ role: initialRole, logoUrl }) 
     return () => clearInterval(interval);
   }, [session]);
 
-  const getNavItems = () => {
+  const navItems = React.useMemo(() => {
     const items = (() => {
       switch (role) {
         case "ADMIN":
@@ -123,9 +123,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ role: initialRole, logoUrl }) 
       ...item,
       badge: counts[item.href] || 0
     }));
-  };
-
-  const navItems = getNavItems();
+  }, [role, pathname, counts, t, session?.user?.isSuperAdmin]);
 
   return (
     <>

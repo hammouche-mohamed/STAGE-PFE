@@ -1,9 +1,10 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Bell, CheckCircle, Circle, X, Trash2, CheckCheck } from "lucide-react";
+import { Bell, CheckCircle, Circle, X, Trash2, CheckCheck, ArrowLeft, ArrowRight } from "lucide-react";
 import { formatDateTime } from "@/lib/utils/formatDate";
 import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { useTranslation } from "@/lib/i18n/LanguageContext";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
@@ -24,6 +25,7 @@ export function NotificationsClient() {
   const [isLoading, setIsLoading] = useState(true);
   const [isClearAllDialogOpen, setIsClearAllDialogOpen] = useState(false);
   const { t, isRTL } = useTranslation();
+  const router = useRouter();
 
   const fetchNotifications = async () => {
     try {
@@ -103,9 +105,18 @@ export function NotificationsClient() {
   return (
     <div className="space-y-6">
       <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${isRTL ? "sm:flex-row-reverse text-right" : ""}`}>
-        <div>
-          <h1 className="text-[20px] font-bold text-gray-900 dark:text-white">{t("nav.notifications" as any)}</h1>
-          <p className="text-[13px] text-gray-500 dark:text-gray-400 mt-1">Manage your platform alerts and updates.</p>
+        <div className={`flex flex-col gap-4 ${isRTL ? "items-end" : "items-start"}`}>
+          <button 
+            onClick={() => router.back()}
+            className={`flex items-center gap-2 text-xs font-medium text-gray-500 hover:text-indigo-600 dark:text-gray-400 dark:hover:text-indigo-400 transition-colors group ${isRTL ? "flex-row-reverse" : ""}`}
+          >
+            {isRTL ? <ArrowRight className="h-3.5 w-3.5 group-hover:translate-x-1 transition-transform" /> : <ArrowLeft className="h-3.5 w-3.5 group-hover:-translate-x-1 transition-transform" />}
+            {t("common.back")}
+          </button>
+          <div>
+            <h1 className="text-[20px] font-bold text-gray-900 dark:text-white">{t("nav.notifications" as any)}</h1>
+            <p className="text-[13px] text-gray-500 dark:text-gray-400 mt-1">Manage your platform alerts and updates.</p>
+          </div>
         </div>
         <div className={`flex items-center gap-2 ${isRTL ? "flex-row-reverse" : ""}`}>
           {notifications.length > 0 && (

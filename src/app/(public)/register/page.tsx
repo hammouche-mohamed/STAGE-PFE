@@ -63,7 +63,12 @@ export default function RegisterPage() {
           setSpecialities(d.data.availableSpecialities.split(",").map((s: string) => s.trim()).filter(Boolean));
         }
         if (d.data?.availablePromotions) {
-          setAcademicLevels(d.data.availablePromotions.split(",").map((s: string) => s.trim()).filter(Boolean));
+          const levels = d.data.availablePromotions.split(",").map((s: string) => s.trim()).filter(Boolean);
+          setAcademicLevels(levels);
+          if (levels.length > 0) {
+            setValue("level", levels[0]);
+            setValue("promotion", levels[0]);
+          }
         }
       })
       .catch(() => { });
@@ -126,12 +131,13 @@ export default function RegisterPage() {
     <div className={"min-h-screen w-full flex relative " + (isRTL ? "rtl" : "ltr")}>
       {/* Background Image - Fixed/Sticky on desktop to prevent zoom from long form */}
       <div className="fixed inset-0 lg:sticky lg:top-0 lg:h-screen lg:w-1/2 bg-gray-900 z-0 overflow-hidden">
-        <div className="absolute inset-0 bg-indigo-900/70 mix-blend-multiply z-10" />
+        <div className="absolute inset-0 bg-indigo-950/80 z-10" />
         <Image
           src="https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&w=1600&q=80"
           alt="University Campus"
           fill
           className="object-cover"
+          sizes="100vw"
           unoptimized
           priority
         />
@@ -229,7 +235,14 @@ export default function RegisterPage() {
                   <>
                     <div className="w-full">
                       <label className="admin-form-label">Academic Level <span className="text-red-500">*</span></label>
-                      <select {...register("level")} className="admin-input cursor-pointer">
+                      <select 
+                        {...register("level")} 
+                        className="admin-input cursor-pointer"
+                        onChange={(e) => {
+                          register("level").onChange(e);
+                          setValue("promotion", e.target.value);
+                        }}
+                      >
                         <option value="">Select Level</option>
                         {academicLevels.map(lvl => (
                           <option key={lvl} value={lvl}>{lvl}</option>

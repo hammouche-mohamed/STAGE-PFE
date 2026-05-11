@@ -19,13 +19,15 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const session = await auth();
+  const [session, logoSetting] = await Promise.all([
+    auth(),
+    getUniversityLogo()
+  ]);
+  
   const role = (session?.user?.role as "ADMIN" | "STUDENT" | "TEACHER" | "COMPANY") ?? "ADMIN";
-
-  const logoSetting = await getUniversityLogo();
   const baseLogoUrl = logoSetting?.value || "";
   const routedLogoUrl = baseLogoUrl.startsWith("/uploads/") ? `/api${baseLogoUrl}` : baseLogoUrl;
-  const logoUrl = routedLogoUrl ? `${routedLogoUrl}?v=${logoSetting?.updatedAt?.getTime() || Date.now()}` : "";
+  const logoUrl = routedLogoUrl ? `${routedLogoUrl}${logoSetting?.updatedAt ? `?v=${logoSetting.updatedAt.getTime()}` : ""}` : "";
 
   return (
     <SidebarProvider>

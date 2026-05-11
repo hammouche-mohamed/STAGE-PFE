@@ -91,6 +91,7 @@ export default function AdminUsersPage() {
       const params = new URLSearchParams();
       if (roleFilter !== "ALL") params.append("role", roleFilter);
       if (filiereFilter !== "ALL") params.append("filiereId", filiereFilter);
+      if (search.trim()) params.append("search", search.trim());
       
       const res = await fetch(`/api/users?${params.toString()}`);
       const data = await res.json();
@@ -158,7 +159,7 @@ export default function AdminUsersPage() {
 
   useEffect(() => {
     fetchUsers();
-  }, [roleFilter, filiereFilter]);
+  }, [roleFilter, filiereFilter, search]);
 
   const handleUnblock = (item: any) => {
     setEmailToUnblock(item);
@@ -211,8 +212,11 @@ export default function AdminUsersPage() {
   };
 
   const filteredUsers = users.filter(u => {
-    const matchesSearch = u.name.toLowerCase().includes(search.toLowerCase()) || 
-                         u.email.toLowerCase().includes(search.toLowerCase());
+    const s = search.toLowerCase();
+    const matchesSearch = !search || 
+                         u.name.toLowerCase().includes(s) || 
+                         u.email.toLowerCase().includes(s) ||
+                         (u as any).studentProfile?.studentId?.toLowerCase().includes(s);
     const matchesRole = roleFilter === "ALL" || u.role === roleFilter;
     return matchesSearch && matchesRole;
   });
@@ -518,7 +522,15 @@ export default function AdminUsersPage() {
               filteredUsers.map((user, index) => (
                 <tr key={user.id} className="admin-table-row">
                   <td data-label="User" className="py-3 sm:py-0">
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2 sm:flex-row flex-row justify-end w-full">
+                      <div className="flex flex-col min-w-0 sm:items-start items-end">
+                        <span className="font-medium text-[12px] sm:text-[13px] text-gray-900 dark:text-white sm:text-left text-right">{user.name}</span>
+                        <div className="text-[9px] sm:text-[10px] text-gray-400 dark:text-slate-300 flex items-center justify-end sm:justify-start w-full">
+                          <span className="whitespace-nowrap sm:whitespace-normal sm:break-all sm:text-left text-right">{user.email}</span>
+                          <Mail className="h-2.5 w-2.5 ml-1 flex-shrink-0 text-gray-400 dark:text-slate-400 sm:hidden" />
+                          <Mail className="h-2.5 w-2.5 mr-1 flex-shrink-0 text-gray-400 dark:text-slate-400 hidden sm:block" />
+                        </div>
+                      </div>
                       <div className="h-8 w-8 rounded-full bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 flex items-center justify-center text-[12px] font-bold overflow-hidden flex-shrink-0">
                         {user.avatarUrl ? (
                           <Image 
@@ -533,23 +545,16 @@ export default function AdminUsersPage() {
                           user.name.charAt(0)
                         )}
                       </div>
-                      <div className="flex flex-col min-w-0 items-start">
-                        <span className="font-medium text-gray-900 dark:text-white truncate">{user.name}</span>
-                        <span className="text-[11px] text-gray-400 dark:text-slate-300 flex items-center truncate">
-                          <Mail className="h-3 w-3 mr-1 flex-shrink-0 text-gray-400 dark:text-slate-400" />
-                          <span className="truncate">{user.email}</span>
-                        </span>
-                      </div>
                     </div>
                   </td>
                   <td data-label="Role">
-                    <div className="flex flex-col items-start gap-1">
+                    <div className="flex flex-col sm:items-start items-end gap-1">
                       <div className="flex items-center gap-2">
-                        <span className="flex-shrink-0">{roleIcons[user.role]}</span>
-                        <span className="text-[11px] sm:text-[12px] font-medium text-gray-600 dark:text-gray-300 uppercase tracking-tight">{t(`roles.${user.role}`)}</span>
+                        <span className="flex-shrink-0 hidden sm:block">{roleIcons[user.role]}</span>
+                        <span className="text-[10px] sm:text-[12px] font-bold text-gray-600 dark:text-gray-300 uppercase tracking-tight whitespace-nowrap">{t(`roles.${user.role}`)}</span>
                       </div>
                       {user.role === "ADMIN" && (
-                        <span className="text-[10px] text-gray-400 dark:text-gray-500 px-1.5 py-0.5 font-semibold bg-gray-50 dark:bg-slate-800 rounded border border-gray-100 dark:border-slate-700 uppercase tracking-tight">
+                        <span className="text-[10px] text-gray-400 dark:text-gray-500 px-1.5 py-0.5 font-semibold bg-gray-50 dark:bg-slate-800 rounded border border-gray-100 dark:border-slate-700 uppercase tracking-tight whitespace-nowrap">
                           {user.adminProfile?.isSuperAdmin 
                             ? t("roles.SUPER_ADMIN") 
                             : `${t("roles.ADMIN")} (${user.adminProfile?.filiere?.name || "Global"})`}
@@ -563,11 +568,11 @@ export default function AdminUsersPage() {
                     </div>
                   </td>
                   <td data-label={t("common.status")}>
-                    <div className="flex items-center">
-                      <div className={`h-1.5 w-1.5 rounded-full ${isRTL ? "ml-1.5" : "mr-1.5"} flex-shrink-0 ${user.isActive ? "bg-green-500" : "bg-red-500"}`} />
-                      <span className={`text-[11px] sm:text-[12px] font-medium ${user.isActive ? "text-green-700 dark:text-green-400" : "text-red-700 dark:text-red-400"}`}>
+                    <div className="flex items-center gap-1.5">
+                      <span className={`text-[11px] sm:text-[12px] font-bold leading-none ${user.isActive ? "text-green-700 dark:text-green-400" : "text-red-700 dark:text-red-400"}`}>
                         {user.isActive ? t("admin.users.active") : t("admin.users.inactive")}
                       </span>
+                      <div className={`h-1.5 w-1.5 rounded-full flex-shrink-0 ${user.isActive ? "bg-green-500" : "bg-red-500"} mb-[1px]`} />
                     </div>
                   </td>
                   <td data-label="Created">

@@ -36,7 +36,6 @@ export async function PATCH(
         where: { id },
         data: {
           ...updatedData,
-          updatedAt: new Date(),
         },
       });
       // Refresh request data for user creation
@@ -66,7 +65,7 @@ export async function PATCH(
       });
 
       try {
-        await MailService.sendStatusUpdate(request.email, request.name, 'REJECTED', adminComment);
+        await MailService.sendStatusUpdate(request.email, request.name, 'REJECTED', adminComment, updatedData, request);
       } catch (e) {
         console.error('Rejection mail failed:', e);
       }
@@ -79,7 +78,26 @@ export async function PATCH(
 
     // ── APPROVED ──────────────────────────────────────────────────────────────
     const result = await prisma.$transaction(async (tx) => {
-      // 1. Create User — include level from registration request
+      // 1. Check if user already exists in User table
+      const existingUser = await tx.user.findUnique({
+        where: { email: request.email }
+      });
+
+      if (existingUser) {
+        throw new Error(`USER_EXISTS:${request.email}`);
+      }
+
+      // 1.5 Check if student ID already exists
+      if (request.role === 'STUDENT' && request.studentId) {
+        const existingStudent = await tx.studentProfile.findUnique({
+          where: { studentId: request.studentId }
+        });
+        if (existingStudent) {
+          throw new Error(`STUDENT_ID_EXISTS:${request.studentId}`);
+        }
+      }
+
+      // 2. Create User — include level from registration request
       const user = await tx.user.create({
         data: {
           id: randomUUID(),
@@ -95,7 +113,7 @@ export async function PATCH(
         },
       });
 
-      // 2. Create role-specific profile
+      // 3. Create role-specific profile
       if (request.role === 'STUDENT') {
         await tx.studentProfile.create({
           data: {
@@ -130,7 +148,7 @@ export async function PATCH(
         });
       }
 
-      // 3. Link and mark request as APPROVED
+      // 4. Link and mark request as APPROVED
       await tx.registrationRequest.update({
         where: { id },
         data: { status: 'APPROVED', userId: user.id, reviewedAt: new Date() },
@@ -139,7 +157,7 @@ export async function PATCH(
       return user;
     });
 
-    // 4. Welcome notification
+    // 5. Welcome notification
     await NotificationService.trigger({
       userId: result.id,
       type: 'REGISTRATION_APPROVED',
@@ -156,14 +174,67 @@ export async function PATCH(
       targetId: result.name,
     });
 
-    // 5. Clear original submission notifications for all admins
+    // 6. Send Approval Email with any modifications
+    try {
+      await MailService.sendStatusUpdate(request.email, request.name, 'APPROVED', adminComment, updatedData, request);
+    } catch (e) {
+      console.error('Approval mail failed:', e);
+    }
+
+    // 6. Clear original submission notifications for all admins
     await NotificationService.clearRelated(id, 'REGISTRATION_REQUEST');
 
     return NextResponse.json({
       message: 'Registration approved and account created successfully',
     });
-  } catch (error: unknown) {
+  } catch (error: any) {
     console.error('Registration review failed:', error);
+    
+    // NFR-SEC1: Hide raw prisma/system errors from user
+    if (error.message?.startsWith('USER_EXISTS:')) {
+      return NextResponse.json({ error: `A user with email ${error.message.split(':')[1]} already exists in the system.` }, { status: 409 });
+    }
+    if (error.message?.startsWith('STUDENT_ID_EXISTS:')) {
+      return NextResponse.json({ error: `A student with ID ${error.message.split(':')[1]} already exists in the system.` }, { status: 409 });
+    }
+
+    // Generic friendly error for everything else
+    return NextResponse.json({ 
+      error: 'An unexpected error occurred while processing this registration. Please try again or contact support.' 
+    }, { status: 500 });
+  }
+}
+
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const session = await auth();
+  if (!session || session.user.role !== 'ADMIN') {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  try {
+    const { id } = await params;
+    const request = await prisma.registrationRequest.findUnique({ where: { id } });
+
+    if (!request) {
+      return NextResponse.json({ error: 'Request not found' }, { status: 404 });
+    }
+
+    await prisma.registrationRequest.delete({ where: { id } });
+
+    await AuditService.log({
+      userId: session.user.id,
+      action: 'REGISTRATION_DELETED',
+      targetType: 'RegistrationRequest',
+      targetId: request.name,
+      details: { email: request.email, status: request.status },
+    });
+
+    return NextResponse.json({ message: 'Request deleted successfully' });
+  } catch (error: any) {
+    console.error('Registration delete failed:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

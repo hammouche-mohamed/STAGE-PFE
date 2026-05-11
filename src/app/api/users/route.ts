@@ -12,12 +12,26 @@ export async function GET(req: NextRequest) {
   const role = searchParams.get("role");
   const isAvailableOnly = searchParams.get("available") === "true";
   const filiereId = searchParams.get("filiereId");
+  const search = searchParams.get("search");
 
   try {
     const isAllFilieres = !filiereId || (typeof filiereId === 'string' && filiereId.toLowerCase() === "all");
     const targetFiliereId = session.user.isSuperAdmin ? (isAllFilieres ? null : filiereId) : session.user.filiereId;
 
     let allowedUserIds: string[] | null = null;
+    
+    // If searching by studentId, get userIds from StudentProfile first
+    let searchUserIds: string[] | null = null;
+    if (search) {
+      const matchingProfiles = await prisma.studentProfile.findMany({
+        where: { studentId: { contains: search } },
+        select: { userId: true }
+      });
+      if (matchingProfiles.length > 0) {
+        searchUserIds = matchingProfiles.map(p => p.userId);
+      }
+    }
+
     if (targetFiliereId) {
       const [students, teachers, admins] = await Promise.all([
         prisma.studentProfile.findMany({ where: { filiereId: targetFiliereId }, select: { userId: true } }),
@@ -45,6 +59,13 @@ export async function GET(req: NextRequest) {
           NOT: { role: "ADMIN" }
         }),
         ...(allowedUserIds ? { id: { in: allowedUserIds } } : {}),
+        ...(search ? {
+          OR: [
+            { name: { contains: search } },
+            { email: { contains: search } },
+            ...(searchUserIds ? [{ id: { in: searchUserIds } }] : [])
+          ]
+        } : {})
       },
       orderBy: { name: "asc" }
     });

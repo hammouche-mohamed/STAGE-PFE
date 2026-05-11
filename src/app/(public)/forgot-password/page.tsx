@@ -138,12 +138,13 @@ export default function ForgotPasswordPage() {
     <div className={"h-[100dvh] w-full flex relative overflow-hidden " + (isRTL ? "rtl" : "ltr")}>
       {/* Background Image - Fixed on mobile, Left side on desktop */}
       <div className="fixed inset-0 lg:relative lg:w-1/2 bg-gray-900 z-0">
-        <div className="absolute inset-0 bg-indigo-900/70 mix-blend-multiply z-10" />
+        <div className="absolute inset-0 bg-indigo-950/80 z-10" />
         <Image 
           src="https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&w=1200&q=80" 
           alt="University Campus" 
           fill
           className="object-cover"
+          sizes="100vw"
           unoptimized
           priority
         />
@@ -161,7 +162,7 @@ export default function ForgotPasswordPage() {
       </div>
 
       {/* Right side - Form */}
-      <div className="w-full lg:w-1/2 flex flex-col items-center justify-center p-4 sm:p-12 bg-white dark:bg-slate-950 transition-colors duration-300 relative z-10 min-h-screen">
+      <div className="w-full lg:w-1/2 flex flex-col items-center justify-center p-4 sm:p-12 lg:bg-white dark:bg-slate-950 transition-colors duration-300 relative z-10 min-h-screen">
         {/* Language switcher & Theme Toggle */}
         <div className="absolute top-6 left-6 z-50">
           <ThemeToggle />

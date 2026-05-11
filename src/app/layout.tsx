@@ -2,7 +2,7 @@ import { Metadata } from "next";
 import { Geist, Geist_Mono, Cairo } from "next/font/google";
 import { SessionProvider } from "next-auth/react";
 import { LanguageProvider } from "@/lib/i18n/LanguageContext";
-import { Toaster } from "sonner";
+import { Toaster } from "@/components/ui/Toaster";
 import SessionTimeout from "@/components/auth/SessionTimeout";
 import { ThemeProvider } from "@/components/theme-provider";
 import "./globals.css";

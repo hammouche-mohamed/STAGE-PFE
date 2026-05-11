@@ -5,7 +5,7 @@ import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Button } from "@/components/ui/Button";
 import { toast } from "sonner";
 import { format } from "date-fns";
-import { Check, X, Eye, AlertTriangle } from "lucide-react";
+import { Check, X, Eye, AlertTriangle, Search, Trash2 } from "lucide-react";
 import { useTranslation } from "@/lib/i18n/LanguageContext";
 import { useSession } from "next-auth/react";
 import { Modal } from "@/components/ui/Modal";
@@ -43,6 +43,8 @@ export default function AdminRegistrationsPage() {
 
   const [requests, setRequests] = useState<RegistrationRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [updatingStatus, setUpdatingStatus] = useState<"APPROVED" | "REJECTED" | null>(null);
+  const [search, setSearch] = useState("");
   const [selectedRequest, setSelectedRequest] = useState<RegistrationRequest | null>(null);
   const [editData, setEditData] = useState<any>(null);
   const [specialities, setSpecialities] = useState<string[]>([]);
@@ -53,9 +55,15 @@ export default function AdminRegistrationsPage() {
   const [rejectReason, setRejectReason] = useState("");
   const [blockEmail, setBlockEmail] = useState(false);
 
+  const [filterStatus, setFilterStatus] = useState("PENDING");
+
   const fetchRequests = async () => {
     try {
-      const res = await fetch("/api/registrations");
+      const params = new URLSearchParams();
+      if (search.trim()) params.append("search", search.trim());
+      if (filterStatus !== "ALL") params.append("status", filterStatus);
+      
+      const res = await fetch(`/api/registrations?${params.toString()}`);
       const data = await res.json();
       setRequests(data.data || []);
     } catch (error) {
@@ -65,36 +73,68 @@ export default function AdminRegistrationsPage() {
     }
   };
 
-  const fetchSettings = async () => {
-    try {
-      const res = await fetch("/api/settings/public");
-      const d = await res.json();
-      if (d.data?.filieres && d.data.filieres.length > 0) {
-        setSpecialities(d.data.filieres.map((f: any) => f.name));
-      } else if (d.data?.availableSpecialities) {
-        setSpecialities(d.data.availableSpecialities.split(",").map((s: string) => s.trim()).filter(Boolean));
-      }
-      if (d.data?.availablePromotions) {
-        setPromotions(d.data.availablePromotions.split(",").map((s: string) => s.trim()).filter(Boolean));
-      }
-      if (d.data?.currentAcademicYear) {
-        setCurrentYear(d.data.currentAcademicYear);
-      }
-    } catch (e) {}
-  };
 
   useEffect(() => {
     fetchRequests();
-    fetchSettings();
+  }, [search, filterStatus]);
+
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const res = await fetch("/api/settings/public", { cache: "no-store" });
+        if (!res.ok) throw new Error("Failed to fetch settings");
+        const d = await res.json();
+        
+        const fetchedSpecialities = [];
+        if (d.data?.filieres && d.data.filieres.length > 0) {
+          fetchedSpecialities.push(...d.data.filieres.map((f: any) => f.name));
+        } else if (d.data?.availableSpecialities) {
+          fetchedSpecialities.push(...d.data.availableSpecialities.split(",").map((s: string) => s.trim()).filter(Boolean));
+        }
+        setSpecialities(fetchedSpecialities);
+
+        if (d.data?.availablePromotions) {
+          const fetchedPromotions = d.data.availablePromotions.split(",").map((s: string) => s.trim()).filter(Boolean);
+          setPromotions(fetchedPromotions);
+        }
+
+        if (d.data?.currentAcademicYear) {
+          setCurrentYear(d.data.currentAcademicYear);
+        }
+      } catch (e) {
+        console.error("Settings load error:", e);
+      }
+    };
+    loadSettings();
   }, []);
 
   useEffect(() => {
     if (selectedRequest) {
-      setEditData({ ...selectedRequest });
+      setEditData({ 
+        ...selectedRequest,
+        promotion: selectedRequest.promotion || selectedRequest.level || ""
+      });
     } else {
       setEditData(null);
     }
   }, [selectedRequest]);
+
+  const [isClearModalOpen, setIsClearModalOpen] = useState(false);
+
+  const handleClearHistory = async () => {
+    try {
+      const res = await fetch("/api/registrations", { method: "DELETE" });
+      const data = await res.json();
+      if (res.ok) {
+        toast.success(data.message);
+        fetchRequests();
+      }
+    } catch (e) {
+      toast.error("Failed to clear history");
+    } finally {
+      setIsClearModalOpen(false);
+    }
+  };
 
   const handleReview = async (id: string, status: "APPROVED" | "REJECTED", reason?: string) => {
     if (status === "REJECTED" && !reason) {
@@ -129,7 +169,8 @@ export default function AdminRegistrationsPage() {
         }),
       });
 
-      if (!res.ok) throw new Error("Update failed");
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error || "Update failed");
 
       toast.success(`Request ${status.toLowerCase()} successfully`);
       setSelectedRequest(null);
@@ -137,19 +178,59 @@ export default function AdminRegistrationsPage() {
       setRejectReason("");
       setBlockEmail(false);
       fetchRequests();
-    } catch (error) {
-      toast.error("Failed to update request");
+    } catch (error: any) {
+      toast.error(error.message || "Failed to update request");
     } finally {
-      setIsUpdating(false);
+      setUpdatingStatus(null);
     }
   };
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-[16px] sm:text-[17px] font-semibold text-gray-900 dark:text-white">{t("common.registrations")}</h1>
-          <p className="text-[12px] sm:text-[13px] text-gray-500 dark:text-gray-400 mt-0.5">{t("settings.subtitle")}</p>
+      <div className="flex flex-col gap-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-[16px] sm:text-[17px] font-semibold text-gray-900 dark:text-white uppercase tracking-tight">
+              {t("common.registrations")}
+            </h1>
+            <p className="text-[12px] sm:text-[13px] text-gray-500 dark:text-gray-400 mt-0.5">
+              {t("settings.subtitle")}
+            </p>
+          </div>
+          {filterStatus !== "PENDING" && (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => setIsClearModalOpen(true)}
+              className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/10 border-red-100 dark:border-red-900/30 h-8 px-3 text-[11px] font-bold"
+            >
+              <Trash2 className="h-3.5 w-3.5 mr-1.5" />
+              Clear History
+            </Button>
+          )}
+        </div>
+
+        <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
+          <select 
+            className="admin-input h-9 w-full sm:w-32"
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.target.value)}
+          >
+            <option value="ALL">All Requests</option>
+            <option value="PENDING">Pending</option>
+            <option value="APPROVED">Approved</option>
+            <option value="REJECTED">Rejected</option>
+          </select>
+          <div className="relative w-full sm:w-64">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <input 
+              type="text"
+              className="admin-input pl-10 h-9"
+              placeholder="Search registrations..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
         </div>
       </div>
 
@@ -179,7 +260,7 @@ export default function AdminRegistrationsPage() {
                   <td data-label="Applicant" className="py-3 sm:py-0">
                     <div className="flex flex-col min-w-0 items-start">
                       <span className="font-medium text-gray-900 dark:text-white truncate">{req.name}</span>
-                      <span className="text-[11px] text-gray-400 dark:text-slate-300 truncate">{req.email}</span>
+                      <span className="text-[11px] text-gray-400 dark:text-slate-300 break-all">{req.email}</span>
                     </div>
                   </td>
                   <td data-label="Role">
@@ -194,7 +275,7 @@ export default function AdminRegistrationsPage() {
                   <td data-label="Actions" className="text-right">
                     <button 
                       onClick={() => setSelectedRequest(req)}
-                      className="p-1 text-gray-400 dark:text-gray-500 hover:bg-gray-50 dark:hover:bg-slate-800 rounded" 
+                      className="p-1.5 text-gray-400 dark:text-gray-500 hover:bg-gray-50 dark:hover:bg-slate-800 rounded transition-colors" 
                       title="View Details"
                     >
                       <Eye className="h-4 w-4" />
@@ -225,6 +306,7 @@ export default function AdminRegistrationsPage() {
                   <input 
                     className="admin-input" 
                     value={editData?.name || ""} 
+                    disabled={selectedRequest.status !== "PENDING"}
                     onChange={e => setEditData({...editData, name: e.target.value})}
                   />
                 </div>
@@ -233,6 +315,7 @@ export default function AdminRegistrationsPage() {
                   <select 
                     className="admin-input" 
                     value={editData?.role || ""} 
+                    disabled={selectedRequest.status !== "PENDING"}
                     onChange={e => setEditData({...editData, role: e.target.value})}
                   >
                     <option value="STUDENT">STUDENT</option>
@@ -245,6 +328,7 @@ export default function AdminRegistrationsPage() {
                   <input 
                     className="admin-input" 
                     value={editData?.email || ""} 
+                    disabled={selectedRequest.status !== "PENDING"}
                     onChange={e => setEditData({...editData, email: e.target.value})}
                   />
                 </div>
@@ -258,6 +342,7 @@ export default function AdminRegistrationsPage() {
                       <input 
                         className="admin-input" 
                         value={editData?.studentId || ""} 
+                        disabled={selectedRequest.status !== "PENDING"}
                         onChange={e => setEditData({...editData, studentId: e.target.value})}
                       />
                     </div>
@@ -266,6 +351,7 @@ export default function AdminRegistrationsPage() {
                       <select 
                         className="admin-input" 
                         value={editData?.promotion || ""} 
+                        disabled={selectedRequest.status !== "PENDING"}
                         onChange={e => setEditData({...editData, promotion: e.target.value})}
                       >
                         <option value="">Select Promotion</option>
@@ -277,6 +363,7 @@ export default function AdminRegistrationsPage() {
                       <select 
                         className="admin-input" 
                         value={editData?.speciality || ""} 
+                        disabled={selectedRequest.status !== "PENDING"}
                         onChange={e => setEditData({...editData, speciality: e.target.value})}
                       >
                         <option value="">Select Speciality</option>
@@ -300,6 +387,7 @@ export default function AdminRegistrationsPage() {
                       <select 
                         className="admin-input" 
                         value={editData?.speciality || ""} 
+                        disabled={selectedRequest.status !== "PENDING"}
                         onChange={e => setEditData({...editData, speciality: e.target.value})}
                       >
                         <option value="">Select Speciality</option>
@@ -311,6 +399,7 @@ export default function AdminRegistrationsPage() {
                       <input 
                         className="admin-input" 
                         value={editData?.grade || ""} 
+                        disabled={selectedRequest.status !== "PENDING"}
                         onChange={e => setEditData({...editData, grade: e.target.value})}
                       />
                     </div>
@@ -324,6 +413,7 @@ export default function AdminRegistrationsPage() {
                       <input 
                         className="admin-input" 
                         value={editData?.companyName || ""} 
+                        disabled={selectedRequest.status !== "PENDING"}
                         onChange={e => setEditData({...editData, companyName: e.target.value})}
                       />
                     </div>
@@ -333,6 +423,7 @@ export default function AdminRegistrationsPage() {
                         <input 
                           className="admin-input" 
                           value={editData?.sector || ""} 
+                          disabled={selectedRequest.status !== "PENDING"}
                           onChange={e => setEditData({...editData, sector: e.target.value})}
                         />
                       </div>
@@ -341,6 +432,7 @@ export default function AdminRegistrationsPage() {
                         <input 
                           className="admin-input" 
                           value={editData?.wilaya || ""} 
+                          disabled={selectedRequest.status !== "PENDING"}
                           onChange={e => setEditData({...editData, wilaya: e.target.value})}
                         />
                       </div>
@@ -357,6 +449,21 @@ export default function AdminRegistrationsPage() {
                   </div>
                 </div>
               )}
+
+              {selectedRequest.adminComment && (
+                <div className="pt-4 border-t border-gray-50 dark:border-slate-800">
+                  <label className="text-gray-400 dark:text-gray-500 block mb-1">
+                    {selectedRequest.status === "REJECTED" ? "Rejection Reason" : "Admin Comment"}
+                  </label>
+                  <div className={`p-3 rounded leading-relaxed ${
+                    selectedRequest.status === "REJECTED" 
+                      ? "bg-red-50 dark:bg-red-900/10 text-red-700 dark:text-red-400 border border-red-100 dark:border-red-900/20" 
+                      : "bg-blue-50 dark:bg-blue-900/10 text-blue-700 dark:text-blue-400 border border-blue-100 dark:border-blue-900/20"
+                  }`}>
+                    {selectedRequest.adminComment}
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="px-6 py-4 bg-gray-50 dark:bg-slate-800/50 border-t border-gray-100 dark:border-slate-800 flex items-center justify-end space-x-3 rounded-b-lg">
@@ -365,7 +472,8 @@ export default function AdminRegistrationsPage() {
                   <Button 
                     variant="danger" 
                     size="sm" 
-                    isLoading={isUpdating}
+                    isLoading={updatingStatus === "REJECTED"}
+                    disabled={updatingStatus !== null}
                     onClick={() => handleReview(selectedRequest.id, "REJECTED")}
                   >
                     {t("common.reject")}
@@ -373,7 +481,8 @@ export default function AdminRegistrationsPage() {
                   <Button 
                     variant="primary" 
                     size="sm" 
-                    isLoading={isUpdating}
+                    isLoading={updatingStatus === "APPROVED"}
+                    disabled={updatingStatus !== null}
                     onClick={() => handleReview(selectedRequest.id, "APPROVED")}
                   >
                     {t("common.approve")}
@@ -453,6 +562,33 @@ export default function AdminRegistrationsPage() {
               </button>
             </div>
           </div>
+        </div>
+      </Modal>
+      {/* Clear History Confirmation Modal */}
+      <Modal
+        isOpen={isClearModalOpen}
+        onClose={() => setIsClearModalOpen(false)}
+        title="Clear Registration History"
+        size="sm"
+        footer={
+          <div className="flex items-center justify-end gap-3 w-full">
+            <Button variant="ghost" size="sm" onClick={() => setIsClearModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="danger" size="sm" onClick={handleClearHistory}>
+              Confirm Delete
+            </Button>
+          </div>
+        }
+      >
+        <div className="flex flex-col items-center text-center py-4">
+          <div className="h-14 w-14 bg-red-50 dark:bg-red-900/20 text-red-600 rounded-full flex items-center justify-center mb-4">
+            <Trash2 className="h-7 w-7" />
+          </div>
+          <h3 className="text-[16px] font-bold text-gray-900 dark:text-white mb-2 uppercase tracking-tight">Are you absolutely sure?</h3>
+          <p className="text-[13px] text-gray-500 dark:text-gray-400 leading-relaxed">
+            This action will permanently delete all <span className="font-bold text-red-600">Approved</span> and <span className="font-bold text-red-600">Rejected</span> registration records. This cannot be undone.
+          </p>
         </div>
       </Modal>
     </div>

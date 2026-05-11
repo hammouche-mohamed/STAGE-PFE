@@ -76,12 +76,13 @@ function LoginForm() {
     <div className={"min-h-screen w-full flex relative " + (isRTL ? "rtl" : "ltr")}>
       {/* Background Image - Fixed on mobile, Left side on desktop */}
       <div className="fixed inset-0 lg:relative lg:w-1/2 bg-gray-900 z-0">
-        <div className="absolute inset-0 bg-indigo-900/70 mix-blend-multiply z-10" />
+        <div className="absolute inset-0 bg-indigo-950/80 z-10" />
         <Image
-          src="https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&w=1200&q=80"
+          src="https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&w=800&q=60"
           alt="University Campus"
           fill
           className="object-cover"
+          sizes="100vw"
           unoptimized
           priority
         />

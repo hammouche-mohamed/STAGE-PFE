@@ -100,10 +100,50 @@ export class MailService {
     });
   }
 
-  static async sendStatusUpdate(email: string, name: string, status: string, comment?: string | null) {
+  static async sendStatusUpdate(email: string, name: string, status: string, comment?: string | null, updatedData?: Record<string, any>, fullData?: any) {
     const isApproved = status === 'APPROVED';
     const statusColor = isApproved ? '#059669' : '#dc2626';
     
+    // Format modifications or summary
+    let infoHtml = '';
+    const hasModifs = updatedData && Object.keys(updatedData).length > 0;
+
+    if (fullData) {
+      infoHtml = `
+        <div style="margin-top: 24px; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px; background-color: #f8fafc;">
+          <p style="color: ${NAVY}; font-weight: 700; margin: 0 0 12px; font-size: 13px; text-transform: uppercase; letter-spacing: 0.05em;">
+            ${hasModifs ? 'Administrative Modifications Applied' : 'Your Profile Information'}
+          </p>
+          <p style="color: ${TEXT_GRAY}; font-size: 14px; margin-bottom: 12px;">
+            ${hasModifs 
+              ? 'The administration has adjusted your profile data during the review process. Please review your final details below:' 
+              : 'Here is a summary of your registration details for your records:'}
+          </p>
+          <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse: collapse;">
+            <tr>
+              <td style="padding: 8px 0; border-bottom: 1px solid #edf2f7; color: ${TEXT_GRAY}; font-size: 13px; font-weight: 600; width: 40%;">Department</td>
+              <td style="padding: 8px 0; border-bottom: 1px solid #edf2f7; color: ${NAVY}; font-size: 13px; text-align: right;">${fullData.speciality || "N/A"}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px 0; border-bottom: 1px solid #edf2f7; color: ${TEXT_GRAY}; font-size: 13px; font-weight: 600;">Promotion</td>
+              <td style="padding: 8px 0; border-bottom: 1px solid #edf2f7; color: ${NAVY}; font-size: 13px; text-align: right;">${fullData.promotion || "N/A"}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px 0; border-bottom: 1px solid #edf2f7; color: ${TEXT_GRAY}; font-size: 13px; font-weight: 600;">Academic Year</td>
+              <td style="padding: 8px 0; border-bottom: 1px solid #edf2f7; color: ${NAVY}; font-size: 13px; text-align: right;">${fullData.academicYear || "N/A"}</td>
+            </tr>
+            ${hasModifs ? `
+              <tr>
+                <td colspan="2" style="padding-top: 12px; color: ${TEXT_GRAY}; font-size: 11px; font-style: italic;">
+                  * Fields updated by admin: ${Object.keys(updatedData).map(k => k.replace(/([A-Z])/g, ' $1').trim()).join(', ')}
+                </td>
+              </tr>
+            ` : ''}
+          </table>
+        </div>
+      `;
+    }
+
     const html = this.getEmailLayout(`
       <h2 style="color: ${NAVY}; margin: 0 0 8px; font-size: 22px; font-weight: 600;">Dear ${name},</h2>
       <p style="color: ${TEXT_GRAY}; font-size: 16px; margin: 0 0 32px;">This is an update regarding your registration request.</p>
@@ -126,9 +166,11 @@ export class MailService {
           </div>
         ` : ""}
       </div>
+
+      ${infoHtml}
       
       ${isApproved ? `
-      <div style="text-align: center;">
+      <div style="text-align: center; margin-top: 32px;">
         <a href="${process.env.NEXT_PUBLIC_APP_URL}/login" 
            style="display: inline-block; background-color: ${NAVY}; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 15px;">
           Sign In to Portal

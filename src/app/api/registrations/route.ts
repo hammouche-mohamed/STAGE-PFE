@@ -17,25 +17,21 @@ export async function GET(req: NextRequest) {
     // NFR-SC2: paginate – max 20 per page
     const { searchParams } = new URL(req.url);
     const page = Math.max(1, parseInt(searchParams.get("page") ?? "1", 10));
-    const limit = Math.min(20, Math.max(1, parseInt(searchParams.get("limit") ?? "20", 10)));
+    const limit = Math.min(100, Math.max(1, parseInt(searchParams.get("limit") ?? "20", 10)));
     const skip = (page - 1) * limit;
-    const statusFilter = searchParams.get("status"); // optional filter
-    const fiveHoursAgo = new Date(Date.now() - 5 * 60 * 60 * 1000);
+    const statusFilter = searchParams.get("status");
+    const search = searchParams.get("search");
 
     const where: any = {
       AND: [
         statusFilter ? { status: statusFilter } : {},
-        {
+        search ? {
           OR: [
-            { status: "PENDING" },
-            { 
-              AND: [
-                { status: { in: ["APPROVED", "REJECTED"] } },
-                { reviewedAt: { gte: fiveHoursAgo } }
-              ]
-            }
+            { name: { contains: search } },
+            { email: { contains: search } },
+            { studentId: { contains: search } }
           ]
-        }
+        } : {}
       ]
     };
 
@@ -200,7 +196,7 @@ export async function POST(req: NextRequest) {
         speciality: validatedData.speciality,
         // Student specific
         studentId: validatedData.studentId,
-        promotion: validatedData.promotion,
+        promotion: validatedData.promotion || (validatedData.role === "STUDENT" ? validatedData.level : null),
         academicYear: validatedData.academicYear,
         // NFR-RDI3: persist academic level for eligibility enforcement at approval time
         level: (validatedData.level as any) ?? null,
@@ -253,5 +249,27 @@ export async function POST(req: NextRequest) {
       { error: "Registration could not be processed. Please try again later." },
       { status: 500 },
     );
+  }
+}
+
+export async function DELETE(req: NextRequest) {
+  const session = await auth();
+  if (!session || session.user.role !== "ADMIN") {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+  }
+
+  try {
+    const { count } = await prisma.registrationRequest.deleteMany({
+      where: {
+        status: { in: ["APPROVED", "REJECTED"] }
+      }
+    });
+
+    return NextResponse.json({ 
+      message: `${count} handled requests cleared from history.` 
+    });
+  } catch (error) {
+    console.error("Bulk delete registrations failed:", error);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

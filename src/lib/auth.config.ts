@@ -37,7 +37,8 @@ export const authConfig = {
         token.level = user.level ?? null;
 
         // Fetch role-specific fields (isSuperAdmin for Admin, filiereId for Admin/Teacher)
-        if (user.role === "ADMIN" || user.role === "TEACHER") {
+        // Only fetch if they aren't already in the token to avoid database hits on every session update
+        if ((user.role === "ADMIN" || user.role === "TEACHER") && (token.isSuperAdmin === undefined || token.filiereId === undefined)) {
           try {
             // Dynamically import prisma to prevent it from loading in the Edge/Middleware runtime
             const { default: prisma } = await import('./prisma');
@@ -96,6 +97,6 @@ export const authConfig = {
   session: {
     strategy: 'jwt',
     maxAge: 24 * 60 * 60, // 24 hours
-    updateAge: 0, // Update session on every request to accurately track inactivity
+    updateAge: 24 * 60 * 60, // 24 hours (default)
   },
 } satisfies NextAuthConfig;
