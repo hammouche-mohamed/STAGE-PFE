@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/Button";
 import { toast } from "sonner";
 import { useTranslation } from "@/lib/i18n/LanguageContext";
 import { useSession } from "next-auth/react";
+import { Modal } from "@/components/ui/Modal";
 
 interface Filiere { id: string; name: string; code?: string | null; }
 
@@ -273,52 +274,42 @@ export default function StudentTopicsPage() {
             const isApplying = applying === topic.id;
             const eligible = canApply(studentLevel, topic.targetLevels);
             const topicSkills = skills(topic);
+            const status = isApplied ? getApplicationStatus(topic) : null;
+
             return (
-              <div
-                key={topic.id}
+              <div 
+                key={topic.id} 
+                className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm hover:shadow-xl transition-all duration-300 p-5 flex flex-col cursor-pointer group" 
                 onClick={() => setSelectedTopic(topic)}
-                className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl p-6 flex flex-col justify-between hover:border-indigo-300 dark:hover:border-indigo-500 hover:shadow-md transition-all group cursor-pointer"
               >
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="px-2 py-0.5 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 text-[10px] font-bold uppercase rounded-full">
-                        {topic.type === "COMPANY_PROPOSED" ? t("topics.list.company") : t("topics.list.professor")}
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-3 flex-wrap">
+                    <span className="px-2 py-0.5 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 text-[10px] font-bold uppercase rounded-full">
+                      {topic.type === "COMPANY_PROPOSED" ? t("topics.list.company") : t("topics.list.professor")}
+                    </span>
+                    <span className={`px-2 py-0.5 text-[10px] font-bold uppercase rounded-full ${
+                      topic.internshipType === "PFE" ? "bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400" : "bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400"
+                    }`}>
+                      {topic.internshipType}
+                    </span>
+                    {topic.filiere && (
+                      <span className="px-2 py-0.5 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 text-[10px] font-bold rounded-full border border-amber-200 dark:border-amber-800/50">
+                        {topic.filiere.code || topic.filiere.name}
                       </span>
-                      <span className={`px-2 py-0.5 text-[10px] font-bold uppercase rounded-full ${
-                        topic.internshipType === "PFE" ? "bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400" : "bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400"
-                      }`}>
-                        {topic.internshipType}
-                      </span>
-                      {topic.filiere && (
-                        <span className="px-2 py-0.5 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 text-[10px] font-bold rounded-full border border-amber-200 dark:border-amber-800/50">
-                          {topic.filiere.code || topic.filiere.name}
-                        </span>
-                      )}
-                    </div>
-                    <ChevronRight className={`h-4 w-4 text-gray-300 dark:text-gray-600 group-hover:text-indigo-400 transition-colors ${isRTL ? "rotate-180" : ""}`} />
+                    )}
+                    {levelBadge(topic.targetLevels)}
                   </div>
 
-                  {topic.targetLevels && (
-                    <div className="flex items-center gap-1.5">
-                      {levelBadge(topic.targetLevels)}
-                      {!eligible && (
-                        <span className="text-[10px] text-amber-600 dark:text-amber-400 flex items-center gap-0.5">
-                          <Lock className="h-3 w-3" /> {t("topics.list.notEligible", { level: studentLevel })}
-              <div key={topic.id} className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm hover:shadow-xl transition-all duration-300 p-5 flex flex-col cursor-pointer group" onClick={() => setSelectedTopic(topic)}>
-                <div className="flex-1">
-                  <div className="flex items-start justify-between gap-4 mb-3">
-                    <h3 className="text-[15px] font-bold text-gray-900 dark:text-white leading-snug group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
-                      {topic.title}
-                    </h3>
-                  </div>
+                  <h3 className="text-[15px] font-bold text-gray-900 dark:text-white leading-snug group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors mb-3">
+                    {topic.title}
+                  </h3>
 
                   <p className="text-[13px] text-gray-500 dark:text-gray-400 line-clamp-2 leading-relaxed mb-4">
                     {topic.description}
                   </p>
 
                   {topicSkills.length > 0 && (
-                    <div className="flex flex-wrap gap-1">
+                    <div className="flex flex-wrap gap-1 mb-4">
                       {topicSkills.slice(0, 3).map((s) => (
                         <span key={s} className="px-1.5 py-0.5 bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-gray-300 text-[10px] rounded">{s}</span>
                       ))}
@@ -342,14 +333,11 @@ export default function StudentTopicsPage() {
 
                 <div className="mt-5 pt-4 border-t border-gray-100 dark:border-slate-800 flex items-center justify-end" onClick={(e: React.MouseEvent) => e.stopPropagation()}>
                   {isApplied ? (
-                    (() => {
-                      const status = getApplicationStatus(topic);
-                      return status ? (
-                        <span className={`flex items-center gap-1.5 text-[11px] font-semibold ${status.color} border px-2 py-1 rounded`}>
-                          {status.icon} {status.text}
-                        </span>
-                      ) : null;
-                    })()
+                    status ? (
+                      <span className={`flex items-center gap-1.5 text-[11px] font-semibold ${status.color} border px-2 py-1 rounded`}>
+                        {status.icon} {status.text}
+                      </span>
+                    ) : null
                   ) : !eligible ? (
                     <span className="flex items-center gap-1.5 text-[12px] text-amber-600 dark:text-amber-400 font-medium">
                       <Lock className="h-3.5 w-3.5" /> {t("topics.list.requires", { levels: topic.targetLevels })}
@@ -449,7 +437,6 @@ export default function StudentTopicsPage() {
                   </div>
                 </div>
               )}
-            </div>
             </div>
 
             <div className="p-6 border-t border-gray-100 dark:border-slate-800 bg-gray-50/30 dark:bg-slate-800/30 flex justify-end">
