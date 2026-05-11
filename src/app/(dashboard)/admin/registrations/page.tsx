@@ -5,7 +5,7 @@ import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Button } from "@/components/ui/Button";
 import { toast } from "sonner";
 import { format } from "date-fns";
-import { Eye, Search, Trash2, X } from "lucide-react";
+import { Eye, Search, Trash2, X, AlertTriangle } from "lucide-react";
 import { useTranslation } from "@/lib/i18n/LanguageContext";
 import { useSession } from "next-auth/react";
 import { Modal } from "@/components/ui/Modal";
@@ -140,7 +140,7 @@ export default function AdminRegistrationsPage() {
       return;
     }
 
-    setIsUpdating(true);
+    setUpdatingStatus(status);
     try {
       // Calculate updatedData by comparing editData with selectedRequest
       const updatedData: any = {};
@@ -508,7 +508,7 @@ export default function AdminRegistrationsPage() {
               variant="danger" 
               size="sm" 
               disabled={!rejectReason.trim()}
-              isLoading={isUpdating}
+              isLoading={updatingStatus === "REJECTED"}
               onClick={() => handleReview(selectedRequest!.id, "REJECTED", rejectReason)}
             >
               Confirm Rejection

@@ -152,7 +152,7 @@ export default function RegisterPage() {
       </div>
 
       {/* Right side - Form */}
-      <div className="w-full lg:w-1/2 flex flex-col items-center justify-center p-4 sm:p-12 lg:bg-white dark:lg:bg-slate-950 transition-colors duration-300">
+      <div className="w-full lg:w-1/2 flex flex-col items-center justify-center p-4 sm:p-12 lg:bg-gray-50 dark:lg:bg-slate-950 relative z-10 min-h-screen lg:bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] dark:lg:bg-[radial-gradient(#1e293b_1px,transparent_1px)] lg:[background-size:20px_20px] transition-colors duration-300">
         {/* Language switcher & Theme Toggle */}
         <div className="absolute top-6 left-6 z-50">
           <ThemeToggle />

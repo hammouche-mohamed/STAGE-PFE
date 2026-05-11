@@ -522,16 +522,8 @@ export default function AdminUsersPage() {
               filteredUsers.map((user, index) => (
                 <tr key={user.id} className="admin-table-row">
                   <td data-label="User" className="py-3 sm:py-0">
-                    <div className="flex items-center gap-2 sm:flex-row flex-row justify-end w-full">
-                      <div className="flex flex-col min-w-0 sm:items-start items-end">
-                        <span className="font-medium text-[12px] sm:text-[13px] text-gray-900 dark:text-white sm:text-left text-right">{user.name}</span>
-                        <div className="text-[9px] sm:text-[10px] text-gray-400 dark:text-slate-300 flex items-center justify-end sm:justify-start w-full">
-                          <span className="whitespace-nowrap sm:whitespace-normal sm:break-all sm:text-left text-right">{user.email}</span>
-                          <Mail className="h-2.5 w-2.5 ml-1 flex-shrink-0 text-gray-400 dark:text-slate-400 sm:hidden" />
-                          <Mail className="h-2.5 w-2.5 mr-1 flex-shrink-0 text-gray-400 dark:text-slate-400 hidden sm:block" />
-                        </div>
-                      </div>
-                      <div className="h-8 w-8 rounded-full bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 flex items-center justify-center text-[12px] font-bold overflow-hidden flex-shrink-0">
+                    <div className="flex items-center gap-3 justify-end sm:justify-start w-full">
+                      <div className="h-8 w-8 rounded-full bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 flex items-center justify-center text-[12px] font-bold overflow-hidden flex-shrink-0 order-2 sm:order-1">
                         {user.avatarUrl ? (
                           <Image 
                             src={user.avatarUrl} 
@@ -544,6 +536,14 @@ export default function AdminUsersPage() {
                         ) : (
                           user.name.charAt(0)
                         )}
+                      </div>
+                      <div className="flex flex-col min-w-0 items-end sm:items-start order-1 sm:order-2">
+                        <span className="font-medium text-[12px] sm:text-[13px] text-gray-900 dark:text-white text-right sm:text-left">{user.name}</span>
+                        <div className="text-[9px] sm:text-[10px] text-gray-400 dark:text-slate-300 flex items-center justify-end sm:justify-start w-full">
+                          <span className="whitespace-nowrap sm:whitespace-normal sm:break-all text-right sm:text-left">{user.email}</span>
+                          <Mail className="h-2.5 w-2.5 ml-1 flex-shrink-0 text-gray-400 dark:text-slate-400 sm:hidden" />
+                          <Mail className="h-2.5 w-2.5 ml-1 flex-shrink-0 text-gray-400 dark:text-slate-400 hidden sm:block" />
+                        </div>
                       </div>
                     </div>
                   </td>
