@@ -106,14 +106,14 @@ export function AdminDashboardClient({
 
   return (
     <div className="space-y-6">
-      <div className={`flex items-center justify-between ${isRTL ? "flex-row-reverse" : ""}`}>
+      <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${isRTL ? "sm:flex-row-reverse" : ""}`}>
         <div className={isRTL ? "text-right" : ""}>
           <h1 className="text-[17px] font-semibold text-gray-900 dark:text-white">{t("dashboard.recentActivity")}</h1>
           <p className="text-[13px] text-gray-500 dark:text-gray-400 mt-0.5">
             {t("dashboard.welcome")}, {session?.user?.isSuperAdmin ? "Global Administrator" : "Department Administrator"}.
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           {!session?.user?.isSuperAdmin && currentFiliere && (
             <div className="flex items-center px-3 py-1.5 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800/50 rounded-md shadow-sm h-9 flex-shrink-0 transition-colors">
               <span className="text-[12px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-tight whitespace-nowrap">
@@ -123,12 +123,12 @@ export function AdminDashboardClient({
           )}
           {session?.user?.isSuperAdmin && (
             <select
-              className="admin-input text-[12px] h-9 py-0 min-w-[200px]"
+              className="admin-input text-[12px] h-9 py-0 min-w-[150px] sm:min-w-[200px] flex-1 sm:flex-none"
               value={filiereId}
               onChange={(e) => setFiliereId(e.target.value)}
               disabled={isLoadingStats}
             >
-              <option value="all">All Departments (Filières)</option>
+              <option value="all">All Departments</option>
               {filieres.map((f) => (
                 <option key={f.id} value={f.id}>{f.name}</option>
               ))}

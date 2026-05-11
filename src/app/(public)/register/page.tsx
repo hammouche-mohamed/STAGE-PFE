@@ -148,9 +148,11 @@ export default function RegisterPage() {
       {/* Right side - Form */}
       <div className="w-full lg:w-1/2 flex flex-col items-center justify-center p-4 sm:p-12 bg-white dark:bg-slate-950 transition-colors duration-300">
         {/* Language switcher & Theme Toggle */}
-        <div className={`absolute top-6 ${isRTL ? "left-6" : "right-6"} z-50 flex items-center gap-3`}>
+        <div className="absolute top-6 left-6 z-50">
           <ThemeToggle />
-          
+        </div>
+
+        <div className={`absolute top-6 ${isRTL ? "left-16" : "right-6"} z-50 flex items-center gap-3`}>
           <div className="flex items-center bg-gray-100 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-full p-0.5 gap-0.5 shadow-sm">
             {LANGS.map(({ code, label }) => (
               <button key={code} onClick={() => setLanguage(code)}

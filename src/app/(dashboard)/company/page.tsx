@@ -52,17 +52,17 @@ export default async function CompanyDashboardPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-[17px] font-semibold text-gray-900">Partner Dashboard</h1>
-          <p className="text-[13px] text-gray-500 mt-0.5">
+          <h1 className="text-[17px] font-semibold text-gray-900 dark:text-white">Partner Dashboard</h1>
+          <p className="text-[13px] text-gray-500 dark:text-gray-400 mt-0.5">
             Welcome back, {company.companyProfile?.companyName ?? company.name}. Manage your
             recruitment and internship tracks.
           </p>
         </div>
         <Link
           href="/company/topics/new"
-          className="px-3 py-1.5 bg-indigo-600 text-white rounded-md text-[12px] font-medium flex items-center hover:bg-indigo-700 transition-colors"
+          className="px-3 py-1.5 bg-indigo-600 text-white rounded-md text-[12px] font-medium flex items-center justify-center hover:bg-indigo-700 transition-colors w-full sm:w-auto"
         >
           <Plus className="h-4 w-4 mr-1" />
           New Topic

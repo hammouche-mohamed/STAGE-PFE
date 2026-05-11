@@ -137,7 +137,7 @@ export const Topbar: React.FC = () => {
           
           <button
             onClick={() => setIsLogoutDialogOpen(true)}
-            className="text-gray-400 hover:text-red-500 transition-colors"
+            className="hidden md:block text-gray-400 hover:text-red-500 transition-colors"
           >
             <LogOut className="h-5 w-5" />
           </button>

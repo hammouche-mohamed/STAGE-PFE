@@ -120,7 +120,7 @@ export default function StudentDashboard() {
   return (
     <div className="space-y-6">
       {/* ── Welcome Header ────────────────────────────────────────── */}
-      <div className={`flex items-center justify-between ${isRTL ? "flex-row-reverse" : ""}`}>
+      <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${isRTL ? "sm:flex-row-reverse" : ""}`}>
         <div>
           <h1 className="text-[17px] font-semibold text-gray-900 dark:text-white">
             {t("dashboard.welcome")}, {session?.user?.name}! 👋

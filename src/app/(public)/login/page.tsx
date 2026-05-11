@@ -99,9 +99,11 @@ function LoginForm() {
       </div>
 
       <div className="w-full lg:w-1/2 flex flex-col items-center justify-center p-4 sm:p-12 lg:bg-gray-50 dark:lg:bg-slate-950 relative z-10 min-h-screen lg:bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] dark:lg:bg-[radial-gradient(#1e293b_1px,transparent_1px)] lg:[background-size:20px_20px]">
-        <div className={`absolute top-6 ${isRTL ? "left-6" : "right-6"} z-50 flex items-center gap-3`}>
+        <div className="absolute top-6 left-6 z-50">
           <ThemeToggle />
-          
+        </div>
+
+        <div className={`absolute top-6 ${isRTL ? "left-16" : "right-6"} z-50 flex items-center gap-3`}>
           <div className="flex items-center bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-full p-0.5 gap-0.5 shadow-sm">
             {LANGS.map(({ code, label }) => (
               <button
