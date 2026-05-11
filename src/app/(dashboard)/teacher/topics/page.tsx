@@ -154,9 +154,10 @@ export default function TeacherTopicsPage() {
                        <span>{t("topics.maxStudents")}: {topic.maxStudents}</span>
                     </div>
                     <div className="flex items-center text-[12px] text-gray-600 dark:text-gray-400">
-                    <div className="flex items-center text-[12px] text-gray-600 dark:text-gray-300">
-                      <Clock className="h-3.5 w-3.5 mr-1.5 text-gray-400 dark:text-gray-500" />
-                      <span>{new Date(topic.createdAt).toLocaleDateString()}</span>
+                      <div className="flex items-center text-[12px] text-gray-600 dark:text-gray-300">
+                        <Clock className="h-3.5 w-3.5 mr-1.5 text-gray-400 dark:text-gray-500" />
+                        <span>{new Date(topic.createdAt).toLocaleDateString()}</span>
+                      </div>
                     </div>
                   </div>
                 </div>
