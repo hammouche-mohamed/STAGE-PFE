@@ -22,11 +22,14 @@ export async function GET(
       where: { 
         id: { 
           equals: id,
-          // Note: MySQL/MariaDB is usually case-insensitive by default with standard collation
         } 
       },
       include: {
-        proposedBy: { select: { id: true, name: true, email: true } },
+        proposedBy: { 
+          include: {
+            companyProfile: true
+          }
+        },
         assignedTeacher: { select: { id: true, name: true } },
         filiere: true,
         teacherApplications: {
@@ -59,7 +62,17 @@ export async function GET(
       }, { status: 404 });
     }
 
-    return NextResponse.json({ data: topic });
+    // Merge company info if missing on the topic record but available on the profile
+    const enrichedTopic = {
+      ...topic,
+      companyName: topic.companyName || topic.proposedBy?.companyProfile?.companyName,
+      companySector: topic.companySector || topic.proposedBy?.companyProfile?.sector,
+      contactPerson: topic.contactPerson || topic.proposedBy?.name,
+      contactEmail: topic.contactEmail || topic.proposedBy?.email,
+      contactPhone: topic.contactPhone || topic.proposedBy?.companyProfile?.contactPhone
+    };
+
+    return NextResponse.json({ data: enrichedTopic });
   } catch (error: any) {
     console.error("[TOPIC_DETAIL] CRASH:", error);
     return NextResponse.json({ 
