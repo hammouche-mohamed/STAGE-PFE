@@ -129,6 +129,76 @@ export async function GET(req: NextRequest) {
           ].join(','),
         );
       }
+      rows.push('');
+    }
+
+    if (type === 'students' || type === 'all') {
+      const students = await prisma.user.findMany({
+        where: { 
+          role: 'STUDENT', 
+          studentProfile: { academicYear: year || undefined, ...(filiereId && { filiereId }) } 
+        },
+        include: { studentProfile: { include: { filiere: true } } }
+      });
+      rows.push('=== STUDENTS ===');
+      rows.push('ID,Name,Email,Department,Speciality,Level');
+      for (const s of students) {
+        rows.push([
+          s.id,
+          `"${s.name}"`,
+          s.email,
+          `"${s.studentProfile?.filiere?.name || ''}"`,
+          `"${s.studentProfile?.speciality || ''}"`,
+          s.studentProfile?.level || ''
+        ].join(','));
+      }
+      rows.push('');
+    }
+
+    if (type === 'teachers' || type === 'all') {
+      const teachers = await prisma.user.findMany({
+        where: { 
+          role: 'TEACHER',
+          OR: [
+            { proposedTopics: { some: { academicYear: year || undefined, ...(filiereId && { filiereId }) } } },
+            { assignedTopics: { some: { academicYear: year || undefined, ...(filiereId && { filiereId }) } } }
+          ]
+        },
+        include: { teacherProfile: { include: { filiere: true } } }
+      });
+      rows.push('=== TEACHERS ===');
+      rows.push('ID,Name,Email,Grade,Department,Speciality');
+      for (const t of teachers) {
+        rows.push([
+          t.id,
+          `"${t.name}"`,
+          t.email,
+          t.teacherProfile?.grade || '',
+          `"${t.teacherProfile?.filiere?.name || ''}"`,
+          `"${t.teacherProfile?.speciality || ''}"`
+        ].join(','));
+      }
+      rows.push('');
+    }
+
+    if (type === 'topics' || type === 'all') {
+      const topics = await prisma.topic.findMany({
+        where: { academicYear: year || undefined, ...(filiereId && { filiereId }) },
+        include: { proposedBy: { select: { name: true } }, filiere: true }
+      });
+      rows.push('=== TOPICS ===');
+      rows.push('ID,Title,Type,Status,Proposed By,Department,Capacity');
+      for (const t of topics) {
+        rows.push([
+          t.id,
+          `"${t.title.replace(/"/g, '""')}"`,
+          t.type,
+          t.status,
+          `"${t.proposedBy.name}"`,
+          `"${t.filiere?.name || ''}"`,
+          t.maxStudents
+        ].join(','));
+      }
     }
 
     const csv = rows.join('\n');

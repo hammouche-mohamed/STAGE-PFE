@@ -46,6 +46,8 @@ export default function AuditLogsPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
   const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null);
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
 
   // Authentication check
   if (session && !session.user.isSuperAdmin) {
@@ -74,7 +76,14 @@ export default function AuditLogsPage() {
   const fetchLogs = async (currentPage = page, currentSearch = search, silent = false) => {
     if (!silent) setIsLoading(true);
     try {
-      const res = await fetch(`/api/audit?page=${currentPage}&search=${encodeURIComponent(currentSearch)}`);
+      const query = new URLSearchParams({
+        page: currentPage.toString(),
+        search: currentSearch,
+      });
+      if (startDate) query.append("startDate", startDate);
+      if (endDate) query.append("endDate", endDate);
+
+      const res = await fetch(`/api/audit?${query.toString()}`);
       const data = await res.json();
       setLogs(data.data || []);
       if (data.pagination) {
@@ -94,7 +103,7 @@ export default function AuditLogsPage() {
       fetchLogs(1, search);
     }, 500);
     return () => clearTimeout(timer);
-  }, [search]);
+  }, [search, startDate, endDate]);
 
   useEffect(() => {
     fetchLogs(page, search);
@@ -143,7 +152,7 @@ export default function AuditLogsPage() {
         </Button>
       </div>
 
-      <div className="flex flex-col sm:flex-row gap-4">
+      <div className="flex flex-col lg:flex-row gap-4">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
           <input
@@ -154,10 +163,48 @@ export default function AuditLogsPage() {
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-        <Button variant="outline" size="sm" onClick={() => fetchLogs()}>
-           <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-           {t("audit.refresh")}
-        </Button>
+        
+        {/* Date Filters */}
+        <div className="flex flex-col sm:flex-row gap-2 items-end sm:items-center">
+          <div className="flex flex-col gap-1 w-full sm:w-auto">
+            <span className="text-[10px] uppercase font-bold text-gray-400 px-1">{t("audit.from")}</span>
+            <input 
+              type="date" 
+              className="admin-input py-1.5 h-auto text-[13px]" 
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+            />
+          </div>
+          <div className="flex flex-col gap-1 w-full sm:w-auto">
+            <span className="text-[10px] uppercase font-bold text-gray-400 px-1">{t("audit.to")}</span>
+            <input 
+              type="date" 
+              className="admin-input py-1.5 h-auto text-[13px]" 
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+            />
+          </div>
+          <div className="flex gap-2 w-full sm:w-auto pt-5 sm:pt-0">
+            <Button variant="outline" size="sm" onClick={() => fetchLogs()} className="flex-1 sm:flex-none">
+               <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+               {t("audit.refresh")}
+            </Button>
+            {(startDate || endDate || search) && (
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => {
+                  setStartDate("");
+                  setEndDate("");
+                  setSearch("");
+                }}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                Clear
+              </Button>
+            )}
+          </div>
+        </div>
       </div>
 
       <div className="admin-table-container">

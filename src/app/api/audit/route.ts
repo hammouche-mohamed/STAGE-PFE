@@ -13,17 +13,34 @@ export async function GET(req: NextRequest) {
     const page = Math.max(1, parseInt(searchParams.get("page") || "1"));
     const limit = Math.max(1, Math.min(100, parseInt(searchParams.get("limit") || "50")));
     const search = searchParams.get("search") || "";
+    const startDate = searchParams.get("startDate");
+    const endDate = searchParams.get("endDate");
     const skip = (page - 1) * limit;
 
-    const where = search ? {
-      OR: [
+    const where: any = {};
+
+    if (search) {
+      where.OR = [
         { action: { contains: search } },
         { targetId: { contains: search } },
         { targetType: { contains: search } },
         { user: { name: { contains: search } } },
         { user: { email: { contains: search } } },
-      ]
-    } : {};
+      ];
+    }
+
+    if (startDate || endDate) {
+      where.createdAt = {};
+      if (startDate) {
+        where.createdAt.gte = new Date(startDate);
+      }
+      if (endDate) {
+        // Set to end of day for the end date
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+        where.createdAt.lte = end;
+      }
+    }
 
     const [logs, total] = await Promise.all([
       prisma.auditLog.findMany({

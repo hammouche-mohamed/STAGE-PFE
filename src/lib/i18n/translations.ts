@@ -66,7 +66,6 @@ export const translations = {
       myTeam: "My Team",
       contactAdmin: "Contact Administration",
       auditLogs: "Audit Logs",
-      export: "Export CSV",
       none: "None",
       audit: {
         title: "System Audit Logs",
@@ -85,7 +84,9 @@ export const translations = {
         exportSuccess: "Logs exported to CSV",
         maintenanceTitle: "System Maintenance",
         maintenanceDesc: "Automatic log rotation is enabled. Logs older than 365 days are automatically pruned.",
-        closeDetails: "Close Details"
+        closeDetails: "Close Details",
+        from: "From Date",
+        to: "To Date"
       }
     },
     roles: {
@@ -285,6 +286,10 @@ export const translations = {
       archivedOn: "Archived {date}",
       chatLocked: "Chat archived",
       chatGrace: "Chat closes {date}",
+      students: "Students",
+      teachers: "Teachers",
+      companies: "Companies",
+      allTopics: "Topics",
     },
     invitationsPage: {
       title: "Binôme Invitations",
@@ -723,7 +728,9 @@ export const translations = {
         exportSuccess: "Journaux exportés en CSV",
         maintenanceTitle: "Maintenance du Système",
         maintenanceDesc: "La rotation automatique des journaux est activée. Les journaux de plus de 365 jours sont supprimés automatiquement.",
-        closeDetails: "Fermer les détails"
+        closeDetails: "Fermer les détails",
+        from: "Date de début",
+        to: "Date de fin"
       }
     },
     roles: {
@@ -920,6 +927,10 @@ export const translations = {
       archivedOn: "Archivé le {date}",
       chatLocked: "Chat archivé",
       chatGrace: "Le chat fermera le {date}",
+      students: "Étudiants",
+      teachers: "Enseignants",
+      companies: "Entreprises",
+      allTopics: "Sujets",
     },
     invitationsPage: {
       title: "Invitations de Binôme",
@@ -1342,7 +1353,9 @@ export const translations = {
         exportSuccess: "تم تصدير السجلات إلى CSV",
         maintenanceTitle: "صيانة النظام",
         maintenanceDesc: "تم تمكين تدوير السجلات تلقائيًا. يتم حذف السجلات التي مضى عليها أكثر من 365 يومًا تلقائيًا.",
-        closeDetails: "إغلاق التفاصيل"
+        closeDetails: "إغلاق التفاصيل",
+        from: "من تاريخ",
+        to: "إلى تاريخ"
       }
     },
     roles: {
@@ -1376,6 +1389,10 @@ export const translations = {
       studentProposals: "مقترحات الطلاب",
       archives: "الأرشيف",
       notifications: "الإشعارات",
+      students: "الطلاب",
+      teachers: "الأساتذة",
+      companies: "المؤسسات",
+      allTopics: "المواضيع",
     },
     status: {
       REQUESTED: "مطلوب",
