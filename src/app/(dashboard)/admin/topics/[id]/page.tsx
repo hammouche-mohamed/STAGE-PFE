@@ -139,8 +139,8 @@ export default function AdminTopicDetailPage() {
           targetLevels: data.targetLevels || ""
         });
       } catch (error: any) {
-        console.error("Error fetching topic:", error);
-        toast.error(error.message || "Failed to load topic details");
+        console.error("Error fetching topic details:", error);
+        toast.error(`Fetch Failed: ${error.message}`);
       } finally {
         setIsLoading(false);
       }

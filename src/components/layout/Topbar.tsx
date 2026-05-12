@@ -91,7 +91,7 @@ export const Topbar: React.FC = () => {
             {breadcrumbs.map((b, i) => (
               <React.Fragment key={b.href}>
                 <span>/</span>
-                <span className={`line-clamp-1 max-w-[100px] ${i === breadcrumbs.length - 1 ? "text-gray-600 dark:text-gray-300 font-medium" : ""}`}>{b.label}</span>
+                <span className={`line-clamp-1 max-w-[150px] md:max-w-[300px] ${i === breadcrumbs.length - 1 ? "text-gray-600 dark:text-gray-300 font-medium" : ""}`}>{b.label}</span>
               </React.Fragment>
             ))}
           </div>

@@ -12,52 +12,60 @@ export async function GET(
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   try {
-    const { id } = await params;
-    console.log(`[topics/[id] GET] Requesting topic ID: ${id} for user: ${session?.user?.email} (${session?.user?.role})`);
+    const { id: rawId } = await params;
+    const id = rawId.trim();
     
-    const topic = await prisma.topic.findUnique({
-      where: { id },
+    console.log(`[TOPIC_DETAIL] Fetching ID: "${id}" | User: ${session.user.email}`);
+
+    const topic = await prisma.topic.findFirst({
+      where: { 
+        id: { 
+          equals: id,
+          // Note: MySQL/MariaDB is usually case-insensitive by default with standard collation
+        } 
+      },
       include: {
         proposedBy: { select: { id: true, name: true, email: true } },
         assignedTeacher: { select: { id: true, name: true } },
-        filiere: { select: { id: true, name: true, code: true } },
-        ...(session.user.role === "ADMIN" && {
-          teacherApplications: {
-            include: {
-              teacher: { select: { id: true, name: true, email: true } }
-            },
-            orderBy: { appliedAt: 'desc' }
-          }
-        })
-      },
-    });
-
-    if (!topic) return NextResponse.json({ error: "Topic not found." }, { status: 404 });
-
-    // Fetch Student Applications and include the Team and its members
-    const applications = await prisma.studentApplication.findMany({
-      where: { topicId: id },
-      include: {
-        team: {
+        filiere: true,
+        teacherApplications: {
           include: {
-            members: {
-              include: { student: { select: { id: true, name: true, email: true } } }
-            }
-          }
+            teacher: { select: { id: true, name: true, email: true } }
+          },
+          orderBy: { appliedAt: 'desc' }
+        },
+        studentApplications: {
+          include: {
+            team: {
+              include: {
+                members: {
+                  include: {
+                    student: { select: { id: true, name: true, email: true } }
+                  }
+                }
+              }
+            },
+            leader: { select: { id: true, name: true, email: true } },
+            partner: { select: { id: true, name: true, email: true } }
+          },
+          orderBy: { appliedAt: 'desc' }
         }
-      },
-      orderBy: { appliedAt: 'desc' }
-    });
-
-    return NextResponse.json({ 
-      data: {
-        ...topic,
-        studentApplications: applications
       }
     });
-  } catch (error) {
-    console.error("[topics/[id] GET]", error);
-    return NextResponse.json({ error: "Failed to load topic." }, { status: 500 });
+
+    if (!topic) {
+      console.warn(`[TOPIC_DETAIL] Not found: "${id}"`);
+      return NextResponse.json({ 
+        error: `TOPIC_NOT_FOUND: The requested ID "${id}" does not exist in the database.` 
+      }, { status: 404 });
+    }
+
+    return NextResponse.json({ data: topic });
+  } catch (error: any) {
+    console.error("[TOPIC_DETAIL] CRASH:", error);
+    return NextResponse.json({ 
+      error: `SERVER_CRASH: ${error.message || "Unknown database error"}` 
+    }, { status: 500 });
   }
 }
 
