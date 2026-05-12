@@ -2,6 +2,7 @@ import { Sidebar } from "@/components/layout/Sidebar";
 import { Topbar } from "@/components/layout/Topbar";
 import { BreadcrumbProvider } from "@/lib/contexts/BreadcrumbContext";
 import { SidebarProvider } from "@/lib/contexts/SidebarContext";
+import { PollingProvider } from "@/lib/contexts/PollingContext";
 import { auth } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { cache } from "react";
@@ -30,24 +31,26 @@ export default async function DashboardLayout({
   const logoUrl = routedLogoUrl ? `${routedLogoUrl}${logoSetting?.updatedAt ? `?v=${logoSetting.updatedAt.getTime()}` : ""}` : "";
 
   return (
-    <SidebarProvider>
-      <BreadcrumbProvider>
-        <div className="h-screen bg-gray-50 dark:bg-slate-950 flex overflow-hidden relative">
-          {/* Sidebar - Responsive */}
-          <Sidebar role={role} logoUrl={logoUrl} />
+    <PollingProvider>
+      <SidebarProvider>
+        <BreadcrumbProvider>
+          <div className="h-screen bg-gray-50 dark:bg-slate-950 flex overflow-hidden relative">
+            {/* Sidebar - Responsive */}
+            <Sidebar role={role} logoUrl={logoUrl} />
 
-          {/* Main Content Area */}
-          <div className="flex-1 min-w-0 flex flex-col transition-all duration-300 md:ltr:ml-[240px] md:rtl:mr-[240px] overflow-x-hidden">
-            {/* Topbar - Fixed height */}
-            <Topbar />
+            {/* Main Content Area */}
+            <div className="flex-1 min-w-0 flex flex-col transition-all duration-300 md:ltr:ml-[240px] md:rtl:mr-[240px] overflow-x-hidden">
+              {/* Topbar - Fixed height */}
+              <Topbar />
 
-            {/* Content - Scrollable container */}
-            <main className="flex-1 overflow-y-auto p-6 md:p-10 min-w-0 overflow-x-hidden">
-              {children}
-            </main>
+              {/* Content - Scrollable container */}
+              <main className="flex-1 overflow-y-auto p-6 md:p-10 min-w-0 overflow-x-hidden">
+                {children}
+              </main>
+            </div>
           </div>
-        </div>
-      </BreadcrumbProvider>
-    </SidebarProvider>
+        </BreadcrumbProvider>
+      </SidebarProvider>
+    </PollingProvider>
   );
 }

@@ -11,6 +11,7 @@ import { Language } from "@/lib/i18n/translations";
 import { useBreadcrumbs } from "@/lib/contexts/BreadcrumbContext";
 import { useSidebar } from "@/lib/contexts/SidebarContext";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { usePollingRefresh } from "@/lib/contexts/PollingContext";
 
 const LANGS: { code: Language; label: string }[] = [
   { code: "en", label: "EN" },
@@ -46,17 +47,16 @@ export const Topbar: React.FC = () => {
   useEffect(() => {
     fetchUnread();
 
-    // Auto-poll every 30 seconds for real-time awareness
-    const pollId = setInterval(fetchUnread, 30000);
-
     const handleUpdate = () => fetchUnread();
     window.addEventListener("notificationsUpdated", handleUpdate);
     
     return () => {
-      clearInterval(pollId);
       window.removeEventListener("notificationsUpdated", handleUpdate);
     };
   }, [fetchUnread, session]);
+
+  // Auto-refresh bell badge when a new notification arrives (via central poll)
+  usePollingRefresh("notifications", fetchUnread);
 
   const { labels } = useBreadcrumbs();
   const getBreadcrumbs = () => {

@@ -172,7 +172,7 @@ export async function PATCH(
       return user;
     });
 
-    // 5. Welcome notification
+    // 5. Welcome in-app notification (email is handled by sendStatusUpdate below — skip here)
     await NotificationService.trigger({
       userId: result.id,
       type: 'REGISTRATION_APPROVED',
@@ -180,6 +180,7 @@ export async function PATCH(
       message:
         'Your account has been approved! You can now log in using your email and the password you set during registration.',
       link: '/login',
+      skipEmail: true, // The detailed sendStatusUpdate email covers this communication
     });
 
     await AuditService.log({

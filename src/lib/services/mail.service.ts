@@ -264,4 +264,55 @@ export class MailService {
       console.error("Failed to send registration confirmation email:", error);
     }
   }
+
+  static async sendProfileModified(
+    email: string,
+    name: string,
+    modifications: string[],
+    role: string,
+  ) {
+    const changesHtml = modifications.length > 0
+      ? modifications.map(m => `
+          <tr>
+            <td style="padding: 8px 0; border-bottom: 1px solid #edf2f7; color: ${TEXT_GRAY}; font-size: 14px;">
+              ${m.replace(/^• /, "").replace(/: (.+)$/, `: <strong style="color:${NAVY};">$1</strong>`)}
+            </td>
+          </tr>
+        `).join("")
+      : `<tr><td style="padding: 8px 0; color: ${TEXT_GRAY}; font-size: 14px;">Your account details were reviewed and updated by the administration.</td></tr>`;
+
+    const html = this.getEmailLayout(`
+      <h2 style="color: ${NAVY}; margin: 0 0 8px; font-size: 22px; font-weight: 600;">Dear ${name},</h2>
+      <p style="color: ${TEXT_GRAY}; font-size: 15px; margin: 0 0 28px;">
+        An administrator has made changes to your <strong>${role}</strong> account. Please review the modifications below.
+      </p>
+
+      <div style="border-radius: 8px; background-color: #eff6ff; padding: 24px; margin-bottom: 28px; border-left: 4px solid #3b82f6;">
+        <p style="color: ${NAVY}; font-weight: 700; margin: 0 0 16px; font-size: 13px; text-transform: uppercase; letter-spacing: 0.05em;">
+          Account Modifications Applied
+        </p>
+        <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse: collapse;">
+          ${changesHtml}
+        </table>
+      </div>
+
+      <p style="color: ${TEXT_GRAY}; font-size: 14px; margin: 0 0 28px; line-height: 1.6;">
+        If you believe these changes were made in error or you have any questions, please contact the administration.
+      </p>
+
+      <div style="text-align: left;">
+        <a href="${process.env.NEXT_PUBLIC_APP_URL}/profile"
+           style="display: inline-block; background-color: ${NAVY}; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 15px;">
+          Review My Profile
+        </a>
+      </div>
+    `);
+
+    return transporter.sendMail({
+      from: `"${APP_NAME}" <${process.env.SMTP_USER}>`,
+      to: email,
+      subject: "Your Account Has Been Updated — ESST Portal",
+      html,
+    });
+  }
 }

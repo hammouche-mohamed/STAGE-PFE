@@ -30,6 +30,7 @@ import { Modal } from "@/components/ui/Modal";
 import { Input } from "@/components/ui/Input";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { useTranslation } from "@/lib/i18n/LanguageContext";
+import { usePollingRefresh } from "@/lib/contexts/PollingContext";
 
 interface User {
   id: string;
@@ -158,6 +159,9 @@ export default function AdminUsersPage() {
   useEffect(() => {
     fetchUsers();
   }, [roleFilter, filiereFilter, search]);
+
+  // Auto-refresh user list when another admin modifies a user
+  usePollingRefresh("users", fetchUsers);
 
   const handleUnblock = (item: any) => {
     setEmailToUnblock(item);
@@ -311,10 +315,19 @@ export default function AdminUsersPage() {
       if (!res.ok) throw new Error("Failed to fetch user details");
       
       if (target === 'view') setUserToView(data.data);
-      else setUserToEdit({
-        ...data.data,
-        profileData: data.data.studentProfile || data.data.teacherProfile || data.data.companyProfile || data.data.adminProfile || {}
-      });
+      else {
+        // Pick the correct profile data based on the current role
+        let profileData = {};
+        if (data.data.role === 'STUDENT') profileData = data.data.studentProfile || {};
+        else if (data.data.role === 'TEACHER') profileData = data.data.teacherProfile || {};
+        else if (data.data.role === 'COMPANY') profileData = data.data.companyProfile || {};
+        else if (data.data.role === 'ADMIN') profileData = data.data.adminProfile || {};
+
+        setUserToEdit({
+          ...data.data,
+          profileData: profileData
+        });
+      }
       setActiveMenuId(null);
     } catch (error) {
       toast.error(t("toast.userDetailsFailed"));
@@ -873,16 +886,23 @@ export default function AdminUsersPage() {
                   </div>
                   <div className="space-y-1">
                     <label className="text-[12px] font-semibold text-gray-700 dark:text-gray-300 block">Grade (Academic Title)</label>
-                    <Input
-                      placeholder="e.g. Professor, MCA, MCB..."
+                    <select
+                      className="admin-input"
                       value={userToEdit.profileData?.grade || ""}
                       onChange={(e) => setUserToEdit({...userToEdit, profileData: {...userToEdit.profileData, grade: e.target.value}})}
-                    />
+                    >
+                      <option value="">Select Grade...</option>
+                      <option value="Prof">Professeur (Prof)</option>
+                      <option value="MCA">Maître de Conférences A (MCA)</option>
+                      <option value="MCB">Maître de Conférences B (MCB)</option>
+                      <option value="MAA">Maître Assistant A (MAA)</option>
+                      <option value="MAB">Maître Assistant B (MAB)</option>
+                    </select>
                   </div>
                   <Input
-                    label={t("admin.users.maxCapacity")}
+                    label="Max Supervision Capacity"
                     type="number"
-                    value={userToEdit.profileData?.maxStudents || 5}
+                    value={userToEdit.profileData?.maxStudents ?? 5}
                     onChange={(e) => setUserToEdit({...userToEdit, profileData: {...userToEdit.profileData, maxStudents: parseInt(e.target.value)}})}
                   />
                 </>

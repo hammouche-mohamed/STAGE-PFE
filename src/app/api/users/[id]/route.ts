@@ -75,6 +75,15 @@ export async function PATCH(
       updateData.mustChangePassword = true;
     }
 
+    // Build the list of changed fields for notification and email
+    const modifications: string[] = [];
+    if (name && name !== existingUser.name) modifications.push(`• Name changed to: ${name}`);
+    if (email && email !== existingUser.email) modifications.push(`• Email changed to: ${email}`);
+    if (role && role !== existingUser.role) modifications.push(`• Role changed to: ${role}`);
+    if (typeof isActive === "boolean" && isActive !== existingUser.isActive) {
+      modifications.push(`• Account status changed to: ${isActive ? "Active" : "Inactive"}`);
+    }
+
     // Perform updates in a transaction
     const updatedUser = await prisma.$transaction(async (tx) => {
       // 1. Update the main user record
@@ -83,8 +92,27 @@ export async function PATCH(
         data: updateData
       });
 
-      // 2. Update the profile record if provided
+      // Track profile changes if provided
       if (profileData) {
+        // We need the existing profile to compare
+        const existingProfile = await (tx[`${newUser.role.toLowerCase()}Profile` as any] as any)?.findUnique({
+          where: { userId: id }
+        });
+
+        const profileLabels: Record<string, string> = {
+          speciality: "Speciality", level: "Promotion", academicYear: "Academic Year",
+          studentId: "Student ID", grade: "Grade", companyName: "Company Name",
+          sector: "Sector", wilaya: "Wilaya", maxStudents: "Supervision Capacity",
+        };
+
+        Object.keys(profileData).forEach(key => {
+          const oldVal = existingProfile?.[key];
+          if (profileData[key] !== undefined && profileData[key] !== oldVal && !['id', 'userId', 'createdAt', 'updatedAt', 'filiereId', 'isSuperAdmin'].includes(key)) {
+             const label = profileLabels[key] || key.replace(/([A-Z])/g, ' $1').trim();
+             modifications.push(`• ${label} updated to: ${profileData[key] || "—"}`);
+          }
+        });
+
         // Sanitize profile data (remove internal fields and handle empty strings)
         const sanitizedData: any = {};
         Object.keys(profileData).forEach(key => {
@@ -127,40 +155,41 @@ export async function PATCH(
       return newUser;
     });
 
-    // Send in-app notification to the modified user
-    if (notifyUser) {
-      const modifications = [];
-      if (name && name !== existingUser.name) modifications.push(`• Name changed to: ${name}`);
-      if (email && email !== existingUser.email) modifications.push(`• Email changed to: ${email}`);
-      if (role && role !== existingUser.role) modifications.push(`• System role changed to: ${role}`);
-      if (typeof isActive === "boolean" && isActive !== existingUser.isActive) {
-        modifications.push(`• Account status changed to: ${isActive ? 'ACTIVE' : 'INACTIVE'}`);
+    // Send in-app notification
+    const { NotificationService } = await import("@/lib/services/notification.service");
+    const modMessage = modifications.length > 0
+      ? `The following changes were made to your account:\n\n${modifications.join("\n")}\n\nPlease review your profile and contact administration if you have concerns.`
+      : "An administrator has reviewed and updated your account information. Please review your profile.";
+
+    await NotificationService.trigger({
+      userId: id,
+      type: "ACCOUNT_MODIFIED",
+      title: "Your Account Was Updated",
+      message: modMessage,
+      relatedId: id,
+      relatedType: "User",
+      link: "/profile",
+      skipEmail: true, // Email is sent separately below with better formatting
+    });
+
+    // Always send a rich email to inform the user of what changed
+    const isDeactivationOnly = typeof isActive === "boolean" && !isActive && modifications.length === 1;
+    if (!isDeactivationOnly) {
+      try {
+        const { MailService } = await import("@/lib/services/mail.service");
+        // Use updated values for the email if provided, otherwise fallback to existing
+        const recipientEmail = email || existingUser.email;
+        const recipientName = name || existingUser.name;
+        
+        await MailService.sendProfileModified(
+          recipientEmail,
+          recipientName,
+          modifications,
+          updatedUser.role,
+        );
+      } catch (e: any) {
+        console.error("Profile modification email failed:", e);
       }
-
-      // Track profile changes if provided
-      if (profileData) {
-        Object.keys(profileData).forEach(key => {
-          const oldVal = (existingUser as any)[`${updatedUser.role.toLowerCase()}Profile`]?.[key];
-          if (profileData[key] !== undefined && profileData[key] !== oldVal && !['id', 'userId', 'createdAt', 'updatedAt'].includes(key)) {
-             modifications.push(`• ${key} updated`);
-          }
-        });
-      }
-
-      const modMessage = modifications.length > 0 
-        ? `The following changes were made to your account:\n\n${modifications.join('\n')}\n\nPlease review your profile and contact administration if you have concerns.`
-        : "An administrator has modified your account information. Please review your profile. Contact administration if you have concerns.";
-
-      const { NotificationService } = await import("@/lib/services/notification.service");
-      await NotificationService.trigger({
-        userId: id,
-        type: "ACCOUNT_MODIFIED",
-        title: "Your Account Was Updated",
-        message: modMessage,
-        relatedId: id,
-        relatedType: "User",
-        link: "/profile",
-      });
     }
 
     await AuditService.log({
@@ -168,7 +197,25 @@ export async function PATCH(
       action: "USER_UPDATED_BY_ADMIN",
       targetType: "User",
       targetId: updatedUser.name,
-      details: { fieldsChanged: Object.keys(body), newStatus: isActive },
+      details: { 
+        fieldsChanged: Object.keys(body), 
+        modifications,
+        prevStatus: existingUser.isActive,
+        newStatus: updatedUser.isActive,
+        // Include snapshots for the 'Details' view in audit logs
+        before: {
+          name: existingUser.name,
+          email: existingUser.email,
+          role: existingUser.role,
+          isActive: existingUser.isActive
+        },
+        after: {
+          name: updatedUser.name,
+          email: updatedUser.email,
+          role: updatedUser.role,
+          isActive: updatedUser.isActive
+        }
+      },
     });
 
     return NextResponse.json({ data: updatedUser });

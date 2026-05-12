@@ -10,6 +10,7 @@ import Link from "next/link";
 import { format } from "date-fns";
 import { useTranslation } from "@/lib/i18n/LanguageContext";
 import { useSession } from "next-auth/react";
+import { usePollingRefresh } from "@/lib/contexts/PollingContext";
 
 interface Registration {
   id: string;
@@ -104,6 +105,12 @@ export function AdminDashboardClient({
   }, [filiereId, fetchStats, session]);
 
   const currentFiliere = filieres.find(f => f.id === session?.user?.filiereId);
+
+  // Auto-refresh dashboard stats when relevant data changes
+  usePollingRefresh(["topics", "internships", "registrations"], () => {
+    const fid = filiereId === "all" ? (session?.user?.isSuperAdmin ? "all" : session?.user?.filiereId || "all") : filiereId;
+    fetchStats(fid);
+  });
 
   const { studentCount, teacherCount, companyCount, activeInternships, pendingConfirmations, recentTopics } = stats;
 

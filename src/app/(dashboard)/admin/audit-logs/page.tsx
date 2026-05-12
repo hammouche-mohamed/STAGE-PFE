@@ -10,8 +10,12 @@ import {
   Activity,
   Trash2,
   RefreshCw,
-  ShieldCheck
+  ShieldCheck,
+  Eye,
+  Info,
+  ChevronRight
 } from "lucide-react";
+import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -57,6 +61,16 @@ export default function AuditLogsPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
   const [isCleaning, setIsCleaning] = useState(false);
+  const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null);
+
+  const parseDetails = (details: string | null) => {
+    if (!details) return null;
+    try {
+      return JSON.parse(details);
+    } catch {
+      return details;
+    }
+  };
 
   const fetchLogs = async (currentPage = page, currentSearch = search, silent = false) => {
     if (!silent) setIsLoading(true);
@@ -181,7 +195,7 @@ export default function AuditLogsPage() {
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-        <Button variant="outline" size="sm" onClick={fetchLogs}>
+        <Button variant="outline" size="sm" onClick={() => fetchLogs()}>
            <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
            {t("common.loading") === "Loading..." ? "Refresh" : "Actualiser"}
         </Button>
@@ -196,16 +210,17 @@ export default function AuditLogsPage() {
               <th>Action</th>
               <th>Target</th>
               <th>Entity Type</th>
+              <th className="text-right px-6">Details</th>
             </tr>
           </thead>
           <tbody>
             {isLoading ? (
               <tr>
-                <td colSpan={5} className="text-center py-12 text-gray-400 italic">{t("common.loading")}</td>
+                <td colSpan={6} className="text-center py-12 text-gray-400 italic">{t("common.loading")}</td>
               </tr>
             ) : filteredLogs.length === 0 ? (
               <tr>
-                <td colSpan={5} className="text-center py-12 text-gray-400">{t("common.noData")}</td>
+                <td colSpan={6} className="text-center py-12 text-gray-400">{t("common.noData")}</td>
               </tr>
             ) : (
               filteredLogs.map((log) => (
@@ -243,6 +258,16 @@ export default function AuditLogsPage() {
                       {log.targetType}
                     </div>
                   </td>
+                  <td className="text-right px-6">
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="h-8 w-8 p-0 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400"
+                      onClick={() => setSelectedLog(log)}
+                    >
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                  </td>
                 </tr>
               ))
             )}
@@ -279,7 +304,7 @@ export default function AuditLogsPage() {
         </div>
       )}
       
-      <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/50 p-4 rounded-lg flex items-start gap-3">
+      <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/50 p-4 rounded-lg flex items-start gap-3 mt-6">
          <div className="p-1.5 bg-blue-100 dark:bg-blue-900/40 rounded text-blue-700 dark:text-blue-300">
             <RefreshCw className="h-4 w-4" />
          </div>
@@ -287,6 +312,129 @@ export default function AuditLogsPage() {
             <strong>System Maintenance:</strong> Automatic log rotation is enabled. Logs older than 365 days are automatically pruned to maintain system performance. Always download a CSV report before performing manual cleanup.
          </div>
       </div>
+
+      {/* Log Details Modal */}
+      <Modal
+        isOpen={!!selectedLog}
+        onClose={() => setSelectedLog(null)}
+        title="Audit Log Details"
+        size="lg"
+      >
+        {selectedLog && (() => {
+          const details = parseDetails(selectedLog.details);
+          return (
+            <div className="space-y-6 py-2">
+              {/* Header Info */}
+              <div className="grid grid-cols-2 gap-6 p-4 bg-gray-50 dark:bg-slate-800/50 rounded-xl border border-gray-100 dark:border-slate-800">
+                <div className="space-y-1">
+                  <span className="text-[10px] uppercase tracking-wider font-bold text-gray-400 dark:text-gray-500">Action</span>
+                  <div className="flex items-center gap-2">
+                    <Activity className="h-4 w-4 text-indigo-500" />
+                    <span className="text-[14px] font-semibold text-gray-900 dark:text-white">{selectedLog.action.replace(/_/g, " ")}</span>
+                  </div>
+                </div>
+                <div className="space-y-1 text-right">
+                  <span className="text-[10px] uppercase tracking-wider font-bold text-gray-400 dark:text-gray-500">Timestamp</span>
+                  <div className="text-[13px] text-gray-600 dark:text-gray-300 font-medium">
+                    {format(new Date(selectedLog.createdAt), "PPP p")}
+                  </div>
+                </div>
+              </div>
+
+              {/* Administrative Source */}
+              <div className="space-y-3">
+                <h3 className="text-[13px] font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                  <User className="h-4 w-4 text-gray-400" />
+                  Administrative Source
+                </h3>
+                <div className="flex items-center justify-between p-3 border border-gray-100 dark:border-slate-800 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <div className="h-8 w-8 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center font-bold text-indigo-600 dark:text-indigo-400">
+                      {selectedLog.user.name.charAt(0)}
+                    </div>
+                    <div>
+                      <div className="text-[13px] font-medium text-gray-900 dark:text-white">{selectedLog.user.name}</div>
+                      <div className="text-[11px] text-gray-500">{selectedLog.user.email}</div>
+                    </div>
+                  </div>
+                  <div className="text-[11px] font-mono text-gray-400 bg-gray-50 dark:bg-slate-900 px-2 py-1 rounded">
+                    IP: {selectedLog.ipAddress || "Internal"}
+                  </div>
+                </div>
+              </div>
+
+              {/* Modifications Section */}
+              {details && details.modifications && details.modifications.length > 0 && (
+                <div className="space-y-3">
+                  <h3 className="text-[13px] font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                    <RefreshCw className="h-4 w-4 text-blue-500" />
+                    Applied Modifications
+                  </h3>
+                  <div className="bg-blue-50/30 dark:bg-blue-900/10 border border-blue-100/50 dark:border-blue-800/30 rounded-xl p-4 space-y-2">
+                    {details.modifications.map((mod: string, idx: number) => (
+                      <div key={idx} className="flex items-start gap-2 text-[13px] text-gray-700 dark:text-gray-300">
+                        <ChevronRight className="h-4 w-4 mt-0.5 text-blue-400 shrink-0" />
+                        <span>{mod.replace(/^• /, "")}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Data Snapshot (Before/After) */}
+              {details && details.before && details.after && (
+                <div className="space-y-3">
+                  <h3 className="text-[13px] font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                    <Activity className="h-4 w-4 text-purple-500" />
+                    Data Comparison
+                  </h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <div className="text-[11px] font-bold text-gray-400 uppercase tracking-tight">Before Change</div>
+                      <div className="p-3 bg-red-50/30 dark:bg-red-900/10 border border-red-100/50 dark:border-red-800/30 rounded-lg space-y-2 font-mono text-[11px]">
+                        {Object.entries(details.before).map(([k, v]: [string, any]) => (
+                          <div key={k} className="flex justify-between border-b border-red-100/30 dark:border-red-800/20 pb-1">
+                            <span className="text-red-800/70 dark:text-red-400/70">{k}:</span>
+                            <span className="text-red-900 dark:text-red-300 truncate ml-2">{String(v)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="text-[11px] font-bold text-gray-400 uppercase tracking-tight">After Change</div>
+                      <div className="p-3 bg-green-50/30 dark:bg-green-900/10 border border-green-100/50 dark:border-green-800/30 rounded-lg space-y-2 font-mono text-[11px]">
+                        {Object.entries(details.after).map(([k, v]: [string, any]) => (
+                          <div key={k} className="flex justify-between border-b border-green-100/30 dark:border-green-800/20 pb-1">
+                            <span className="text-green-800/70 dark:text-green-400/70">{k}:</span>
+                            <span className="text-green-900 dark:text-green-300 truncate ml-2 font-bold">{String(v)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Raw Details Fallback */}
+              {details && !details.modifications && !details.before && (
+                <div className="space-y-2">
+                   <h3 className="text-[12px] font-bold text-gray-400 flex items-center gap-2 uppercase tracking-wider">
+                    <Info className="h-4 w-4" />
+                    Raw Information
+                  </h3>
+                  <pre className="p-4 bg-gray-50 dark:bg-slate-900 rounded-lg text-[12px] font-mono text-gray-600 dark:text-gray-400 overflow-x-auto border border-gray-100 dark:border-slate-800">
+                    {typeof details === 'object' ? JSON.stringify(details, null, 2) : details}
+                  </pre>
+                </div>
+              )}
+              
+              <div className="flex justify-end pt-4">
+                <Button onClick={() => setSelectedLog(null)} variant="outline">Close Details</Button>
+              </div>
+            </div>
+          );
+        })()}
+      </Modal>
     </div>
   );
 }
