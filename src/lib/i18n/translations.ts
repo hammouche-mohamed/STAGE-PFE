@@ -68,6 +68,25 @@ export const translations = {
       auditLogs: "Audit Logs",
       export: "Export CSV",
       none: "None",
+      audit: {
+        title: "System Audit Logs",
+        performedBy: "Performed By",
+        actionType: "Action Type",
+        eventDate: "Event Date",
+        source: "Source",
+        changesApplied: "Changes Applied",
+        comparison: "Comparison (Old vs New)",
+        oldData: "Previous Data",
+        newData: "Updated Data",
+        details: "Additional Details",
+        refresh: "Refresh",
+        noLogs: "No logs found",
+        loading: "Loading logs...",
+        exportSuccess: "Logs exported to CSV",
+        maintenanceTitle: "System Maintenance",
+        maintenanceDesc: "Automatic log rotation is enabled. Logs older than 365 days are automatically pruned.",
+        closeDetails: "Close Details"
+      }
     },
     roles: {
       STUDENT: "Student",
@@ -687,6 +706,25 @@ export const translations = {
       contactAdmin: "Contacter l'Administration",
       auditLogs: "Journaux d'Audit",
       none: "Aucun",
+      audit: {
+        title: "Journaux d'Audit Système",
+        performedBy: "Effectué par",
+        actionType: "Type d'action",
+        eventDate: "Date de l'événement",
+        source: "Source",
+        changesApplied: "Changements appliqués",
+        comparison: "Comparaison (Ancien vs Nouveau)",
+        oldData: "Données précédentes",
+        newData: "Données mises à jour",
+        details: "Détails supplémentaires",
+        refresh: "Actualiser",
+        noLogs: "Aucun journal trouvé",
+        loading: "Chargement des journaux...",
+        exportSuccess: "Journaux exportés en CSV",
+        maintenanceTitle: "Maintenance du Système",
+        maintenanceDesc: "La rotation automatique des journaux est activée. Les journaux de plus de 365 jours sont supprimés automatiquement.",
+        closeDetails: "Fermer les détails"
+      }
     },
     roles: {
       STUDENT: "Étudiant",
@@ -1287,6 +1325,25 @@ export const translations = {
       registrationsOpen: "التسجيلات مفتوحة",
       registrationsClosed: "التسجيلات مغلقة",
       none: "لا يوجد",
+      audit: {
+        title: "سجلات تدقيق النظام",
+        performedBy: "تم بواسطة",
+        actionType: "نوع الإجراء",
+        eventDate: "تاريخ الحدث",
+        source: "المصدر",
+        changesApplied: "التغييرات المطبقة",
+        comparison: "مقارنة (قديم مقابل جديد)",
+        oldData: "البيانات السابقة",
+        newData: "البيانات المحدثة",
+        details: "تفاصيل إضافية",
+        refresh: "تحديث",
+        noLogs: "لم يتم العثور على سجلات",
+        loading: "جارٍ تحميل السجلات...",
+        exportSuccess: "تم تصدير السجلات إلى CSV",
+        maintenanceTitle: "صيانة النظام",
+        maintenanceDesc: "تم تمكين تدوير السجلات تلقائيًا. يتم حذف السجلات التي مضى عليها أكثر من 365 يومًا تلقائيًا.",
+        closeDetails: "إغلاق التفاصيل"
+      }
     },
     roles: {
       STUDENT: "طالب",
