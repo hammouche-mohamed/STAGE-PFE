@@ -1,8 +1,26 @@
 import { PrismaClient } from "@prisma/client";
 
+// In serverless environments (Vercel), each function invocation can spawn a new
+// Prisma client. Without connection_limit, this quickly exhausts the DB's max connections.
+// We cap at 3 connections per serverless instance and apply a global singleton.
+const getConnectionUrl = () => {
+  const url = process.env.DATABASE_URL || "";
+  // Add connection pooling params only if not already present
+  if (url && !url.includes("connection_limit")) {
+    const separator = url.includes("?") ? "&" : "?";
+    return `${url}${separator}connection_limit=3&pool_timeout=20`;
+  }
+  return url;
+};
+
 const prismaClientSingleton = () => {
   return new PrismaClient({
-    log: process.env.NODE_ENV === "development" ? ["query", "error", "warn"] : ["error"],
+    log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"],
+    datasources: {
+      db: {
+        url: getConnectionUrl(),
+      },
+    },
   });
 };
 

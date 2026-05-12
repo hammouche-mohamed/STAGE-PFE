@@ -79,7 +79,10 @@ export async function GET(req: NextRequest) {
       counts["/profile"] = 1;
     }
 
-    return NextResponse.json(counts);
+    const response = NextResponse.json(counts);
+    // Short cache to prevent hammering DB on every page navigation
+    response.headers.set("Cache-Control", "private, max-age=10, stale-while-revalidate=30");
+    return response;
   } catch (error) {
     console.error("Sidebar counts error:", error);
     return NextResponse.json({}, { status: 500 });

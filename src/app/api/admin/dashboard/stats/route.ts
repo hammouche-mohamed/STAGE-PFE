@@ -117,7 +117,7 @@ export async function GET(req: NextRequest) {
       }),
     ]);
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       studentCount,
       teacherCount,
       companyCount,
@@ -131,6 +131,10 @@ export async function GET(req: NextRequest) {
       studentsAtRisk,
       pendingCompanyProposals,
     });
+
+    // Cache for 30s to avoid hammering the DB with repeated filter clicks
+    response.headers.set("Cache-Control", "private, max-age=30, stale-while-revalidate=60");
+    return response;
   } catch (error) {
     console.error("Dashboard stats error:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

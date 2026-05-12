@@ -81,19 +81,26 @@ export function AdminDashboardClient({
     }
   }, []);
 
+  // Debounce the filter change to prevent rapid-fire API calls
+  // that exhaust database connections in serverless environments
   React.useEffect(() => {
     const fid = filiereId === "all" ? (session?.user?.isSuperAdmin ? "all" : session?.user?.filiereId || "all") : filiereId;
     
-    if (fid !== "all" || session?.user?.isSuperAdmin) {
-      fetchStats(fid);
-    }
+    const debounceTimer = setTimeout(() => {
+      if (fid !== "all" || session?.user?.isSuperAdmin) {
+        fetchStats(fid);
+      }
+    }, 500); // 500ms debounce
 
-    // Auto-poll dashboard stats every 60 seconds
+    // Auto-poll dashboard stats every 5 minutes (reduced from 60s to save DB connections)
     const pollId = setInterval(() => {
       fetchStats(fid);
-    }, 60000);
+    }, 300000);
 
-    return () => clearInterval(pollId);
+    return () => {
+      clearTimeout(debounceTimer);
+      clearInterval(pollId);
+    };
   }, [filiereId, fetchStats, session]);
 
   const currentFiliere = filieres.find(f => f.id === session?.user?.filiereId);

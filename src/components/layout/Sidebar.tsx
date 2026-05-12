@@ -86,7 +86,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ role: initialRole, logoUrl }) 
             adminItems.push({ label: t("common.settings"), icon: Settings, href: "/admin/settings", active: pathname.startsWith("/admin/settings") });
           }
           
-          adminItems.push({ label: "Contact Administration", icon: Mail, href: "/contact", active: pathname === "/contact" });
           adminItems.push({ label: t("common.profile"), icon: UserIcon, href: "/profile", active: pathname === "/profile" });
           return adminItems;
         case "TEACHER":
@@ -96,6 +95,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ role: initialRole, logoUrl }) 
             { label: t("common.topics"), icon: Briefcase, href: "/teacher/topics", active: pathname.startsWith("/teacher/topics") },
             { label: t("common.documents"), icon: FileText, href: "/teacher/documents", active: pathname.startsWith("/teacher/documents") },
             { label: t("common.messages"), icon: MessageSquare, href: "/teacher/messages", active: pathname.startsWith("/teacher/messages") },
+            { label: t("nav.contact"), icon: Mail, href: "/contact", active: pathname === "/contact" },
             { label: t("common.profile"), icon: UserIcon, href: "/profile", active: pathname === "/profile" },
           ];
         case "COMPANY":
@@ -105,6 +105,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ role: initialRole, logoUrl }) 
             { label: t("nav.applications"), icon: Users, href: "/company/applications", active: pathname.startsWith("/company/applications") },
             { label: t("common.internships"), icon: ShieldCheck, href: "/company/internships", active: pathname.startsWith("/company/internships") },
             { label: t("common.messages"), icon: MessageSquare, href: "/company/messages", active: pathname.startsWith("/company/messages") },
+            { label: t("nav.contact"), icon: Mail, href: "/contact", active: pathname === "/contact" },
             { label: t("common.profile"), icon: UserIcon, href: "/profile", active: pathname === "/profile" },
           ];
         default: // STUDENT
@@ -117,6 +118,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ role: initialRole, logoUrl }) 
             { label: t("common.messages"), icon: MessageSquare, href: "/student/messages", active: pathname.startsWith("/student/messages") },
             { label: t("common.invitations"), icon: UserIcon, href: "/student/invitations", active: pathname.startsWith("/student/invitations") },
             { label: t("nav.archives"), icon: Archive, href: "/student/archives", active: pathname.startsWith("/student/archives") },
+            { label: t("nav.contact"), icon: Mail, href: "/contact", active: pathname === "/contact" },
             { label: t("common.profile"), icon: UserIcon, href: "/profile", active: pathname === "/profile" },
           ];
       }
