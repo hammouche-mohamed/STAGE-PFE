@@ -70,7 +70,46 @@ export default async function AdminDashboardPage() {
         status: "PENDING_ADMIN",
         ...( !isSuperAdmin && filiereId ? { filiereId } : {} )
       }
-    })
+    }),
+    prisma.topic.count({ 
+      where: { 
+        status: "APPROVED",
+        academicYear: currentAcademicYear,
+        ...( !isSuperAdmin && filiereId ? { filiereId } : {} )
+      } as any
+    }),
+    prisma.topic.count({ 
+      where: { 
+        status: "REJECTED",
+        academicYear: currentAcademicYear,
+        ...( !isSuperAdmin && filiereId ? { filiereId } : {} )
+      } as any
+    }),
+    prisma.internship.count({ 
+      where: { 
+        status: "COMPLETED",
+        academicYear: currentAcademicYear,
+        ...( filiereTopicIds ? { topicId: { in: filiereTopicIds } } : {} )
+      }
+    }),
+    prisma.teacherApplication.count({
+      where: {
+        status: "PENDING",
+        ...( !isSuperAdmin && filiereId ? { topic: { filiereId } } : {} )
+      }
+    }),
+    prisma.user.findMany({
+      where: {
+        role: "STUDENT",
+        isActive: true,
+        ...( !isSuperAdmin && filiereId ? { studentProfile: { filiereId } } : {} ),
+        studentProfile: { academicYear: currentAcademicYear },
+        internshipStudents: { none: {} }
+      },
+      select: { id: true, name: true, email: true },
+      take: 20,
+      orderBy: { name: 'asc' }
+    }),
   ]);
 
   return (
@@ -84,6 +123,13 @@ export default async function AdminDashboardPage() {
       recentTopics={recentTopics}
       currentAcademicYear={currentAcademicYear}
       pendingCompanyProposals={pendingCompanyProposals}
+      initialStats={{
+        topicsApproved,
+        topicsRejected,
+        internshipsCompleted,
+        pendingSupervisionRequests,
+        studentsAtRisk,
+      }}
     />
   );
 }

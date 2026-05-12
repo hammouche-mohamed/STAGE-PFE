@@ -240,17 +240,17 @@ export default function AuditLogsPage() {
                       </div>
                       <div className="flex flex-col">
                         <span className="text-[13px] font-medium text-gray-900 dark:text-white">{log.user.name}</span>
-                        <span className="text-[10px] text-gray-500">{log.user.email}</span>
+                        <span className="text-[10px] text-gray-500 dark:text-gray-400">{log.user.email}</span>
                       </div>
                     </div>
                   </td>
                   <td>
-                    <span className="text-[11px] font-bold bg-gray-50 px-2 py-0.5 rounded border border-gray-100 italic">
+                    <span className="text-[10px] sm:text-[11px] font-bold bg-gray-50 dark:bg-slate-800/50 text-gray-600 dark:text-indigo-400 px-2 py-1 rounded border border-gray-100 dark:border-slate-700 italic shadow-sm whitespace-nowrap">
                        {log.action.replace(/_/g, " ")}
                     </span>
                   </td>
-                  <td className="text-[13px] text-gray-900 dark:text-white">{log.targetId}</td>
-                  <td className="text-[12px] text-gray-500">{log.targetType}</td>
+                  <td className="text-[13px] text-gray-900 dark:text-white font-medium">{log.targetId}</td>
+                  <td className="text-[12px] text-gray-500 dark:text-gray-400">{log.targetType}</td>
                   <td className="text-right px-6">
                     <Button variant="ghost" size="sm" className="h-10 w-10 p-0 hover:bg-indigo-50" onClick={() => setSelectedLog(log)}>
                       <Eye className="h-6 w-6 text-indigo-600" />

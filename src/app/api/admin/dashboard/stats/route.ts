@@ -98,14 +98,17 @@ export async function GET(req: NextRequest) {
           role: "STUDENT",
           isActive: true,
           ...(targetFiliereId ? { studentProfile: { filiereId: targetFiliereId } } : {}),
-          internshipStudents: { none: {} } // Optimized: Students not in any internship
+          studentProfile: {
+             academicYear: currentAcademicYear
+          },
+          internshipStudents: { none: {} }
         },
         select: {
           id: true,
           name: true,
           email: true,
         },
-        take: 10,
+        take: 20, // Increased to show more unplaced students
         orderBy: { name: 'asc' }
       }),
       prisma.topic.count({

@@ -31,6 +31,13 @@ interface Props {
   recentTopics: number;
   currentAcademicYear: string;
   pendingCompanyProposals: number;
+  initialStats: {
+    topicsApproved: number;
+    topicsRejected: number;
+    internshipsCompleted: number;
+    pendingSupervisionRequests: number;
+    studentsAtRisk: any[];
+  };
 }
 
 export function AdminDashboardClient({
@@ -43,6 +50,7 @@ export function AdminDashboardClient({
   recentTopics: initialRecentTopics,
   currentAcademicYear,
   pendingCompanyProposals: initialPendingCompanyProposals,
+  initialStats,
 }: Props) {
   const { t, isRTL } = useTranslation();
   const { data: session } = useSession();
@@ -56,6 +64,7 @@ export function AdminDashboardClient({
     pendingConfirmations: initialPendingConfirmations,
     recentTopics: initialRecentTopics,
     pendingCompanyProposals: initialPendingCompanyProposals,
+    ...initialStats,
   });
   const [isLoadingStats, setIsLoadingStats] = React.useState(false);
 

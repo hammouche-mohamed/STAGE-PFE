@@ -69,6 +69,7 @@ export default function AdminUsersPage() {
   const [isFetchingDetail, setIsFetchingDetail] = useState(false);
   const [showEditConfirm, setShowEditConfirm] = useState(false);
   const [filiereFilter, setFiliereFilter] = useState("ALL");
+  const [statusFilter, setStatusFilter] = useState("ALL");
   
   const [activeTab, setActiveTab] = useState<"USERS" | "BLOCKLIST" | "TEAMS">("USERS");
   const [blocklist, setBlocklist] = useState<any[]>([]);
@@ -90,6 +91,7 @@ export default function AdminUsersPage() {
       const params = new URLSearchParams();
       if (roleFilter !== "ALL") params.append("role", roleFilter);
       if (filiereFilter !== "ALL") params.append("filiereId", filiereFilter);
+      if (statusFilter !== "ALL") params.append("status", statusFilter.toLowerCase());
       if (search.trim()) params.append("search", search.trim());
       
       const res = await fetch(`/api/users?${params.toString()}`);
@@ -158,7 +160,7 @@ export default function AdminUsersPage() {
 
   useEffect(() => {
     fetchUsers();
-  }, [roleFilter, filiereFilter, search]);
+  }, [roleFilter, filiereFilter, statusFilter, search]);
 
   // Auto-refresh user list when another admin modifies a user
   usePollingRefresh("users", fetchUsers);
@@ -471,16 +473,17 @@ export default function AdminUsersPage() {
               ))}
             </select>
           )}
-          <select 
-            className="admin-input min-w-0 sm:min-w-[140px] w-full sm:w-auto"
-            value={roleFilter}
-            onChange={(e) => setRoleFilter(e.target.value)}
-          >
-            <option value="ALL">{t("admin.users.allRoles")}</option>
-            <option value="STUDENT">{t("roles.STUDENT")}</option>
-            <option value="TEACHER">{t("roles.TEACHER")}</option>
             <option value="COMPANY">{t("roles.COMPANY")}</option>
             <option value="ADMIN">{t("roles.ADMIN")}</option>
+          </select>
+          <select 
+            className="admin-input min-w-0 sm:min-w-[140px] w-full sm:w-auto"
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+          >
+            <option value="ALL">{t("common.status")}: {t("common.all")}</option>
+            <option value="ACTIVE">{t("admin.users.active")}</option>
+            <option value="INACTIVE">{t("admin.users.inactive")}</option>
           </select>
         </div>
       </div>

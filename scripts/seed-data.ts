@@ -33,13 +33,24 @@ async function main() {
   }
 
   console.log("Setting system configurations...");
-  await prisma.systemSettings.create({
-    data: {
-      id: "current-year-id",
-      key: "currentAcademicYear",
-      value: academicYear,
-      updatedAt: new Date()
-    }
+  await prisma.systemSettings.createMany({
+    data: [
+      {
+        key: "currentAcademicYear",
+        value: academicYear,
+        updatedAt: new Date()
+      },
+      {
+        key: "availablePromotions",
+        value: "L1,L2,L3,M1,M2",
+        updatedAt: new Date()
+      },
+      {
+        key: "registrationOpen",
+        value: "true",
+        updatedAt: new Date()
+      }
+    ]
   });
 
   console.log("Creating departments...");
@@ -267,6 +278,36 @@ async function main() {
       }
     });
   }
+
+  // --- REGISTRATION REQUESTS ---
+  console.log("Creating registration requests...");
+  await prisma.registrationRequest.createMany({
+    data: [
+      {
+        name: "New Student Applicant",
+        email: "newstudent@gmail.com",
+        password: passwordHashes.student,
+        role: "STUDENT",
+        status: "PENDING",
+        studentId: "ST9999",
+        promotion: "2025",
+        speciality: "Computer Science",
+        academicYear: "2024-2025",
+        createdAt: new Date(Date.now() - 3600000 * 2) // 2 hours ago
+      },
+      {
+        name: "Tech Solutions Inc",
+        email: "contact@techsolutions.com",
+        password: passwordHashes.company,
+        role: "COMPANY",
+        status: "PENDING",
+        companyName: "Tech Solutions Inc",
+        sector: "Software Development",
+        wilaya: "Algiers",
+        createdAt: new Date(Date.now() - 86400000) // 1 day ago
+      }
+    ]
+  });
 
   // --- AUDIT LOGS ---
   const superAdmin = await prisma.user.findFirst({ where: { email: "kalomino.2006@gmail.com" } });

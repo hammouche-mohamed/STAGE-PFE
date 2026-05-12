@@ -13,6 +13,7 @@ export async function GET(req: NextRequest) {
   const isAvailableOnly = searchParams.get("available") === "true";
   const filiereId = searchParams.get("filiereId");
   const search = searchParams.get("search");
+  const status = searchParams.get("status");
 
   try {
     const isAllFilieres = !filiereId || (typeof filiereId === 'string' && filiereId.toLowerCase() === "all");
@@ -54,6 +55,7 @@ export async function GET(req: NextRequest) {
     const users = await prisma.user.findMany({
       where: {
         ...(role && { role: role as any }),
+        ...(status === "active" ? { isActive: true } : status === "inactive" ? { isActive: false } : {}),
         // If Dept Admin, hide all other Admins
         ...(!session.user.isSuperAdmin && {
           NOT: { role: "ADMIN" }
