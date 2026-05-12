@@ -123,7 +123,7 @@ export function AdminDashboardClient({
             {t("dashboard.welcome")}, {session?.user?.isSuperAdmin ? "Global Administrator" : "Department Administrator"}.
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 w-full sm:w-auto">
           {!session?.user?.isSuperAdmin && currentFiliere && (
             <div className="flex items-center px-3 py-1.5 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800/50 rounded-md shadow-sm h-9 flex-shrink-0 transition-colors">
               <span className="text-[12px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-tight whitespace-nowrap">
@@ -133,7 +133,7 @@ export function AdminDashboardClient({
           )}
           {session?.user?.isSuperAdmin && (
             <select
-              className="admin-input text-[12px] h-9 py-0 min-w-[150px] sm:min-w-[200px] flex-1 sm:flex-none"
+              className="admin-input text-[12px] h-9 py-0 min-w-0 sm:min-w-[200px] w-full sm:w-auto"
               value={filiereId}
               onChange={(e) => setFiliereId(e.target.value)}
               disabled={isLoadingStats}
@@ -144,7 +144,7 @@ export function AdminDashboardClient({
               ))}
             </select>
           )}
-          <div className="flex items-center px-3 py-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-sm h-9 flex-shrink-0 transition-colors">
+          <div className="flex items-center px-3 py-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-sm h-9 sm:flex-shrink-0 transition-colors w-full sm:w-auto">
             <Clock className="h-4 w-4 text-gray-400 dark:text-gray-500 mr-2 flex-shrink-0" />
             <span className="text-[12px] font-medium text-gray-600 dark:text-gray-300 whitespace-nowrap">
               {currentAcademicYear}

@@ -445,10 +445,10 @@ export default function AdminUsersPage() {
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
           {session?.user?.isSuperAdmin && (
             <select 
-              className="admin-input min-w-[140px]"
+              className="admin-input min-w-0 sm:min-w-[140px] w-full sm:w-auto"
               value={filiereFilter}
               onChange={(e) => setFiliereFilter(e.target.value)}
             >
@@ -459,7 +459,7 @@ export default function AdminUsersPage() {
             </select>
           )}
           <select 
-            className="admin-input min-w-[140px]"
+            className="admin-input min-w-0 sm:min-w-[140px] w-full sm:w-auto"
             value={roleFilter}
             onChange={(e) => setRoleFilter(e.target.value)}
           >

@@ -175,10 +175,10 @@ export default function AdminTopicsPage() {
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
           {session?.user?.isSuperAdmin && (
             <select 
-              className="admin-input min-w-[180px]"
+              className="admin-input min-w-0 sm:min-w-[180px] w-full sm:w-auto"
               value={filiereFilter}
               onChange={(e) => setFiliereFilter(e.target.value)}
             >
@@ -189,7 +189,7 @@ export default function AdminTopicsPage() {
             </select>
           )}
           <select 
-            className="admin-input min-w-[150px]"
+            className="admin-input min-w-0 sm:min-w-[150px] w-full sm:w-auto"
             value={assignmentFilter}
             onChange={(e) => setAssignmentFilter(e.target.value)}
           >

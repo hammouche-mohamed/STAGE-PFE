@@ -8,6 +8,7 @@ import { signOut, useSession } from "next-auth/react";
 import { useTheme } from "next-themes";
 import { useTranslation } from "@/lib/i18n/LanguageContext";
 import { Language } from "@/lib/i18n/translations";
+import { useBreadcrumbs } from "@/lib/contexts/BreadcrumbContext";
 import { useSidebar } from "@/lib/contexts/SidebarContext";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 
@@ -57,12 +58,15 @@ export const Topbar: React.FC = () => {
     };
   }, [fetchUnread, session]);
 
+  const { labels } = useBreadcrumbs();
   const getBreadcrumbs = () => {
     const parts = pathname.split("/").filter(Boolean);
-    return parts.map((part, i) => ({
-      label: part.charAt(0).toUpperCase() + part.slice(1),
-      href: "/" + parts.slice(0, i + 1).join("/"),
-    }));
+    return parts.map((part, i) => {
+      const href = "/" + parts.slice(0, i + 1).join("/");
+      // Use label from context if available, otherwise capitalize path part
+      const label = labels[part] || (part.charAt(0).toUpperCase() + part.slice(1));
+      return { label, href };
+    });
   };
 
   const breadcrumbs = getBreadcrumbs();
@@ -79,7 +83,7 @@ export const Topbar: React.FC = () => {
         </button>
 
         <div className={`flex flex-col ${isRTL ? "text-right" : "text-left"}`}>
-          <h1 className="text-[13px] md:text-[14px] font-bold text-gray-900 dark:text-white leading-tight">
+          <h1 className="text-[13px] md:text-[14px] font-bold text-gray-900 dark:text-white leading-tight line-clamp-1 max-w-[200px] md:max-w-[400px]">
             {breadcrumbs[breadcrumbs.length - 1]?.label || "Dashboard"}
           </h1>
           <div className="hidden md:flex items-center gap-1 text-[11px] text-gray-400 dark:text-gray-500">
@@ -87,7 +91,7 @@ export const Topbar: React.FC = () => {
             {breadcrumbs.map((b, i) => (
               <React.Fragment key={b.href}>
                 <span>/</span>
-                <span className={i === breadcrumbs.length - 1 ? "text-gray-600 dark:text-gray-300 font-medium" : ""}>{b.label}</span>
+                <span className={`line-clamp-1 max-w-[100px] ${i === breadcrumbs.length - 1 ? "text-gray-600 dark:text-gray-300 font-medium" : ""}`}>{b.label}</span>
               </React.Fragment>
             ))}
           </div>

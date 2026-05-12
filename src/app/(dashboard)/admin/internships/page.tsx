@@ -110,9 +110,9 @@ export default function AdminInternshipsPage() {
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
           <select 
-            className="admin-input min-w-[180px]"
+            className="admin-input min-w-0 sm:min-w-[180px] w-full sm:w-auto"
             value={filiereFilter}
             onChange={(e) => setFiliereFilter(e.target.value)}
           >
@@ -121,10 +121,8 @@ export default function AdminInternshipsPage() {
               <option key={f.id} value={f.id}>{f.name}</option>
             ))}
           </select>
-        </div>
-        <div className="flex gap-2">
           <select 
-            className="admin-input min-w-[200px]"
+            className="admin-input min-w-0 sm:min-w-[200px] w-full sm:w-auto"
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
           >
