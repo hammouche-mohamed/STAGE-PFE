@@ -37,12 +37,12 @@ export default async function DashboardLayout({
           <Sidebar role={role} logoUrl={logoUrl} />
 
           {/* Main Content Area */}
-          <div className="flex-1 min-w-0 flex flex-col transition-all duration-300 md:ltr:ml-[240px] md:rtl:mr-[240px]">
+          <div className="flex-1 min-w-0 flex flex-col transition-all duration-300 md:ltr:ml-[240px] md:rtl:mr-[240px] overflow-x-hidden">
             {/* Topbar - Fixed height */}
             <Topbar />
 
             {/* Content - Scrollable container */}
-            <main className="flex-1 overflow-y-auto p-6 md:p-10 min-w-0">
+            <main className="flex-1 overflow-y-auto p-6 md:p-10 min-w-0 overflow-x-hidden">
               {children}
             </main>
           </div>

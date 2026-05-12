@@ -206,45 +206,81 @@ export async function GET(req: NextRequest) {
 
     const where: Record<string, any> = {
       id: { notIn: completedTopicIds },
-      OR: [
-        { academicYear },
-        { status: { in: ['OPEN_FOR_SELECTION', 'APPROVED', 'PENDING_ADMIN', 'UNDER_REVIEW', 'TAKEN'] } }
-      ],
-      ...(session.user.role === 'ADMIN' && !session.user.isSuperAdmin 
-        ? (session.user.filiereId 
-            ? { filiereId: session.user.filiereId } 
-            : { id: "UNASSIGNED_ADMIN_BLOCK" })
-        : filiereFilter && { filiereId: filiereFilter }),
-      ...(typeFilter && { type: typeFilter as never }),
-      ...(allowedInternshipTypes
-        ? { internshipType: { in: allowedInternshipTypes as never[] } }
-        : internshipTypeFilter
-        ? { internshipType: internshipTypeFilter as never }
-        : {}),
-      // Role-specific visibility rules
-      ...(session.user.role === 'STUDENT' && { status: 'OPEN_FOR_SELECTION' }),
-      ...(session.user.role === 'TEACHER' && {
-        OR: [
-          { assignedTeacherId: session.user.id },
-          { teacherApplications: { some: { teacherId: session.user.id } } },
-          { 
-            AND: [
-              { status: 'APPROVED' },
-              { assignedTeacherId: null },
-              session.user.filiereId ? { filiereId: session.user.filiereId } : {},
-            ]
-          }
-        ]
-      }),
-      ...(session.user.role === 'COMPANY' && {
-        proposedById: session.user.id,
-      }),
-      // Optional status filter for admin
-      ...(session.user.role === 'ADMIN' && statusFilter && { status: statusFilter as never }),
-      // Optional assignment filter
-      ...(session.user.role === 'ADMIN' && searchParams.get('assigned') === 'true' && { assignedTeacherId: { not: null } }),
-      ...(session.user.role === 'ADMIN' && searchParams.get('assigned') === 'false' && { assignedTeacherId: null }),
     };
+
+    // ── ACADEMIC YEAR FILTER ────────────────────────────────────────────────
+    // For students/teachers, we strictly filter by current academic year unless specified.
+    // For admins, we default to current year but allow seeing others.
+    if (academicYear && academicYear !== 'all') {
+      where.academicYear = academicYear;
+    } else if (session.user.role === 'STUDENT' || session.user.role === 'TEACHER') {
+      const currentYear = await SettingsService.getCurrentAcademicYear();
+      if (currentYear) where.academicYear = currentYear;
+    }
+
+    // ── ROLE-BASED VISIBILITY & FILTERS ────────────────────────────────────
+    if (session.user.role === 'ADMIN') {
+      // Admins see topics in their department (or all if super admin)
+      if (!session.user.isSuperAdmin) {
+        if (session.user.filiereId) {
+          where.filiereId = session.user.filiereId;
+        } else {
+          where.id = "UNASSIGNED_ADMIN_BLOCK";
+        }
+      } else if (filiereFilter && filiereFilter !== 'ALL') {
+        where.filiereId = filiereFilter;
+      }
+
+      if (statusFilter && statusFilter !== 'ALL') {
+        if (statusFilter === 'MODIFICATIONS') {
+          where.pendingEditData = { not: null };
+        } else {
+          where.status = statusFilter;
+        }
+      }
+
+      const assigned = searchParams.get('assigned');
+      if (assigned === 'true') where.assignedTeacherId = { not: null };
+      if (assigned === 'false') where.assignedTeacherId = null;
+
+    } else if (session.user.role === 'STUDENT') {
+      // Students only see topics open for selection in the current year
+      where.status = 'OPEN_FOR_SELECTION';
+      if (filiereFilter && filiereFilter !== 'ALL') {
+        where.filiereId = filiereFilter;
+      }
+
+    } else if (session.user.role === 'TEACHER') {
+      // Teachers see assigned topics, their applications, or approved unassigned topics
+      where.OR = [
+        { assignedTeacherId: session.user.id },
+        { teacherApplications: { some: { teacherId: session.user.id } } },
+        { 
+          AND: [
+            { status: 'APPROVED' },
+            { assignedTeacherId: null },
+            session.user.filiereId ? { filiereId: session.user.filiereId } : {},
+          ]
+        }
+      ];
+      if (filiereFilter && filiereFilter !== 'ALL') {
+        where.filiereId = filiereFilter;
+      }
+
+    } else if (session.user.role === 'COMPANY') {
+      where.proposedById = session.user.id;
+    }
+
+    // Apply internship type restriction if applicable
+    if (allowedInternshipTypes) {
+      where.internshipType = { in: allowedInternshipTypes };
+    } else if (internshipTypeFilter && internshipTypeFilter !== 'ALL') {
+      where.internshipType = internshipTypeFilter;
+    }
+
+    if (typeFilter && typeFilter !== 'ALL') {
+      where.type = typeFilter;
+    }
 
     // NFR-P2: explicit field selection
     const [topics, total] = await Promise.all([
