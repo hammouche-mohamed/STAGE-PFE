@@ -20,6 +20,13 @@ import {
   Key,
   Trash2
 } from "lucide-react";
+
+const roleIcons = {
+  ADMIN: <Shield className="h-4 w-4 text-purple-600" />,
+  TEACHER: <GraduationCap className="h-4 w-4 text-indigo-600" />,
+  STUDENT: <Users className="h-4 w-4 text-green-600" />,
+  COMPANY: <Building2 className="h-4 w-4 text-amber-600" />,
+};
 import { useSession } from "next-auth/react";
 import Image from "next/image";
 import { Button } from "@/components/ui/Button";
@@ -375,13 +382,6 @@ export default function AdminUsersPage() {
 
 
 
-  const roleIcons = {
-    ADMIN: <Shield className="h-4 w-4 text-purple-600" />,
-    TEACHER: <GraduationCap className="h-4 w-4 text-indigo-600" />,
-    STUDENT: <Users className="h-4 w-4 text-green-600" />,
-    COMPANY: <Building2 className="h-4 w-4 text-amber-600" />,
-  };
-
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -473,6 +473,14 @@ export default function AdminUsersPage() {
               ))}
             </select>
           )}
+          <select 
+            className="admin-input min-w-0 sm:min-w-[140px] w-full sm:w-auto"
+            value={roleFilter}
+            onChange={(e) => setRoleFilter(e.target.value)}
+          >
+            <option value="ALL">{t("common.role")}: {t("common.all")}</option>
+            <option value="STUDENT">{t("roles.STUDENT")}</option>
+            <option value="TEACHER">{t("roles.TEACHER")}</option>
             <option value="COMPANY">{t("roles.COMPANY")}</option>
             <option value="ADMIN">{t("roles.ADMIN")}</option>
           </select>
