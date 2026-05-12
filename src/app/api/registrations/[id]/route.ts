@@ -108,7 +108,7 @@ export async function PATCH(
         }
       }
 
-      // 2. Create User — include level from registration request
+      // 2. Create User — include level only for students
       const user = await tx.user.create({
         data: {
           id: randomUUID(),
@@ -116,8 +116,8 @@ export async function PATCH(
           email: request.email,
           password: request.password || '',
           role: request.role as any,
-          // Persist academic level on the User record for fast session lookup
-          level: (request.level as any) ?? null,
+          // Level is only relevant for students
+          level: request.role === 'STUDENT' ? (request.level as any || null) : null,
           department: filiere ? filiere.name : null,
           isActive: true,
           mustChangePassword: false,
@@ -159,12 +159,6 @@ export async function PATCH(
             sector: request.sector,
             wilaya: request.wilaya,
           },
-        });
-        
-        // Point 7: Ensure company has a level record for consistency (even if just "N/A")
-        await tx.user.update({
-          where: { id: user.id },
-          data: { level: 'L1' } // Or any default valid for the schema
         });
       }
 
