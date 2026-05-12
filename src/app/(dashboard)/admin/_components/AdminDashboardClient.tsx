@@ -258,9 +258,6 @@ export function AdminDashboardClient({
                         <span className="text-[13px] font-bold text-gray-900 dark:text-white">{student.name}</span>
                         <span className="text-[11px] text-gray-500 dark:text-gray-400">{student.email}</span>
                       </div>
-                      <Link href={`/admin/users?search=${encodeURIComponent(student.email)}`} className="px-3 py-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 text-[11px] font-bold rounded hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm">
-                        Contact
-                      </Link>
                     </div>
                   ))
                 )}
