@@ -209,27 +209,27 @@ export async function GET(req: NextRequest) {
     };
 
     // ── ACADEMIC YEAR FILTER ────────────────────────────────────────────────
-    // For students/teachers, we strictly filter by current academic year unless specified.
-    // For admins, we default to current year but allow seeing others.
+    // Admins see all years by default unless specified.
+    // Students/Teachers are locked to the current year by default.
     if (academicYear && academicYear !== 'all') {
       where.academicYear = academicYear;
-    } else if (session.user.role === 'STUDENT' || session.user.role === 'TEACHER') {
+    } else if (session.user.role !== 'ADMIN') {
       const currentYear = await SettingsService.getCurrentAcademicYear();
       if (currentYear) where.academicYear = currentYear;
     }
 
     // ── ROLE-BASED VISIBILITY & FILTERS ────────────────────────────────────
     if (session.user.role === 'ADMIN') {
-      // Admins see topics in their department (or all if super admin)
-      if (!session.user.isSuperAdmin) {
-        if (session.user.filiereId) {
-          where.filiereId = session.user.filiereId;
-        } else {
-          where.id = "UNASSIGNED_ADMIN_BLOCK";
+      // Admins see topics in their department (or all if super admin or unassigned)
+      if (session.user.isSuperAdmin) {
+        if (filiereFilter && filiereFilter !== 'ALL') {
+          where.filiereId = filiereFilter;
         }
-      } else if (filiereFilter && filiereFilter !== 'ALL') {
-        where.filiereId = filiereFilter;
+      } else if (session.user.filiereId) {
+        where.filiereId = session.user.filiereId;
       }
+      // If they are a regular admin but have no filiereId, they see everything (consistent with sidebar)
+      // unless we want to strictly enforce it. For now, let's keep it visible.
 
       if (statusFilter && statusFilter !== 'ALL') {
         if (statusFilter === 'MODIFICATIONS') {

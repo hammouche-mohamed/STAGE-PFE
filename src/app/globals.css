@@ -130,19 +130,19 @@
   }
 
   .admin-table-header {
-    @apply bg-gray-50 dark:bg-slate-800/50 h-[44px] border-b border-gray-200 dark:border-slate-800;
+    @apply bg-gray-50/80 dark:bg-slate-800/50 h-[48px] border-b border-gray-200 dark:border-slate-800;
   }
 
   .admin-table-header th {
-    @apply px-4 text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 whitespace-nowrap;
+    @apply px-4 text-[11px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 whitespace-nowrap;
   }
 
   .admin-table-row {
-    @apply h-[48px] border-b border-gray-100 dark:border-slate-800 hover:bg-gray-50 dark:hover:bg-slate-800/30;
+    @apply min-h-[64px] border-b border-gray-100 dark:border-slate-800 hover:bg-gray-50 dark:hover:bg-slate-800/30 transition-colors;
   }
 
   .admin-table-row td {
-    @apply px-4 text-[13px] text-gray-600 dark:text-gray-200;
+    @apply px-4 py-4 text-[13px] text-gray-600 dark:text-gray-200 align-middle;
   }
 
   .empty-row td {
