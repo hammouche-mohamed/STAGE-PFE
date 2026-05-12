@@ -82,11 +82,18 @@ export function AdminDashboardClient({
   }, []);
 
   React.useEffect(() => {
-    if (filiereId !== "all") {
-      fetchStats(filiereId);
-    } else if (session?.user?.isSuperAdmin) {
-      fetchStats("all");
+    const fid = filiereId === "all" ? (session?.user?.isSuperAdmin ? "all" : session?.user?.filiereId || "all") : filiereId;
+    
+    if (fid !== "all" || session?.user?.isSuperAdmin) {
+      fetchStats(fid);
     }
+
+    // Auto-poll dashboard stats every 60 seconds
+    const pollId = setInterval(() => {
+      fetchStats(fid);
+    }, 60000);
+
+    return () => clearInterval(pollId);
   }, [filiereId, fetchStats, session]);
 
   const currentFiliere = filieres.find(f => f.id === session?.user?.filiereId);

@@ -24,6 +24,7 @@ interface RegistrationRequest {
   speciality?: string;
   academicYear?: string;
   grade?: string;
+  level?: string;
   sector?: string;
   wilaya?: string;
   adminComment?: string;
@@ -56,7 +57,8 @@ export default function AdminRegistrationsPage() {
   const [blockEmail, setBlockEmail] = useState(false);
   const [filterStatus, setFilterStatus] = useState("PENDING");
 
-  const fetchRequests = useCallback(async () => {
+  const fetchRequests = useCallback(async (silent = false) => {
+    if (!silent) setIsLoading(true);
     try {
       const params = new URLSearchParams();
       if (search.trim()) params.append("search", search.trim());
@@ -66,14 +68,18 @@ export default function AdminRegistrationsPage() {
       const data = await res.json();
       setRequests(data.data || []);
     } catch (error) {
-      toast.error("Failed to load registrations");
+      if (!silent) toast.error("Failed to load registrations");
     } finally {
-      setIsLoading(false);
+      if (!silent) setIsLoading(false);
     }
   }, [search, filterStatus]);
 
   useEffect(() => {
     fetchRequests();
+
+    // Auto-poll every 30 seconds for real-time updates
+    const pollId = setInterval(() => fetchRequests(true), 30000);
+    return () => clearInterval(pollId);
   }, [fetchRequests]);
 
   useEffect(() => {
@@ -140,20 +146,29 @@ export default function AdminRegistrationsPage() {
       return;
     }
 
+    // ── OPTIMISTIC UPDATE ────────────────────────────────────────────────────
+    const previousRequests = [...requests];
+    const targetRequest = requests.find(r => r.id === id);
+    
+    // Immediately remove from the current list view and close modals
+    setRequests(prev => prev.filter(r => r.id !== id));
+    setSelectedRequest(null);
+    setIsRejectModalOpen(false);
+    
     setUpdatingStatus(status);
     try {
-      // Calculate updatedData by comparing editData with selectedRequest
       const updatedData: any = {};
       const fields = ["name", "email", "role", "studentId", "promotion", "speciality", "academicYear", "grade", "sector", "wilaya"];
-      fields.forEach(field => {
-        if (editData[field] !== selectedRequest![field as keyof RegistrationRequest]) {
-          updatedData[field] = editData[field];
+      
+      if (editData) {
+        fields.forEach(field => {
+          if (editData[field] !== targetRequest?.[field as keyof RegistrationRequest]) {
+            updatedData[field] = editData[field];
+          }
+        });
+        if (editData.role === "STUDENT" && currentYear) {
+          updatedData.academicYear = currentYear;
         }
-      });
-
-      // NFR-RDI3: Always enforce the current system academic year on approval
-      if (editData.role === "STUDENT" && currentYear) {
-        updatedData.academicYear = currentYear;
       }
 
       const res = await fetch(`/api/registrations/${id}`, {
@@ -171,12 +186,14 @@ export default function AdminRegistrationsPage() {
       if (!res.ok) throw new Error(result.error || "Update failed");
 
       toast.success(`Request ${status.toLowerCase()} successfully`);
-      setSelectedRequest(null);
-      setIsRejectModalOpen(false);
       setRejectReason("");
       setBlockEmail(false);
-      fetchRequests();
+      // We don't need to fetchRequests() here because we already updated optimistically,
+      // but we do it to ensure data integrity with other potential changes.
+      fetchRequests(true); 
     } catch (error: any) {
+      // Rollback on error
+      setRequests(previousRequests);
       toast.error(error.message || "Failed to update request");
     } finally {
       setUpdatingStatus(null);

@@ -138,6 +138,25 @@ export default function AdminTopicDetailPage() {
   }, [selectedLevels]);
 
   const handleUpdate = async (overrideData?: any) => {
+    // ── OPTIMISTIC UPDATE ────────────────────────────────────────────────────
+    const previousTopic = topic ? { ...topic } : null;
+    const previousEditData = { ...editData };
+
+    if (overrideData && topic) {
+      // Optimistically apply specific actions
+      if (overrideData.approvePendingEdit && topic.pendingEditData) {
+        const newData = JSON.parse(topic.pendingEditData);
+        setTopic(prev => prev ? { ...prev, ...newData, pendingEditData: null, pendingEditRequestedAt: null } : null);
+        setEditData(prev => ({ ...prev, ...newData }));
+      } else if (overrideData.rejectPendingEdit) {
+        setTopic(prev => prev ? { ...prev, pendingEditData: null, pendingEditRequestedAt: null } : null);
+      } else if (overrideData.teacherId) {
+        const teacher = teachers.find(t => t.id === overrideData.teacherId);
+        setTopic(prev => prev ? { ...prev, assignedTeacherId: overrideData.teacherId, assignedTeacher: teacher || null, status: overrideData.status || prev.status } : null);
+        setEditData(prev => ({ ...prev, teacherId: overrideData.teacherId, status: overrideData.status || prev.status }));
+      }
+    }
+
     setIsUpdating(true);
     try {
       const res = await fetch(`/api/topics/${id}`, {
@@ -152,20 +171,24 @@ export default function AdminTopicDetailPage() {
       toast.success(overrideData ? "Action processed successfully" : "Topic updated successfully");
       
       if (!overrideData) {
-        // Update local breadcrumb if title changed
         if (editData.title && id) {
           setLabel(id as string, editData.title);
         }
+        setTopic(result.data);
       } else {
         setTopic(result.data);
       }
       
-      router.refresh();
-      // If status changed significantly, maybe go back
+      // router.refresh() can be slow, we rely on setTopic for immediate feel
+      // router.refresh(); 
+      
       if (editData.status === "REJECTED" || editData.status === "OPEN_FOR_SELECTION") {
-        router.push("/admin/topics");
+        if (!overrideData) router.push("/admin/topics");
       }
     } catch (error) {
+      // Rollback
+      setTopic(previousTopic);
+      setEditData(previousEditData);
       toast.error("Failed to update topic");
     } finally {
       setIsUpdating(false);
@@ -492,7 +515,6 @@ export default function AdminTopicDetailPage() {
                        <Button 
                          size="sm" 
                          className="bg-indigo-600 hover:bg-indigo-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
-                         disabled={topic.type === "COMPANY_PROPOSED" && app.status !== "ACCEPTED"}
                          title={topic.type === "COMPANY_PROPOSED" && app.status !== "ACCEPTED" ? "Waiting for Company Validation" : "Approve & Create Internship"}
                          onClick={async () => {
                            if (!topic.assignedTeacherId) {
@@ -528,7 +550,7 @@ export default function AdminTopicDetailPage() {
                            }
                          }}
                          isLoading={isUpdating}
-                         disabled={topic.status === "TAKEN"}
+                         disabled={topic.status === "TAKEN" || (topic.type === "COMPANY_PROPOSED" && app.status !== "ACCEPTED")}
                        >
                          {topic.status === "TAKEN" ? "Already Assigned" : "Approve & Create Internship"}
                        </Button>

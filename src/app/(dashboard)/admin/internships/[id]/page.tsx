@@ -79,6 +79,10 @@ export default function AdminInternshipDetailPage() {
    }, [id]);
 
    const markAsSent = async () => {
+      // ── OPTIMISTIC UPDATE ────────────────────────────────────────────────────
+      const previousInternship = internship ? { ...internship } : null;
+      setInternship(prev => prev ? { ...prev, status: "DOCUMENT_SENT" } : null);
+
       try {
          const res = await fetch(`/api/internships/${id}/send-document`, {
             method: "POST",
@@ -90,11 +94,16 @@ export default function AdminInternshipDetailPage() {
          toast.success("Convention marked as sent to company");
          fetchData();
       } catch (error: any) {
+         setInternship(previousInternship);
          toast.error(error.message);
       }
    };
 
    const handleReview = async (docId: string, status: "APPROVED" | "REJECTED", comment: string) => {
+      // ── OPTIMISTIC UPDATE ────────────────────────────────────────────────────
+      const previousDocuments = [...documents];
+      setDocuments(prev => prev.map(d => d.id === docId ? { ...d, status, reviewComment: comment } : d));
+
       try {
          const res = await fetch(`/api/documents/${docId}`, {
             method: "PATCH",
@@ -108,24 +117,32 @@ export default function AdminInternshipDetailPage() {
          const docData = await docRes.json();
          setDocuments(docData.data || []);
       } catch (error) {
+         setDocuments(previousDocuments);
          toast.error("Failed to process document review");
       }
    };
 
    const handleSetDeadline = async () => {
       if (!deadlineInput) { toast.error("Please select a deadline date"); return; }
+      
+      // ── OPTIMISTIC UPDATE ────────────────────────────────────────────────────
+      const previousInternship = internship ? { ...internship } : null;
+      const isoDate = new Date(deadlineInput).toISOString();
+      setInternship(prev => prev ? { ...prev, finalDeadline: isoDate } : null);
+
       setIsSettingDeadline(true);
       try {
          const res = await fetch(`/api/internships/${id}`, {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ finalDeadline: new Date(deadlineInput).toISOString() }),
+            body: JSON.stringify({ finalDeadline: isoDate }),
          });
          const data = await res.json();
          if (!res.ok) throw new Error(data.error);
          toast.success(data.message);
          fetchData();
       } catch (error: any) {
+         setInternship(previousInternship);
          toast.error(error.message || "Failed to set deadline");
       } finally {
          setIsSettingDeadline(false);

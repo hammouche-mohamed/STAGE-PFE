@@ -63,7 +63,8 @@ export default function AdminTopicsPage() {
     }
   };
 
-  const fetchTopics = useCallback(async () => {
+  const fetchTopics = useCallback(async (silent = false) => {
+    if (!silent) setIsLoading(true);
     try {
       const params = new URLSearchParams();
       if (filiereFilter !== "ALL") params.append("filiereId", filiereFilter);
@@ -73,26 +74,35 @@ export default function AdminTopicsPage() {
       const data = await res.json();
       setTopics(data.data || []);
     } catch (error) {
-      toast.error(t("toast.loadFailed"));
+      if (!silent) toast.error(t("toast.loadFailed"));
     } finally {
-      setIsLoading(false);
+      if (!silent) setIsLoading(false);
     }
   }, [t, filiereFilter, assignmentFilter]);
 
   const handleDelete = async () => {
     if (!topicToDelete) return;
+    
+    // ── OPTIMISTIC UPDATE ────────────────────────────────────────────────────
+    const previousTopics = [...topics];
+    const deletedId = topicToDelete.id;
+    
+    setTopics(prev => prev.filter(t => t.id !== deletedId));
+    setTopicToDelete(null);
+    
     setIsDeleting(true);
     try {
-      const res = await fetch(`/api/topics/${topicToDelete.id}`, {
+      const res = await fetch(`/api/topics/${deletedId}`, {
         method: "DELETE",
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to delete topic");
       
       toast.success("Topic deleted successfully");
-      setTopicToDelete(null);
-      fetchTopics();
+      fetchTopics(true); // Silent sync
     } catch (error: any) {
+      // Rollback on error
+      setTopics(previousTopics);
       toast.error(error.message || "Could not delete topic");
     } finally {
       setIsDeleting(false);
@@ -102,6 +112,10 @@ export default function AdminTopicsPage() {
   useEffect(() => {
     fetchTopics();
     fetchFilieres();
+
+    // Auto-poll every 30 seconds for real-time updates
+    const pollId = setInterval(() => fetchTopics(true), 30000);
+    return () => clearInterval(pollId);
   }, [fetchTopics]);
 
   const filteredTopics = topics.filter(t => {

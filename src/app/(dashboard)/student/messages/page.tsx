@@ -139,7 +139,7 @@ function MessagesContent() {
 
   useEffect(() => {
     if (!internship) return;
-    const id = setInterval(() => fetchMessages(internship.id), 5000); // NFR-P3: ≤5s polling
+    const id = setInterval(() => fetchMessages(internship.id), 2000); // 2s polling for near real-time
     return () => clearInterval(id);
   }, [internship]);
 

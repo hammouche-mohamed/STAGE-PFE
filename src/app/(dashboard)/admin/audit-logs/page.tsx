@@ -58,8 +58,8 @@ export default function AuditLogsPage() {
   const [totalItems, setTotalItems] = useState(0);
   const [isCleaning, setIsCleaning] = useState(false);
 
-  const fetchLogs = async (currentPage = page, currentSearch = search) => {
-    setIsLoading(true);
+  const fetchLogs = async (currentPage = page, currentSearch = search, silent = false) => {
+    if (!silent) setIsLoading(true);
     try {
       const res = await fetch(`/api/audit?page=${currentPage}&search=${encodeURIComponent(currentSearch)}`);
       const data = await res.json();
@@ -69,9 +69,9 @@ export default function AuditLogsPage() {
         setTotalItems(data.pagination.total);
       }
     } catch (error) {
-      toast.error("Failed to load audit logs");
+      if (!silent) toast.error("Failed to load audit logs");
     } finally {
-      setIsLoading(false);
+      if (!silent) setIsLoading(false);
     }
   };
 
@@ -85,6 +85,10 @@ export default function AuditLogsPage() {
 
   useEffect(() => {
     fetchLogs(page, search);
+
+    // Auto-poll every 30 seconds for real-time updates
+    const pollId = setInterval(() => fetchLogs(page, search, true), 30000);
+    return () => clearInterval(pollId);
   }, [page]);
 
   const filteredLogs = logs; // Now handled server-side

@@ -67,7 +67,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
 
   useEffect(() => {
     fetchMessages();
-    const interval = setInterval(fetchMessages, 5000);
+    const interval = setInterval(fetchMessages, 2000); // 2s polling for near real-time
     return () => clearInterval(interval);
   }, [internshipId]);
 

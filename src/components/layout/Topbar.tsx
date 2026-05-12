@@ -45,10 +45,14 @@ export const Topbar: React.FC = () => {
   useEffect(() => {
     fetchUnread();
 
+    // Auto-poll every 30 seconds for real-time awareness
+    const pollId = setInterval(fetchUnread, 30000);
+
     const handleUpdate = () => fetchUnread();
     window.addEventListener("notificationsUpdated", handleUpdate);
     
     return () => {
+      clearInterval(pollId);
       window.removeEventListener("notificationsUpdated", handleUpdate);
     };
   }, [fetchUnread, session]);
