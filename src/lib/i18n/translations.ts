@@ -301,6 +301,7 @@ export const translations = {
     },
     topics: {
       title: "Available Topics",
+      topicInfo: "Topic Information",
       propose: "Propose a Topic",
       myTopics: "My Proposed Topics",
       apply: "Apply to this Topic",
@@ -901,6 +902,7 @@ export const translations = {
     },
     topics: {
       title: "Sujets Disponibles",
+      topicInfo: "Informations sur le Sujet",
       propose: "Proposer un Sujet",
       myTopics: "Mes Sujets Proposés",
       apply: "Postuler à ce Sujet",
@@ -1484,6 +1486,7 @@ export const translations = {
     },
     topics: {
       title: "المواضيع المتاحة",
+      topicInfo: "معلومات الموضوع",
       propose: "اقتراح موضوع",
       myTopics: "مواضيعي المقترحة",
       apply: "التقدم لهذا الموضوع",
