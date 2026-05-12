@@ -107,6 +107,11 @@ export default function AdminTopicDetailPage() {
         ]);
         
         const data = topicRes.data || topicRes;
+        
+        if (topicRes.error || !data || data.error) {
+          throw new Error(topicRes.error || data?.error || "Topic not found");
+        }
+
         setTopic(data);
         setTeachers(teachersRes.data || []);
         setFilieres(filieresRes.data || []);
@@ -116,7 +121,7 @@ export default function AdminTopicDetailPage() {
           setLabel(id as string, data.title);
         }
 
-        const levels = data.targetLevels ? data.targetLevels.split(",").filter(Boolean) : [];
+        const levels = data.targetLevels ? (data.targetLevels as string).split(",").filter(Boolean) : [];
         setSelectedLevels(levels);
 
         setEditData({
@@ -442,14 +447,20 @@ export default function AdminTopicDetailPage() {
 
                   <div className="bg-amber-50 border border-amber-200 rounded-lg p-5 space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {Object.entries(JSON.parse(topic.pendingEditData)).map(([key, value]) => (
-                        <div key={key} className="space-y-1">
-                          <p className="text-[10px] font-bold text-amber-800 uppercase tracking-tighter">{key}</p>
-                          <p className="text-[13px] text-gray-700 bg-white/50 px-2 py-1 rounded border border-amber-100 min-h-[1.5rem]">
-                            {typeof value === 'string' ? value : JSON.stringify(value)}
-                          </p>
-                        </div>
-                      ))}
+                       {(() => {
+                         try {
+                           return Object.entries(JSON.parse(topic.pendingEditData)).map(([key, value]) => (
+                             <div key={key} className="space-y-1">
+                               <p className="text-[10px] font-bold text-amber-800 dark:text-amber-400 uppercase tracking-tighter">{key}</p>
+                               <p className="text-[13px] text-gray-700 dark:text-gray-300 bg-white/50 dark:bg-slate-800/50 px-2 py-1 rounded border border-amber-100 dark:border-amber-900/20 min-h-[1.5rem]">
+                                 {typeof value === 'string' ? value : JSON.stringify(value)}
+                               </p>
+                             </div>
+                           ));
+                         } catch (e) {
+                           return <p className="text-red-500 text-xs">Parse Error</p>;
+                         }
+                       })()}
                     </div>
 
                     <div className="flex gap-3 pt-2">
@@ -627,14 +638,14 @@ export default function AdminTopicDetailPage() {
                  </p>
                  <div className="flex items-center gap-3">
                     <div className="h-10 w-10 rounded-full bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 flex items-center justify-center font-bold text-[13px]">
-                       {(topic.companyName || topic.proposedBy.name).charAt(0)}
+                       {(topic.companyName || topic.proposedBy?.name || "U").charAt(0)}
                     </div>
                     <div>
                        <p className="text-[13px] font-bold text-gray-900 dark:text-white">
-                         {topic.type === "COMPANY_PROPOSED" ? (topic.companyName || "N/A") : topic.proposedBy.name}
+                         {topic.type === "COMPANY_PROPOSED" ? (topic.companyName || "N/A") : (topic.proposedBy?.name || "Unknown Proposer")}
                        </p>
                        <p className="text-[11px] text-gray-500 dark:text-gray-400 truncate max-w-[140px]">
-                         {topic.type === "COMPANY_PROPOSED" ? (topic.companySector || "Professional Sector") : topic.proposedBy.email}
+                         {topic.type === "COMPANY_PROPOSED" ? (topic.companySector || "Professional Sector") : (topic.proposedBy?.email || "No email")}
                        </p>
                     </div>
                  </div>
