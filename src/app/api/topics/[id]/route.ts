@@ -3,6 +3,7 @@ import prisma from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { AuditService } from "@/lib/services/audit.service";
 import { NotificationService } from "@/lib/services/notification.service";
+import { randomUUID } from "crypto";
 
 export async function GET(
   req: NextRequest,
@@ -44,9 +45,7 @@ export async function GET(
                   }
                 }
               }
-            },
-            leader: { select: { id: true, name: true, email: true } },
-            partner: { select: { id: true, name: true, email: true } }
+            }
           },
           orderBy: { appliedAt: 'desc' }
         }
@@ -283,7 +282,7 @@ export async function PATCH(
           data: superAdmins.map(sa => ({
             id: randomUUID(),
             userId: sa.id,
-            type: "TOPIC_UPDATED_BY_ADMIN",
+            type: "ACCOUNT_MODIFIED",
             title: "Department Admin Action",
             message: `Admin ${session.user.name} has updated topic: "${topic.title}" (Status: ${status || topic.status}).`,
             relatedId: topic.id,
