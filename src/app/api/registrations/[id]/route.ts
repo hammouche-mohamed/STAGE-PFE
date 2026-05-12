@@ -99,12 +99,13 @@ export async function PATCH(
 
       // 1.7 Find the filiere by name if speciality is provided
       let filiereId = null;
+      let filiereObj = null;
       if (request.speciality) {
-        const filiere = await tx.filiere.findFirst({
+        filiereObj = await tx.filiere.findFirst({
           where: { name: request.speciality }
         });
-        if (filiere) {
-          filiereId = filiere.id;
+        if (filiereObj) {
+          filiereId = filiereObj.id;
         }
       }
 
@@ -118,7 +119,7 @@ export async function PATCH(
           role: request.role as any,
           // Level is only relevant for students
           level: request.role === 'STUDENT' ? (request.level as any || null) : null,
-          department: filiere ? filiere.name : null,
+          department: filiereObj ? filiereObj.name : null,
           isActive: true,
           mustChangePassword: false,
           updatedAt: new Date(),
