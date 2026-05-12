@@ -58,14 +58,18 @@ function LoginForm() {
       }
 
       toast.success(t("auth.login"));
-      const sessionResult = await fetch('/api/auth/session').then(res => res.json());
-      const role = sessionResult?.user?.role?.toLowerCase();
-
-      if (role) {
-        router.push(`/${role}`);
-      } else {
-        router.push("/");
-      }
+      
+      // Use a small delay to allow toast to be seen, then hard redirect to ensure session is fully synced
+      setTimeout(async () => {
+        const sessionResult = await fetch('/api/auth/session').then(res => res.json());
+        const role = sessionResult?.user?.role?.toLowerCase();
+        
+        if (role) {
+          window.location.href = `/${role}`;
+        } else {
+          window.location.href = "/";
+        }
+      }, 500);
     } catch (e) {
       toast.error(t("errors.serverError"));
     } finally {
@@ -132,8 +136,10 @@ function LoginForm() {
             <h2 className="text-[15px] font-medium text-gray-900 dark:text-white mb-6">{t("auth.login")}</h2>
 
             {error && (
-              <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border-l-2 border-red-600 text-[11px] text-red-700 dark:text-red-400 font-medium rounded-r">
-                {t("errors.serverError")}: {error}
+              <div className="mb-4 p-3 bg-amber-50 dark:bg-amber-900/20 border-l-2 border-amber-600 text-[11px] text-amber-700 dark:text-amber-400 font-medium rounded-r">
+                {error === "SessionRequired" || error === "OAuthSignin" 
+                  ? t("errors.sessionExpired") 
+                  : `${t("errors.serverError")}: ${error}`}
               </div>
             )}
 

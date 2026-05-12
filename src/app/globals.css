@@ -122,7 +122,7 @@
 @layer components {
   /* Admin-style Tables */
   .admin-table-container {
-    @apply bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-md overflow-x-auto shadow-sm;
+    @apply bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-md overflow-x-auto shadow-sm min-h-[250px];
   }
 
   .admin-table {

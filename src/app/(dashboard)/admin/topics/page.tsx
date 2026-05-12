@@ -50,6 +50,7 @@ export default function AdminTopicsPage() {
   const [topicToDelete, setTopicToDelete] = useState<Topic | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [filiereFilter, setFiliereFilter] = useState("ALL");
+  const [assignmentFilter, setAssignmentFilter] = useState("ALL");
   const [filieres, setFilieres] = useState<any[]>([]);
 
   const fetchFilieres = async () => {
@@ -66,6 +67,7 @@ export default function AdminTopicsPage() {
     try {
       const params = new URLSearchParams();
       if (filiereFilter !== "ALL") params.append("filiereId", filiereFilter);
+      if (assignmentFilter !== "ALL") params.append("assigned", assignmentFilter === "ASSIGNED" ? "true" : "false");
       
       const res = await fetch(`/api/topics?${params.toString()}`);
       const data = await res.json();
@@ -75,7 +77,7 @@ export default function AdminTopicsPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [t, filiereFilter]);
+  }, [t, filiereFilter, assignmentFilter]);
 
   const handleDelete = async () => {
     if (!topicToDelete) return;
@@ -160,15 +162,26 @@ export default function AdminTopicsPage() {
           />
         </div>
         <div className="flex gap-2">
+          {session?.user?.isSuperAdmin && (
+            <select 
+              className="admin-input min-w-[180px]"
+              value={filiereFilter}
+              onChange={(e) => setFiliereFilter(e.target.value)}
+            >
+              <option value="ALL">All Departments</option>
+              {filieres.map(f => (
+                <option key={f.id} value={f.id}>{f.name}</option>
+              ))}
+            </select>
+          )}
           <select 
-            className="admin-input min-w-[180px]"
-            value={filiereFilter}
-            onChange={(e) => setFiliereFilter(e.target.value)}
+            className="admin-input min-w-[150px]"
+            value={assignmentFilter}
+            onChange={(e) => setAssignmentFilter(e.target.value)}
           >
-            <option value="ALL">All Departments</option>
-            {filieres.map(f => (
-              <option key={f.id} value={f.id}>{f.name}</option>
-            ))}
+            <option value="ALL">All Assignments</option>
+            <option value="ASSIGNED">Assigned Only</option>
+            <option value="UNASSIGNED">Unassigned Only</option>
           </select>
         </div>
       </div>

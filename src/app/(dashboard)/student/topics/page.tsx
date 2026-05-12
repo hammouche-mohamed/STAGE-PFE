@@ -279,7 +279,7 @@ export default function StudentTopicsPage() {
             return (
               <div 
                 key={topic.id} 
-                className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm hover:shadow-xl transition-all duration-300 p-5 flex flex-col cursor-pointer group" 
+                className="bg-white dark:bg-slate-900 rounded-xl sm:rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm hover:shadow-xl transition-all duration-300 p-4 sm:p-5 flex flex-col cursor-pointer group" 
                 onClick={() => setSelectedTopic(topic)}
               >
                 <div className="flex-1">

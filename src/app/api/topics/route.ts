@@ -119,19 +119,30 @@ export async function POST(req: NextRequest) {
     });
 
     const admins = await prisma.user.findMany({
-      where: { role: 'ADMIN' },
+      where: { 
+        role: 'ADMIN',
+        ...(validatedData.filiereId ? {
+          OR: [
+            { adminProfile: { isSuperAdmin: true } },
+            { adminProfile: { filiereId: validatedData.filiereId } }
+          ]
+        } : {})
+      },
       select: { id: true },
     });
 
-    for (const admin of admins) {
-      await NotificationService.trigger({
-        userId: admin.id,
-        type: 'TOPIC_SUBMITTED',
-        title: 'New Topic Proposal',
-        message: `${session.user.name} (${session.user.role}) has proposed a new topic: "${validatedData.title}". Please review it.`,
-        relatedId: result.id,
-        relatedType: 'Topic',
-        link: '/admin/topics',
+    if (admins.length > 0) {
+      await prisma.notification.createMany({
+        data: admins.map(admin => ({
+          id: randomUUID(),
+          userId: admin.id,
+          type: 'TOPIC_SUBMITTED',
+          title: 'New Topic Proposal',
+          message: `${session.user.name} (${session.user.role}) has proposed a new topic: "${validatedData.title}". Please review it.`,
+          relatedId: result.id,
+          relatedType: 'Topic',
+          link: '/admin/topics',
+        }))
       });
     }
 
@@ -214,7 +225,8 @@ export async function GET(req: NextRequest) {
       ...(session.user.role === 'STUDENT' && { status: 'OPEN_FOR_SELECTION' }),
       ...(session.user.role === 'TEACHER' && {
         OR: [
-          { proposedById: session.user.id },
+          { assignedTeacherId: session.user.id },
+          { teacherApplications: { some: { teacherId: session.user.id } } },
           { 
             AND: [
               { status: 'APPROVED' },
@@ -229,6 +241,9 @@ export async function GET(req: NextRequest) {
       }),
       // Optional status filter for admin
       ...(session.user.role === 'ADMIN' && statusFilter && { status: statusFilter as never }),
+      // Optional assignment filter
+      ...(session.user.role === 'ADMIN' && searchParams.get('assigned') === 'true' && { assignedTeacherId: { not: null } }),
+      ...(session.user.role === 'ADMIN' && searchParams.get('assigned') === 'false' && { assignedTeacherId: null }),
     };
 
     // NFR-P2: explicit field selection
@@ -255,6 +270,10 @@ export async function GET(req: NextRequest) {
           pendingEditRequestedAt: true,
           proposedBy: { select: { id: true, name: true } },
           assignedTeacher: { select: { id: true, name: true } },
+          teacherApplications: session.user.role === 'TEACHER' ? {
+            where: { teacherId: session.user.id },
+            select: { id: true, status: true }
+          } : false as any,
         },
         orderBy: { createdAt: 'desc' },
         take: limit,

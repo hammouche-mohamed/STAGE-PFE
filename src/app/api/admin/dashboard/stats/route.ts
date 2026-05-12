@@ -17,9 +17,6 @@ export async function GET(req: NextRequest) {
   const targetFiliereId = session.user.isSuperAdmin ? (filiereId === "all" ? null : filiereId) : session.user.filiereId;
 
   try {
-    const placedStudents = await prisma.internshipStudent.findMany({ select: { studentId: true } });
-    const placedStudentIds = placedStudents.map(s => s.studentId);
-
     const [
       studentCount,
       teacherCount,
@@ -32,6 +29,7 @@ export async function GET(req: NextRequest) {
       internshipsCompleted,
       pendingSupervisionRequests,
       studentsAtRisk,
+      pendingCompanyProposals,
     ] = await Promise.all([
       prisma.user.count({ 
         where: { 
@@ -99,7 +97,7 @@ export async function GET(req: NextRequest) {
           role: "STUDENT",
           isActive: true,
           ...(targetFiliereId ? { studentProfile: { filiereId: targetFiliereId } } : {}),
-          id: { notIn: placedStudentIds }
+          internshipStudents: { none: {} } // Optimized: Students not in any internship
         },
         select: {
           id: true,
@@ -108,6 +106,13 @@ export async function GET(req: NextRequest) {
         },
         take: 10,
         orderBy: { name: 'asc' }
+      }),
+      prisma.topic.count({
+        where: {
+          type: "COMPANY_PROPOSED",
+          status: "PENDING_ADMIN",
+          ...(targetFiliereId ? { filiereId: targetFiliereId } : {})
+        }
       }),
     ]);
 
@@ -123,6 +128,7 @@ export async function GET(req: NextRequest) {
       internshipsCompleted,
       pendingSupervisionRequests,
       studentsAtRisk,
+      pendingCompanyProposals,
     });
   } catch (error) {
     console.error("Dashboard stats error:", error);

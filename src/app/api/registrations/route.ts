@@ -209,11 +209,32 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // Notify all admins about the new registration request
-    const admins = await prisma.user.findMany({ where: { role: "ADMIN" } });
-    for (const admin of admins) {
-      await prisma.notification.create({
-        data: {
+    // 1. Find matching department if speciality is provided
+    let targetFiliereId = null;
+    if (validatedData.speciality) {
+      const filiere = await prisma.filiere.findFirst({
+        where: { name: validatedData.speciality }
+      });
+      if (filiere) targetFiliereId = filiere.id;
+    }
+
+    // 2. Notify relevant admins
+    const admins = await prisma.user.findMany({ 
+      where: { 
+        role: "ADMIN",
+        ...(targetFiliereId ? {
+          OR: [
+            { adminProfile: { isSuperAdmin: true } },
+            { adminProfile: { filiereId: targetFiliereId } }
+          ]
+        } : {})
+      },
+      select: { id: true } 
+    });
+
+    if (admins.length > 0) {
+      await prisma.notification.createMany({
+        data: admins.map(admin => ({
           id: randomUUID(),
           userId: admin.id,
           type: "REGISTRATION_SUBMITTED",
@@ -222,7 +243,7 @@ export async function POST(req: NextRequest) {
           relatedId: request.id,
           relatedType: "REGISTRATION_REQUEST",
           link: "/admin/registrations",
-        },
+        }))
       });
     }
     

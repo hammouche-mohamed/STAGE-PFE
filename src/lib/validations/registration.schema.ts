@@ -65,6 +65,16 @@ export const registrationSchema = z
   )
   .refine(
     (data) => {
+      if (data.role === 'TEACHER') return !!data.grade;
+      return true;
+    },
+    {
+      message: 'Please select your academic grade',
+      path: ['grade'],
+    },
+  )
+  .refine(
+    (data) => {
       if (data.role === 'COMPANY') return !!data.companyName;
       return true;
     },

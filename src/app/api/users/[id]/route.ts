@@ -137,6 +137,16 @@ export async function PATCH(
         modifications.push(`• Account status changed to: ${isActive ? 'ACTIVE' : 'INACTIVE'}`);
       }
 
+      // Track profile changes if provided
+      if (profileData) {
+        Object.keys(profileData).forEach(key => {
+          const oldVal = (existingUser as any)[`${updatedUser.role.toLowerCase()}Profile`]?.[key];
+          if (profileData[key] !== undefined && profileData[key] !== oldVal && !['id', 'userId', 'createdAt', 'updatedAt'].includes(key)) {
+             modifications.push(`• ${key} updated`);
+          }
+        });
+      }
+
       const modMessage = modifications.length > 0 
         ? `The following changes were made to your account:\n\n${modifications.join('\n')}\n\nPlease review your profile and contact administration if you have concerns.`
         : "An administrator has modified your account information. Please review your profile. Contact administration if you have concerns.";

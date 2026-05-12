@@ -53,14 +53,21 @@ export default function AuditLogsPage() {
     );
   }
   const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
   const [isCleaning, setIsCleaning] = useState(false);
 
-  const fetchLogs = async () => {
+  const fetchLogs = async (currentPage = page, currentSearch = search) => {
     setIsLoading(true);
     try {
-      const res = await fetch("/api/audit");
+      const res = await fetch(`/api/audit?page=${currentPage}&search=${encodeURIComponent(currentSearch)}`);
       const data = await res.json();
       setLogs(data.data || []);
+      if (data.pagination) {
+        setTotalPages(data.pagination.pages);
+        setTotalItems(data.pagination.total);
+      }
     } catch (error) {
       toast.error("Failed to load audit logs");
     } finally {
@@ -69,18 +76,18 @@ export default function AuditLogsPage() {
   };
 
   useEffect(() => {
-    fetchLogs();
-  }, []);
+    const timer = setTimeout(() => {
+      setPage(1);
+      fetchLogs(1, search);
+    }, 500); // Debounce search
+    return () => clearTimeout(timer);
+  }, [search]);
 
-  const filteredLogs = logs.filter(log => {
-    const searchLower = search.toLowerCase();
-    return (
-      log.action.toLowerCase().includes(searchLower) ||
-      log.targetId.toLowerCase().includes(searchLower) ||
-      log.targetType.toLowerCase().includes(searchLower) ||
-      log.user.name.toLowerCase().includes(searchLower)
-    );
-  });
+  useEffect(() => {
+    fetchLogs(page, search);
+  }, [page]);
+
+  const filteredLogs = logs; // Now handled server-side
 
   const downloadCSV = () => {
     if (logs.length === 0) return;
@@ -154,17 +161,7 @@ export default function AuditLogsPage() {
             disabled={isLoading || logs.length === 0}
           >
             <Download className="h-4 w-4 mr-1 md:mr-2" />
-            <span className="text-[11px] md:text-[13px]">Download CSV</span>
-          </Button>
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="flex-1 sm:flex-none text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
-            onClick={handleManualCleanup}
-            isLoading={isCleaning}
-          >
-            <Trash2 className="h-4 w-4 mr-1 md:mr-2" />
-            <span className="text-[11px] md:text-[13px]">Cleanup</span>
+            <span className="text-[11px] md:text-[13px]">{t("common.export")}</span>
           </Button>
         </div>
       </div>
@@ -174,7 +171,7 @@ export default function AuditLogsPage() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
           <input
             type="text"
-            placeholder="Search logs by action, user, or target..."
+            placeholder={t("admin.users.searchPlaceholder")}
             className="admin-input pl-10"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -182,7 +179,7 @@ export default function AuditLogsPage() {
         </div>
         <Button variant="outline" size="sm" onClick={fetchLogs}>
            <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-           Refresh
+           {t("common.loading") === "Loading..." ? "Refresh" : "Actualiser"}
         </Button>
       </div>
 
@@ -248,6 +245,35 @@ export default function AuditLogsPage() {
           </tbody>
         </table>
       </div>
+
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between px-4 py-4 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-lg shadow-sm mt-4">
+          <div className="text-[12px] text-gray-500 dark:text-gray-400">
+            Showing <span className="font-medium text-gray-900 dark:text-white">{logs.length}</span> of <span className="font-medium text-gray-900 dark:text-white">{totalItems}</span> results
+          </div>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage(p => Math.max(1, p - 1))}
+              disabled={page === 1 || isLoading}
+            >
+              Previous
+            </Button>
+            <div className="flex items-center px-4 text-[12px] font-medium text-gray-700 dark:text-gray-300">
+              Page {page} of {totalPages}
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+              disabled={page === totalPages || isLoading}
+            >
+              Next
+            </Button>
+          </div>
+        </div>
+      )}
       
       <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/50 p-4 rounded-lg flex items-start gap-3">
          <div className="p-1.5 bg-blue-100 dark:bg-blue-900/40 rounded text-blue-700 dark:text-blue-300">

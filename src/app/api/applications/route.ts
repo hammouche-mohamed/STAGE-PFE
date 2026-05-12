@@ -132,6 +132,52 @@ export async function POST(req: NextRequest) {
       },
     });
 
+    // ── NOTIFICATIONS ────────────────────────────────────────────────────────
+    // 1. Notify Assigned Teacher (if any)
+    if (topic.assignedTeacherId) {
+      await prisma.notification.create({
+        data: {
+          id: randomUUID(),
+          userId: topic.assignedTeacherId,
+          type: 'TOPIC_SUBMITTED', // Or a more specific type
+          title: 'New Student Application',
+          message: `A new student team has applied for your topic: "${topic.title}".`,
+          relatedId: topicId,
+          relatedType: 'Topic',
+          link: `/teacher/topics/${topicId}`,
+        }
+      });
+    }
+
+    // 2. Notify Relevant Admins (Dept Admin + Super Admins)
+    const admins = await prisma.user.findMany({
+      where: {
+        role: "ADMIN",
+        ...(topic.filiereId ? {
+          OR: [
+            { adminProfile: { isSuperAdmin: true } },
+            { adminProfile: { filiereId: topic.filiereId } }
+          ]
+        } : {})
+      },
+      select: { id: true }
+    });
+
+    if (admins.length > 0) {
+      await prisma.notification.createMany({
+        data: admins.map(admin => ({
+          id: randomUUID(),
+          userId: admin.id,
+          type: 'TOPIC_SUBMITTED',
+          title: 'New Student Team Application',
+          message: `A new student team has applied for "${topic.title}".`,
+          relatedId: topicId,
+          relatedType: 'Topic',
+          link: `/admin/topics/${topicId}`,
+        }))
+      });
+    }
+
     return NextResponse.json({ data: application }, { status: 201 });
   } catch (error) {
     console.error("[applications POST]", error);

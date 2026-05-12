@@ -68,19 +68,27 @@ export async function POST(req: NextRequest) {
     });
 
     // Notify other participants (except sender)
-    const recipients = memberIds.filter((id) => id && id !== session.user.id);
+    const recipients = memberIds.filter((id) => id && id !== session.user.id) as string[];
 
-    for (const userId of recipients) {
-      if (!userId) continue;
-      await NotificationService.trigger({
-        userId,
-        type: "MESSAGE_RECEIVED",
-        title: "New Message",
-        message: `${session.user.name}: ${content.trim().substring(0, 60)}${content.length > 60 ? "…" : ""}`,
-        relatedId: internshipId,
-        relatedType: "Internship",
-        skipEmail: true,
+    if (recipients.length > 0) {
+      const recipientUsers = await prisma.user.findMany({
+        where: { id: { in: recipients } },
+        select: { id: true, role: true }
       });
+
+      for (const r of recipientUsers) {
+        const link = r.role === "TEACHER" ? "/teacher/messages" : "/student/messages";
+        await NotificationService.trigger({
+          userId: r.id,
+          type: "MESSAGE_RECEIVED",
+          title: "New Message",
+          message: `${session.user.name}: ${content.trim().substring(0, 60)}${content.length > 60 ? "…" : ""}`,
+          relatedId: internshipId,
+          relatedType: "Internship",
+          link,
+          skipEmail: true,
+        });
+      }
     }
 
     return NextResponse.json({ data: message }, { status: 201 });

@@ -121,7 +121,7 @@ export default function NewTopicPage() {
             >
               <option value="">Select a department...</option>
               {filieres.map(f => (
-                <option key={f.id} value={f.id}>{f.name} ({f.code})</option>
+                <option key={f.id} value={f.id}>{f.name}{f.code ? ` (${f.code})` : ""}</option>
               ))}
             </select>
             {errors.filiereId && <p className="admin-error">{errors.filiereId.message as string}</p>}
@@ -131,8 +131,9 @@ export default function NewTopicPage() {
             <div className="w-full">
               <label className="admin-form-label">Maximum Students (1 or 2)</label>
               <select {...register("maxStudents", { valueAsNumber: true })} className="admin-input">
-                <option value={1}>1 Student (Solo)</option>
-                <option value={2}>2 Students (Binôme)</option>
+                {[1, 2, 3].map(n => (
+                  <option key={n} value={n}>{n} Student{n > 1 ? "s" : ""}</option>
+                ))}
               </select>
             </div>
             

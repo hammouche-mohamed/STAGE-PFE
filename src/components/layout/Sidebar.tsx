@@ -18,7 +18,8 @@ import {
   X,
   Archive,
   GraduationCap,
-  Building2
+  Building2,
+  Mail
 } from "lucide-react";
 import { useSession, signOut } from "next-auth/react";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
@@ -72,48 +73,50 @@ export const Sidebar: React.FC<SidebarProps> = ({ role: initialRole, logoUrl }) 
         case "ADMIN":
           const adminItems = [
             { label: t("common.dashboard"), icon: LayoutDashboard, href: "/admin", active: pathname === "/admin" },
-            ...(session?.user?.isSuperAdmin ? [{ label: t("common.registrations"), icon: UserIcon, href: "/admin/registrations", active: pathname === "/admin/registrations" }] : []),
-            { label: t("common.users"), icon: Users, href: "/admin/users", active: pathname === "/admin/users" },
-            { label: t("common.topics"), icon: Briefcase, href: "/admin/topics", active: pathname === "/admin/topics" },
-            { label: t("common.internships"), icon: ShieldCheck, href: "/admin/internships", active: pathname === "/admin/internships" },
-            ...(!session?.user?.isSuperAdmin ? [{ label: t("common.messages"), icon: MessageSquare, href: "/admin/messages", active: pathname === "/admin/messages" }] : []),
-            { label: t("nav.archives"), icon: Archive, href: "/admin/archives", active: pathname === "/admin/archives" },
+            { label: t("common.registrations"), icon: UserIcon, href: "/admin/registrations", active: pathname.startsWith("/admin/registrations") },
+            { label: t("common.users"), icon: Users, href: "/admin/users", active: pathname.startsWith("/admin/users") },
+            { label: t("common.topics"), icon: Briefcase, href: "/admin/topics", active: pathname.startsWith("/admin/topics") },
+            { label: t("common.internships"), icon: ShieldCheck, href: "/admin/internships", active: pathname.startsWith("/admin/internships") },
+            ...(!session?.user?.isSuperAdmin ? [{ label: t("common.messages"), icon: MessageSquare, href: "/admin/messages", active: pathname.startsWith("/admin/messages") }] : []),
+            { label: t("nav.archives"), icon: Archive, href: "/admin/archives", active: pathname.startsWith("/admin/archives") },
           ];
           
           if (session?.user?.isSuperAdmin) {
-            adminItems.push({ label: t("nav.audit"), icon: FileText, href: "/admin/audit-logs", active: pathname === "/admin/audit-logs" });
-            adminItems.push({ label: t("common.settings"), icon: Settings, href: "/admin/settings", active: pathname === "/admin/settings" });
+            adminItems.push({ label: t("nav.audit"), icon: FileText, href: "/admin/audit-logs", active: pathname.startsWith("/admin/audit-logs") });
+            adminItems.push({ label: t("common.settings"), icon: Settings, href: "/admin/settings", active: pathname.startsWith("/admin/settings") });
           }
           
+          adminItems.push({ label: "Contact Administration", icon: Mail, href: "/contact", active: pathname === "/contact" });
           adminItems.push({ label: t("common.profile"), icon: UserIcon, href: "/profile", active: pathname === "/profile" });
           return adminItems;
         case "TEACHER":
           return [
             { label: t("common.dashboard"), icon: LayoutDashboard, href: "/teacher", active: pathname === "/teacher" },
-            { label: t("nav.supervision"), icon: ShieldCheck, href: "/teacher/internships", active: pathname === "/teacher/internships" },
-            { label: t("common.documents"), icon: FileText, href: "/teacher/documents", active: pathname === "/teacher/documents" },
-            { label: t("common.messages"), icon: MessageSquare, href: "/teacher/messages", active: pathname === "/teacher/messages" },
+            { label: t("nav.supervision"), icon: ShieldCheck, href: "/teacher/internships", active: pathname.startsWith("/teacher/internships") },
+            { label: t("common.topics"), icon: Briefcase, href: "/teacher/topics", active: pathname.startsWith("/teacher/topics") },
+            { label: t("common.documents"), icon: FileText, href: "/teacher/documents", active: pathname.startsWith("/teacher/documents") },
+            { label: t("common.messages"), icon: MessageSquare, href: "/teacher/messages", active: pathname.startsWith("/teacher/messages") },
             { label: t("common.profile"), icon: UserIcon, href: "/profile", active: pathname === "/profile" },
           ];
         case "COMPANY":
           return [
             { label: t("common.dashboard"), icon: LayoutDashboard, href: "/company", active: pathname === "/company" },
-            { label: t("nav.myTopic"), icon: Briefcase, href: "/company/topics", active: pathname === "/company/topics" },
-            { label: t("nav.applications"), icon: Users, href: "/company/applications", active: pathname === "/company/applications" },
-            { label: t("common.internships"), icon: ShieldCheck, href: "/company/internships", active: pathname === "/company/internships" },
-            { label: t("common.messages"), icon: MessageSquare, href: "/company/messages", active: pathname === "/company/messages" },
+            { label: t("nav.myTopic"), icon: Briefcase, href: "/company/topics", active: pathname.startsWith("/company/topics") },
+            { label: t("nav.applications"), icon: Users, href: "/company/applications", active: pathname.startsWith("/company/applications") },
+            { label: t("common.internships"), icon: ShieldCheck, href: "/company/internships", active: pathname.startsWith("/company/internships") },
+            { label: t("common.messages"), icon: MessageSquare, href: "/company/messages", active: pathname.startsWith("/company/messages") },
             { label: t("common.profile"), icon: UserIcon, href: "/profile", active: pathname === "/profile" },
           ];
         default: // STUDENT
           return [
             { label: t("common.dashboard"), icon: LayoutDashboard, href: "/student", active: pathname === "/student" },
-            { label: "My Team", icon: Users, href: "/student/team", active: pathname === "/student/team" },
+            { label: "My Team", icon: Users, href: "/student/team", active: pathname.startsWith("/student/team") },
             { label: t("common.topics"), icon: Briefcase, href: "/student/topics", active: pathname.startsWith("/student/topics") },
-            { label: t("common.internship"), icon: ShieldCheck, href: "/student/internship", active: pathname === "/student/internship" },
-            { label: t("common.documents"), icon: FileText, href: "/student/documents", active: pathname === "/student/documents" },
-            { label: t("common.messages"), icon: MessageSquare, href: "/student/messages", active: pathname === "/student/messages" },
-            { label: t("common.invitations"), icon: UserIcon, href: "/student/invitations", active: pathname === "/student/invitations" },
-            { label: t("nav.archives"), icon: Archive, href: "/student/archives", active: pathname === "/student/archives" },
+            { label: t("common.internship"), icon: ShieldCheck, href: "/student/internship", active: pathname.startsWith("/student/internship") },
+            { label: t("common.documents"), icon: FileText, href: "/student/documents", active: pathname.startsWith("/student/documents") },
+            { label: t("common.messages"), icon: MessageSquare, href: "/student/messages", active: pathname.startsWith("/student/messages") },
+            { label: t("common.invitations"), icon: UserIcon, href: "/student/invitations", active: pathname.startsWith("/student/invitations") },
+            { label: t("nav.archives"), icon: Archive, href: "/student/archives", active: pathname.startsWith("/student/archives") },
             { label: t("common.profile"), icon: UserIcon, href: "/profile", active: pathname === "/profile" },
           ];
       }

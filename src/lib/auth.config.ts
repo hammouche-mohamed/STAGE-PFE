@@ -37,8 +37,8 @@ export const authConfig = {
         token.level = user.level ?? null;
 
         // Fetch role-specific fields (isSuperAdmin for Admin, filiereId for Admin/Teacher)
-        // Only fetch if they aren't already in the token to avoid database hits on every session update
-        if ((user.role === "ADMIN" || user.role === "TEACHER") && (token.isSuperAdmin === undefined || token.filiereId === undefined)) {
+        // We always fetch to ensure session stays in sync with administrative changes (like department assignment)
+        if (user.role === "ADMIN" || user.role === "TEACHER") {
           try {
             // Dynamically import prisma to prevent it from loading in the Edge/Middleware runtime
             const { default: prisma } = await import('./prisma');

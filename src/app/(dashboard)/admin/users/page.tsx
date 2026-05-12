@@ -63,8 +63,6 @@ export default function AdminUsersPage() {
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
   const [userToView, setUserToView] = useState<any | null>(null);
   const [userToEdit, setUserToEdit] = useState<any | null>(null);
-  const [userToReset, setUserToReset] = useState<any | null>(null);
-  const [resetPasswordValue, setResetPasswordValue] = useState("");
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
   const [isProcessingStatus, setIsProcessingStatus] = useState(false);
   const [isFetchingDetail, setIsFetchingDetail] = useState(false);
@@ -359,31 +357,8 @@ export default function AdminUsersPage() {
     }
   };
 
-  const handleResetPassword = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (resetPasswordValue.length < 12 || !/[0-9]/.test(resetPasswordValue)) {
-      toast.error(t("errors.passwordTooShort"));
-      return;
-    }
-    setIsProcessingStatus(true);
-    try {
-      const res = await fetch(`/api/users/${userToReset.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ password: resetPasswordValue }),
-      });
 
-      if (!res.ok) throw new Error("Reset failed");
 
-      toast.success(`Password reset for ${userToReset.name}`);
-      setUserToReset(null);
-      setResetPasswordValue("");
-    } catch (error) {
-      toast.error(t("toast.passwordResetFailed"));
-    } finally {
-      setIsProcessingStatus(false);
-    }
-  };
 
   const roleIcons = {
     ADMIN: <Shield className="h-4 w-4 text-purple-600" />,
@@ -605,7 +580,7 @@ export default function AdminUsersPage() {
                               className="fixed inset-0 z-10" 
                               onClick={() => setActiveMenuId(null)}
                             />
-                            <div className={`absolute right-0 ${index > filteredUsers.length - 3 ? 'bottom-full mb-1' : 'mt-1'} w-44 bg-white dark:bg-slate-800 border border-gray-100 dark:border-slate-700 rounded-lg shadow-xl z-20 py-1 overflow-hidden animate-in fade-in zoom-in-95 duration-100`}>
+                            <div className={`absolute right-0 ${ (index > filteredUsers.length - 3 && filteredUsers.length > 3) ? 'bottom-full mb-1' : 'mt-1'} w-44 bg-white dark:bg-slate-800 border border-gray-100 dark:border-slate-700 rounded-lg shadow-xl z-[100] py-1 overflow-hidden animate-in fade-in zoom-in-95 duration-100`}>
                               <button 
                                 onClick={() => handleFetchDetail(user.id, 'edit')}
                                 className="w-full flex items-center px-4 py-2 text-[12px] text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors"
@@ -620,18 +595,7 @@ export default function AdminUsersPage() {
                                 <Eye className={`h-3.5 w-3.5 ${isRTL ? "ml-2" : "mr-2"} text-gray-400 dark:text-gray-500`} />
                                 {t("admin.users.viewProfile")}
                               </button>
-                              {user.id !== currentUserId && (session?.user?.isSuperAdmin || user.role !== "TEACHER") && (
-                                <button 
-                                  onClick={() => {
-                                    setUserToReset(user);
-                                    setActiveMenuId(null);
-                                  }}
-                                  className="w-full flex items-center px-4 py-2 text-[12px] text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors"
-                                >
-                                  <Key className={`h-3.5 w-3.5 ${isRTL ? "ml-2" : "mr-2"} text-gray-400 dark:text-gray-500`} />
-                                  {t("admin.users.resetPassword")}
-                                </button>
-                              )}
+
                               {user.id !== currentUserId && (session?.user?.isSuperAdmin || user.role !== "TEACHER") && (
                                 <>
                                   <div className="h-px bg-gray-50 dark:bg-slate-700 my-1" />
@@ -948,38 +912,6 @@ export default function AdminUsersPage() {
         )}
       </Modal>
 
-      {/* Reset Password Modal */}
-      <Modal
-        isOpen={!!userToReset}
-        onClose={() => {
-          setUserToReset(null);
-          setResetPasswordValue("");
-        }}
-        title={t("admin.users.resetTitle")}
-        size="sm"
-      >
-        {userToReset && (
-          <form onSubmit={handleResetPassword} className="space-y-6 py-2">
-            <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800/50 p-3 rounded-md text-[13px] text-amber-800 dark:text-amber-400 leading-snug">
-              {t("admin.users.resetDesc", { name: userToReset.name })}
-            </div>
-
-            <Input
-              label="New Password"
-              type="password"
-              placeholder="Min. 12 characters + 1 number"
-              value={resetPasswordValue}
-              onChange={(e) => setResetPasswordValue(e.target.value)}
-              required
-            />
-
-            <div className="flex justify-end gap-3 pt-4">
-              <Button type="button" variant="outline" onClick={() => setUserToReset(null)}>{t("common.cancel")}</Button>
-              <Button type="submit" variant="danger" isLoading={isProcessingStatus}>{t("admin.users.resetPassword")}</Button>
-            </div>
-          </form>
-        )}
-      </Modal>
 
       {/* Edit Confirmation Dialog */}
       <ConfirmDialog

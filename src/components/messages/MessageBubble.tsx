@@ -49,8 +49,8 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
       onMouseLeave={() => setIsHovered(false)}
     >
       <div className={`flex items-center mb-1 ${isMe ? "flex-row-reverse" : ""}`}>
-        <span className="text-[11px] font-semibold text-gray-900 mx-1">{message.sender?.name}</span>
-        <span className="text-[10px] text-gray-400">{format(new Date(message.sentAt), "HH:mm")}</span>
+        <span className="text-[11px] font-semibold text-gray-900 dark:text-white mx-1">{message.sender?.name}</span>
+        <span className="text-[10px] text-gray-400 dark:text-gray-500">{format(new Date(message.sentAt), "HH:mm")}</span>
       </div>
 
       <div 
@@ -61,7 +61,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
         {!isMe && isHovered && (
           <button
             onClick={() => onReply?.(message)}
-            className="p-1.5 rounded-full hover:bg-gray-200 text-gray-400 transition-colors"
+            className="p-1.5 rounded-full hover:bg-gray-200 dark:hover:bg-slate-800 text-gray-400 dark:text-gray-500 transition-colors"
             title="Reply"
           >
             <CornerUpLeft className="h-3.5 w-3.5" />
@@ -69,12 +69,12 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
         )}
 
         <div className={`max-w-[100%] rounded-2xl p-3 text-[13px] shadow-sm
-          ${isMe ? "bg-indigo-600 text-white rounded-tr-sm" : "bg-white border border-gray-200 text-gray-800 rounded-tl-sm"}
-          ${message.requiresAction ? "bg-amber-50 border-amber-200" : ""}
+          ${isMe ? "bg-indigo-600 text-white rounded-tr-sm" : "bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-gray-800 dark:text-gray-200 rounded-tl-sm"}
+          ${message.requiresAction ? "bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800/50" : ""}
         `}>
           {/* Quoted reply */}
           {quoted && (
-            <div className={`mb-2 px-3 py-1.5 rounded-lg text-[11px] border-l-2 ${isMe ? "bg-indigo-700 border-indigo-300 text-indigo-100" : "bg-gray-50 border-indigo-400 text-gray-500"
+            <div className={`mb-2 px-3 py-1.5 rounded-lg text-[11px] border-l-2 ${isMe ? "bg-indigo-700 dark:bg-indigo-800/50 border-indigo-300 dark:border-indigo-500 text-indigo-100 dark:text-indigo-200" : "bg-gray-50 dark:bg-slate-900/50 border-indigo-400 dark:border-indigo-600 text-gray-500 dark:text-gray-400"
               }`}>
               {quoted}
             </div>
@@ -84,11 +84,11 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
 
           {/* Attachment */}
           {message.attachmentUrl && (
-            <div className={`mt-3 p-2 rounded border flex items-center justify-between ${isMe ? "bg-indigo-700/50 border-indigo-500" : "bg-gray-50 border-gray-200"
+            <div className={`mt-3 p-2 rounded border flex items-center justify-between ${isMe ? "bg-indigo-700/50 dark:bg-indigo-900/30 border-indigo-500 dark:border-indigo-700" : "bg-gray-50 dark:bg-slate-900/50 border-gray-200 dark:border-slate-700"
               }`}>
               <div className="flex items-center min-w-0">
-                <FileIcon className={`h-4 w-4 mr-2 shrink-0 ${isMe ? "text-indigo-200" : "text-gray-400"}`} />
-                <span className={`text-[11px] font-medium truncate ${isMe ? "text-white" : "text-gray-700"}`}>
+                <FileIcon className={`h-4 w-4 mr-2 shrink-0 ${isMe ? "text-indigo-200" : "text-gray-400 dark:text-gray-500"}`} />
+                <span className={`text-[11px] font-medium truncate ${isMe ? "text-white" : "text-gray-700 dark:text-gray-300"}`}>
                   {message.attachmentName}
                 </span>
               </div>
@@ -96,7 +96,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                 href={message.attachmentUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className={`ml-2 transition-colors ${isMe ? "text-white hover:text-indigo-100" : "text-indigo-600 hover:text-indigo-700"}`}
+                className={`ml-2 transition-colors ${isMe ? "text-white hover:text-indigo-100" : "text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300"}`}
               >
                 <Download className="h-4 w-4" />
               </a>
@@ -105,16 +105,16 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
 
           {/* Action Buttons for Admin */}
           {message.requiresAction && isAdmin && message.actionStatus === "PENDING" && (
-            <div className="mt-3 flex space-x-2 pt-3 border-t border-amber-200">
+            <div className="mt-3 flex space-x-2 pt-3 border-t border-amber-200 dark:border-amber-800/50">
               <button
                 onClick={() => onAction?.("APPROVED")}
-                className="flex-1 px-3 py-1.5 bg-green-600 text-white text-[11px] font-semibold rounded hover:bg-green-700 transition-colors"
+                className="flex-1 px-3 py-1.5 bg-green-600 dark:bg-green-700 text-white text-[11px] font-semibold rounded hover:bg-green-700 dark:hover:bg-green-600 transition-colors"
               >
                 Approve Document
               </button>
               <button
                 onClick={() => onAction?.("REJECTED")}
-                className="flex-1 px-3 py-1.5 bg-red-600 text-white text-[11px] font-semibold rounded hover:bg-red-700 transition-colors"
+                className="flex-1 px-3 py-1.5 bg-red-600 dark:bg-red-700 text-white text-[11px] font-semibold rounded hover:bg-red-700 dark:hover:bg-red-600 transition-colors"
               >
                 Reject
               </button>
@@ -124,7 +124,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
           {/* Action Status Status */}
           {message.requiresAction && message.actionStatus !== "PENDING" && (
             <div className={`mt-2 text-[10px] font-bold uppercase tracking-wider
-              ${message.actionStatus === "APPROVED" ? "text-green-600" : "text-red-600"}
+              ${message.actionStatus === "APPROVED" ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}
             `}>
               {message.actionStatus}
             </div>
@@ -135,7 +135,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
           <div className="flex items-center gap-1">
             <button
               onClick={() => onReply?.(message)}
-              className="p-1.5 rounded-full hover:bg-gray-200 text-gray-400 transition-colors"
+              className="p-1.5 rounded-full hover:bg-gray-200 dark:hover:bg-slate-800 text-gray-400 dark:text-gray-500 transition-colors"
               title="Reply"
             >
               <CornerUpLeft className="h-3.5 w-3.5" />

@@ -178,10 +178,10 @@ export default async function TeacherInternshipDetailPage({ params }: { params: 
               <p className="text-[12px] text-gray-400 dark:text-gray-500 uppercase tracking-widest">Quick actions</p>
             </div>
             <div className="space-y-3">
-              <Link href="/teacher/documents" className="block rounded-md border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3 text-[13px] font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-700">
+              <Link href="/teacher/documents" className="block rounded-md border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3 text-[13px] font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors">
                 View documents
               </Link>
-              <Link href="/teacher/messages" className="block rounded-md border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3 text-[13px] font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-700">
+              <Link href="/teacher/messages" className="block rounded-md border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3 text-[13px] font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors">
                 Open messages
               </Link>
             </div>

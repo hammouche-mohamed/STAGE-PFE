@@ -109,6 +109,14 @@ export class MailService {
     const hasModifs = updatedData && Object.keys(updatedData).length > 0;
 
     if (fullData) {
+      const isCompany = fullData.role === 'COMPANY';
+      const label1 = isCompany ? 'Sector' : 'Speciality';
+      const value1 = isCompany ? fullData.sector : fullData.speciality;
+      const label2 = isCompany ? 'Wilaya' : 'Promotion';
+      const value2 = isCompany ? fullData.wilaya : fullData.promotion;
+      const label3 = isCompany ? 'Company Name' : 'Academic Year';
+      const value3 = isCompany ? fullData.companyName : fullData.academicYear;
+
       infoHtml = `
         <div style="margin-top: 24px; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px; background-color: #f8fafc;">
           <p style="color: ${NAVY}; font-weight: 700; margin: 0 0 12px; font-size: 13px; text-transform: uppercase; letter-spacing: 0.05em;">
@@ -121,16 +129,16 @@ export class MailService {
           </p>
           <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse: collapse;">
             <tr>
-              <td style="padding: 8px 0; border-bottom: 1px solid #edf2f7; color: ${TEXT_GRAY}; font-size: 13px; font-weight: 600; width: 40%;">Department</td>
-              <td style="padding: 8px 0; border-bottom: 1px solid #edf2f7; color: ${NAVY}; font-size: 13px; text-align: right;">${fullData.speciality || "N/A"}</td>
+              <td style="padding: 8px 0; border-bottom: 1px solid #edf2f7; color: ${TEXT_GRAY}; font-size: 13px; font-weight: 600; width: 40%;">${label1}</td>
+              <td style="padding: 8px 0; border-bottom: 1px solid #edf2f7; color: ${NAVY}; font-size: 13px; text-align: right;">${value1 || "N/A"}</td>
             </tr>
             <tr>
-              <td style="padding: 8px 0; border-bottom: 1px solid #edf2f7; color: ${TEXT_GRAY}; font-size: 13px; font-weight: 600;">Promotion</td>
-              <td style="padding: 8px 0; border-bottom: 1px solid #edf2f7; color: ${NAVY}; font-size: 13px; text-align: right;">${fullData.promotion || "N/A"}</td>
+              <td style="padding: 8px 0; border-bottom: 1px solid #edf2f7; color: ${TEXT_GRAY}; font-size: 13px; font-weight: 600;">${label2}</td>
+              <td style="padding: 8px 0; border-bottom: 1px solid #edf2f7; color: ${NAVY}; font-size: 13px; text-align: right;">${value2 || "N/A"}</td>
             </tr>
             <tr>
-              <td style="padding: 8px 0; border-bottom: 1px solid #edf2f7; color: ${TEXT_GRAY}; font-size: 13px; font-weight: 600;">Academic Year</td>
-              <td style="padding: 8px 0; border-bottom: 1px solid #edf2f7; color: ${NAVY}; font-size: 13px; text-align: right;">${fullData.academicYear || "N/A"}</td>
+              <td style="padding: 8px 0; border-bottom: 1px solid #edf2f7; color: ${TEXT_GRAY}; font-size: 13px; font-weight: 600;">${label3}</td>
+              <td style="padding: 8px 0; border-bottom: 1px solid #edf2f7; color: ${NAVY}; font-size: 13px; text-align: right;">${value3 || "N/A"}</td>
             </tr>
             ${hasModifs ? `
               <tr>

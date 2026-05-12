@@ -205,12 +205,12 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
   };
 
   return (
-    <div className="flex flex-col flex-1 h-full min-w-0 bg-white border border-gray-200 rounded-md shadow-sm overflow-hidden relative w-full">
+    <div className="flex flex-col flex-1 h-full min-w-0 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-md shadow-sm overflow-hidden relative w-full">
       {/* Messages Area */}
       <div 
         ref={scrollRef}
         dir="ltr"
-        className="flex-1 overflow-y-auto p-6 bg-gray-50 flex flex-col"
+        className="flex-1 overflow-y-auto p-6 bg-gray-50 dark:bg-slate-900/50 flex flex-col"
       >
         {filteredMessages.map((msg) => (
           <MessageBubble 
@@ -224,7 +224,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
           />
         ))}
         {filteredMessages.length === 0 && (
-          <div className="flex-1 flex items-center justify-center text-gray-400 text-[13px]">
+          <div className="flex-1 flex items-center justify-center text-gray-400 dark:text-gray-500 text-[13px]">
             {searchQuery ? "No messages match your search." : "No messages yet. Start the conversation."}
           </div>
         )}
@@ -232,13 +232,13 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
 
       {/* Reply Preview */}
       {replyTo && (
-        <div className="px-4 py-2 bg-indigo-50 border-t border-indigo-100 flex items-start justify-between gap-3">
+        <div className="px-4 py-2 bg-indigo-50 dark:bg-indigo-900/20 border-t border-indigo-100 dark:border-indigo-800 flex items-start justify-between gap-3">
           <div className="flex-1 min-w-0">
-            <p className="text-[11px] font-bold text-indigo-700 mb-0.5 flex items-center gap-1">
+            <p className="text-[11px] font-bold text-indigo-700 dark:text-indigo-400 mb-0.5 flex items-center gap-1">
               <span className="opacity-70">{isRTL ? "↩" : "↪"}</span>
               <span>{t("messages.replyingTo", { name: replyTo.senderId === currentUserId ? t("messages.yourself") : (replyTo.sender?.name || "User") })}</span>
             </p>
-            <p className="text-[12px] text-gray-500 truncate">{replyTo.content.replace(/^↩ .*?\n\n/, "")}</p>
+            <p className="text-[12px] text-gray-500 dark:text-gray-400 truncate">{replyTo.content.replace(/^↩ .*?\n\n/, "")}</p>
           </div>
           <button onClick={() => setReplyTo(null)} className="text-gray-400 hover:text-gray-600 transition-colors">
             <X className="h-4 w-4" />
@@ -247,7 +247,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
       )}
 
       {/* Input Bar */}
-      <form onSubmit={handleSend} className="h-[72px] bg-white border-t border-gray-100 flex items-center px-4 space-x-3">
+      <form onSubmit={handleSend} className="h-[72px] bg-white dark:bg-slate-900 border-t border-gray-100 dark:border-slate-800 flex items-center px-4 space-x-3">
         <input 
           ref={fileInputRef}
           type="file" 
@@ -274,7 +274,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
           value={content}
           onChange={(e) => setContent(e.target.value)}
           placeholder="Type your message..."
-          className="flex-1 bg-gray-50 border-none focus:ring-0 text-[13px] placeholder:text-gray-400 h-[40px] px-4 rounded-md"
+          className="flex-1 bg-gray-50 dark:bg-slate-800 border-none focus:ring-0 text-[13px] text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 h-[40px] px-4 rounded-md"
         />
 
         <Button 
@@ -291,18 +291,18 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
 
       {/* Delete Confirmation Modal */}
       {deleteTarget && (
-        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-xs overflow-hidden">
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/20 dark:bg-black/40 backdrop-blur-sm p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-xl shadow-xl w-full max-w-xs overflow-hidden border border-gray-100 dark:border-slate-800">
             <div className="p-5 flex flex-col items-center text-center">
-              <div className="h-12 w-12 rounded-full bg-red-100 flex items-center justify-center mb-4">
-                <AlertTriangle className="h-6 w-6 text-red-600" />
+              <div className="h-12 w-12 rounded-full bg-red-100 dark:bg-red-900/20 flex items-center justify-center mb-4">
+                <AlertTriangle className="h-6 w-6 text-red-600 dark:text-red-400" />
               </div>
-              <h3 className="text-[15px] font-bold text-gray-900">Delete message?</h3>
-              <p className="text-[12px] text-gray-500 mt-1">This action cannot be undone.</p>
+              <h3 className="text-[15px] font-bold text-gray-900 dark:text-white">Delete message?</h3>
+              <p className="text-[12px] text-gray-500 dark:text-gray-400 mt-1">This action cannot be undone.</p>
             </div>
-            <div className="flex border-t border-gray-100 h-12">
-              <button onClick={() => setDeleteTarget(null)} className="flex-1 text-[13px] font-medium text-gray-500 hover:bg-gray-50 border-r border-gray-100">Cancel</button>
-              <button onClick={handleDelete} className="flex-1 text-[13px] font-bold text-red-600 hover:bg-red-50">Delete</button>
+            <div className="flex border-t border-gray-100 dark:border-slate-800 h-12">
+              <button onClick={() => setDeleteTarget(null)} className="flex-1 text-[13px] font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-slate-800 border-r border-gray-100 dark:border-slate-800">Cancel</button>
+              <button onClick={handleDelete} className="flex-1 text-[13px] font-bold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20">Delete</button>
             </div>
           </div>
         </div>
@@ -310,23 +310,23 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
 
       {/* File Confirmation Modal */}
       {pendingFile && (
-        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-xs overflow-hidden">
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/20 dark:bg-black/40 backdrop-blur-sm p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-xl shadow-xl w-full max-w-xs overflow-hidden border border-gray-100 dark:border-slate-800">
             <div className="p-5">
               <div className="flex items-center gap-3 mb-4">
-                <div className="h-10 w-10 bg-indigo-50 rounded-lg flex items-center justify-center">
-                  <Paperclip className="h-5 w-5 text-indigo-600" />
+                <div className="h-10 w-10 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg flex items-center justify-center">
+                  <Paperclip className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="text-[13px] font-bold text-gray-900 truncate">{pendingFile.name}</p>
-                  <p className="text-[11px] text-gray-400">{(pendingFile.size / 1024).toFixed(1)} KB</p>
+                  <p className="text-[13px] font-bold text-gray-900 dark:text-white truncate">{pendingFile.name}</p>
+                  <p className="text-[11px] text-gray-400 dark:text-gray-500">{(pendingFile.size / 1024).toFixed(1)} KB</p>
                 </div>
               </div>
-              <p className="text-[12px] text-gray-500">Send this file to the group?</p>
+              <p className="text-[12px] text-gray-500 dark:text-gray-400">Send this file to the group?</p>
             </div>
-            <div className="flex border-t border-gray-100 h-12">
-              <button onClick={() => setPendingFile(null)} className="flex-1 text-[13px] font-medium text-gray-500 hover:bg-gray-50 border-r border-gray-100">Cancel</button>
-              <button onClick={confirmSendFile} className="flex-1 text-[13px] font-bold text-indigo-600 hover:bg-indigo-50">Send File</button>
+            <div className="flex border-t border-gray-100 dark:border-slate-800 h-12">
+              <button onClick={() => setPendingFile(null)} className="flex-1 text-[13px] font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-slate-800 border-r border-gray-100 dark:border-slate-800">Cancel</button>
+              <button onClick={confirmSendFile} className="flex-1 text-[13px] font-bold text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20">Send File</button>
             </div>
           </div>
         </div>

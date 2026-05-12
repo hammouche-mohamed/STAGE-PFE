@@ -29,6 +29,7 @@ interface Props {
   pendingRegistrations: Registration[];
   recentTopics: number;
   currentAcademicYear: string;
+  pendingCompanyProposals: number;
 }
 
 export function AdminDashboardClient({
@@ -40,6 +41,7 @@ export function AdminDashboardClient({
   pendingRegistrations,
   recentTopics: initialRecentTopics,
   currentAcademicYear,
+  pendingCompanyProposals: initialPendingCompanyProposals,
 }: Props) {
   const { t, isRTL } = useTranslation();
   const { data: session } = useSession();
@@ -52,6 +54,7 @@ export function AdminDashboardClient({
     activeInternships: initialActiveInternships,
     pendingConfirmations: initialPendingConfirmations,
     recentTopics: initialRecentTopics,
+    pendingCompanyProposals: initialPendingCompanyProposals,
   });
   const [isLoadingStats, setIsLoadingStats] = React.useState(false);
 
@@ -144,10 +147,17 @@ export function AdminDashboardClient({
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         <StatsCard label={t("dashboard.totalStudents")} value={studentCount} icon={Users} subValue={t("common.users")} />
         <StatsCard label={t("dashboard.totalTeachers")} value={teacherCount} icon={ShieldCheck} subValue={t("nav.supervision")} />
-        <StatsCard label={t("common.users")} value={companyCount} icon={Briefcase} subValue="Partners" />
+        <StatsCard label="Companies" value={companyCount} icon={Briefcase} subValue="Partners" />
+        <StatsCard
+          label="Company Proposals"
+          value={(stats as any).pendingCompanyProposals || 0}
+          icon={BookOpen}
+          subValue="Pending Review"
+          subValueColor="amber"
+        />
         <StatsCard
           label={t("dashboard.activeInternships")}
           value={activeInternships}

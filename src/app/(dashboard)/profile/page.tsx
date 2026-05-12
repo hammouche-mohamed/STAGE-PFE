@@ -15,6 +15,7 @@ type ProfileData = {
   name: string;
   email: string;
   role: string;
+  department?: string | null;
   avatarUrl?: string;
   adminProfile?: { filiere?: { name: string } | null } | null;
   studentProfile?: { filiere?: { name: string } | null } | null;
@@ -75,7 +76,7 @@ export default function ProfilePage() {
 
   const fetchProfile = async () => {
     try {
-      const res = await fetch("/api/profile");
+      const res = await fetch("/api/profile", { cache: "no-store" });
       const json = await res.json();
       if (json.data) setProfile(json.data);
     } catch (error) {
@@ -326,24 +327,10 @@ export default function ProfilePage() {
               value={session?.user?.isSuperAdmin ? t("roles.SUPER_ADMIN") : t(`roles.${profile?.role}` as any)}
               disabled
             />
-            {profile?.role === "ADMIN" && !session?.user?.isSuperAdmin && (
+            {profile?.role !== "COMPANY" && !session?.user?.isSuperAdmin && (
               <Input
                 label={t("admin.users.assignedFiliere")}
-                value={profile?.adminProfile?.filiere?.name || "None"}
-                disabled
-              />
-            )}
-            {profile?.role === "STUDENT" && (
-              <Input
-                label={t("admin.users.assignedFiliere")}
-                value={profile?.studentProfile?.filiere?.name || "None"}
-                disabled
-              />
-            )}
-            {profile?.role === "TEACHER" && (
-              <Input
-                label={t("admin.users.assignedFiliere")}
-                value={profile?.teacherProfile?.filiere?.name || "None"}
+                value={profile?.department || t("common.none")}
                 disabled
               />
             )}

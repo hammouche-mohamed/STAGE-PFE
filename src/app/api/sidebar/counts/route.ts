@@ -17,7 +17,7 @@ export async function GET(req: NextRequest) {
       const filiereId = session.user.isSuperAdmin ? null : session.user.filiereId;
 
       const [regCount, topicCount, internCount] = await Promise.all([
-        session.user.isSuperAdmin ? prisma.registrationRequest.count({ where: { status: "PENDING" } }) : Promise.resolve(0),
+        prisma.registrationRequest.count({ where: { status: "PENDING" } }),
         prisma.topic.count({ 
           where: { 
             status: "PENDING_ADMIN",
@@ -32,7 +32,7 @@ export async function GET(req: NextRequest) {
         })
       ]);
 
-      if (session.user.isSuperAdmin) counts["/admin/registrations"] = regCount;
+      counts["/admin/registrations"] = regCount;
       counts["/admin/topics"] = topicCount;
       counts["/admin/internships"] = internCount;
     } else if (role === "TEACHER") {

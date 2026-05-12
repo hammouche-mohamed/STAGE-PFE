@@ -97,6 +97,17 @@ export async function PATCH(
         }
       }
 
+      // 1.7 Find the filiere by name if speciality is provided
+      let filiereId = null;
+      if (request.speciality) {
+        const filiere = await tx.filiere.findFirst({
+          where: { name: request.speciality }
+        });
+        if (filiere) {
+          filiereId = filiere.id;
+        }
+      }
+
       // 2. Create User — include level from registration request
       const user = await tx.user.create({
         data: {
@@ -107,6 +118,7 @@ export async function PATCH(
           role: request.role as any,
           // Persist academic level on the User record for fast session lookup
           level: (request.level as any) ?? null,
+          department: filiere ? filiere.name : null,
           isActive: true,
           mustChangePassword: false,
           updatedAt: new Date(),
@@ -123,6 +135,7 @@ export async function PATCH(
             promotion: request.promotion || 'N/A',
             speciality: request.speciality || 'N/A',
             academicYear: request.academicYear || 'N/A',
+            filiereId: filiereId,
             // Denormalize level on StudentProfile for fast eligibility queries
             level: (request.level as any) ?? null,
           },
@@ -134,6 +147,7 @@ export async function PATCH(
             userId: user.id,
             speciality: request.speciality,
             grade: request.grade,
+            filiereId: filiereId,
           },
         });
       } else if (request.role === 'COMPANY') {
@@ -145,6 +159,12 @@ export async function PATCH(
             sector: request.sector,
             wilaya: request.wilaya,
           },
+        });
+        
+        // Point 7: Ensure company has a level record for consistency (even if just "N/A")
+        await tx.user.update({
+          where: { id: user.id },
+          data: { level: 'L1' } // Or any default valid for the schema
         });
       }
 
@@ -174,12 +194,9 @@ export async function PATCH(
       targetId: result.name,
     });
 
-    // 6. Send Approval Email with any modifications
-    try {
-      await MailService.sendStatusUpdate(request.email, request.name, 'APPROVED', adminComment, updatedData, request);
-    } catch (e) {
-      console.error('Approval mail failed:', e);
-    }
+    // 6. Send Approval Email with any modifications (Fire and forget for speed)
+    MailService.sendStatusUpdate(request.email, request.name, 'APPROVED', adminComment, updatedData, { ...request, role: request.role })
+      .catch(e => console.error('Approval mail failed:', e));
 
     // 6. Clear original submission notifications for all admins
     await NotificationService.clearRelated(id, 'REGISTRATION_REQUEST');

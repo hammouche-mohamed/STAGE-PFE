@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
     where: { id: session.user.id },
     // NFR-P2: explicit select — never return the password hash to the client
     select: {
-      id: true, name: true, email: true, role: true, avatarUrl: true,
+      id: true, name: true, email: true, role: true, avatarUrl: true, department: true,
       isActive: true, mustChangePassword: true, createdAt: true, updatedAt: true,
     },
   });
@@ -27,11 +27,13 @@ export async function GET(req: NextRequest) {
   
   if (user.role === 'STUDENT') {
     extendedUser.studentProfile = await prisma.studentProfile.findUnique({ 
-      where: { userId: user.id } 
+      where: { userId: user.id },
+      include: { filiere: true }
     });
   } else if (user.role === 'TEACHER') {
     extendedUser.teacherProfile = await prisma.teacherProfile.findUnique({ 
-      where: { userId: user.id } 
+      where: { userId: user.id },
+      include: { filiere: true }
     });
   } else if (user.role === 'COMPANY') {
     extendedUser.companyProfile = await prisma.companyProfile.findUnique({ 
@@ -39,7 +41,8 @@ export async function GET(req: NextRequest) {
     });
   } else if (user.role === 'ADMIN') {
     extendedUser.adminProfile = await prisma.adminProfile.findUnique({ 
-      where: { userId: user.id } 
+      where: { userId: user.id },
+      include: { filiere: true }
     });
   }
 

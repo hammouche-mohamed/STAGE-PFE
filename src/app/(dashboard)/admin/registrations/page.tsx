@@ -288,16 +288,16 @@ export default function AdminRegistrationsPage() {
 
       {/* Details Modal */}
       {selectedRequest && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm overflow-y-auto">
-          <div className="bg-white dark:bg-slate-900 rounded-md shadow-xl w-full max-w-lg mt-10 mb-10 border border-gray-100 dark:border-slate-800">
-            <div className="px-6 py-4 border-b border-gray-100 dark:border-slate-800 flex items-center justify-between sticky top-0 bg-white dark:bg-slate-900 rounded-t-lg">
-              <h2 className="text-[15px] font-semibold text-gray-900 dark:text-white">{t("common.registrations")}</h2>
-              <button onClick={() => setSelectedRequest(null)} className="text-gray-400 hover:text-gray-600 dark:hover:text-white">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-2 sm:p-4 bg-black/60 backdrop-blur-sm overflow-hidden">
+          <div className="bg-white dark:bg-slate-900 rounded-lg shadow-2xl w-full max-w-lg max-h-[95vh] flex flex-col border border-gray-100 dark:border-slate-800 animate-in zoom-in-95 duration-200">
+            <div className="px-6 py-4 border-b border-gray-100 dark:border-slate-800 flex items-center justify-between bg-white dark:bg-slate-900 rounded-t-lg flex-shrink-0">
+              <h2 className="text-[15px] font-bold text-gray-900 dark:text-white uppercase tracking-tight">{t("common.registrations")}</h2>
+              <button onClick={() => setSelectedRequest(null)} className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-white transition-colors">
                 <X className="h-5 w-5" />
               </button>
             </div>
             
-            <div className="p-6 space-y-4 text-[13px]">
+            <div className="p-6 space-y-5 text-[13px] overflow-y-auto custom-scrollbar">
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-gray-400 dark:text-gray-500 block mb-1">{t("common.name")}</label>

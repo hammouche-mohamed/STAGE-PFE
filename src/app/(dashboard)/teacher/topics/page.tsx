@@ -28,6 +28,8 @@ interface Topic {
   academicYear: string;
   maxStudents: number;
   createdAt: string;
+  assignedTeacherId: string | null;
+  teacherApplications?: { id: string; status: string }[];
 }
 
 export default function TeacherTopicsPage() {
@@ -35,8 +37,6 @@ export default function TeacherTopicsPage() {
   const { data: session } = useSession();
   const [topics, setTopics] = useState<Topic[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [topicToDelete, setTopicToDelete] = useState<Topic | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
 
   const [activeTab, setActiveTab] = useState<"MY" | "MARKETPLACE">("MY");
   const [availableTopics, setAvailableTopics] = useState<Topic[]>([]);
@@ -48,9 +48,20 @@ export default function TeacherTopicsPage() {
       const data = await res.json();
       const allTopics = data.data || [];
       
-      // Separate my topics from available ones
-      setTopics(allTopics.filter((t: any) => t.proposedById === (session as any)?.user?.id || t.assignedTeacherId === (session as any)?.user?.id));
-      setAvailableTopics(allTopics.filter((t: any) => t.proposedById !== (session as any)?.user?.id && t.assignedTeacherId !== (session as any)?.user?.id && t.status === "APPROVED"));
+      const myId = (session as any)?.user?.id;
+
+      // My Supervisions: Assigned to me or I applied
+      setTopics(allTopics.filter((t: any) => 
+        t.assignedTeacherId === myId || 
+        (t.teacherApplications && t.teacherApplications.length > 0)
+      ));
+
+      // Available: Not assigned and I haven't applied
+      setAvailableTopics(allTopics.filter((t: any) => 
+        t.assignedTeacherId === null && 
+        (!t.teacherApplications || t.teacherApplications.length === 0) &&
+        t.status === "APPROVED"
+      ));
     } catch (error) {
       toast.error(t("toast.loadTopicsFailed"));
     } finally {
@@ -80,35 +91,12 @@ export default function TeacherTopicsPage() {
     }
   };
 
-  const handleDelete = async () => {
-    if (!topicToDelete) return;
-    setIsDeleting(true);
-    try {
-      const res = await fetch(`/api/topics/${topicToDelete.id}`, {
-        method: "DELETE",
-      });
-
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || "Failed to delete topic");
-      }
-
-      toast.success(t("toast.topicDeleted"));
-      setTopics(prev => prev.filter(t => t.id !== topicToDelete.id));
-      setTopicToDelete(null);
-    } catch (error: any) {
-      toast.error(error.message || "Could not delete topic");
-    } finally {
-      setIsDeleting(false);
-    }
-  };
-
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-[17px] font-semibold text-gray-900 dark:text-white">{t("topics.title", { defaultValue: "Internship Topics" })}</h1>
-          <p className="text-[13px] text-gray-500 dark:text-gray-400 mt-0.5">{t("topics.subtitle", { defaultValue: "Manage your supervisions and discover new topics" })}</p>
+          <h1 className="text-[17px] font-semibold text-gray-900 dark:text-white">{t("common.topics")}</h1>
+          <p className="text-[13px] text-gray-500 dark:text-gray-400 mt-0.5">{t("dashboard.browseTopics")}</p>
         </div>
       </div>
 
@@ -118,89 +106,93 @@ export default function TeacherTopicsPage() {
           onClick={() => setActiveTab("MY")}
           className={`px-4 py-1.5 text-[12px] font-bold rounded-md transition-all ${activeTab === "MY" ? "bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm" : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"}`}
         >
-          {t("topics.myTopics")}
+          {t("nav.supervision")}
         </button>
         <button
           onClick={() => setActiveTab("MARKETPLACE")}
           className={`px-4 py-1.5 text-[12px] font-bold rounded-md transition-all ${activeTab === "MARKETPLACE" ? "bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm" : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"}`}
         >
-          {t("topics.marketplace", { defaultValue: "Available Topics" })}
+          {t("topics.title")}
         </button>
       </div>
 
-      <div className="grid grid-cols-1 gap-4">
-        {isLoading ? (
-          <div className="text-center py-12 text-gray-400 dark:text-gray-500 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-md">{t("common.loading")}</div>
-        ) : (activeTab === "MY" ? topics : availableTopics).length === 0 ? (
-          <div className="text-center py-12 text-gray-400 dark:text-gray-500 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-md">
-            <BookOpen className="h-10 w-10 text-gray-200 dark:text-slate-800 mx-auto mb-3" />
-            <p>{activeTab === "MY" ? t("topics.noTopics") : "No topics available for supervision in your department."}</p>
-          </div>
-        ) : (
-          (activeTab === "MY" ? topics : availableTopics).map((topic) => (
-            <div key={topic.id} className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-md p-5 hover:border-indigo-300 dark:hover:border-indigo-500 transition-all shadow-sm group">
-              <div className="flex items-start justify-between">
-                <div className="space-y-2 flex-1">
-                  <div className="flex items-center gap-2">
-                    <StatusBadge status={topic.status} />
-                    <span className="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">{topic.academicYear}</span>
+      <div className="admin-table-container">
+        <table className="admin-table stacked-table">
+          <thead className="admin-table-header">
+            <tr>
+              <th>{t("common.topics")}</th>
+              <th>{t("topics.maxStudents")}</th>
+              <th>{t("common.status")}</th>
+              <th>{t("common.date")}</th>
+              <th className="text-right">{t("common.actions")}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {isLoading ? (
+              <tr><td colSpan={5} className="text-center py-12 text-gray-400 dark:text-gray-500">{t("common.loading")}</td></tr>
+            ) : (activeTab === "MY" ? topics : availableTopics).length === 0 ? (
+              <tr>
+                <td colSpan={5} className="text-center py-12 text-gray-400 dark:text-gray-500">
+                  <div className="flex flex-col items-center gap-2">
+                    <BookOpen className="h-8 w-8 text-gray-200 dark:text-slate-800" />
+                    <p>{activeTab === "MY" ? "No supervisions or applications yet." : "No topics available for supervision in your department."}</p>
                   </div>
-                  <h3 className="text-[16px] font-bold text-gray-900 dark:text-white leading-tight group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
-                    {topic.title}
-                  </h3>
-                  <div className="flex items-center gap-6 mt-4">
-                    <div className="flex items-center text-[12px] text-gray-600 dark:text-gray-400">
-                      <Users className="h-3.5 w-3.5 mr-1.5 text-gray-400 dark:text-gray-500" />
-                       <span>{t("topics.maxStudents")}: {topic.maxStudents}</span>
+                </td>
+              </tr>
+            ) : (
+              (activeTab === "MY" ? topics : availableTopics).map((topic) => (
+                <tr key={topic.id} className="admin-table-row group">
+                  <td data-label="Topic">
+                    <div className="flex flex-col gap-1 text-right sm:text-left">
+                      <span className="font-bold text-gray-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                        {topic.title}
+                      </span>
+                      <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">{topic.academicYear}</span>
                     </div>
-                    <div className="flex items-center text-[12px] text-gray-600 dark:text-gray-400">
-                      <div className="flex items-center text-[12px] text-gray-600 dark:text-gray-300">
-                        <Clock className="h-3.5 w-3.5 mr-1.5 text-gray-400 dark:text-gray-500" />
-                        <span>{new Date(topic.createdAt).toLocaleDateString()}</span>
-                      </div>
+                  </td>
+                  <td data-label="Capacity">
+                    <div className="flex items-center gap-1.5 justify-end sm:justify-start">
+                      <Users className="h-3.5 w-3.5 text-gray-400 dark:text-gray-500" />
+                      <span className="text-[13px] text-gray-600 dark:text-gray-300">{topic.maxStudents}</span>
                     </div>
-                  </div>
-                </div>
-                
-                <div className="flex flex-col items-end gap-4">
-                   {activeTab === "MY" ? (
-                     <div className="flex items-center gap-2">
-                        <button className="p-2 text-gray-400 dark:text-gray-500 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-gray-50 dark:hover:bg-slate-800 rounded-md transition-all">
-                          <Edit className="h-4 w-4" />
-                        </button>
-                        <button 
-                          onClick={() => setTopicToDelete(topic)}
-                          className="p-2 text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition-all"
+                  </td>
+                  <td data-label="Status">
+                    {activeTab === "MY" && topic.teacherApplications && topic.teacherApplications.length > 0 && !topic.assignedTeacherId ? (
+                      <StatusBadge status="PENDING" text="Application Pending" />
+                    ) : (
+                      <StatusBadge status={topic.assignedTeacherId === (session as any)?.user?.id ? "APPROVED" : topic.status} text={topic.assignedTeacherId === (session as any)?.user?.id ? "Supervising" : undefined} />
+                    )}
+                  </td>
+                  <td data-label="Date">
+                    <span className="text-[12px] text-gray-500 dark:text-gray-400">{new Date(topic.createdAt).toLocaleDateString()}</span>
+                  </td>
+                  <td data-label="Actions" className="text-right">
+                    <div className="flex items-center justify-end gap-2">
+                      {activeTab === "MY" ? (
+                        <Link href={`/teacher/internships`}>
+                          <Button size="sm" variant="ghost" className="h-8 text-[11px] font-bold">
+                            {t("common.view")} <ChevronRight className="h-3 w-3 ml-1" />
+                          </Button>
+                        </Link>
+                      ) : (
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          className="h-8 text-[11px] font-bold"
+                          onClick={() => handleApply(topic.id)}
+                          isLoading={isApplying === topic.id}
                         >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                     </div>
-                   ) : (
-                     <Button 
-                       size="sm" 
-                       onClick={() => handleApply(topic.id)}
-                       isLoading={isApplying === topic.id}
-                     >
-                       {t("topics.apply", { defaultValue: "Supervise" })}
-                     </Button>
-                   )}
-                </div>
-              </div>
-            </div>
-          ))
-        )}
+                          {t("topics.apply", { defaultValue: "Supervise" })}
+                        </Button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
       </div>
-      
-      <ConfirmDialog
-        isOpen={!!topicToDelete}
-        onClose={() => setTopicToDelete(null)}
-        onConfirm={handleDelete}
-        title={t("common.delete")}
-        description={`${t("common.delete")} "${topicToDelete?.title}"?`}
-        confirmLabel={t("common.delete")}
-        variant="danger"
-        isLoading={isDeleting}
-      />
     </div>
   );
 }

@@ -8,6 +8,8 @@ import {
   ArrowRight,
   Plus,
   Clock,
+  Building2,
+  ShieldCheck,
 } from "lucide-react";
 import Link from "next/link";
 import prisma from "@/lib/prisma";
@@ -35,7 +37,8 @@ export default async function TeacherDashboardPage() {
     pendingDocuments,
     pendingFinalReports,
     activeInternships,
-    recentMessages
+    recentMessages,
+    companyTopicCount
   ] = await Promise.all([
     prisma.internship.count({ where: { teacherId: teacher.id, status: "IN_PROGRESS" } }),
     prisma.teacherApplication.count({ where: { teacherId: teacher.id, status: "PENDING" } }),
@@ -69,6 +72,13 @@ export default async function TeacherDashboardPage() {
       },
       take: 4,
       orderBy: { sentAt: "desc" }
+    }),
+    prisma.topic.count({
+      where: {
+        type: "COMPANY_PROPOSED",
+        assignedTeacherId: null,
+        status: { in: ["PENDING_ADMIN", "PENDING_TEACHER"] }
+      }
     })
   ]);
 
@@ -84,32 +94,39 @@ export default async function TeacherDashboardPage() {
       </div>
 
       {/* Teacher Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
         <StatsCard
-          label="Active Supervisions"
+          label="Supervisions"
           value={internshipCount}
           icon={Briefcase}
           subValue={`${teacher.teacherProfile?.maxStudents ?? 5} max capacity`}
         />
         <StatsCard
-          label="Topic Applications"
+          label="Company Topics"
+          value={companyTopicCount}
+          icon={Building2}
+          subValue="Waiting supervisor"
+          subValueColor={companyTopicCount > 0 ? "indigo" : "gray"}
+        />
+        <StatsCard
+          label="Applications"
           value={pendingApplications}
           icon={Users}
-          subValue="Waiting review"
+          subValue="Topic requests"
           subValueColor={pendingApplications > 0 ? "red" : "gray"}
         />
         <StatsCard
-          label="Reports to Review"
+          label="Documents"
           value={pendingDocuments}
           icon={FileText}
-          subValue="Uploaded, pending approval"
+          subValue="Pending review"
           subValueColor={pendingDocuments > 0 ? "amber" : "gray"}
         />
         <StatsCard
-          label="Final Reports Pending"
+          label="Final Reports"
           value={pendingFinalReports}
-          icon={MessageSquare}
-          subValue="Your validation required"
+          icon={ShieldCheck}
+          subValue="Validation required"
           subValueColor={pendingFinalReports > 0 ? "red" : "gray"}
         />
       </div>

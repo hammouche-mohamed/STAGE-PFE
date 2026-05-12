@@ -80,7 +80,9 @@ function DocumentsContent() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-[17px] font-semibold text-gray-900">{t("documents.title")}</h1>
-            <p className="text-[13px] text-gray-500 mt-0.5">{t("common.documents")}</p>
+            <p className="text-[13px] text-gray-500 mt-0.5">
+              {!internshipId ? t("common.none") : t("common.documents")}
+            </p>
           </div>
         </div>
       </div>

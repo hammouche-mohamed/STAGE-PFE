@@ -199,19 +199,34 @@ export async function POST(req: NextRequest) {
     await TeacherLoadService.increment(teacherId);
 
     // Notify all parties
-    const recipientIds = [...internship.students.map((s: { studentId: string }) => s.studentId), teacherId];
-    for (const uid of recipientIds) {
-      await NotificationService.trigger({
-        userId: uid,
-        type: 'INTERNSHIP_STARTED',
-        title: 'Internship Record Created',
-        message:
-          'Your internship has been officially created and is awaiting document exchange.',
-        relatedId: internship.id,
-        relatedType: 'Internship',
-        link: '/student/internship',
+    const students = internship.students.map((s: { studentId: string }) => s.studentId);
+    
+    // Notify students
+    if (students.length > 0) {
+      await prisma.notification.createMany({
+        data: students.map(uid => ({
+          id: randomUUID(),
+          userId: uid,
+          type: 'INTERNSHIP_STARTED',
+          title: 'Internship Record Created',
+          message: 'Your internship has been officially created and is awaiting document exchange.',
+          relatedId: internship.id,
+          relatedType: 'Internship',
+          link: '/student/internship',
+        }))
       });
     }
+
+    // Notify teacher
+    await NotificationService.trigger({
+      userId: teacherId,
+      type: 'INTERNSHIP_STARTED',
+      title: 'New Supervision Assigned',
+      message: `You have been assigned as the supervisor for the project: ${topic?.title || 'New Internship'}.`,
+      relatedId: internship.id,
+      relatedType: 'Internship',
+      link: `/teacher/internships/${internship.id}`,
+    });
 
     // Notify Super Admins if a Department Admin created the internship
     if (!session.user.isSuperAdmin) {
@@ -220,15 +235,18 @@ export async function POST(req: NextRequest) {
         select: { id: true }
       });
 
-      for (const sa of superAdmins) {
-        await NotificationService.trigger({
-          userId: sa.id,
-          type: "INTERNSHIP_STARTED",
-          title: "New Team Created by Department Admin",
-          message: `Admin ${session.user.name} has created a new internship team for topic ID: ${topicId}.`,
-          relatedId: internship.id,
-          relatedType: "Internship",
-          link: `/admin/internships`
+      if (superAdmins.length > 0) {
+        await prisma.notification.createMany({
+          data: superAdmins.map(sa => ({
+            id: randomUUID(),
+            userId: sa.id,
+            type: "INTERNSHIP_STARTED",
+            title: "New Team Created by Department Admin",
+            message: `Admin ${session.user.name} has created a new internship team for topic ID: ${topicId}.`,
+            relatedId: internship.id,
+            relatedType: "Internship",
+            link: `/admin/internships`
+          }))
         });
       }
     }

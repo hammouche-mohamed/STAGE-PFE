@@ -56,53 +56,53 @@ export default function CompanyInternshipsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-[17px] font-semibold text-gray-900">{t("common.internships")}</h1>
-          <p className="text-[13px] text-gray-500 mt-0.5">{t("dashboard.activeInternships")}</p>
+          <h1 className="text-[17px] font-semibold text-gray-900 dark:text-white">{t("common.internships")}</h1>
+          <p className="text-[13px] text-gray-500 dark:text-gray-400 mt-0.5">{t("dashboard.activeInternships")}</p>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {isLoading ? (
-          <div className="col-span-full text-center py-12 text-gray-400">{t("common.loading")}</div>
+          <div className="col-span-full text-center py-12 text-gray-400 dark:text-gray-500">{t("common.loading")}</div>
         ) : internships.length === 0 ? (
-          <div className="col-span-full text-center py-12 text-gray-400 bg-white border border-gray-200 rounded-md">
+          <div className="col-span-full text-center py-12 text-gray-400 dark:text-gray-500 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-md">
             {t("common.noData")}
           </div>
         ) : (
           internships.map((internship) => (
-            <div key={internship.id} className="bg-white border border-gray-200 rounded-md p-5 flex flex-col justify-between hover:border-indigo-400 transition-all shadow-sm group">
+            <div key={internship.id} className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-md p-5 flex flex-col justify-between hover:border-indigo-400 dark:hover:border-indigo-900 transition-all shadow-sm group">
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
                    <StatusBadge status={internship.status} />
-                   <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{internship.academicYear}</span>
+                   <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">{internship.academicYear}</span>
                 </div>
 
-                <h3 className="text-[15px] font-bold text-gray-900 leading-tight">
+                <h3 className="text-[15px] font-bold text-gray-900 dark:text-white leading-tight">
                   {internship.topic.title}
                 </h3>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-2 gap-x-4 pt-1">
-                  <div className="flex items-center text-[12px] text-gray-600">
-                    <Users className="h-4 w-4 mr-2 text-indigo-400" />
+                  <div className="flex items-center text-[12px] text-gray-600 dark:text-gray-300">
+                    <Users className="h-4 w-4 mr-2 text-indigo-400 dark:text-indigo-500" />
                     <span className="font-semibold mr-1">{t("common.users")}:</span>
                     <span className="truncate">{internship.students.map(s => s.student.name).join(", ")}</span>
                   </div>
-                  <div className="flex items-center text-[12px] text-gray-600">
-                    <GraduationCap className="h-4 w-4 mr-2 text-gray-400" />
+                  <div className="flex items-center text-[12px] text-gray-600 dark:text-gray-300">
+                    <GraduationCap className="h-4 w-4 mr-2 text-gray-400 dark:text-gray-500" />
                     <span className="font-semibold mr-1">{t("dashboard.supervisor")}:</span>
                     <span className="truncate">{internship.teacher.name}</span>
                   </div>
-                  <div className="flex items-center text-[12px] text-gray-600">
-                    <Clock className="h-4 w-4 mr-2 text-gray-400" />
+                  <div className="flex items-center text-[12px] text-gray-600 dark:text-gray-300">
+                    <Clock className="h-4 w-4 mr-2 text-gray-400 dark:text-gray-500" />
                     <span className="font-semibold mr-1">Started:</span>
                     {format(new Date(internship.createdAt), "MMMM d, yyyy")}
                   </div>
                 </div>
               </div>
 
-              <div className="mt-5 pt-3 border-t border-gray-50 flex items-center justify-between">
+              <div className="mt-5 pt-3 border-t border-gray-50 dark:border-slate-800 flex items-center justify-between">
                 <Link href={`/company/internships/${internship.id}`}>
-                  <button className="text-[11px] font-bold text-indigo-600 uppercase tracking-wide flex items-center hover:underline">
+                  <button className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wide flex items-center hover:underline">
                     {t("common.view")}
                     <ArrowRight className="ml-1 h-3 w-3" />
                   </button>

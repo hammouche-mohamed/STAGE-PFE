@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { Bell, CheckCircle, Circle, X, Trash2, CheckCheck, ArrowLeft, ArrowRight } from "lucide-react";
+import Link from "next/link";
 import { formatDateTime } from "@/lib/utils/formatDate";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
@@ -183,12 +184,12 @@ export function NotificationsClient() {
                   
                   {item.link && (
                     <div className={`mt-3 flex items-center gap-3 ${isRTL ? "flex-row-reverse" : ""}`}>
-                      <a 
+                      <Link 
                         href={item.link}
                         className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 bg-indigo-50 dark:bg-indigo-900/40 px-3 py-1 rounded transition-colors"
                       >
                         View Details
-                      </a>
+                      </Link>
                       {item.relatedType && (
                         <span className="px-2 py-0.5 bg-gray-100 dark:bg-slate-800 text-gray-500 dark:text-gray-400 text-[10px] rounded uppercase font-bold tracking-tight border border-gray-200 dark:border-slate-700">
                           {item.relatedType}

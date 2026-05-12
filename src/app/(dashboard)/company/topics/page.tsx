@@ -132,8 +132,8 @@ export default function CompanyTopicsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-[17px] font-semibold text-gray-900">{t("topics.myTopics")}</h1>
-          <p className="text-[13px] text-gray-500 mt-0.5">{t("common.appSubtitle")}</p>
+          <h1 className="text-[17px] font-semibold text-gray-900 dark:text-white">{t("topics.myTopics")}</h1>
+          <p className="text-[13px] text-gray-500 dark:text-gray-400 mt-0.5">{t("common.appSubtitle")}</p>
         </div>
         <Link href="/company/topics/new">
           <Button size="sm">
@@ -145,10 +145,10 @@ export default function CompanyTopicsPage() {
 
       <div className="grid grid-cols-1 gap-4">
         {isLoading ? (
-          <div className="text-center py-12 text-gray-400 bg-white border border-gray-200 rounded-md">{t("common.loading")}</div>
+          <div className="text-center py-12 text-gray-400 dark:text-gray-500 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-md">{t("common.loading")}</div>
         ) : topics.length === 0 ? (
-          <div className="text-center py-12 text-gray-400 bg-white border border-gray-200 rounded-md">
-            <BookOpen className="h-10 w-10 text-gray-200 mx-auto mb-3" />
+          <div className="text-center py-12 text-gray-400 dark:text-gray-500 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-md">
+            <BookOpen className="h-10 w-10 text-gray-200 dark:text-slate-800 mx-auto mb-3" />
             <p>{t("topics.noTopics")}</p>
             <Link href="/company/topics/new" className="text-indigo-600 text-[13px] font-medium hover:underline mt-2 inline-block">
               {t("topics.propose")}
@@ -156,23 +156,23 @@ export default function CompanyTopicsPage() {
           </div>
         ) : (
           topics.map((topic) => (
-            <div key={topic.id} className="bg-white border border-gray-200 rounded-md p-5 hover:border-indigo-300 transition-all shadow-sm group">
+            <div key={topic.id} className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-md p-5 hover:border-indigo-300 dark:hover:border-indigo-900 transition-all shadow-sm group">
               <div className="flex items-start justify-between">
                 <div className="space-y-2 flex-1">
                   <div className="flex items-center gap-2">
                     <StatusBadge status={topic.status} />
-                    <span className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">{topic.academicYear}</span>
+                    <span className="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">{topic.academicYear}</span>
                   </div>
-                  <h3 className="text-[16px] font-bold text-gray-900 leading-tight group-hover:text-indigo-600 transition-colors">
+                  <h3 className="text-[16px] font-bold text-gray-900 dark:text-white leading-tight group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
                     {topic.title}
                   </h3>
                   <div className="flex items-center gap-6 mt-4">
-                    <div className="flex items-center text-[12px] text-gray-600">
-                      <Users className="h-3.5 w-3.5 mr-1.5 text-gray-400" />
+                    <div className="flex items-center text-[12px] text-gray-600 dark:text-gray-300">
+                      <Users className="h-3.5 w-3.5 mr-1.5 text-gray-400 dark:text-gray-500" />
                       <span>{t("topics.maxStudents")}: {topic.maxStudents}</span>
                     </div>
-                    <div className="flex items-center text-[12px] text-gray-600">
-                      <Clock className="h-3.5 w-3.5 mr-1.5 text-gray-400" />
+                    <div className="flex items-center text-[12px] text-gray-600 dark:text-gray-300">
+                      <Clock className="h-3.5 w-3.5 mr-1.5 text-gray-400 dark:text-gray-500" />
                       <span>{t("common.date")}: {new Date(topic.createdAt).toLocaleDateString()}</span>
                     </div>
                   </div>
@@ -182,14 +182,14 @@ export default function CompanyTopicsPage() {
                    <div className="flex items-center gap-2">
                       <button 
                         onClick={() => handleStartEdit(topic)}
-                        className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-gray-50 rounded-md transition-all"
+                        className="p-2 text-gray-400 dark:text-gray-500 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-gray-50 dark:hover:bg-slate-800 rounded-md transition-all"
                         title="Request edit"
                       >
                         <Edit className="h-4 w-4" />
                       </button>
                        <button 
                          onClick={() => handleDeleteTopic(topic.id)}
-                         className="p-2 text-gray-400 hover:text-red-600 hover:bg-gray-50 rounded-md transition-all"
+                         className="p-2 text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-gray-50 dark:hover:bg-slate-800 rounded-md transition-all"
                          title="Delete topic"
                        >
                          <Trash2 className="h-4 w-4" />
@@ -225,9 +225,9 @@ export default function CompanyTopicsPage() {
         size="lg"
       >
         <form onSubmit={handleEditRequest} className="space-y-6 py-2">
-           <div className="bg-amber-50 border border-amber-100 p-4 rounded-lg flex items-start gap-3">
-              <AlertCircle className="h-5 w-5 text-amber-600 mt-0.5" />
-              <div className="text-[13px] text-amber-800 leading-relaxed">
+           <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800/50 p-4 rounded-lg flex items-start gap-3">
+              <AlertCircle className="h-5 w-5 text-amber-600 dark:text-amber-400 mt-0.5" />
+              <div className="text-[13px] text-amber-800 dark:text-amber-300 leading-relaxed">
                 <p className="font-bold">Information Management Note</p>
                 <p>Changes to validated topics are not immediate. Your request will be reviewed by an administrator. You will be notified once the changes are approved or rejected.</p>
               </div>
@@ -259,7 +259,7 @@ export default function CompanyTopicsPage() {
               />
            </div>
 
-           <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
+           <div className="flex justify-end gap-3 pt-4 border-t border-gray-100 dark:border-slate-800">
               <Button type="button" variant="outline" onClick={() => setTopicToEdit(null)}>Cancel</Button>
               <Button type="submit" isLoading={isUpdating}>Submit Request</Button>
            </div>

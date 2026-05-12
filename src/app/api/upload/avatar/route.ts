@@ -16,14 +16,19 @@ export async function POST(req: NextRequest) {
     const file = formData.get("file") as File | null;
 
     if (!file) {
+      console.error("Upload error: No file provided");
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
     }
 
-    if (!file.type.startsWith("image/")) {
+    console.log(`Uploading file: ${file.name}, type: ${file.type}, size: ${file.size}`);
+
+    if (!file.type.startsWith("image/") && file.type !== "") {
+      console.error(`Upload error: Invalid mime type: ${file.type}`);
       return NextResponse.json({ error: "Only image files are allowed" }, { status: 400 });
     }
 
     if (file.size > 16 * 1024 * 1024) {
+      console.error(`Upload error: File too large: ${file.size}`);
       return NextResponse.json({ error: "File size must be under 16MB" }, { status: 400 });
     }
 
@@ -31,24 +36,38 @@ export async function POST(req: NextRequest) {
     const filename = `avatar-${randomUUID()}.${ext}`;
     const uploadsDir = join(process.cwd(), "public", "uploads");
 
-    await mkdir(uploadsDir, { recursive: true });
+    try {
+      await mkdir(uploadsDir, { recursive: true });
+    } catch (err) {
+      console.error("Upload error: Failed to create directory", err);
+      return NextResponse.json({ error: "Storage error" }, { status: 500 });
+    }
 
-    const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
-
-    await writeFile(join(uploadsDir, filename), buffer);
+    try {
+      const bytes = await file.arrayBuffer();
+      const buffer = Buffer.from(bytes);
+      await writeFile(join(uploadsDir, filename), buffer);
+    } catch (err) {
+      console.error("Upload error: Failed to write file", err);
+      return NextResponse.json({ error: "Write failed" }, { status: 500 });
+    }
 
     const publicUrl = `/uploads/${filename}`;
 
     // Save to user record
-    await prisma.user.update({
-      where: { id: session.user.id },
-      data: { avatarUrl: publicUrl, updatedAt: new Date() },
-    });
+    try {
+      await prisma.user.update({
+        where: { id: session.user.id },
+        data: { avatarUrl: publicUrl, updatedAt: new Date() },
+      });
+    } catch (err) {
+      console.error("Upload error: Database update failed", err);
+      return NextResponse.json({ error: "Database update failed" }, { status: 500 });
+    }
 
     return NextResponse.json({ url: publicUrl });
   } catch (error: any) {
-    console.error("Avatar upload error:", error);
+    console.error("Avatar upload catch block error:", error);
     return NextResponse.json(
       { error: "Upload failed", message: error.message },
       { status: 500 }

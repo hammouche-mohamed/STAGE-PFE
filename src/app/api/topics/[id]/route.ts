@@ -103,19 +103,30 @@ export async function PATCH(
       });
 
       const admins = await prisma.user.findMany({
-        where: { role: 'ADMIN' },
+        where: { 
+          role: 'ADMIN',
+          ...(topic.filiereId ? {
+            OR: [
+              { adminProfile: { isSuperAdmin: true } },
+              { adminProfile: { filiereId: topic.filiereId } }
+            ]
+          } : {})
+        },
         select: { id: true },
       });
 
-      for (const admin of admins) {
-        await NotificationService.trigger({
-          userId: admin.id,
-          type: 'TOPIC_SUBMITTED',
-          title: 'Topic Edit Request',
-          message: `${session.user.name} has requested an edit for the topic: "${topic.title}". Please review it.`,
-          relatedId: id,
-          relatedType: 'Topic',
-          link: '/admin/topics',
+      if (admins.length > 0) {
+        await prisma.notification.createMany({
+          data: admins.map(admin => ({
+            id: randomUUID(),
+            userId: admin.id,
+            type: 'TOPIC_SUBMITTED', // Re-using type for edit requests
+            title: 'Topic Edit Request',
+            message: `${session.user.name} has requested an edit for the topic: "${topic.title}". Please review it.`,
+            relatedId: id,
+            relatedType: 'Topic',
+            link: '/admin/topics',
+          }))
         });
       }
 
@@ -127,8 +138,15 @@ export async function PATCH(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
+    // Super Admin is read-only for topic moderation
+    if (session.user.isSuperAdmin) {
+      return NextResponse.json({ 
+        error: "Forbidden: Super Administrators have read-only access to topic moderation. Please contact the Department Administrator." 
+      }, { status: 403 });
+    }
+
     // Dept Admin Scoping Check
-    if (!session.user.isSuperAdmin && session.user.filiereId && topic.filiereId && topic.filiereId !== session.user.filiereId) {
+    if (session.user.filiereId && topic.filiereId && topic.filiereId !== session.user.filiereId) {
       return NextResponse.json({ error: "Forbidden: Topic belongs to another department" }, { status: 403 });
     }
 
@@ -250,15 +268,18 @@ export async function PATCH(
         select: { id: true }
       });
 
-      for (const sa of superAdmins) {
-        await NotificationService.trigger({
-          userId: sa.id,
-          type: "TOPIC_UPDATED_BY_ADMIN",
-          title: "Department Admin Action",
-          message: `Admin ${session.user.name} has updated topic: "${topic.title}" (Status: ${status || topic.status}).`,
-          relatedId: topic.id,
-          relatedType: "Topic",
-          link: `/admin/topics/${topic.id}`
+      if (superAdmins.length > 0) {
+        await prisma.notification.createMany({
+          data: superAdmins.map(sa => ({
+            id: randomUUID(),
+            userId: sa.id,
+            type: "TOPIC_UPDATED_BY_ADMIN",
+            title: "Department Admin Action",
+            message: `Admin ${session.user.name} has updated topic: "${topic.title}" (Status: ${status || topic.status}).`,
+            relatedId: topic.id,
+            relatedType: "Topic",
+            link: `/admin/topics/${topic.id}`
+          }))
         });
       }
     }
@@ -295,6 +316,13 @@ export async function DELETE(
     if (!topic) return NextResponse.json({ error: "Topic not found" }, { status: 404 });
 
     if (session.user.role === "ADMIN") {
+      // Super Admin is read-only
+      if (session.user.isSuperAdmin) {
+        return NextResponse.json({ 
+          error: "Forbidden: Super Administrators have read-only access to topic moderation." 
+        }, { status: 403 });
+      }
+
       // Dept Admin Scoping Check
       if (!session.user.isSuperAdmin && session.user.filiereId && topic.filiereId && topic.filiereId !== session.user.filiereId) {
         return NextResponse.json({ error: "Forbidden: Topic belongs to another department" }, { status: 403 });

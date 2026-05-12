@@ -97,59 +97,59 @@ export default async function CompanyDashboardPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Quick links */}
-        <div className="bg-white border border-gray-200 rounded-md p-6 shadow-sm space-y-4">
-          <h2 className="text-[14px] font-semibold text-gray-900">Quick Actions</h2>
+        <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-md p-6 shadow-sm space-y-4">
+          <h2 className="text-[14px] font-semibold text-gray-900 dark:text-white">Quick Actions</h2>
           <div className="space-y-3">
             <Link
               href="/company/topics"
-              className="flex items-center justify-between p-3 rounded-md hover:bg-gray-50 border border-gray-100 transition-colors"
+              className="flex items-center justify-between p-3 rounded-md hover:bg-gray-50 dark:hover:bg-slate-800 border border-gray-100 dark:border-slate-800 transition-colors"
             >
-              <span className="text-[13px] font-medium text-gray-800">Manage Topics</span>
-              <ArrowRight className="h-4 w-4 text-gray-400" />
+              <span className="text-[13px] font-medium text-gray-800 dark:text-gray-200">Manage Topics</span>
+              <ArrowRight className="h-4 w-4 text-gray-400 dark:text-gray-500" />
             </Link>
             <Link
               href="/company/applications"
-              className="flex items-center justify-between p-3 rounded-md hover:bg-gray-50 border border-gray-100 transition-colors"
+              className="flex items-center justify-between p-3 rounded-md hover:bg-gray-50 dark:hover:bg-slate-800 border border-gray-100 dark:border-slate-800 transition-colors"
             >
-              <span className="text-[13px] font-medium text-gray-800">Review Applications</span>
-              <ArrowRight className="h-4 w-4 text-gray-400" />
+              <span className="text-[13px] font-medium text-gray-800 dark:text-gray-200">Review Applications</span>
+              <ArrowRight className="h-4 w-4 text-gray-400 dark:text-gray-500" />
             </Link>
             <Link
               href="/company/internships"
-              className="flex items-center justify-between p-3 rounded-md hover:bg-gray-50 border border-gray-100 transition-colors"
+              className="flex items-center justify-between p-3 rounded-md hover:bg-gray-50 dark:hover:bg-slate-800 border border-gray-100 dark:border-slate-800 transition-colors"
             >
-              <span className="text-[13px] font-medium text-gray-800">
+              <span className="text-[13px] font-medium text-gray-800 dark:text-gray-200">
                 Internships &amp; Final Reports
                 {pendingValidations > 0 && (
-                  <span className="ml-2 text-[11px] bg-red-100 text-red-600 font-bold px-1.5 py-0.5 rounded">
+                  <span className="ml-2 text-[11px] bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 font-bold px-1.5 py-0.5 rounded">
                     {pendingValidations} pending
                   </span>
                 )}
               </span>
-              <ArrowRight className="h-4 w-4 text-gray-400" />
+              <ArrowRight className="h-4 w-4 text-gray-400 dark:text-gray-500" />
             </Link>
           </div>
         </div>
 
         {/* Completion workflow info */}
-        <div className="bg-white border border-gray-200 rounded-md p-6 shadow-sm">
-          <h2 className="text-[14px] font-semibold text-gray-900 mb-4">Internship Completion</h2>
-          <p className="text-[13px] text-gray-500 leading-relaxed">
+        <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-md p-6 shadow-sm">
+          <h2 className="text-[14px] font-semibold text-gray-900 dark:text-white mb-4">Internship Completion</h2>
+          <p className="text-[13px] text-gray-500 dark:text-gray-400 leading-relaxed">
             When a student submits their final report, you will receive a notification to
             validate it. Once both you and the academic supervisor approve, the administrator
             will confirm the internship as complete.
           </p>
-          <div className="mt-4 space-y-2 text-[12px] text-gray-600">
+          <div className="mt-4 space-y-2 text-[12px] text-gray-600 dark:text-gray-300">
             <div className="flex items-center gap-2">
-              <CheckCircle2 className="h-3.5 w-3.5 text-indigo-500" />
+              <CheckCircle2 className="h-3.5 w-3.5 text-indigo-500 dark:text-indigo-400" />
               Student submits final report
             </div>
             <div className="flex items-center gap-2">
-              <CheckCircle2 className="h-3.5 w-3.5 text-indigo-500" />
+              <CheckCircle2 className="h-3.5 w-3.5 text-indigo-500 dark:text-indigo-400" />
               Teacher &amp; Company validate
             </div>
             <div className="flex items-center gap-2">
-              <CheckCircle2 className="h-3.5 w-3.5 text-indigo-500" />
+              <CheckCircle2 className="h-3.5 w-3.5 text-indigo-500 dark:text-indigo-400" />
               Admin confirms — internship completed
             </div>
           </div>

@@ -72,6 +72,20 @@ export async function POST(req: NextRequest) {
       link: "/student/invitations",
     });
 
+    // Point 1: Notify all admins about the new invitation
+    const admins = await prisma.user.findMany({ where: { role: "ADMIN" } });
+    for (const admin of admins) {
+      await NotificationService.trigger({
+        userId: admin.id,
+        type: "SYSTEM_ALERT",
+        title: "New Team Invitation",
+        message: `Student ${session.user.name} sent a team invitation to another student.`,
+        relatedId: teamId,
+        relatedType: "Team",
+        link: "/admin/internships",
+      });
+    }
+
     return NextResponse.json({ data: invitation, message: "Invitation sent successfully" });
   } catch (error) {
     console.error("[team invitations POST]", error);

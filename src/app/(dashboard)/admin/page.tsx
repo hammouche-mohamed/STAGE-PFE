@@ -26,6 +26,7 @@ export default async function AdminDashboardPage() {
     pendingConfirmations,
     pendingRegistrations,
     recentTopics,
+    pendingCompanyProposals,
   ] = await Promise.all([
     prisma.studentProfile.count({ 
       where: { 
@@ -63,6 +64,13 @@ export default async function AdminDashboardPage() {
         ...( !isSuperAdmin && filiereId ? { filiereId } : {} )
       } as any
     }),
+    prisma.topic.count({
+      where: {
+        type: "COMPANY_PROPOSED",
+        status: "PENDING_ADMIN",
+        ...( !isSuperAdmin && filiereId ? { filiereId } : {} )
+      }
+    })
   ]);
 
   return (
@@ -75,6 +83,7 @@ export default async function AdminDashboardPage() {
       pendingRegistrations={pendingRegistrations}
       recentTopics={recentTopics}
       currentAcademicYear={currentAcademicYear}
+      pendingCompanyProposals={pendingCompanyProposals}
     />
   );
 }

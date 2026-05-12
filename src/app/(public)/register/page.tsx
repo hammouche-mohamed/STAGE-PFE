@@ -184,7 +184,13 @@ export default function RegisterPage() {
 
             <form onSubmit={handleSubmit(onSubmit)} className="p-6 lg:p-8 space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <Input label={t("common.fullName")} placeholder="e.g. Salim Amghar" {...register("name")} error={errors.name?.message} required />
+                <Input 
+                  label={selectedRole === "COMPANY" ? "Director's Full Name" : t("common.fullName")} 
+                  placeholder={selectedRole === "COMPANY" ? "e.g. John Doe (Director)" : "e.g. Salim Amghar"} 
+                  {...register("name")} 
+                  error={errors.name?.message} 
+                  required 
+                />
 
                 <div className="w-full">
                   <Input
@@ -269,13 +275,25 @@ export default function RegisterPage() {
                 )}
 
                 {selectedRole === "TEACHER" && (
-                  <div className="w-full col-span-1 md:col-span-2">
-                    <label className="admin-form-label">Speciality <span className="text-red-500">*</span></label>
-                    <select {...register("speciality")} className="admin-input cursor-pointer">
-                      <option value="">Select Speciality</option>
-                      {specialities.map(s => <option key={s} value={s}>{s}</option>)}
-                    </select>
-                    {errors.speciality && <p className="mt-1 text-[11px] text-red-600 font-medium">{errors.speciality.message}</p>}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 col-span-1 md:col-span-2">
+                    <div className="w-full">
+                      <label className="admin-form-label">Speciality <span className="text-red-500">*</span></label>
+                      <select {...register("speciality")} className="admin-input cursor-pointer">
+                        <option value="">Select Speciality</option>
+                        {specialities.map(s => <option key={s} value={s}>{s}</option>)}
+                      </select>
+                      {errors.speciality && <p className="mt-1 text-[11px] text-red-600 font-medium">{errors.speciality.message}</p>}
+                    </div>
+                    <div className="w-full">
+                      <label className="admin-form-label">Grade (Academic Title) <span className="text-red-500">*</span></label>
+                      <select {...register("grade")} className="admin-input cursor-pointer">
+                        <option value="">Select Grade</option>
+                        <option value="MCA">MCA</option>
+                        <option value="MAA">MAA</option>
+                        <option value="MCB">MCB</option>
+                      </select>
+                      {errors.grade && <p className="mt-1 text-[11px] text-red-600 font-medium">{errors.grade.message}</p>}
+                    </div>
                   </div>
                 )}
                 {selectedRole === "COMPANY" && (
