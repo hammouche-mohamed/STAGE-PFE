@@ -12,6 +12,7 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const filiereId = searchParams.get("filiereId");
   const currentAcademicYear = await SettingsService.getCurrentAcademicYear();
+  const yearFilter = currentAcademicYear && currentAcademicYear !== "N/A" ? { academicYear: currentAcademicYear } : {};
 
   // If not super admin, they can only see their own filiere
   const targetFiliereId = session.user.isSuperAdmin ? (filiereId === "all" ? null : filiereId) : session.user.filiereId;
@@ -49,7 +50,7 @@ export async function GET(req: NextRequest) {
       prisma.internship.count({ 
         where: { 
           status: "IN_PROGRESS", 
-          academicYear: currentAcademicYear,
+          ...yearFilter,
           ...(targetFiliereId ? { topic: { filiereId: targetFiliereId } } : {})
         } as any
       }),
@@ -68,21 +69,21 @@ export async function GET(req: NextRequest) {
       prisma.topic.count({ 
         where: { 
           status: "APPROVED",
-          academicYear: currentAcademicYear,
+          ...yearFilter,
           ...(targetFiliereId ? { filiereId: targetFiliereId } : {})
         } as any
       }),
       prisma.topic.count({ 
         where: { 
           status: "REJECTED",
-          academicYear: currentAcademicYear,
+          ...yearFilter,
           ...(targetFiliereId ? { filiereId: targetFiliereId } : {})
         } as any
       }),
       prisma.internship.count({ 
         where: { 
           status: "COMPLETED",
-          academicYear: currentAcademicYear,
+          ...yearFilter,
           ...(targetFiliereId ? { topic: { filiereId: targetFiliereId } } : {})
         } as any
       }),
