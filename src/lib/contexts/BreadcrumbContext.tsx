@@ -14,8 +14,9 @@ export function BreadcrumbProvider({ children }: { children: React.ReactNode }) 
 
   const setLabel = useCallback((key: string, label: string) => {
     setLabels((prev) => {
-      if (prev[key] === label) return prev;
-      return { ...prev, [key]: label };
+      const normalizedKey = key.toLowerCase();
+      if (prev[normalizedKey] === label) return prev;
+      return { ...prev, [normalizedKey]: label };
     });
   }, []);
 

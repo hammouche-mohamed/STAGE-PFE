@@ -13,6 +13,8 @@ export async function GET(
 
   try {
     const { id } = await params;
+    console.log(`[topics/[id] GET] Requesting topic ID: ${id} for user: ${session?.user?.email} (${session?.user?.role})`);
+    
     const topic = await prisma.topic.findUnique({
       where: { id },
       include: {

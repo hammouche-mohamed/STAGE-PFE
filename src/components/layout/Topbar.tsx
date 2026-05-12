@@ -63,8 +63,8 @@ export const Topbar: React.FC = () => {
     const parts = pathname.split("/").filter(Boolean);
     return parts.map((part, i) => {
       const href = "/" + parts.slice(0, i + 1).join("/");
-      // Use label from context if available, otherwise capitalize path part
-      const label = labels[part] || (part.charAt(0).toUpperCase() + part.slice(1));
+      // Use label from context if available (case-insensitive lookup), otherwise capitalize path part
+      const label = labels[part.toLowerCase()] || (part.charAt(0).toUpperCase() + part.slice(1));
       return { label, href };
     });
   };

@@ -108,8 +108,12 @@ export default function AdminTopicDetailPage() {
         
         const data = topicRes.data || topicRes;
         
-        if (topicRes.error || !data || data.error) {
+        if (topicRes.error || data?.error) {
           throw new Error(topicRes.error || data?.error || "Topic not found");
+        }
+        
+        if (!data || (!data.title && !data.id)) {
+           throw new Error("Invalid topic data received");
         }
 
         setTopic(data);
@@ -134,8 +138,9 @@ export default function AdminTopicDetailPage() {
           filiereId: data.filiereId || "",
           targetLevels: data.targetLevels || ""
         });
-      } catch (error) {
-        toast.error("Failed to load topic details");
+      } catch (error: any) {
+        console.error("Error fetching topic:", error);
+        toast.error(error.message || "Failed to load topic details");
       } finally {
         setIsLoading(false);
       }
