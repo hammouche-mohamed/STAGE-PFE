@@ -8,7 +8,6 @@ import {
   Calendar, 
   User, 
   Activity,
-  Trash2,
   RefreshCw,
   ShieldCheck,
   Eye,
@@ -42,7 +41,13 @@ export default function AuditLogsPage() {
   const { data: session } = useSession();
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null);
 
+  // Authentication check
   if (session && !session.user.isSuperAdmin) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px] text-center p-6 bg-white dark:bg-slate-900 rounded-xl border border-dashed border-gray-300 dark:border-slate-700 shadow-sm">
@@ -51,17 +56,11 @@ export default function AuditLogsPage() {
         </div>
         <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Access Restricted</h2>
         <p className="text-gray-500 dark:text-gray-400 max-w-md mx-auto">
-          Only Administrators can view system audit logs. Please contact the main administrator if you believe this is an error.
+          Only Super Administrators can view system audit logs.
         </p>
       </div>
     );
   }
-  const [search, setSearch] = useState("");
-  const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [totalItems, setTotalItems] = useState(0);
-  const [isCleaning, setIsCleaning] = useState(false);
-  const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null);
 
   const parseDetails = (details: string | null) => {
     if (!details) return null;
@@ -93,95 +92,55 @@ export default function AuditLogsPage() {
     const timer = setTimeout(() => {
       setPage(1);
       fetchLogs(1, search);
-    }, 500); // Debounce search
+    }, 500);
     return () => clearTimeout(timer);
   }, [search]);
 
   useEffect(() => {
     fetchLogs(page, search);
-
-    // Auto-poll every 30 seconds for real-time updates
     const pollId = setInterval(() => fetchLogs(page, search, true), 30000);
     return () => clearInterval(pollId);
   }, [page]);
 
-  const filteredLogs = logs; // Now handled server-side
-
   const downloadCSV = () => {
     if (logs.length === 0) return;
-
-    const headers = ["Date", "User", "Action", "Target Type", "Target Name/ID", "Details", "IP Address"];
+    const headers = ["Date", "User", "Action", "Target", "Type", "Details", "IP"];
     const csvContent = [
       headers.join(","),
-      ...logs.map(log => {
-        const details = log.details ? log.details.replace(/,/g, ";").replace(/\n/g, " ") : "";
-        return [
-          format(new Date(log.createdAt), "yyyy-MM-dd HH:mm:ss"),
-          `"${log.user.name} (${log.user.email})"`,
-          `"${log.action}"`,
-          `"${log.targetType}"`,
-          `"${log.targetId}"`,
-          `"${details}"`,
-          `"${log.ipAddress || "N/A"}"`
-        ].join(",");
-      })
+      ...logs.map(log => [
+        format(new Date(log.createdAt), "yyyy-MM-dd HH:mm"),
+        `"${log.user.name}"`,
+        `"${log.action}"`,
+        `"${log.targetId}"`,
+        `"${log.targetType}"`,
+        `"${log.details?.replace(/"/g, '""') || ""}"`,
+        `"${log.ipAddress || ""}"`
+      ].join(","))
     ].join("\n");
 
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const link = document.createElement("a");
+    const blob = new Blob([csvContent], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
-    link.setAttribute("href", url);
-    link.setAttribute("download", `audit_report_${format(new Date(), "yyyy_MM_dd")}.csv`);
-    link.style.visibility = "hidden";
-    document.body.appendChild(link);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `audit_logs_${format(new Date(), "yyyy_MM_dd")}.csv`;
     link.click();
-    document.body.removeChild(link);
-    
-    toast.success("Audit report downloaded successfully");
-  };
-
-  const handleManualCleanup = async () => {
-    if (!confirm("Are you sure? This will permanently delete logs older than 1 year. You should download the CSV first.")) return;
-    
-    setIsCleaning(true);
-    try {
-      const res = await fetch("/api/audit/cleanup", { method: "POST" });
-      const result = await res.json();
-      if (res.ok) {
-        toast.success(`Cleanup complete: Removed ${result.deletedCount} old entries.`);
-        fetchLogs();
-      } else {
-        throw new Error(result.error);
-      }
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Cleanup failed");
-    } finally {
-      setIsCleaning(false);
-    }
+    toast.success("Logs exported to CSV");
   };
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-[16px] sm:text-[17px] font-semibold text-gray-900 dark:text-white flex items-center">
+          <h1 className="text-[17px] font-semibold text-gray-900 dark:text-white flex items-center">
             <ClipboardList className="h-5 w-5 mr-2 text-indigo-600 dark:text-indigo-400" />
             System Audit logs
           </h1>
-          <p className="text-[12px] sm:text-[13px] text-gray-500 dark:text-gray-400 mt-0.5">{t("nav.audit")}</p>
+          <p className="text-[13px] text-gray-500 dark:text-gray-400 mt-0.5">{t("nav.audit")}</p>
         </div>
-        <div className="flex gap-2 w-full sm:w-auto">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={downloadCSV}
-            className="flex-1 sm:flex-none"
-            disabled={isLoading || logs.length === 0}
-          >
-            <Download className="h-4 w-4 mr-1 md:mr-2" />
-            <span className="text-[11px] md:text-[13px]">{t("common.export")}</span>
-          </Button>
-        </div>
+        <Button variant="outline" size="sm" onClick={downloadCSV} disabled={logs.length === 0}>
+          <Download className="h-4 w-4 mr-2" />
+          {t("common.export")}
+        </Button>
       </div>
 
       <div className="flex flex-col sm:flex-row gap-4">
@@ -197,75 +156,54 @@ export default function AuditLogsPage() {
         </div>
         <Button variant="outline" size="sm" onClick={() => fetchLogs()}>
            <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-           {t("common.loading") === "Loading..." ? "Refresh" : "Actualiser"}
+           Refresh
         </Button>
       </div>
 
-      <div className="admin-table-container sm:bg-white dark:sm:bg-slate-900 sm:border sm:border-gray-200 dark:sm:border-slate-800 sm:rounded-md">
-        <table className="admin-table stacked-table">
+      <div className="admin-table-container">
+        <table className="admin-table">
           <thead className="admin-table-header">
             <tr>
               <th>Timestamp</th>
               <th>Administrator</th>
               <th>Action</th>
               <th>Target</th>
-              <th>Entity Type</th>
+              <th>Type</th>
               <th className="text-right px-6">Details</th>
             </tr>
           </thead>
           <tbody>
             {isLoading ? (
-              <tr>
-                <td colSpan={6} className="text-center py-12 text-gray-400 italic">{t("common.loading")}</td>
-              </tr>
-            ) : filteredLogs.length === 0 ? (
-              <tr>
-                <td colSpan={6} className="text-center py-12 text-gray-400">{t("common.noData")}</td>
-              </tr>
+              <tr><td colSpan={6} className="text-center py-12 text-gray-400 italic">Loading...</td></tr>
+            ) : logs.length === 0 ? (
+              <tr><td colSpan={6} className="text-center py-12 text-gray-400">No logs found</td></tr>
             ) : (
-              filteredLogs.map((log) => (
+              logs.map((log) => (
                 <tr key={log.id} className="admin-table-row">
-                  <td data-label="Time" className="whitespace-nowrap py-3 sm:py-0">
-                    <div className="flex items-center text-gray-500 dark:text-gray-400 text-[11px] sm:text-[12px]">
-                      <Calendar className="h-3 w-3 mr-1.5 flex-shrink-0" />
-                      {format(new Date(log.createdAt), "MMM d, HH:mm")}
-                    </div>
+                  <td className="whitespace-nowrap text-[12px] text-gray-500">
+                    {format(new Date(log.createdAt), "MMM d, HH:mm")}
                   </td>
-                  <td data-label="Admin">
+                  <td>
                     <div className="flex items-center gap-2">
-                      <div className="h-6 w-6 rounded-full bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center text-[10px] font-bold text-indigo-600 dark:text-indigo-400 flex-shrink-0">
+                      <div className="h-6 w-6 rounded-full bg-indigo-50 flex items-center justify-center text-[10px] font-bold text-indigo-600">
                         {log.user.name.charAt(0)}
                       </div>
-                      <div className="flex flex-col min-w-0 items-start">
-                        <span className="text-[12px] sm:text-[13px] font-medium text-gray-900 dark:text-white truncate">{log.user.name}</span>
-                        <span className="text-[10px] text-gray-500 dark:text-gray-400 truncate">{log.user.email}</span>
+                      <div className="flex flex-col">
+                        <span className="text-[13px] font-medium text-gray-900 dark:text-white">{log.user.name}</span>
+                        <span className="text-[10px] text-gray-500">{log.user.email}</span>
                       </div>
                     </div>
                   </td>
-                  <td data-label="Action">
-                    <span className="text-[10px] sm:text-[12px] font-bold text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-slate-800 px-2 py-0.5 rounded border border-gray-100 dark:border-slate-700 italic whitespace-nowrap">
+                  <td>
+                    <span className="text-[11px] font-bold bg-gray-50 px-2 py-0.5 rounded border border-gray-100 italic">
                        {log.action.replace(/_/g, " ")}
                     </span>
                   </td>
-                  <td data-label="Target">
-                    <span className="text-[13px] font-medium text-gray-900 dark:text-white">
-                      {log.targetId}
-                    </span>
-                  </td>
-                  <td data-label="Type">
-                    <div className="flex items-center text-[12px] text-gray-500 dark:text-gray-400">
-                      <Activity className="h-3.5 w-3.5 mr-1.5 text-gray-400 dark:text-gray-500" />
-                      {log.targetType}
-                    </div>
-                  </td>
+                  <td className="text-[13px] text-gray-900 dark:text-white">{log.targetId}</td>
+                  <td className="text-[12px] text-gray-500">{log.targetType}</td>
                   <td className="text-right px-6">
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className="h-8 w-8 p-0 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400"
-                      onClick={() => setSelectedLog(log)}
-                    >
-                      <Eye className="h-4 w-4" />
+                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => setSelectedLog(log)}>
+                      <Eye className="h-4 w-4 text-indigo-600" />
                     </Button>
                   </td>
                 </tr>
@@ -276,298 +214,55 @@ export default function AuditLogsPage() {
       </div>
 
       {totalPages > 1 && (
-        <div className="flex items-center justify-between px-4 py-4 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-lg shadow-sm mt-4">
-          <div className="text-[12px] text-gray-500 dark:text-gray-400">
-            Showing <span className="font-medium text-gray-900 dark:text-white">{logs.length}</span> of <span className="font-medium text-gray-900 dark:text-white">{totalItems}</span> results
+        <div className="flex items-center justify-between px-4 py-4 bg-white dark:bg-slate-900 border rounded-lg shadow-sm">
+          <div className="text-[12px] text-gray-500">
+            Showing {logs.length} of {totalItems} results
           </div>
           <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setPage(p => Math.max(1, p - 1))}
-              disabled={page === 1 || isLoading}
-            >
-              Previous
-            </Button>
-            <div className="flex items-center px-4 text-[12px] font-medium text-gray-700 dark:text-gray-300">
-              Page {page} of {totalPages}
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-              disabled={page === totalPages || isLoading}
-            >
-              Next
-            </Button>
+            <Button variant="outline" size="sm" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}>Previous</Button>
+            <span className="flex items-center px-4 text-[12px]">Page {page} of {totalPages}</span>
+            <Button variant="outline" size="sm" onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}>Next</Button>
           </div>
         </div>
       )}
-      
-      <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/50 p-4 rounded-lg flex items-start gap-3 mt-6">
-         <div className="p-1.5 bg-blue-100 dark:bg-blue-900/40 rounded text-blue-700 dark:text-blue-300">
-            <RefreshCw className="h-4 w-4" />
-         </div>
-      logs.map(log => {
-        const details = log.details ? log.details.replace(/,/g, ";").replace(/\n/g, " ") : "";
-        return [
-          format(new Date(log.createdAt), "yyyy-MM-dd HH:mm:ss"),
-          `"${log.user.name} (${log.user.email})"`,
-          `"${log.action}"`,
-          `"${log.targetType}"`,
-          `"${log.targetId}"`,
-          `"${details}"`,
-          `"${log.ipAddress || "N/A"}"`
-        ].join(",");
-      })
-    ].join("\n");
-
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const link = document.createElement("a");
-    const url = URL.createObjectURL(blob);
-    link.setAttribute("href", url);
-    link.setAttribute("download", `audit_report_${format(new Date(), "yyyy_MM_dd")}.csv`);
-    link.style.visibility = "hidden";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    
-    toast.success("Audit report downloaded successfully");
-  };
-
-  const handleManualCleanup = async () => {
-    if (!confirm("Are you sure? This will permanently delete logs older than 1 year. You should download the CSV first.")) return;
-    
-    setIsCleaning(true);
-    try {
-      const res = await fetch("/api/audit/cleanup", { method: "POST" });
-      const result = await res.json();
-      if (res.ok) {
-        toast.success(`Cleanup complete: Removed ${result.deletedCount} old entries.`);
-        fetchLogs();
-      } else {
-        throw new Error(result.error);
-      }
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Cleanup failed");
-    } finally {
-      setIsCleaning(false);
-    }
-  };
-
-  return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-[16px] sm:text-[17px] font-semibold text-gray-900 dark:text-white flex items-center">
-            <ClipboardList className="h-5 w-5 mr-2 text-indigo-600 dark:text-indigo-400" />
-            System Audit logs
-          </h1>
-          <p className="text-[12px] sm:text-[13px] text-gray-500 dark:text-gray-400 mt-0.5">{t("nav.audit")}</p>
-        </div>
-        <div className="flex gap-2 w-full sm:w-auto">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={downloadCSV}
-            className="flex-1 sm:flex-none"
-            disabled={isLoading || logs.length === 0}
-          >
-            <Download className="h-4 w-4 mr-1 md:mr-2" />
-            <span className="text-[11px] md:text-[13px]">{t("common.export")}</span>
-          </Button>
-        </div>
-      </div>
-
-      <div className="flex flex-col sm:flex-row gap-4">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-          <input
-            type="text"
-            placeholder={t("admin.users.searchPlaceholder")}
-            className="admin-input pl-10"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </div>
-        <Button variant="outline" size="sm" onClick={() => fetchLogs()}>
-           <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-           {t("common.loading") === "Loading..." ? "Refresh" : "Actualiser"}
-        </Button>
-      </div>
-
-      <div className="admin-table-container sm:bg-white dark:sm:bg-slate-900 sm:border sm:border-gray-200 dark:sm:border-slate-800 sm:rounded-md">
-        <table className="admin-table stacked-table">
-          <thead className="admin-table-header">
-            <tr>
-              <th>Timestamp</th>
-              <th>Administrator</th>
-              <th>Action</th>
-              <th>Target</th>
-              <th>Entity Type</th>
-              <th className="text-right px-6">Details</th>
-            </tr>
-          </thead>
-          <tbody>
-            {isLoading ? (
-              <tr>
-                <td colSpan={6} className="text-center py-12 text-gray-400 italic">{t("common.loading")}</td>
-              </tr>
-            ) : filteredLogs.length === 0 ? (
-              <tr>
-                <td colSpan={6} className="text-center py-12 text-gray-400">{t("common.noData")}</td>
-              </tr>
-            ) : (
-              filteredLogs.map((log) => (
-                <tr key={log.id} className="admin-table-row">
-                  <td data-label="Time" className="whitespace-nowrap py-3 sm:py-0">
-                    <div className="flex items-center text-gray-500 dark:text-gray-400 text-[11px] sm:text-[12px]">
-                      <Calendar className="h-3 w-3 mr-1.5 flex-shrink-0" />
-                      {format(new Date(log.createdAt), "MMM d, HH:mm")}
-                    </div>
-                  </td>
-                  <td data-label="Admin">
-                    <div className="flex items-center gap-2">
-                      <div className="h-6 w-6 rounded-full bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center text-[10px] font-bold text-indigo-600 dark:text-indigo-400 flex-shrink-0">
-                        {log.user.name.charAt(0)}
-                      </div>
-                      <div className="flex flex-col min-w-0 items-start">
-                        <span className="text-[12px] sm:text-[13px] font-medium text-gray-900 dark:text-white truncate">{log.user.name}</span>
-                        <span className="text-[10px] text-gray-500 dark:text-gray-400 truncate">{log.user.email}</span>
-                      </div>
-                    </div>
-                  </td>
-                  <td data-label="Action">
-                    <span className="text-[10px] sm:text-[12px] font-bold text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-slate-800 px-2 py-0.5 rounded border border-gray-100 dark:border-slate-700 italic whitespace-nowrap">
-                       {log.action.replace(/_/g, " ")}
-                    </span>
-                  </td>
-                  <td data-label="Target">
-                    <span className="text-[13px] font-medium text-gray-900 dark:text-white">
-                      {log.targetId}
-                    </span>
-                  </td>
-                  <td data-label="Type">
-                    <div className="flex items-center text-[12px] text-gray-500 dark:text-gray-400">
-                      <Activity className="h-3.5 w-3.5 mr-1.5 text-gray-400 dark:text-gray-500" />
-                      {log.targetType}
-                    </div>
-                  </td>
-                  <td className="text-right px-6">
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className="h-8 w-8 p-0 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400"
-                      onClick={() => setSelectedLog(log)}
-                    >
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
-
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between px-4 py-4 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-lg shadow-sm mt-4">
-          <div className="text-[12px] text-gray-500 dark:text-gray-400">
-            Showing <span className="font-medium text-gray-900 dark:text-white">{logs.length}</span> of <span className="font-medium text-gray-900 dark:text-white">{totalItems}</span> results
-          </div>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setPage(p => Math.max(1, p - 1))}
-              disabled={page === 1 || isLoading}
-            >
-              Previous
-            </Button>
-            <div className="flex items-center px-4 text-[12px] font-medium text-gray-700 dark:text-gray-300">
-              Page {page} of {totalPages}
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-              disabled={page === totalPages || isLoading}
-            >
-              Next
-            </Button>
-          </div>
-        </div>
-      )}
-      
-      <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/50 p-4 rounded-lg flex items-start gap-3 mt-6">
-         <div className="p-1.5 bg-blue-100 dark:bg-blue-900/40 rounded text-blue-700 dark:text-blue-300">
-            <RefreshCw className="h-4 w-4" />
-         </div>
-         <div className="text-[13px] text-blue-800 dark:text-blue-300 leading-relaxed">
-            <strong>System Maintenance:</strong> Automatic log rotation is enabled. Logs older than 365 days are automatically pruned to maintain system performance. Always download a CSV report before performing manual cleanup.
-         </div>
-      </div>
 
       {/* Log Details Modal */}
-      <Modal
-        isOpen={!!selectedLog}
-        onClose={() => setSelectedLog(null)}
-        title="Audit Log Details"
-        size="lg"
-      >
+      <Modal isOpen={!!selectedLog} onClose={() => setSelectedLog(null)} title="Audit Log Details" size="lg">
         {selectedLog && (() => {
           const details = parseDetails(selectedLog.details);
           return (
             <div className="space-y-6 py-2">
-              {/* Header Info */}
-              <div className="grid grid-cols-2 gap-6 p-4 bg-gray-50 dark:bg-slate-800/50 rounded-xl border border-gray-100 dark:border-slate-800">
+              <div className="grid grid-cols-2 gap-6 p-4 bg-gray-50 dark:bg-slate-800/50 rounded-xl border border-gray-100">
                 <div className="space-y-1">
-                  <span className="text-[10px] uppercase tracking-wider font-bold text-gray-400 dark:text-gray-500">Action Type</span>
-                  <div className="flex items-center gap-2">
-                    <Activity className="h-4 w-4 text-indigo-500" />
-                    <span className="text-[14px] font-semibold text-gray-900 dark:text-white">{selectedLog.action.replace(/_/g, " ")}</span>
-                  </div>
+                  <span className="text-[10px] uppercase font-bold text-gray-400">Action Type</span>
+                  <div className="text-[14px] font-semibold text-gray-900 dark:text-white">{selectedLog.action.replace(/_/g, " ")}</div>
                 </div>
                 <div className="space-y-1 text-right">
-                  <span className="text-[10px] uppercase tracking-wider font-bold text-gray-400 dark:text-gray-500">Event Date</span>
-                  <div className="text-[13px] text-gray-600 dark:text-gray-300 font-medium">
-                    {format(new Date(selectedLog.createdAt), "PPP p")}
-                  </div>
+                  <span className="text-[10px] uppercase font-bold text-gray-400">Date</span>
+                  <div className="text-[13px] font-medium">{format(new Date(selectedLog.createdAt), "PPP p")}</div>
                 </div>
               </div>
 
-              {/* Administrative Source */}
               <div className="space-y-3">
-                <h3 className="text-[13px] font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                  <User className="h-4 w-4 text-gray-400" />
-                  Performed By
-                </h3>
-                <div className="flex items-center justify-between p-3 border border-gray-100 dark:border-slate-800 rounded-lg">
+                <h3 className="text-[13px] font-bold flex items-center gap-2"><User className="h-4 w-4" /> Performed By</h3>
+                <div className="flex items-center justify-between p-3 border rounded-lg">
                   <div className="flex items-center gap-3">
-                    <div className="h-8 w-8 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center font-bold text-indigo-600 dark:text-indigo-400">
-                      {selectedLog.user.name.charAt(0)}
-                    </div>
+                    <div className="h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center font-bold text-indigo-600">{selectedLog.user.name.charAt(0)}</div>
                     <div>
-                      <div className="text-[13px] font-medium text-gray-900 dark:text-white">{selectedLog.user.name}</div>
+                      <div className="text-[13px] font-medium">{selectedLog.user.name}</div>
                       <div className="text-[11px] text-gray-500">{selectedLog.user.email}</div>
                     </div>
                   </div>
-                  <div className="text-[11px] text-gray-400 font-medium">
-                    Source: {selectedLog.ipAddress || "Internal"}
-                  </div>
+                  <div className="text-[11px] text-gray-400">Source: {selectedLog.ipAddress || "Internal"}</div>
                 </div>
               </div>
 
-              {/* Modifications Section */}
-              {details && details.modifications && details.modifications.length > 0 && (
+              {details?.modifications?.length > 0 && (
                 <div className="space-y-3">
-                  <h3 className="text-[13px] font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                    <RefreshCw className="h-4 w-4 text-blue-500" />
-                    Changes Applied
-                  </h3>
-                  <div className="bg-blue-50/30 dark:bg-blue-900/10 border border-blue-100/50 dark:border-blue-800/30 rounded-xl p-4 space-y-2">
+                  <h3 className="text-[13px] font-bold flex items-center gap-2 text-blue-600"><RefreshCw className="h-4 w-4" /> Changes Applied</h3>
+                  <div className="bg-blue-50/30 border border-blue-100 rounded-xl p-4 space-y-2">
                     {details.modifications.map((mod: string, idx: number) => (
-                      <div key={idx} className="flex items-start gap-2 text-[13px] text-gray-700 dark:text-gray-300">
+                      <div key={idx} className="flex items-start gap-2 text-[13px] text-gray-700">
                         <ChevronRight className="h-4 w-4 mt-0.5 text-blue-400 shrink-0" />
                         <span>{mod.replace(/^• /, "")}</span>
                       </div>
@@ -576,32 +271,28 @@ export default function AuditLogsPage() {
                 </div>
               )}
 
-              {/* Data Comparison Section - Simplified */}
-              {details && details.before && details.after && (
+              {details?.before && details?.after && (
                 <div className="space-y-3">
-                  <h3 className="text-[13px] font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                    <Activity className="h-4 w-4 text-purple-500" />
-                    Comparison (Old vs New)
-                  </h3>
+                  <h3 className="text-[13px] font-bold flex items-center gap-2 text-purple-600"><Activity className="h-4 w-4" /> Data Comparison</h3>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <div className="text-[11px] font-bold text-gray-400 uppercase tracking-tight">Previous Data</div>
-                      <div className="p-3 bg-gray-50 dark:bg-slate-800 rounded-lg space-y-2 border border-gray-100 dark:border-slate-800">
+                      <div className="text-[11px] font-bold text-gray-400 uppercase">Old Data</div>
+                      <div className="p-3 bg-gray-50 rounded-lg space-y-2 border">
                         {Object.entries(details.before).map(([k, v]: [string, any]) => (
-                          <div key={k} className="flex flex-col border-b border-gray-200/50 dark:border-slate-700/50 pb-1 last:border-0">
-                            <span className="text-[10px] font-bold text-gray-400 uppercase">{k.replace(/([A-Z])/g, ' $1').trim()}</span>
-                            <span className="text-[12px] text-gray-600 dark:text-gray-400 truncate">{String(v ?? "None")}</span>
+                          <div key={k} className="flex flex-col border-b last:border-0 pb-1">
+                            <span className="text-[10px] font-bold text-gray-400 uppercase">{k.replace(/([A-Z])/g, ' $1')}</span>
+                            <span className="text-[12px] text-gray-600 truncate">{String(v ?? "None")}</span>
                           </div>
                         ))}
                       </div>
                     </div>
                     <div className="space-y-2">
-                      <div className="text-[11px] font-bold text-gray-400 uppercase tracking-tight">Updated Data</div>
-                      <div className="p-3 bg-indigo-50/20 dark:bg-indigo-900/10 border border-indigo-100/50 dark:border-indigo-800/30 rounded-lg space-y-2">
+                      <div className="text-[11px] font-bold text-gray-400 uppercase">New Data</div>
+                      <div className="p-3 bg-indigo-50/20 border border-indigo-100 rounded-lg space-y-2">
                         {Object.entries(details.after).map(([k, v]: [string, any]) => (
-                          <div key={k} className="flex flex-col border-b border-indigo-100/30 dark:border-indigo-800/20 pb-1 last:border-0">
-                            <span className="text-[10px] font-bold text-indigo-400 dark:text-indigo-400 uppercase">{k.replace(/([A-Z])/g, ' $1').trim()}</span>
-                            <span className="text-[12px] text-gray-900 dark:text-white font-bold truncate">{String(v ?? "None")}</span>
+                          <div key={k} className="flex flex-col border-b border-indigo-100/30 last:border-0 pb-1">
+                            <span className="text-[10px] font-bold text-indigo-400 uppercase">{k.replace(/([A-Z])/g, ' $1')}</span>
+                            <span className="text-[12px] text-gray-900 font-bold truncate">{String(v ?? "None")}</span>
                           </div>
                         ))}
                       </div>
@@ -610,33 +301,21 @@ export default function AuditLogsPage() {
                 </div>
               )}
 
-              {/* Simplified Fallback for Additional Data */}
               {details && !details.modifications && !details.before && (
                 <div className="space-y-3">
-                   <h3 className="text-[13px] font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                    <Info className="h-4 w-4 text-gray-400" />
-                    Additional Details
-                  </h3>
-                  <div className="p-4 bg-gray-50 dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-800 space-y-4">
-                    {typeof details === 'object' ? (
-                      Object.entries(details).map(([key, value]) => (
-                        <div key={key} className="flex flex-col gap-1 border-b border-gray-200/30 dark:border-slate-700/30 pb-2 last:border-0 last:pb-0">
-                          <span className="text-[11px] font-bold text-gray-400 uppercase tracking-tight">
-                            {key.replace(/([A-Z])/g, ' $1').trim()}
-                          </span>
-                          <span className="text-[13px] text-gray-700 dark:text-gray-300 break-words font-medium">
-                            {Array.isArray(value) ? value.join(", ") : String(value)}
-                          </span>
-                        </div>
-                      ))
-                    ) : (
-                      <p className="text-[13px] text-gray-700 dark:text-gray-300">{String(details)}</p>
-                    )}
+                  <h3 className="text-[13px] font-bold flex items-center gap-2 text-gray-500"><Info className="h-4 w-4" /> Details</h3>
+                  <div className="p-4 bg-gray-50 rounded-xl border space-y-3 text-[13px]">
+                    {typeof details === 'object' ? Object.entries(details).map(([key, value]) => (
+                      <div key={key} className="flex flex-col border-b last:border-0 pb-2">
+                        <span className="text-[11px] font-bold text-gray-400 uppercase">{key.replace(/([A-Z])/g, ' $1')}</span>
+                        <span>{Array.isArray(value) ? value.join(", ") : String(value)}</span>
+                      </div>
+                    )) : String(details)}
                   </div>
                 </div>
               )}
               
-              <div className="flex justify-end pt-4 border-t border-gray-100 dark:border-slate-800">
+              <div className="flex justify-end pt-4 border-t">
                 <Button onClick={() => setSelectedLog(null)} variant="outline">Close Details</Button>
               </div>
             </div>
