@@ -1,5 +1,6 @@
-import { PrismaClient } from "@prisma/client";
-import bcrypt from "bcryptjs";
+import { PrismaClient, user_role, topic_type, topic_status, registrationrequest_role, registrationrequest_status } from '@prisma/client';
+import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
 
 const prisma = new PrismaClient();
 
@@ -267,7 +268,43 @@ async function main() {
     });
   }
 
-  console.log("Seeding completed successfully!");
+  // --- AUDIT LOGS ---
+  const superAdmin = await prisma.user.findFirst({ where: { email: "kalomino.2006@gmail.com" } });
+  if (superAdmin) {
+    await prisma.auditLog.createMany({
+      data: [
+        {
+          id: crypto.randomUUID(),
+          userId: superAdmin.id,
+          action: "SYSTEM_CONFIG_UPDATED",
+          targetType: "Settings",
+          targetId: "Global",
+          details: JSON.stringify({ academicYear: "2024-2025", registrations: "OPEN" }),
+          createdAt: new Date(Date.now() - 86400000 * 2) // 2 days ago
+        },
+        {
+          id: crypto.randomUUID(),
+          userId: superAdmin.id,
+          action: "USER_STATUS_TOGGLED",
+          targetType: "User",
+          targetId: "Student 1",
+          details: JSON.stringify({ status: "ACTIVE", reason: "Registration approved" }),
+          createdAt: new Date(Date.now() - 3600000 * 5) // 5 hours ago
+        },
+        {
+          id: crypto.randomUUID(),
+          userId: superAdmin.id,
+          action: "TOPIC_VALIDATED",
+          targetType: "Topic",
+          targetId: "Topic for Supervisor 1",
+          details: JSON.stringify({ status: "APPROVED" }),
+          createdAt: new Date(Date.now() - 3600000) // 1 hour ago
+        }
+      ]
+    });
+  }
+
+  console.log("Seed completed successfully!");
 }
 
 main()

@@ -122,15 +122,16 @@
 @layer components {
   /* Admin-style Tables */
   .admin-table-container {
-    @apply bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-md overflow-x-auto shadow-sm min-h-[250px];
+    @apply bg-gray-50/50 dark:bg-slate-950/20 border border-gray-200 dark:border-slate-800 rounded-xl overflow-x-auto shadow-sm min-h-[250px] p-2;
   }
 
   .admin-table {
-    @apply w-full text-left border-collapse;
+    @apply w-full text-left border-separate;
+    border-spacing: 0 8px;
   }
 
   .admin-table-header {
-    @apply bg-gray-50/80 dark:bg-slate-800/50 h-[48px] border-b border-gray-200 dark:border-slate-800;
+    @apply h-[40px];
   }
 
   .admin-table-header th {
@@ -138,11 +139,11 @@
   }
 
   .admin-table-row {
-    @apply min-h-[64px] border-b border-gray-100 dark:border-slate-800 hover:bg-gray-50 dark:hover:bg-slate-800/30 transition-colors;
+    @apply transition-all duration-200 hover:translate-x-1;
   }
 
   .admin-table-row td {
-    @apply px-4 py-4 text-[13px] text-gray-600 dark:text-gray-200 align-middle;
+    @apply bg-white dark:bg-slate-900 px-4 py-5 text-[13px] text-gray-600 dark:text-gray-200 align-middle border-y border-gray-100 dark:border-slate-800/50 first:border-l first:rounded-l-lg last:border-r last:rounded-r-lg shadow-sm;
   }
 
   .empty-row td {

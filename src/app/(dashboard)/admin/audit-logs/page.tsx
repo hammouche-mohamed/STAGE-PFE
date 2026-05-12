@@ -142,9 +142,9 @@ export default function AuditLogsPage() {
         <div>
           <h1 className="text-[17px] font-semibold text-gray-900 dark:text-white flex items-center">
             <ClipboardList className="h-5 w-5 mr-2 text-indigo-600 dark:text-indigo-400" />
-            {t("audit.title")}
+            {t("common.audit.title")}
           </h1>
-          <p className="text-[13px] text-gray-500 dark:text-gray-400 mt-0.5">{t("nav.audit")}</p>
+          <p className="text-[13px] text-gray-500 dark:text-gray-400 mt-0.5">{t("common.auditLogs")}</p>
         </div>
         <Button variant="outline" size="sm" onClick={downloadCSV} disabled={logs.length === 0}>
           <Download className="h-4 w-4 mr-2" />
@@ -152,42 +152,45 @@ export default function AuditLogsPage() {
         </Button>
       </div>
 
-      <div className="flex flex-col lg:flex-row gap-4">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-          <input
-            type="text"
-            placeholder={t("admin.users.searchPlaceholder")}
-            className="admin-input pl-10"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
+      <div className="flex flex-col lg:flex-row gap-4 items-end">
+        <div className="relative flex-1 w-full">
+          <span className="text-[10px] uppercase font-bold text-gray-400 px-1 mb-1 block">Search</span>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <input
+              type="text"
+              placeholder={t("admin.users.searchPlaceholder")}
+              className="admin-input pl-10"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
         </div>
         
         {/* Date Filters */}
-        <div className="flex flex-col sm:flex-row gap-2 items-end sm:items-center">
+        <div className="flex flex-col sm:flex-row gap-2 items-end w-full lg:w-auto">
           <div className="flex flex-col gap-1 w-full sm:w-auto">
-            <span className="text-[10px] uppercase font-bold text-gray-400 px-1">{t("audit.from")}</span>
+            <span className="text-[10px] uppercase font-bold text-gray-400 px-1">{t("common.audit.from")}</span>
             <input 
               type="date" 
-              className="admin-input py-1.5 h-auto text-[13px]" 
+              className="admin-input py-1.5 h-[40px] text-[13px]" 
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
             />
           </div>
           <div className="flex flex-col gap-1 w-full sm:w-auto">
-            <span className="text-[10px] uppercase font-bold text-gray-400 px-1">{t("audit.to")}</span>
+            <span className="text-[10px] uppercase font-bold text-gray-400 px-1">{t("common.audit.to")}</span>
             <input 
               type="date" 
-              className="admin-input py-1.5 h-auto text-[13px]" 
+              className="admin-input py-1.5 h-[40px] text-[13px]" 
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
             />
           </div>
-          <div className="flex gap-2 w-full sm:w-auto pt-5 sm:pt-0">
-            <Button variant="outline" size="sm" onClick={() => fetchLogs()} className="flex-1 sm:flex-none">
+          <div className="flex gap-2 w-full sm:w-auto">
+            <Button variant="outline" size="sm" onClick={() => fetchLogs()} className="h-[40px] px-4">
                <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-               {t("audit.refresh")}
+               {t("common.audit.refresh")}
             </Button>
             {(startDate || endDate || search) && (
               <Button 
@@ -213,7 +216,7 @@ export default function AuditLogsPage() {
             <tr>
               <th>{t("common.date")}</th>
               <th>{t("roles.ADMIN")}</th>
-              <th>{t("audit.actionType")}</th>
+              <th>{t("common.audit.actionType")}</th>
               <th>{t("topics.list.capacity")} Target</th>
               <th>{t("documents.type")}</th>
               <th className="text-right px-6">{t("common.actions")}</th>
@@ -221,9 +224,9 @@ export default function AuditLogsPage() {
           </thead>
           <tbody>
             {isLoading ? (
-              <tr><td colSpan={6} className="text-center py-12 text-gray-400 italic">{t("audit.loading")}</td></tr>
+              <tr><td colSpan={6} className="text-center py-12 text-gray-400 italic">{t("common.audit.loading")}</td></tr>
             ) : logs.length === 0 ? (
-              <tr><td colSpan={6} className="text-center py-12 text-gray-400">{t("audit.noLogs")}</td></tr>
+              <tr><td colSpan={6} className="text-center py-12 text-gray-400">{t("common.audit.noLogs")}</td></tr>
             ) : (
               logs.map((log) => (
                 <tr key={log.id} className="admin-table-row">
@@ -275,34 +278,34 @@ export default function AuditLogsPage() {
 
       {/* Maintenance Hint */}
       <div className="bg-blue-50/50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-800/30 p-4 rounded-xl flex items-start gap-3">
-         <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded text-blue-600">
+          <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded text-blue-600">
             <Info className="h-5 w-5" />
          </div>
          <div className="text-[13px] text-blue-800 dark:text-blue-300">
-            <strong className="block mb-1">{t("audit.maintenanceTitle")}</strong>
-            {t("audit.maintenanceDesc")}
+            <strong className="block mb-1">{t("common.audit.maintenanceTitle")}</strong>
+            {t("common.audit.maintenanceDesc")}
          </div>
       </div>
 
       {/* Log Details Modal */}
-      <Modal isOpen={!!selectedLog} onClose={() => setSelectedLog(null)} title={t("audit.closeDetails").split(" ")[0] + " Details"} size="lg">
+      <Modal isOpen={!!selectedLog} onClose={() => setSelectedLog(null)} title={t("common.audit.closeDetails").split(" ")[0] + " Details"} size="lg">
         {selectedLog && (() => {
           const details = parseDetails(selectedLog.details);
           return (
             <div className="space-y-6 py-2">
               <div className="grid grid-cols-2 gap-6 p-4 bg-gray-50 dark:bg-slate-800/50 rounded-xl border border-gray-100">
                 <div className="space-y-1">
-                  <span className="text-[10px] uppercase font-bold text-gray-400">{t("audit.actionType")}</span>
+                  <span className="text-[10px] uppercase font-bold text-gray-400">{t("common.audit.actionType")}</span>
                   <div className="text-[14px] font-semibold text-gray-900 dark:text-white">{selectedLog.action.replace(/_/g, " ")}</div>
                 </div>
                 <div className="space-y-1 text-right">
-                  <span className="text-[10px] uppercase font-bold text-gray-400">{t("audit.eventDate")}</span>
+                  <span className="text-[10px] uppercase font-bold text-gray-400">{t("common.audit.eventDate")}</span>
                   <div className="text-[13px] font-medium">{format(new Date(selectedLog.createdAt), "PPP p")}</div>
                 </div>
               </div>
 
               <div className="space-y-3">
-                <h3 className="text-[13px] font-bold flex items-center gap-2 text-gray-900 dark:text-white"><User className="h-4 w-4" /> {t("audit.performedBy")}</h3>
+                <h3 className="text-[13px] font-bold flex items-center gap-2 text-gray-900 dark:text-white"><User className="h-4 w-4" /> {t("common.audit.performedBy")}</h3>
                 <div className="flex items-center justify-between p-3 border rounded-lg">
                   <div className="flex items-center gap-3">
                     <div className="h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center font-bold text-indigo-600">{selectedLog.user.name.charAt(0)}</div>
@@ -311,13 +314,13 @@ export default function AuditLogsPage() {
                       <div className="text-[11px] text-gray-500">{selectedLog.user.email}</div>
                     </div>
                   </div>
-                  <div className="text-[11px] text-gray-400">{t("audit.source")}: {selectedLog.ipAddress || "Internal"}</div>
+                  <div className="text-[11px] text-gray-400">{t("common.audit.source")}: {selectedLog.ipAddress || "Internal"}</div>
                 </div>
               </div>
 
               {details?.modifications?.length > 0 && (
                 <div className="space-y-3">
-                  <h3 className="text-[13px] font-bold flex items-center gap-2 text-blue-600"><RefreshCw className="h-4 w-4" /> {t("audit.changesApplied")}</h3>
+                  <h3 className="text-[13px] font-bold flex items-center gap-2 text-blue-600"><RefreshCw className="h-4 w-4" /> {t("common.audit.changesApplied")}</h3>
                   <div className="bg-blue-50/30 border border-blue-100 rounded-xl p-4 space-y-2">
                     {details.modifications.map((mod: string, idx: number) => (
                       <div key={idx} className="flex items-start gap-2 text-[13px] text-gray-700">
@@ -331,10 +334,10 @@ export default function AuditLogsPage() {
 
               {details?.before && details?.after && (
                 <div className="space-y-3">
-                  <h3 className="text-[13px] font-bold flex items-center gap-2 text-purple-600"><Activity className="h-4 w-4" /> {t("audit.comparison")}</h3>
+                  <h3 className="text-[13px] font-bold flex items-center gap-2 text-purple-600"><Activity className="h-4 w-4" /> {t("common.audit.comparison")}</h3>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <div className="text-[11px] font-bold text-gray-400 uppercase">{t("audit.oldData")}</div>
+                      <div className="text-[11px] font-bold text-gray-400 uppercase">{t("common.audit.oldData")}</div>
                       <div className="p-3 bg-gray-50 rounded-lg space-y-2 border">
                         {Object.entries(details.before).map(([k, v]: [string, any]) => (
                           <div key={k} className="flex flex-col border-b last:border-0 pb-1">
@@ -345,7 +348,7 @@ export default function AuditLogsPage() {
                       </div>
                     </div>
                     <div className="space-y-2">
-                      <div className="text-[11px] font-bold text-gray-400 uppercase">{t("audit.newData")}</div>
+                      <div className="text-[11px] font-bold text-gray-400 uppercase">{t("common.audit.newData")}</div>
                       <div className="p-3 bg-indigo-50/20 border border-indigo-100 rounded-lg space-y-2">
                         {Object.entries(details.after).map(([k, v]: [string, any]) => (
                           <div key={k} className="flex flex-col border-b border-indigo-100/30 last:border-0 pb-1">
@@ -361,7 +364,7 @@ export default function AuditLogsPage() {
 
               {details && !details.modifications && !details.before && (
                 <div className="space-y-3">
-                  <h3 className="text-[13px] font-bold flex items-center gap-2 text-gray-500"><Info className="h-4 w-4" /> {t("audit.details")}</h3>
+                  <h3 className="text-[13px] font-bold flex items-center gap-2 text-gray-500"><Info className="h-4 w-4" /> {t("common.audit.details")}</h3>
                   <div className="p-4 bg-gray-50 rounded-xl border space-y-3 text-[13px]">
                     {typeof details === 'object' ? Object.entries(details).map(([key, value]) => (
                       <div key={key} className="flex flex-col border-b last:border-0 pb-2">
@@ -374,7 +377,7 @@ export default function AuditLogsPage() {
               )}
               
               <div className="flex justify-end pt-4 border-t">
-                <Button onClick={() => setSelectedLog(null)} variant="outline">{t("audit.closeDetails")}</Button>
+                <Button onClick={() => setSelectedLog(null)} variant="outline">{t("common.audit.closeDetails")}</Button>
               </div>
             </div>
           );

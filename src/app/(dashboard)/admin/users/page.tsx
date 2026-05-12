@@ -1020,14 +1020,14 @@ export default function AdminUsersPage() {
                     return (
                       <tr key={team.id} className="admin-table-row">
                         <td data-label="Leader & Reason" className="font-medium text-gray-900 dark:text-white">
-                          <div className="flex flex-col gap-1.5">
+                          <div className="flex flex-col gap-2.5">
                             <span className="font-bold">{leader?.name || "Unknown"} (Leader)</span>
                             <span className="text-[12px] text-gray-500 font-normal italic truncate max-w-xs">{team.reason || "No reason provided"}</span>
                           </div>
                         </td>
                         <td data-label="Department" className="text-gray-500 dark:text-gray-400">{team.filiere?.name || "N/A"}</td>
                         <td data-label="Members" className="text-gray-500 dark:text-gray-400">
-                          <div className="flex flex-col gap-1.5">
+                          <div className="flex flex-col gap-2.5">
                             {team.members.map((m: any) => (
                               <span key={m.id} className="text-[12px] bg-gray-100 px-2 py-0.5 rounded max-w-max text-gray-800">
                                 {m.student.name} {m.isLeader ? "(L)" : ""}
