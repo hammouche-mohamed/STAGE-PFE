@@ -323,7 +323,7 @@ export default function AdminTopicDetailPage() {
              <div className="border-b border-gray-100 dark:border-slate-800 bg-gray-50/50 dark:bg-slate-800/30 px-6 py-4">
                <h3 className="text-[14px] font-bold text-gray-900 dark:text-white flex items-center">
                   <Layers className="h-4 w-4 mr-2 text-indigo-500" />
-                  Topic Configuration
+                  {t("topics.topicInfo")}
                </h3>
              </div>
              
@@ -346,7 +346,7 @@ export default function AdminTopicDetailPage() {
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">Type</label>
+                    <label className="text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">{t("topics.type")}</label>
                     <select 
                       className="admin-input w-full text-[13px] h-10"
                       value={editData.type}
@@ -359,7 +359,7 @@ export default function AdminTopicDetailPage() {
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">Capacity</label>
+                    <label className="text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">{t("topics.list.capacity")}</label>
                     <input 
                       type="number"
                       className="admin-input w-full text-[13px] h-10"
@@ -372,7 +372,7 @@ export default function AdminTopicDetailPage() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-6 border-t border-gray-100">
                   <div className="space-y-1.5">
-                    <label className="text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">Academic Supervisor</label>
+                    <label className="text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">{t("topics.list.supervisor")}</label>
                     <select 
                       className="admin-input w-full text-[13px] h-10"
                       value={editData.teacherId}
@@ -387,7 +387,7 @@ export default function AdminTopicDetailPage() {
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">Filière</label>
+                    <label className="text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">{t("common.filiere")}</label>
                     <select 
                       className="admin-input w-full text-[13px] h-10"
                       value={editData.filiereId}
@@ -396,7 +396,7 @@ export default function AdminTopicDetailPage() {
                     >
                       <option value="">Select Filière...</option>
                       {filieres.map(f => (
-                        <option key={f.id} value={f.id}>{f.name} ({f.code})</option>
+                        <option key={f.id} value={f.id}>{f.name}{f.code ? ` (${f.code})` : ""}</option>
                       ))}
                     </select>
                   </div>
@@ -676,12 +676,12 @@ export default function AdminTopicDetailPage() {
               </div>
 
               <div className="pt-6 border-t border-gray-50 dark:border-slate-800">
-                <p className="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-3">Topic Stats</p>
+                <p className="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-3">{t("common.statistics")}</p>
                 <div className="space-y-3">
                    <div className="flex items-center justify-between text-[13px]">
                       <span className="text-gray-500 dark:text-gray-400 flex items-center">
                          <Users className="h-3.5 w-3.5 mr-2 text-gray-400 dark:text-gray-500" />
-                         Max Students
+                         {t("topics.list.capacity")}
                       </span>
                       <span className="font-bold text-gray-900 dark:text-white">{topic.maxStudents}</span>
                    </div>
