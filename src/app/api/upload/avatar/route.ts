@@ -1,9 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import prisma from "@/lib/prisma";
-import { writeFile, mkdir } from "fs/promises";
-import { join } from "path";
-import { randomUUID } from "crypto";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -42,47 +39,39 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "File size must be under 16MB" }, { status: 400 });
     }
 
-    const ext = file.name.split(".").pop() || "png";
-    const filename = `avatar-${randomUUID()}.${ext}`;
-    const uploadsDir = join(process.cwd(), "public", "uploads");
+    const bytes = await file.arrayBuffer();
+    const buffer = Buffer.from(bytes);
 
+    // Save to database instead of filesystem (Vercel is read-only)
     try {
-      await mkdir(uploadsDir, { recursive: true });
-    } catch (err) {
-      console.error("Upload error: Failed to create directory", err);
-      return NextResponse.json({ error: "Storage error" }, { status: 500 });
-    }
+      const upload = await prisma.upload.create({
+        data: {
+          fileName: file.name,
+          fileType: file.type || "image/png",
+          content: buffer,
+        },
+      });
 
-    try {
-      const bytes = await file.arrayBuffer();
-      const buffer = Buffer.from(bytes);
-      await writeFile(join(uploadsDir, filename), buffer);
-    } catch (err) {
-      console.error("Upload error: Failed to write file", err);
-      return NextResponse.json({ error: "Write failed" }, { status: 500 });
-    }
+      const publicUrl = `/api/uploads/${upload.id}`;
 
-    const publicUrl = `/uploads/${filename}`;
-
-    // Save to user record
-    try {
-      const updatedUser = await prisma.user.update({
+      // Save to user record
+      await prisma.user.update({
         where: { id: session.user.id },
         data: { 
           avatarUrl: publicUrl,
           updatedAt: new Date() 
         },
       });
-      console.log(`User ${session.user.id} avatar updated to: ${publicUrl}`);
+
+      console.log(`User ${session.user.id} avatar updated to: ${publicUrl} (stored in DB)`);
+      return NextResponse.json({ url: publicUrl });
     } catch (err: any) {
-      console.error("Upload error: Database update failed", err);
+      console.error("Upload error: Database storage failed", err);
       return NextResponse.json({ 
-        error: "Database update failed", 
+        error: "Storage failed", 
         details: err.message 
       }, { status: 500 });
     }
-
-    return NextResponse.json({ url: publicUrl });
   } catch (error: any) {
     console.error("Avatar upload catch block error:", error);
     return NextResponse.json(
