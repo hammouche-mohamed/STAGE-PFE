@@ -208,11 +208,11 @@ export async function GET(req: NextRequest) {
     // ── ACADEMIC YEAR FILTER ────────────────────────────────────────────────
     // Admins see all years by default unless specified.
     // Students/Teachers are locked to the current year by default.
-    if (academicYear && academicYear !== 'all') {
+    if (academicYear && academicYear !== 'all' && academicYear !== 'N/A') {
       where.academicYear = academicYear;
     } else if (session.user.role !== 'ADMIN') {
       const currentYear = await SettingsService.getCurrentAcademicYear();
-      if (currentYear) where.academicYear = currentYear;
+      if (currentYear && currentYear !== 'N/A') where.academicYear = currentYear;
     }
 
     // ── ROLE-BASED VISIBILITY & FILTERS ────────────────────────────────────
@@ -324,7 +324,7 @@ export async function GET(req: NextRequest) {
     const [topics, total] = await Promise.all([
       prisma.topic.findMany({
         where,
-        select: topicSelect,
+        select: topicSelect as any,
         orderBy: { createdAt: 'desc' },
         take: limit,
         skip,
