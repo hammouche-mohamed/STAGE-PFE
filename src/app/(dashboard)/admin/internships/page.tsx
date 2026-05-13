@@ -32,13 +32,13 @@ const slugify = (value: string) =>
 interface Internship {
   id: string;
   topic: { title: string; type: string };
-  teacher: { name: string };
-  students: { student: { name: string; email: string } }[];
+  user: { name: string; filiereName?: string };
+  internshipstudent: { user: { name: string; email: string } }[];
   status: string;
   academicYear: string;
   startDate?: string;
   endDate?: string;
-  _count: { documents: number; messages: number };
+  _count: { document: number; message: number };
   createdAt: string;
 }
 
@@ -84,7 +84,7 @@ export default function AdminInternshipsPage() {
 
   const filteredInternships = internships.filter(i => {
     const matchesSearch = i.topic.title.toLowerCase().includes(search.toLowerCase()) || 
-                         i.students.some(s => s.student.name.toLowerCase().includes(search.toLowerCase()));
+                         (i as any).internshipstudent.some((s: any) => s.user.name.toLowerCase().includes(search.toLowerCase()));
     const matchesStatus = statusFilter === "ALL" || i.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
@@ -166,9 +166,9 @@ export default function AdminInternshipsPage() {
                   <td data-label="Internship" className="py-4">
                     <div className="flex flex-col max-w-[400px] items-start">
                       <div className="flex flex-wrap items-center gap-1 mb-1">
-                        {internship.students.map((s, idx) => (
-                          <span key={s.student.email} className="text-[13px] font-semibold text-gray-900 dark:text-white">
-                            {s.student.name}{idx < internship.students.length - 1 ? ", " : ""}
+                        {((internship as any).internshipstudent || []).map((s: any, idx: number) => (
+                          <span key={(s as any).user.email} className="text-[13px] font-semibold text-gray-900 dark:text-white">
+                            {(s as any).user.name}{idx < (internship as any).internshipstudent.length - 1 ? ", " : ""}
                           </span>
                         ))}
                       </div>
@@ -187,10 +187,10 @@ export default function AdminInternshipsPage() {
                     <div className="flex flex-col items-start gap-0.5">
                       <div className="flex items-center gap-2">
                         <GraduationCap className="h-4 w-4 text-gray-400 dark:text-gray-500" />
-                        <span className="text-[13px] text-gray-900 dark:text-white font-medium">{(internship.teacher as any).name}</span>
+                        <span className="text-[13px] text-gray-900 dark:text-white font-medium">{(internship as any).user.name}</span>
                       </div>
                       <span className="text-[10px] text-gray-400 dark:text-gray-500 px-1.5 py-0.5 font-semibold bg-gray-50 dark:bg-slate-800 rounded border border-gray-100 dark:border-slate-700 uppercase tracking-tight ml-6">
-                        {(internship.teacher as any).filiereName}
+                        {(internship as any).user.filiereName || "ESST"}
                       </span>
                     </div>
                   </td>
@@ -198,11 +198,11 @@ export default function AdminInternshipsPage() {
                     <div className="flex items-center gap-4">
                       <div className="flex items-center gap-1.5" title="Documents uploaded">
                         <FileText className="h-3.5 w-3.5 text-gray-400 dark:text-gray-500" />
-                        <span className="text-[12px] font-medium text-gray-600 dark:text-gray-400">{internship._count.documents} docs</span>
+                        <span className="text-[12px] font-medium text-gray-600 dark:text-gray-400">{(internship as any)._count.document} docs</span>
                       </div>
                       <div className="flex items-center gap-1.5" title="Messages exchanged">
                         <MessageSquare className="h-3.5 w-3.5 text-gray-400 dark:text-gray-500" />
-                        <span className="text-[12px] font-medium text-gray-600 dark:text-gray-400">{internship._count.messages} msg</span>
+                        <span className="text-[12px] font-medium text-gray-600 dark:text-gray-400">{(internship as any)._count.message} msg</span>
                       </div>
                     </div>
                   </td>
