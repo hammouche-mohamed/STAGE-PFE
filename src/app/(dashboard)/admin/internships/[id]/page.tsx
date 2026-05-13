@@ -31,8 +31,8 @@ interface Internship {
       companyName?: string;
       proposedBy: { name: string }
    };
-   user: { name: string; email: string };
-   internshipstudent: { user: { name: string; email: string; studentId: string } }[];
+   teacher: { name: string; email: string };
+   students: { student: { name: string; email: string; studentId: string } }[];
    status: string;
    academicYear: string;
    internshipType?: string | null;
@@ -159,10 +159,10 @@ export default function AdminInternshipDetailPage() {
       Topic: ${internship.topic.title}
       
       STUDENT(S):
-      ${(internship as any).internshipstudent.map((s: any) => `- ${s.user.name} (${s.user.studentId || s.studentId})`).join("\n")}
+      ${internship.students.map(s => `- ${s.student.name} (${s.student.studentId})`).join("\n")}
       
       ACADEMIC SUPERVISOR:
-      ${(internship as any).user.name}
+      ${internship.teacher.name}
       
       HOST ORGANIZATION:
       ${internship.topic.companyName || "N/A"}
@@ -228,9 +228,9 @@ export default function AdminInternshipDetailPage() {
                         <label className="text-[11px] font-bold text-gray-400 uppercase tracking-widest block mb-2">Academic Supervisor</label>
                         <div className="flex items-center gap-2">
                            <div className="h-8 w-8 rounded-full bg-indigo-50 text-indigo-700 flex items-center justify-center font-bold text-[11px]">
-                              {(internship as any).user.name.charAt(0)}
+                              {internship.teacher.name.charAt(0)}
                            </div>
-                           <span className="text-[13px] font-medium text-gray-900">{(internship as any).user.name}</span>
+                           <span className="text-[13px] font-medium text-gray-900">{internship.teacher.name}</span>
                         </div>
                      </div>
                      <div>

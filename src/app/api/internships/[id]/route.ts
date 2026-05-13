@@ -48,7 +48,21 @@ export async function GET(
       return NextResponse.json({ error: 'Internship not found' }, { status: 404 });
     }
 
-    return NextResponse.json({ data: internship });
+    // Map schema field names back to friendly names expected by the client
+    const mapped = {
+      ...internship,
+      topic: {
+        ...internship.topic,
+        proposedBy: internship.topic.user_topic_proposedByIdTouser,
+      },
+      teacher: internship.user,
+      students: (internship.internshipstudent || []).map((s: any) => ({
+        ...s,
+        student: s.user,
+      })),
+    };
+
+    return NextResponse.json({ data: mapped });
   } catch (error) {
     console.error('Fetch internship detail failed:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

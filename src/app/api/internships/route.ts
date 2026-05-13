@@ -37,14 +37,15 @@ export async function GET(req: NextRequest) {
         };
 
     if (role === 'STUDENT') {
-      where.students = { some: { studentId: session.user.id } };
+      where.internshipstudent = { some: { studentId: session.user.id } };
     } else if (role === 'TEACHER') {
       where.teacherId = session.user.id;
     } else if (role === 'COMPANY') {
       where.topic = { proposedById: session.user.id };
     } else if (role === 'ADMIN') {
       if (showAll && session.user.isSuperAdmin) {
-        delete where.academicYear;
+        // Remove the default OR filter to show everything
+        delete (where as any).OR;
       }
       if (!session.user.isSuperAdmin) {
         if (session.user.filiereId) {
