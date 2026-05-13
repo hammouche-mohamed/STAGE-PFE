@@ -26,10 +26,16 @@ export default function StudentTeamPage() {
     setIsLoading(true);
     try {
       const res = await fetch("/api/teams");
-      const data = await res.json();
-      setTeam(data.data || null);
-    } catch {
-      toast.error("Failed to load team");
+      const json = await res.json();
+      if (!res.ok) {
+        toast.error(json.error || "Failed to load team info");
+        setTeam(null);
+        return;
+      }
+      setTeam(json.data || null);
+    } catch (err) {
+      console.error("fetchTeam error:", err);
+      toast.error("Network error while loading team");
     } finally {
       setIsLoading(false);
     }

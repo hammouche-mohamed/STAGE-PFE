@@ -8,7 +8,7 @@ export const topicSchema = z.object({
   type: z.enum(['STUDENT_PROPOSED', 'COMPANY_PROPOSED']),
   // internship_type: PFE or NORMAL (new dual-track field)
   internshipType: z.enum(['PFE', 'NORMAL']).optional(),
-  maxStudents: z.number().min(1).max(2).default(1),
+  maxStudents: z.number().min(1).max(10).default(1),
   academicYear: z.string(),
   filiereId: z.string().min(1, 'Please assign a department (filière)'),
 

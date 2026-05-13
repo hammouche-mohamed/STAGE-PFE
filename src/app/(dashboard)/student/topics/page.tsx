@@ -53,6 +53,7 @@ export default function StudentTopicsPage() {
   const [alreadyModal, setAlreadyModal] = useState<{ show: boolean; message: string }>({ show: false, message: "" });
   const [filieres, setFilieres] = useState<Filiere[]>([]);
   const [filiereFilter, setFiliereFilter] = useState<string>("ALL");
+  const [activeTab, setActiveTab] = useState<"ALL" | "APPLIED" | "MY_PROPOSALS">("ALL");
 
   const studentLevel = (session?.user as any)?.level as string | undefined;
 
@@ -144,11 +145,15 @@ export default function StudentTopicsPage() {
         topic.targetLevels.split(",").map((l: string) => l.trim()).includes(levelFilter);
 
       const matchesFiliere = filiereFilter === "ALL" || topic.filiereId === filiereFilter;
-      const matchesApplied = showAppliedOnly ? applied.has(topic.id) : true;
+      
+      // Tab filtering
+      if (activeTab === "APPLIED") return matchesSearch && matchesLevel && matchesFiliere && applied.has(topic.id);
+      if (activeTab === "MY_PROPOSALS") return matchesSearch && (topic as any).proposedById === session?.user?.id;
 
-      return matchesSearch && matchesLevel && matchesFiliere && matchesApplied;
+      // For "ALL" tab, show public topics OR my proposals if they match other filters
+      return matchesSearch && matchesLevel && matchesFiliere;
     });
-  }, [topics, search, levelFilter, filiereFilter, showAppliedOnly, applied]);
+  }, [topics, search, levelFilter, filiereFilter, activeTab, applied, session?.user?.id]);
 
   const getApplicationStatus = (topic: Topic) => {
     const app = applied.get(topic.id);
@@ -202,7 +207,7 @@ export default function StudentTopicsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-[17px] font-semibold text-gray-900 dark:text-white">{t("topics.title")}</h1>
-          <p className="text-[13px] text-gray-500 dark:text-gray-400 mt-0.5">{t("topics.pendingApproval")}</p>
+          <p className="text-[13px] text-gray-500 dark:text-gray-400 mt-0.5">{t("topics.subtitle") || "Explore topics available for selection"}</p>
         </div>
         <Link href="/student/topics/propose">
           <Button size="sm" className="bg-indigo-600 hover:bg-indigo-700">
@@ -223,19 +228,32 @@ export default function StudentTopicsPage() {
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearch(e.target.value)}
           />
         </div>
-        <div className="flex gap-2">
-          <Button 
-            variant={showAppliedOnly ? "primary" : "outline"}
-            onClick={() => setShowAppliedOnly(!showAppliedOnly)}
-            className="whitespace-nowrap"
+        <div className="flex p-1 bg-gray-100 dark:bg-slate-800 rounded-lg w-fit">
+          <button
+            onClick={() => setActiveTab("ALL")}
+            className={`px-4 py-1.5 text-[12px] font-semibold rounded-md transition-all ${
+              activeTab === "ALL" ? "bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm" : "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+            }`}
           >
-            {showAppliedOnly ? "Show All Topics" : "Applied Topics"}
-            {applied.size > 0 && !showAppliedOnly && (
-              <span className="ml-2 bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded-full text-[10px]">
-                {applied.size}
-              </span>
-            )}
-          </Button>
+            {t("common.all")}
+          </button>
+          <button
+            onClick={() => setActiveTab("APPLIED")}
+            className={`px-4 py-1.5 text-[12px] font-semibold rounded-md transition-all flex items-center gap-2 ${
+              activeTab === "APPLIED" ? "bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm" : "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+            }`}
+          >
+            {t("nav.applications") || "Applied"}
+            {applied.size > 0 && <span className="px-1.5 py-0.5 bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-400 rounded-full text-[9px]">{applied.size}</span>}
+          </button>
+          <button
+            onClick={() => setActiveTab("MY_PROPOSALS")}
+            className={`px-4 py-1.5 text-[12px] font-semibold rounded-md transition-all ${
+              activeTab === "MY_PROPOSALS" ? "bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm" : "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+            }`}
+          >
+            {t("topics.myTopics") || "My Proposals"}
+          </button>
         </div>
       </div>
 

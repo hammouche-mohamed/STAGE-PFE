@@ -1,26 +1,14 @@
 import prisma from "@/lib/prisma";
+import { getCachedSettings } from "../cache";
 
 export class SettingsService {
   static async getCurrentAcademicYear(): Promise<string> {
-    try {
-      const setting = await prisma.systemSettings.findUnique({
-        where: { key: "currentAcademicYear" },
-      });
-      return setting?.value || "N/A"; // Fallback to current if totally empty
-    } catch (error) {
-      console.error("Error fetching currentAcademicYear:", error);
-      return "N/A";
-    }
+    const settings = await getCachedSettings();
+    return settings["currentAcademicYear"] || "N/A";
   }
 
   static async getSetting(key: string, defaultValue: string): Promise<string> {
-    try {
-      const setting = await prisma.systemSettings.findUnique({
-        where: { key },
-      });
-      return setting?.value || defaultValue;
-    } catch (error) {
-      return defaultValue;
-    }
+    const settings = await getCachedSettings();
+    return settings[key] || defaultValue;
   }
 }

@@ -215,9 +215,9 @@ export default function AuditLogsPage() {
           <thead className="admin-table-header">
             <tr>
               <th>{t("common.date")}</th>
-              <th>{t("roles.ADMIN")}</th>
+              <th>{t("admin.users.user")}</th>
               <th>{t("common.audit.actionType")}</th>
-              <th>{t("topics.list.capacity")} Target</th>
+              <th>Target</th>
               <th>{t("documents.type")}</th>
               <th className="text-right px-6">{t("common.actions")}</th>
             </tr>
@@ -230,30 +230,36 @@ export default function AuditLogsPage() {
             ) : (
               logs.map((log) => (
                 <tr key={log.id} className="admin-table-row">
-                  <td className="whitespace-nowrap text-[12px] text-gray-500">
+                  <td className="whitespace-nowrap text-[12px] text-gray-500 dark:text-gray-400">
                     {format(new Date(log.createdAt), "MMM d, HH:mm")}
                   </td>
                   <td>
-                    <div className="flex items-center gap-2">
-                      <div className="h-6 w-6 rounded-full bg-indigo-50 flex items-center justify-center text-[10px] font-bold text-indigo-600">
-                        {log.user.name.charAt(0)}
+                    <div className="flex items-center gap-2.5">
+                      <div className="h-8 w-8 rounded-full bg-indigo-100 dark:bg-indigo-900/40 flex items-center justify-center text-[12px] font-bold text-indigo-600 dark:text-indigo-400 shrink-0">
+                        {log.user.name.charAt(0).toUpperCase()}
                       </div>
-                      <div className="flex flex-col">
-                        <span className="text-[13px] font-medium text-gray-900 dark:text-white">{log.user.name}</span>
-                        <span className="text-[10px] text-gray-500 dark:text-gray-400">{log.user.email}</span>
+                      <div className="flex flex-col min-w-0">
+                        <span className="text-[13px] font-medium text-gray-900 dark:text-white truncate">{log.user.name}</span>
+                        <span className="text-[11px] text-gray-400 dark:text-gray-500 truncate">{log.user.email}</span>
                       </div>
                     </div>
                   </td>
                   <td>
-                    <span className="text-[10px] sm:text-[11px] font-bold bg-gray-50 dark:bg-slate-800/50 text-gray-600 dark:text-indigo-400 px-2 py-1 rounded border border-gray-100 dark:border-slate-700 italic shadow-sm whitespace-nowrap">
-                       {log.action.replace(/_/g, " ")}
+                    <span className="inline-flex items-center text-[10px] sm:text-[11px] font-semibold bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300 px-2.5 py-1 rounded-md border border-indigo-100 dark:border-indigo-800/40 tracking-wide whitespace-nowrap">
+                      {log.action.replace(/_/g, " ")}
                     </span>
                   </td>
-                  <td className="text-[13px] text-gray-900 dark:text-white font-medium">{log.targetId}</td>
-                  <td className="text-[12px] text-gray-500 dark:text-gray-400">{log.targetType}</td>
+                  <td className="text-[13px] text-gray-800 dark:text-gray-100 font-medium max-w-[140px]">
+                    <span className="truncate block" title={log.targetId}>{log.targetId}</span>
+                  </td>
+                  <td>
+                    <span className="text-[11px] font-medium bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-gray-300 px-2 py-0.5 rounded">
+                      {log.targetType}
+                    </span>
+                  </td>
                   <td className="text-right px-6">
-                    <Button variant="ghost" size="sm" className="h-10 w-10 p-0 hover:bg-indigo-50" onClick={() => setSelectedLog(log)}>
-                      <Eye className="h-6 w-6 text-indigo-600" />
+                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-lg" onClick={() => setSelectedLog(log)}>
+                      <Eye className="h-4 w-4 text-indigo-500 dark:text-indigo-400" />
                     </Button>
                   </td>
                 </tr>

@@ -49,7 +49,8 @@ export default function CompanyTopicsPage() {
   const [editForm, setEditForm] = useState({
     title: "",
     description: "",
-    requiredSkills: ""
+    requiredSkills: "",
+    maxStudents: 1
   });
 
   const fetchTopics = async () => {
@@ -99,7 +100,8 @@ export default function CompanyTopicsPage() {
     setEditForm({
       title: topic.title,
       description: topic.description || "",
-      requiredSkills: topic.requiredSkills || ""
+      requiredSkills: topic.requiredSkills || "",
+      maxStudents: topic.maxStudents || 1
     });
   };
 

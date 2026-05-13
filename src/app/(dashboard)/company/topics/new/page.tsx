@@ -129,12 +129,15 @@ export default function NewTopicPage() {
 
           <div className="grid grid-cols-2 gap-6">
             <div className="w-full">
-              <label className="admin-form-label">Maximum Students (1 or 2)</label>
-              <select {...register("maxStudents", { valueAsNumber: true })} className="admin-input">
-                {[1, 2, 3].map(n => (
-                  <option key={n} value={n}>{n} Student{n > 1 ? "s" : ""}</option>
-                ))}
-              </select>
+              <label className="admin-form-label">Maximum Students</label>
+              <Input
+                type="number"
+                min={1}
+                max={10}
+                {...register("maxStudents", { valueAsNumber: true })}
+                error={errors.maxStudents?.message as string}
+                placeholder="1"
+              />
             </div>
             
             <div className="w-full">

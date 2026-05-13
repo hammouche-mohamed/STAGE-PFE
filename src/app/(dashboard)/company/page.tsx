@@ -28,27 +28,36 @@ export default async function CompanyDashboardPage() {
 
   if (!company) return <div className="p-8 text-gray-400">Company profile not found.</div>;
 
-  const [topicCount, applicationCount, internshipCount, pendingValidations] =
-    await Promise.all([
-      prisma.topic.count({ where: { proposedById: company.id } }),
-      prisma.studentApplication.count({
-        where: {
-          topic: { proposedById: company.id },
-          status: "PENDING",
-        },
-      }),
-      prisma.internship.count({
-        where: { topic: { proposedById: company.id } },
-      }),
-      // Final reports awaiting the company's own validation
-      prisma.internship.count({
-        where: {
-          topic: { proposedById: company.id },
-          status: "FINAL_REPORT_SUBMITTED",
-          companyValidatedFinalReport: false,
-        },
-      }),
-    ]);
+  let stats = { topicCount: 0, applicationCount: 0, internshipCount: 0, pendingValidations: 0 };
+  try {
+    const [topicCount, applicationCount, internshipCount, pendingValidations] =
+      await Promise.all([
+        prisma.topic.count({ where: { proposedById: company.id } }),
+        prisma.studentApplication.count({
+          where: {
+            topic: { proposedById: company.id },
+            status: "PENDING",
+          },
+        }),
+        prisma.internship.count({
+          where: { topic: { proposedById: company.id } },
+        }),
+        // Final reports awaiting the company's own validation
+        prisma.internship.count({
+          where: {
+            topic: { proposedById: company.id },
+            status: "FINAL_REPORT_SUBMITTED",
+            companyValidatedFinalReport: false,
+          },
+        }),
+      ]);
+    stats = { topicCount, applicationCount, internshipCount, pendingValidations };
+  } catch (err: any) {
+    console.error("[COMPANY_DASHBOARD] Fetching stats failed:", err);
+    // Continue with zero stats but log it
+  }
+
+  const { topicCount, applicationCount, internshipCount, pendingValidations } = stats;
 
   return (
     <div className="space-y-6">
@@ -77,7 +86,7 @@ export default async function CompanyDashboardPage() {
           value={applicationCount}
           icon={Users}
           subValue="Waiting recruitment"
-          subValueColor={applicationCount > 0 ? ("indigo" as "green") : "gray"}
+          subValueColor={applicationCount > 0 ? "amber" : "gray"}
         />
         <StatsCard
           label="Current Interns"

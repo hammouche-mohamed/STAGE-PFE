@@ -73,7 +73,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ role: initialRole, logoUrl }) 
         case "ADMIN":
           const adminItems = [
             { label: t("common.dashboard"), icon: LayoutDashboard, href: "/admin", active: pathname === "/admin" },
-            { label: t("common.registrations"), icon: UserIcon, href: "/admin/registrations", active: pathname.startsWith("/admin/registrations") },
             { label: t("common.users"), icon: Users, href: "/admin/users", active: pathname.startsWith("/admin/users") },
             { label: t("common.topics"), icon: Briefcase, href: "/admin/topics", active: pathname.startsWith("/admin/topics") },
             { label: t("common.internships"), icon: ShieldCheck, href: "/admin/internships", active: pathname.startsWith("/admin/internships") },
@@ -82,6 +81,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ role: initialRole, logoUrl }) 
           ];
           
           if (session?.user?.isSuperAdmin) {
+            adminItems.splice(1, 0, { label: t("common.registrations"), icon: UserIcon, href: "/admin/registrations", active: pathname.startsWith("/admin/registrations") });
             adminItems.push({ label: t("nav.audit"), icon: FileText, href: "/admin/audit-logs", active: pathname.startsWith("/admin/audit-logs") });
             adminItems.push({ label: t("common.settings"), icon: Settings, href: "/admin/settings", active: pathname.startsWith("/admin/settings") });
           }

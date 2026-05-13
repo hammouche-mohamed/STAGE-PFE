@@ -11,16 +11,22 @@ export async function POST(req: NextRequest) {
   try {
     const { reason, invitedStudentIds } = await req.json();
 
-    // ── GUARD: Check if student is already in a team ───────────────────────
+    // ── GUARD: Check if student is already in a valid team ─────────────────
     const existingMember = await prisma.teamMember.findFirst({
-      where: { studentId: session.user.id }
+      where: { studentId: session.user.id },
+      include: { team: true }
     });
 
     if (existingMember) {
-      return NextResponse.json(
-        { error: "You are already part of a team. You cannot create a new one." },
-        { status: 400 }
-      );
+      if (!existingMember.team) {
+        // Orphaned member record — team was deleted but member wasn't cleaned up
+        await prisma.teamMember.delete({ where: { id: existingMember.id } });
+      } else {
+        return NextResponse.json(
+          { error: "You are already part of a team. You cannot create a new one." },
+          { status: 400 }
+        );
+      }
     }
 
     // Check system settings for max team size
@@ -112,6 +118,12 @@ export async function GET(req: NextRequest) {
       });
 
       if (!member) {
+        return NextResponse.json({ data: null });
+      }
+
+      // Clean up orphaned member record (team was deleted but member wasn't)
+      if (!member.team) {
+        await prisma.teamMember.delete({ where: { id: member.id } });
         return NextResponse.json({ data: null });
       }
 

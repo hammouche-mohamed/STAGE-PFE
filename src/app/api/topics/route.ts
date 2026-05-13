@@ -188,13 +188,7 @@ export async function GET(req: NextRequest) {
   // Determine which internship types this user can see
   let allowedInternshipTypes: string[] | undefined;
 
-  if (session.user.role === 'STUDENT') {
-    const studentLevel = (session.user as { level?: StudentLevel }).level;
-    const normalOnlyLevels: StudentLevel[] = ['L1', 'L2', 'M1'];
-    if (studentLevel && normalOnlyLevels.includes(studentLevel)) {
-      allowedInternshipTypes = ['NORMAL'];
-    }
-  }
+  const where: Record<string, any> = {};
 
   try {
     // Get IDs of topics that are linked to COMPLETED or CANCELLED internships
@@ -204,9 +198,7 @@ export async function GET(req: NextRequest) {
     });
     const completedTopicIds = completedInternships.map(i => i.topicId);
 
-    const where: Record<string, any> = {
-      id: { notIn: completedTopicIds },
-    };
+    where.id = { notIn: completedTopicIds };
 
     // ── ACADEMIC YEAR FILTER ────────────────────────────────────────────────
     // Admins see all years by default unless specified.
@@ -228,8 +220,6 @@ export async function GET(req: NextRequest) {
       } else if (session.user.filiereId) {
         where.filiereId = session.user.filiereId;
       }
-      // If they are a regular admin but have no filiereId, they see everything (consistent with sidebar)
-      // unless we want to strictly enforce it. For now, let's keep it visible.
 
       if (statusFilter && statusFilter !== 'ALL') {
         if (statusFilter === 'MODIFICATIONS') {
@@ -244,10 +234,20 @@ export async function GET(req: NextRequest) {
       if (assigned === 'false') where.assignedTeacherId = null;
 
     } else if (session.user.role === 'STUDENT') {
-      // Students only see topics open for selection in the current year
-      where.status = 'OPEN_FOR_SELECTION';
+      // Students see topics open for selection OR their own proposals (even if pending)
+      where.OR = [
+        { status: 'OPEN_FOR_SELECTION' },
+        { proposedById: session.user.id }
+      ];
+
       if (filiereFilter && filiereFilter !== 'ALL') {
         where.filiereId = filiereFilter;
+      }
+
+      const studentLevel = (session.user as { level?: StudentLevel }).level;
+      const normalOnlyLevels: StudentLevel[] = ['L1', 'L2', 'M1'];
+      if (studentLevel && normalOnlyLevels.includes(studentLevel)) {
+        allowedInternshipTypes = ['NORMAL'];
       }
 
     } else if (session.user.role === 'TEACHER') {
