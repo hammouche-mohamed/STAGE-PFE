@@ -288,34 +288,43 @@ export async function GET(req: NextRequest) {
     }
 
     // NFR-P2: explicit field selection
+    // Build select dynamically to avoid passing `false` for relation fields (Prisma runtime error)
+    const baseSelect = {
+      id: true,
+      title: true,
+      description: true,
+      type: true,
+      internshipType: true,
+      status: true,
+      maxStudents: true,
+      academicYear: true,
+      proposedById: true,
+      assignedTeacherId: true,
+      resubmissionCount: true,
+      maxResubmissions: true,
+      rejectionReason: true,
+      createdAt: true,
+      updatedAt: true,
+      pendingEditData: true,
+      pendingEditRequestedAt: true,
+      proposedBy: { select: { id: true, name: true } },
+      assignedTeacher: { select: { id: true, name: true } },
+    };
+
+    const topicSelect = session.user.role === 'TEACHER'
+      ? {
+          ...baseSelect,
+          teacherApplications: {
+            where: { teacherId: session.user.id },
+            select: { id: true, status: true },
+          },
+        }
+      : baseSelect;
+
     const [topics, total] = await Promise.all([
       prisma.topic.findMany({
         where,
-        select: {
-          id: true,
-          title: true,
-          description: true,
-          type: true,
-          internshipType: true,
-          status: true,
-          maxStudents: true,
-          academicYear: true,
-          proposedById: true,
-          assignedTeacherId: true,
-          resubmissionCount: true,
-          maxResubmissions: true,
-          rejectionReason: true,
-          createdAt: true,
-          updatedAt: true,
-          pendingEditData: true,
-          pendingEditRequestedAt: true,
-          proposedBy: { select: { id: true, name: true } },
-          assignedTeacher: { select: { id: true, name: true } },
-          teacherApplications: session.user.role === 'TEACHER' ? {
-            where: { teacherId: session.user.id },
-            select: { id: true, status: true }
-          } : false as any,
-        },
+        select: topicSelect,
         orderBy: { createdAt: 'desc' },
         take: limit,
         skip,

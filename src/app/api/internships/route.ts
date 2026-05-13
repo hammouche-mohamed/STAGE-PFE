@@ -94,16 +94,16 @@ export async function GET(req: NextRequest) {
     ]);
 
     // Stitch in teacher departments manually to bypass missing schema relations
-    const teacherIds = [...new Set(internships.map(i => i.teacher.id))];
+    const teacherIds = [...new Set(internships.filter(i => i.teacher).map(i => i.teacher!.id))];
     const [teacherProfiles, allFilieres] = await Promise.all([
-      prisma.teacherProfile.findMany({ where: { userId: { in: teacherIds } } }),
-      prisma.filiere.findMany()
+      teacherIds.length > 0 ? prisma.teacherProfile.findMany({ where: { userId: { in: teacherIds } } }) : Promise.resolve([]),
+      prisma.filiere.findMany({ select: { id: true, name: true } })
     ]);
 
     const stitchedInternships = internships.map(i => {
-      const prof = teacherProfiles.find(p => p.userId === i.teacher.id);
+      if (!i.teacher) return { ...i, teacher: { id: '', name: 'Unknown', email: '', filiereName: 'N/A' } };
+      const prof = teacherProfiles.find(p => p.userId === i.teacher!.id);
       const filiere = prof ? allFilieres.find(f => f.id === prof.filiereId) : null;
-      
       return {
         ...i,
         teacher: {
