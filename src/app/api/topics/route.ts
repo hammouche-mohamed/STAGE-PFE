@@ -163,6 +163,7 @@ export async function POST(req: NextRequest) {
 export async function GET(req: NextRequest) {
   const session = await auth();
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  console.log('[Topics GET] role:', session.user.role, 'isSuperAdmin:', session.user.isSuperAdmin, 'filiereId:', session.user.filiereId);
 
   const { searchParams } = new URL(req.url);
   const typeFilter = searchParams.get('type');
@@ -179,6 +180,7 @@ export async function GET(req: NextRequest) {
       cachedYear = { year: academicYear, expiry: Date.now() + YEAR_CACHE_TTL };
     }
   }
+  console.log('[Topics GET] academicYear:', academicYear, 'statusFilter:', searchParams.get('status'));
 
   // NFR-SC2: pagination — max 20 records per page
   const page = Math.max(1, parseInt(searchParams.get('page') ?? '1', 10));
@@ -321,6 +323,7 @@ export async function GET(req: NextRequest) {
         }
       : baseSelect;
 
+    console.log('[Topics GET] final where:', JSON.stringify(where));
     const [topics, total] = await Promise.all([
       prisma.topic.findMany({
         where,
@@ -331,6 +334,7 @@ export async function GET(req: NextRequest) {
       }),
       prisma.topic.count({ where }),
     ]);
+    console.log('[Topics GET] returned:', topics.length, 'topics, total:', total);
 
     return NextResponse.json({
       data: topics,
