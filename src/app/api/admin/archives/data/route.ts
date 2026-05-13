@@ -29,14 +29,14 @@ export async function GET(req: NextRequest) {
         data = await prisma.user.findMany({
           where: {
             role: 'STUDENT',
-            studentProfile: { 
+            studentprofile: { 
               academicYear: year,
               ...(filiereId && { filiereId })
             }
           },
           include: {
-            studentProfile: { include: { filiere: true } },
-            internshipStudents: {
+            studentprofile: { include: { filiere: true } },
+            internshipstudent: {
               where: { internship: { academicYear: year } },
               include: { internship: { include: { topic: true } } }
             }
@@ -56,7 +56,7 @@ export async function GET(req: NextRequest) {
             ]
           },
           include: {
-            teacherProfile: { include: { filiere: true } },
+            teacherprofile: { include: { filiere: true } },
             _count: {
               select: {
                 internships: { where: { academicYear: year } },
@@ -75,7 +75,7 @@ export async function GET(req: NextRequest) {
             proposedTopics: { some: { academicYear: year, ...(filiereId && { filiereId }) } }
           },
           include: {
-            companyProfile: true,
+            companyprofile: true,
             _count: {
               select: {
                 proposedTopics: { where: { academicYear: year } }
@@ -94,7 +94,7 @@ export async function GET(req: NextRequest) {
           include: {
             proposedBy: { select: { name: true, email: true } },
             filiere: true,
-            _count: { select: { studentApplications: true } }
+            _count: { select: { studentapplication: true } }
           }
         });
         break;

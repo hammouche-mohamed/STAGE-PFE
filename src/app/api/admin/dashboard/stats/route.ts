@@ -12,7 +12,6 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const filiereId = searchParams.get("filiereId");
   
-  // Bypass cache for debugging
   const currentAcademicYearResult = await prisma.systemSettings.findUnique({
     where: { key: "currentAcademicYear" }
   });
@@ -20,7 +19,9 @@ export async function GET(req: NextRequest) {
   const yearFilter = currentAcademicYear && currentAcademicYear !== "N/A" ? { academicYear: currentAcademicYear } : {};
 
   // If not super admin, they can only see their own filiere
-  const targetFiliereId = session.user.isSuperAdmin ? (filiereId === "all" ? null : filiereId) : session.user.filiereId;
+  const targetFiliereId = session.user.isSuperAdmin ? (filiereId === "all" ? null : filiereId) : (session.user.filiereId || null);
+
+  console.log(`[DASHBOARD_STATS] Filter: filiereId=${filiereId}, targetFiliereId=${targetFiliereId}, year=${currentAcademicYear}`);
 
   try {
     const [
@@ -37,19 +38,20 @@ export async function GET(req: NextRequest) {
       studentsAtRisk,
       pendingCompanyProposals,
     ] = await Promise.all([
-      prisma.user.count({ 
+      // Align with SSR: Count from StudentProfile to ensure academicYear filter works correctly
+      prisma.studentProfile.count({ 
         where: { 
-          role: "STUDENT", 
-          isActive: true,
-          ...(targetFiliereId ? { studentProfile: { filiereId: targetFiliereId } } : {})
-        } 
+          ...yearFilter,
+          ...(targetFiliereId ? { filiereId: targetFiliereId } : {})
+        } as any
       }),
+      // Teachers don't usually have academic year, but they have a filiere
       prisma.user.count({ 
         where: { 
           role: "TEACHER", 
           isActive: true,
-          ...(targetFiliereId ? { teacherProfile: { filiereId: targetFiliereId } } : {})
-        } 
+          ...(targetFiliereId ? { teacherprofile: { filiereId: targetFiliereId } } : {})
+        } as any
       }),
       prisma.user.count({ where: { role: "COMPANY", isActive: true } }),
       prisma.internship.count({ 
@@ -96,36 +98,32 @@ export async function GET(req: NextRequest) {
         where: {
           status: "PENDING",
           ...(targetFiliereId ? { topic: { filiereId: targetFiliereId } } : {})
-        }
+        } as any
       }),
       prisma.user.findMany({
         where: {
           role: "STUDENT",
           isActive: true,
-          ...(targetFiliereId ? { studentProfile: { filiereId: targetFiliereId } } : {}),
-          studentProfile: {
-             academicYear: currentAcademicYear
+          studentprofile: {
+            academicYear: currentAcademicYear,
+            ...(targetFiliereId ? { filiereId: targetFiliereId } : {}),
           },
-          internshipStudents: { none: {} }
-        },
-        select: {
-          id: true,
-          name: true,
-          email: true,
-        },
-        take: 20, // Increased to show more unplaced students
-        orderBy: { name: 'asc' }
+          internshipstudent: { none: {} },
+        } as any,
+        select: { id: true, name: true, email: true },
+        take: 20,
+        orderBy: { name: "asc" },
       }),
       prisma.topic.count({
         where: {
           type: "COMPANY_PROPOSED",
           status: "PENDING_ADMIN",
           ...(targetFiliereId ? { filiereId: targetFiliereId } : {})
-        }
+        } as any
       }),
     ]);
 
-    const response = NextResponse.json({
+    return NextResponse.json({
       studentCount,
       teacherCount,
       companyCount,
@@ -139,12 +137,8 @@ export async function GET(req: NextRequest) {
       studentsAtRisk,
       pendingCompanyProposals,
     });
-
-    // Cache for 30s to avoid hammering the DB with repeated filter clicks
-    response.headers.set("Cache-Control", "private, max-age=30, stale-while-revalidate=60");
-    return response;
-  } catch (error) {
-    console.error("Dashboard stats error:", error);
+  } catch (error: any) {
+    console.error("[DASHBOARD_STATS_ERROR]", error?.message);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

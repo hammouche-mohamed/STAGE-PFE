@@ -248,7 +248,7 @@ export async function POST(req: NextRequest) {
     // Notify Super Admins if a Department Admin created the internship
     if (!session.user.isSuperAdmin) {
       const superAdmins = await prisma.user.findMany({
-        where: { adminProfile: { isSuperAdmin: true } },
+        where: { adminprofile: { isSuperAdmin: true } },
         select: { id: true }
       });
 

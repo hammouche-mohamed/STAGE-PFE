@@ -67,8 +67,8 @@ export async function PATCH(
         where: {
           role: "ADMIN",
           OR: [
-            { adminProfile: { filiereId: application.topic.filiereId } },
-            { adminProfile: { isSuperAdmin: true } }
+            { adminprofile: { filiereId: application.topic.filiereId } },
+            { adminprofile: { isSuperAdmin: true } }
           ]
         }
       });

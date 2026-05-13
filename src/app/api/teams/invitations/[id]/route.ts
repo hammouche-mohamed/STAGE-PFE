@@ -101,7 +101,7 @@ export async function PATCH(
 
       // Notify the Admin if requested by user feedback
       const adminUsers = await prisma.user.findMany({
-        where: { role: "ADMIN", adminProfile: { filiereId: invitation.team.filiereId } }
+        where: { role: "ADMIN", adminprofile: { filiereId: invitation.team.filiereId } }
       });
 
       for (const admin of adminUsers) {

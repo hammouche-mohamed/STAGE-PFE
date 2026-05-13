@@ -23,9 +23,9 @@ export async function GET(
         level: true,
         avatarUrl: true,
         createdAt: true,
-        studentProfile: { select: { speciality: true, promotion: true, academicYear: true } },
-        teacherProfile: { select: { speciality: true, grade: true, maxStudents: true } },
-        companyProfile: { select: { companyName: true, sector: true, wilaya: true, contactPhone: true } },
+        studentprofile: { select: { speciality: true, promotion: true, academicYear: true } },
+        teacherprofile: { select: { speciality: true, grade: true, maxStudents: true } },
+        companyprofile: { select: { companyName: true, sector: true, wilaya: true, contactPhone: true } },
       },
     });
 

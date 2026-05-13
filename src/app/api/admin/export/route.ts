@@ -136,9 +136,9 @@ export async function GET(req: NextRequest) {
       const students = await prisma.user.findMany({
         where: { 
           role: 'STUDENT', 
-          studentProfile: { academicYear: year || undefined, ...(filiereId && { filiereId }) } 
+          studentprofile: { academicYear: year || undefined, ...(filiereId && { filiereId }) } 
         },
-        include: { studentProfile: { include: { filiere: true } } }
+        include: { studentprofile: { include: { filiere: true } } }
       });
       rows.push('=== STUDENTS ===');
       rows.push('ID,Name,Email,Department,Speciality,Level');
@@ -164,7 +164,7 @@ export async function GET(req: NextRequest) {
             { assignedTopics: { some: { academicYear: year || undefined, ...(filiereId && { filiereId }) } } }
           ]
         },
-        include: { teacherProfile: { include: { filiere: true } } }
+        include: { teacherprofile: { include: { filiere: true } } }
       });
       rows.push('=== TEACHERS ===');
       rows.push('ID,Name,Email,Grade,Department,Speciality');

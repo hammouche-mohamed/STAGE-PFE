@@ -155,8 +155,8 @@ export async function POST(req: NextRequest) {
         role: "ADMIN",
         ...(topic.filiereId ? {
           OR: [
-            { adminProfile: { isSuperAdmin: true } },
-            { adminProfile: { filiereId: topic.filiereId } }
+            { adminprofile: { isSuperAdmin: true } },
+            { adminprofile: { filiereId: topic.filiereId } }
           ]
         } : {})
       },

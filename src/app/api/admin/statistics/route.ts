@@ -84,7 +84,7 @@ export async function GET(req: NextRequest) {
       where: { id: { in: topTopicIds } },
       include: {
         proposedBy: {
-          include: { companyProfile: { select: { companyName: true } } },
+          include: { companyprofile: { select: { companyName: true } } },
         },
       },
     });

@@ -123,8 +123,8 @@ export async function POST(req: NextRequest) {
         role: 'ADMIN',
         ...(validatedData.filiereId ? {
           OR: [
-            { adminProfile: { isSuperAdmin: true } },
-            { adminProfile: { filiereId: validatedData.filiereId } }
+            { adminprofile: { isSuperAdmin: true } },
+            { adminprofile: { filiereId: validatedData.filiereId } }
           ]
         } : {})
       },
@@ -261,7 +261,7 @@ export async function GET(req: NextRequest) {
       // Teachers see assigned topics, their applications, or approved unassigned topics
       where.OR = [
         { assignedTeacherId: session.user.id },
-        { teacherApplications: { some: { teacherId: session.user.id } } },
+        { teacherapplication: { some: { teacherId: session.user.id } } },
         { 
           AND: [
             { status: 'APPROVED' },

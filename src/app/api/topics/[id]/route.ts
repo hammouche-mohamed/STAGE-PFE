@@ -27,18 +27,18 @@ export async function GET(
       include: {
         proposedBy: { 
           include: {
-            companyProfile: true
+            companyprofile: true
           }
         },
         assignedTeacher: { select: { id: true, name: true } },
         filiere: true,
-        teacherApplications: {
+        teacherapplication: {
           include: {
             teacher: { select: { id: true, name: true, email: true } }
           },
           orderBy: { appliedAt: 'desc' }
         },
-        studentApplications: {
+        studentapplication: {
           include: {
             team: {
               include: {
@@ -129,8 +129,8 @@ export async function PATCH(
           role: 'ADMIN',
           ...(topic.filiereId ? {
             OR: [
-              { adminProfile: { isSuperAdmin: true } },
-              { adminProfile: { filiereId: topic.filiereId } }
+              { adminprofile: { isSuperAdmin: true } },
+              { adminprofile: { filiereId: topic.filiereId } }
             ]
           } : {})
         },
@@ -286,7 +286,7 @@ export async function PATCH(
     // Notify Super Admins if a Department Admin took action
     if (!session.user.isSuperAdmin) {
       const superAdmins = await prisma.user.findMany({
-        where: { adminProfile: { isSuperAdmin: true } },
+        where: { adminprofile: { isSuperAdmin: true } },
         select: { id: true }
       });
 
