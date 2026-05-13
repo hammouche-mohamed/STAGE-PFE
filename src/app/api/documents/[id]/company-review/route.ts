@@ -33,7 +33,7 @@ export async function PATCH(
         internship: {
           include: {
             topic: { select: { proposedById: true } },
-            students: { select: { studentId: true } },
+            internshipstudent: { select: { studentId: true } },
           },
         },
       },

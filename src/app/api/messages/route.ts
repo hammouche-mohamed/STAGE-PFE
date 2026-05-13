@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
       where: { id: internshipId },
       select: {
         teacherId: true,
-        students: { select: { studentId: true } },
+        internshipstudent: { select: { studentId: true } },
       },
     });
 
@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
 
     const memberIds = [
       internship.teacherId,
-      ...internship.students.map((s: { studentId: string }) => s.studentId),
+      ...(internship as any).internshipstudent.map((s: { studentId: string }) => s.studentId),
     ];
     if (!memberIds.includes(session.user.id)) {
       return NextResponse.json({ error: "You are not a participant in this internship." }, { status: 403 });
@@ -63,7 +63,7 @@ export async function POST(req: NextRequest) {
         actionStatus: requiresAction ? "PENDING" : undefined,
       },
       include: {
-        sender: { select: { name: true } },
+        user: { select: { name: true } },
       },
     });
 

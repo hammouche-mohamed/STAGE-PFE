@@ -191,7 +191,7 @@ export async function POST(req: NextRequest) {
           internshipType: topic?.internshipType ?? null,
           status: 'REQUESTED',
           updatedAt: new Date(),
-          students: {
+          internshipstudent: {
             create: studentIds.map((sid: string, i: number) => ({
               id: randomUUID(),
               studentId: sid,
@@ -200,7 +200,7 @@ export async function POST(req: NextRequest) {
           },
         },
         include: {
-          students: { include: { student: { select: { id: true, name: true } } } },
+          internshipstudent: { include: { user: { select: { id: true, name: true } } } },
         },
       });
 
@@ -216,7 +216,7 @@ export async function POST(req: NextRequest) {
     await TeacherLoadService.increment(teacherId);
 
     // Notify all parties
-    const students = internship.students.map((s: { studentId: string }) => s.studentId);
+    const students = (internship as any).internshipstudent.map((s: { studentId: string }) => s.studentId);
     
     // Notify students
     if (students.length > 0) {

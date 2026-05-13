@@ -8,7 +8,7 @@ const getConnectionUrl = () => {
   // Add connection pooling params only if not already present
   if (url && !url.includes("connection_limit")) {
     const separator = url.includes("?") ? "&" : "?";
-    return `${url}${separator}connection_limit=10&pool_timeout=30`;
+    return `${url}${separator}connection_limit=3&pool_timeout=30`;
   }
   return url;
 };

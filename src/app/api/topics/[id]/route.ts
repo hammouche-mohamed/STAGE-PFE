@@ -34,7 +34,7 @@ export async function GET(
         filiere: true,
         teacherapplication: {
           include: {
-            teacher: { select: { id: true, name: true, email: true } }
+            user: { select: { id: true, name: true, email: true } }
           },
           orderBy: { appliedAt: 'desc' }
         },
@@ -44,7 +44,7 @@ export async function GET(
               include: {
                 members: {
                   include: {
-                    student: { select: { id: true, name: true, email: true } }
+                    user: { select: { id: true, name: true, email: true } }
                   }
                 }
               }

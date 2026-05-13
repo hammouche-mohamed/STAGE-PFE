@@ -25,15 +25,15 @@ export async function GET(
             user_topic_proposedByIdTouser: { select: { name: true } }
           }
         },
-        teacher: {
+        user: {
           select: {
             name: true,
             email: true
           }
         },
-        students: {
+        internshipstudent: {
           include: {
-            student: {
+            user: {
               select: {
                 name: true,
                 email: true,
@@ -83,7 +83,7 @@ export async function PATCH(
     const internship = await prisma.internship.findUnique({
       where: { id },
       include: {
-        students: { select: { studentId: true } },
+        internshipstudent: { select: { studentId: true } },
         topic: { select: { proposedById: true, type: true } },
       },
     });
@@ -121,7 +121,7 @@ export async function PATCH(
     });
 
     // Notify students
-    for (const { studentId } of internship.students) {
+    for (const { studentId } of (internship as any).internshipstudent || []) {
       await NotificationService.trigger({
         userId: studentId,
         type: 'DEADLINE_REMINDER',

@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
     // Verify the internship exists and the user belongs to it
     const internship = await prisma.internship.findUnique({
       where: { id: internshipId },
-      include: { students: { select: { studentId: true } } },
+      include: { internshipstudent: { select: { studentId: true } } },
     });
     if (!internship) {
       return NextResponse.json({ error: "Internship not found." }, { status: 404 });

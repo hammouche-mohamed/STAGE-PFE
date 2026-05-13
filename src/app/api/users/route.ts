@@ -14,6 +14,9 @@ export async function GET(req: NextRequest) {
   const filiereId = searchParams.get("filiereId");
   const search = searchParams.get("search");
   const status = searchParams.get("status");
+  const page = Math.max(1, parseInt(searchParams.get("page") ?? "1", 10));
+  const limit = Math.min(50, Math.max(1, parseInt(searchParams.get("limit") ?? "50", 10)));
+  const skip = (page - 1) * limit;
 
   try {
     const isAllFilieres = !filiereId || (typeof filiereId === 'string' && filiereId.toLowerCase() === "all");
@@ -69,7 +72,9 @@ export async function GET(req: NextRequest) {
           ]
         } : {})
       },
-      orderBy: { name: "asc" }
+      orderBy: { name: "asc" },
+      take: limit,
+      skip: skip,
     });
 
     // Manually fetch and stitch profiles to bypass missing schema relations
@@ -120,7 +125,16 @@ export async function GET(req: NextRequest) {
       ? safeUsers.filter(u => u.teacherProfile?.isAvailable)
       : safeUsers;
 
-    return NextResponse.json({ data: finalUsers });
+    return NextResponse.json({ 
+      data: finalUsers,
+      pagination: {
+        page,
+        limit,
+        // total is not accurately known without a separate count query, 
+        // but for now we return the length of results
+        count: finalUsers.length 
+      }
+    });
   } catch (error: any) {
     console.error("Fetch users failed:", error);
     return NextResponse.json({ error: "An unexpected error occurred while fetching users." }, { status: 500 });

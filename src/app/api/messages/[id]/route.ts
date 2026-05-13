@@ -64,14 +64,14 @@ export async function GET(
 
     const messages = await prisma.message.findMany({
       where: { internshipId },
-      include: { sender: { select: { name: true } } },
+      include: { user: { select: { name: true } } },
       orderBy: { sentAt: "asc" },
     });
 
     const formatted = messages.map((msg) => ({
       id: msg.id,
       senderId: msg.senderId,
-      sender: { name: msg.sender.name },
+      sender: { name: (msg as any).user?.name || "Unknown" },
       content: msg.content,
       sentAt: msg.sentAt.toISOString(),
       attachmentUrl: msg.attachmentUrl,

@@ -32,8 +32,8 @@ export async function GET(req: NextRequest) {
         where: { ...yearFilter, ...filiereFilter },
         include: {
           topic: { select: { title: true, internshipType: true } },
-          teacher: { select: { name: true, email: true } },
-          students: { include: { student: { select: { name: true, email: true } } } },
+          user: { select: { name: true, email: true } },
+          internshipstudent: { include: { user: { select: { name: true, email: true } } } },
         },
         orderBy: { createdAt: 'asc' },
       });
@@ -41,7 +41,8 @@ export async function GET(req: NextRequest) {
       rows.push('=== INTERNSHIPS ===');
       rows.push('ID,Academic Year,Type,Status,Topic,Teacher,Students,Start Date,End Date,Midterm Deadline,Final Deadline');
       for (const i of internships) {
-        const students = i.students.map((s) => s.student.name).join(' | ');
+        const students = ((i as any).internshipstudent || []).map((s: any) => s.user?.name).join(' | ');
+        const teacherName = (i as any).user?.name || 'N/A';
         rows.push(
           [
             i.id,
@@ -49,7 +50,7 @@ export async function GET(req: NextRequest) {
             i.internshipType ?? 'N/A',
             i.status,
             `"${i.topic.title.replace(/"/g, '""')}"`,
-            `"${i.teacher.name}"`,
+            `"${teacherName}"`,
             `"${students}"`,
             i.startDate?.toISOString().split('T')[0] ?? '',
             i.endDate?.toISOString().split('T')[0] ?? '',
@@ -70,10 +71,10 @@ export async function GET(req: NextRequest) {
           internship: {
             include: {
               topic: { select: { title: true } },
-              students: { include: { student: { select: { name: true } } } },
+              internshipstudent: { include: { user: { select: { name: true } } } },
             },
           },
-          uploadedBy: { select: { name: true, role: true } },
+          user_document_uploadedByIdTouser: { select: { name: true, role: true } },
         },
         orderBy: { uploadedAt: 'asc' },
       });
@@ -81,14 +82,15 @@ export async function GET(req: NextRequest) {
       rows.push('=== DOCUMENTS ===');
       rows.push('ID,Type,Name,Uploaded By,Role,Status,Uploaded At,Topic,Students');
       for (const d of documents) {
-        const students = d.internship.students.map((s) => s.student.name).join(' | ');
+        const students = ((d as any).internship?.internshipstudent || []).map((s: any) => s.user?.name).join(' | ');
+        const uploadedBy = (d as any).user_document_uploadedByIdTouser || { name: 'N/A', role: 'N/A' };
         rows.push(
           [
             d.id,
             d.type,
             `"${d.fileName.replace(/"/g, '""')}"`,
-            `"${d.uploadedBy.name}"`,
-            d.uploadedBy.role,
+            `"${uploadedBy.name}"`,
+            uploadedBy.role,
             d.status,
             d.uploadedAt.toISOString(),
             `"${d.internship.topic.title.replace(/"/g, '""')}"`,
@@ -105,7 +107,7 @@ export async function GET(req: NextRequest) {
           internship: { ...(year ? { academicYear: year } : {}), ...(filiereId ? { topic: { filiereId } } : {}) },
         },
         include: {
-          sender: { select: { name: true, role: true } },
+          user: { select: { name: true, role: true } },
           internship: {
             include: { topic: { select: { title: true } } },
           },
@@ -116,13 +118,14 @@ export async function GET(req: NextRequest) {
       rows.push('=== MESSAGES ===');
       rows.push('ID,Sent At,Sender,Role,Internship Topic,Content Preview,Requires Action');
       for (const m of messages) {
+        const sender = (m as any).user || { name: 'N/A', role: 'N/A' };
         const preview = m.content.substring(0, 80).replace(/"/g, '""').replace(/\n/g, ' ');
         rows.push(
           [
             m.id,
             m.sentAt.toISOString(),
-            `"${m.sender.name}"`,
-            m.sender.role,
+            `"${sender.name}"`,
+            sender.role,
             `"${m.internship.topic.title.replace(/"/g, '""')}"`,
             `"${preview}"`,
             m.requiresAction ? 'YES' : 'NO',
