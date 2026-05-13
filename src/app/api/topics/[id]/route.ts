@@ -171,15 +171,10 @@ export async function PATCH(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    // Super Admin is read-only for topic moderation
-    if (session.user.isSuperAdmin) {
-      return NextResponse.json({ 
-        error: "Forbidden: Super Administrators have read-only access to topic moderation. Please contact the Department Administrator." 
-      }, { status: 403 });
-    }
+    // Super Admin has full access. Dept Admin is scoped.
 
     // Dept Admin Scoping Check
-    if (session.user.filiereId && topic.filiereId && topic.filiereId !== session.user.filiereId) {
+    if (!session.user.isSuperAdmin && session.user.filiereId && topic.filiereId && topic.filiereId !== session.user.filiereId) {
       return NextResponse.json({ error: "Forbidden: Topic belongs to another department" }, { status: 403 });
     }
 
