@@ -22,6 +22,7 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { DocumentList } from "@/components/documents/DocumentList";
 import { InternshipDocument } from "@/types/document";
+import { useBreadcrumbs } from "@/lib/contexts/BreadcrumbContext";
 
 interface Internship {
    id: string;
@@ -53,6 +54,7 @@ export default function AdminInternshipDetailPage() {
    const [isLoading, setIsLoading] = useState(true);
    const [deadlineInput, setDeadlineInput] = useState("");
    const [isSettingDeadline, setIsSettingDeadline] = useState(false);
+   const { setLabel } = useBreadcrumbs();
 
    const fetchData = async () => {
       try {
@@ -62,6 +64,9 @@ export default function AdminInternshipDetailPage() {
          // Pre-fill deadline input if already set
          if (data.data?.finalDeadline) {
             setDeadlineInput(data.data.finalDeadline.split('T')[0]);
+         }
+         if (data.data?.topic?.title) {
+            setLabel(id as string, data.data.topic.title);
          }
 
          const docRes = await fetch(`/api/documents?internshipId=${id}`);
