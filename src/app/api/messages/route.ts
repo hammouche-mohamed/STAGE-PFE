@@ -45,7 +45,11 @@ export async function POST(req: NextRequest) {
       internship.teacherId,
       ...(internship as any).internshipstudent.map((s: { studentId: string }) => s.studentId),
     ];
-    if (!memberIds.includes(session.user.id)) {
+    
+    const isParticipant = memberIds.includes(session.user.id);
+    const isAdmin = session.user.role === "ADMIN";
+
+    if (!isParticipant && !isAdmin) {
       return NextResponse.json({ error: "You are not a participant in this internship." }, { status: 403 });
     }
 
