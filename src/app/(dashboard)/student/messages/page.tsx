@@ -309,9 +309,9 @@ function MessagesContent() {
               <div>
                 <div className="flex items-center gap-2">
                   <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse hidden sm:block" />
-                  <h1 className={`text-[14px] md:text-[15px] font-bold text-gray-900 ${isRTL ? "leading-relaxed text-[17px] max-w-none" : "leading-none truncate max-w-[120px] sm:max-w-none"}`}>{t("messages.title")}</h1>
+                  <h1 className={`text-[14px] md:text-[15px] font-bold text-gray-900 dark:text-white ${isRTL ? "leading-relaxed text-[17px] max-w-none" : "leading-none truncate max-w-[120px] sm:max-w-none"}`}>{t("messages.title")}</h1>
                 </div>
-                <p className={`text-gray-500 mt-0.5 md:mt-1 uppercase font-bold truncate max-w-[150px] sm:max-w-none ${isRTL ? "text-[13px] tracking-normal" : "text-[11px] md:text-[12px] tracking-tight"}`}>{internship?.topic.title}</p>
+                <p className={`text-gray-500 dark:text-gray-400 mt-0.5 md:mt-1 uppercase font-bold truncate max-w-[150px] sm:max-w-none ${isRTL ? "text-[13px] tracking-normal" : "text-[11px] md:text-[12px] tracking-tight"}`}>{internship?.topic.title}</p>
               </div>
             </div>
 
@@ -320,7 +320,7 @@ function MessagesContent() {
                 onClick={() => toggleSidebar("files")}
                 className={`h-8 px-2 md:px-3 rounded-md transition-all flex items-center gap-1.5 md:gap-2 text-[10px] md:text-[11px] font-bold border ${showFiles && sidebarTab === "files"
                     ? "bg-indigo-600 text-white border-indigo-600 shadow-sm"
-                    : "bg-white text-gray-600 hover:bg-gray-50 border-gray-200"
+                    : "bg-white dark:bg-slate-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700 border-gray-200 dark:border-slate-700"
                   }`}
               >
                 <FileText className="h-3.5 w-3.5" />
@@ -331,7 +331,7 @@ function MessagesContent() {
                 onClick={() => toggleSidebar("participants")}
                 className={`h-8 px-2 md:px-3 rounded-md transition-all flex items-center gap-1.5 md:gap-2 text-[10px] md:text-[11px] font-bold border ${showFiles && sidebarTab === "participants"
                     ? "bg-indigo-600 text-white border-indigo-600 shadow-sm"
-                    : "bg-white text-gray-600 hover:bg-gray-50 border-gray-200"
+                    : "bg-white dark:bg-slate-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700 border-gray-200 dark:border-slate-700"
                   }`}
               >
                 <Users className="h-3.5 w-3.5" />
@@ -350,7 +350,7 @@ function MessagesContent() {
                 placeholder={t("common.search")}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className={`w-full h-8 bg-white border border-gray-200 rounded-full ${isRTL ? "pr-8 pl-4 text-right" : "pl-8 pr-4"} text-[12px] focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-300`}
+                className={`w-full h-8 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-full ${isRTL ? "pr-8 pl-4 text-right" : "pl-8 pr-4"} text-[12px] text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-300`}
               />
               {searchQuery && (
                 <button onClick={() => setSearchQuery("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
@@ -364,9 +364,9 @@ function MessagesContent() {
         {/* Messages Content Area */}
         <div className="flex-1 flex overflow-hidden relative min-w-0">
           {/* Main Chat Content */}
-          <div className="flex-1 min-w-0 bg-white border border-gray-200 rounded-xl shadow-sm flex flex-col overflow-hidden">
+          <div className="flex-1 min-w-0 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl shadow-sm flex flex-col overflow-hidden">
             {/* Messages */}
-            <div dir="ltr" className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
+            <div dir="ltr" className="flex-1 overflow-y-auto px-4 py-4 space-y-4 bg-gray-50/30 dark:bg-slate-900/50">
               {isLoading ? (
                 <p className="text-center text-gray-400 text-[13px] pt-12">Loading…</p>
               ) : !internship ? (
@@ -403,18 +403,18 @@ function MessagesContent() {
                       <div className={`max-w-[65%] space-y-0.5 ${isMe ? "items-end flex flex-col" : "items-start flex flex-col"}`}>
                         {/* Sender + time */}
                         <div className={`flex items-center gap-2 px-1 ${isMe ? "flex-row-reverse" : ""}`}>
-                          <span className="text-[11px] font-bold text-gray-700">
+                          <span className="text-[11px] font-bold text-gray-700 dark:text-gray-300">
                             {isMe ? "You" : msg.sender.name}
                           </span>
-                          <span className="text-[10px] text-gray-400">
+                          <span className="text-[10px] text-gray-400 dark:text-gray-500">
                             {format(new Date(msg.sentAt), "HH:mm · d MMM")}
                           </span>
                         </div>
 
                         {/* Bubble */}
                         <div className={`relative px-4 py-3 rounded-2xl text-[13.5px] leading-relaxed ${isMe
-                            ? "bg-indigo-600 text-white rounded-tr-sm"
-                            : "bg-white text-gray-800 rounded-tl-sm shadow-sm border border-gray-100"
+                            ? "bg-indigo-600 text-white rounded-tr-sm shadow-md shadow-indigo-200/20"
+                            : "bg-white dark:bg-slate-800 text-gray-800 dark:text-gray-200 rounded-tl-sm shadow-sm border border-gray-100 dark:border-slate-700"
                           }`}>
                           {/* Quoted reply */}
                           {quoted && (
@@ -428,7 +428,7 @@ function MessagesContent() {
                           {/* Attachment */}
                           {msg.attachmentName && (
                             <a href={msg.attachmentUrl ?? "#"} target="_blank" rel="noreferrer"
-                              className={`mt-2 p-2 rounded-lg flex items-center gap-2 border text-[11px] ${isMe ? "bg-indigo-700 border-indigo-500 text-white" : "bg-gray-50 border-gray-200 text-gray-600"
+                              className={`mt-2 p-2 rounded-lg flex items-center gap-2 border text-[11px] ${isMe ? "bg-indigo-700 border-indigo-500 text-white" : "bg-gray-50 dark:bg-slate-700 border-gray-200 dark:border-slate-600 text-gray-600 dark:text-gray-300"
                                 }`}>
                               <FileText className="h-4 w-4 flex-shrink-0" />
                               <span className="truncate font-medium">{msg.attachmentName}</span>
@@ -461,22 +461,22 @@ function MessagesContent() {
 
             {/* Reply preview */}
             {replyTo && (
-              <div className="mx-4 mb-0 px-4 py-2 bg-indigo-50 border border-indigo-100 rounded-t-lg flex items-start justify-between gap-3">
+              <div className="mx-4 mb-0 px-4 py-2 bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-100 dark:border-indigo-800 rounded-t-lg flex items-start justify-between gap-3">
                 <div className="flex-1 min-w-0">
-                  <p className="text-[11px] font-bold text-indigo-700 mb-0.5 flex items-center gap-1">
+                  <p className="text-[11px] font-bold text-indigo-700 dark:text-indigo-400 mb-0.5 flex items-center gap-1">
                     <span className="opacity-70">{isRTL ? "↩" : "↪"}</span>
                     <span>{t("messages.replyingTo", { name: replyTo.senderId === session?.user?.id ? t("messages.yourself") : (replyTo.sender?.name || "User") })}</span>
                   </p>
-                  <p className="text-[12px] text-gray-500 truncate">{replyTo.content.slice(0, 80)}</p>
+                  <p className="text-[12px] text-gray-500 dark:text-gray-400 truncate">{replyTo.content.slice(0, 80)}</p>
                 </div>
-                <button onClick={() => setReplyTo(null)} className="text-gray-400 hover:text-gray-600 flex-shrink-0 mt-0.5">
+                <button onClick={() => setReplyTo(null)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 flex-shrink-0 mt-0.5">
                   <X className="h-4 w-4" />
                 </button>
               </div>
             )}
 
             {/* Input */}
-            <form onSubmit={handleSend} className={`p-4 border-t border-gray-100 bg-white ${replyTo ? "rounded-t-none" : ""}`}>
+            <form onSubmit={handleSend} className={`p-4 border-t border-gray-100 dark:border-slate-800 bg-white dark:bg-slate-900 ${replyTo ? "rounded-t-none" : ""}`}>
               {isChatLocked ? (
                 <div className="flex items-center justify-center gap-2 py-2 text-[12px] text-gray-400">
                   <Archive className="h-4 w-4" /> Chat is archived and read-only.
@@ -501,12 +501,12 @@ function MessagesContent() {
                     ? <span className="h-5 w-5 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin block" />
                     : <Paperclip className="h-5 w-5" />}
                 </button>
-                <input
+                 <input
                   ref={inputRef}
                   type="text"
                   placeholder={internship ? (isChatLocked ? "Chat is archived" : t("messages.typeMessage")) : "No active internship"}
                   disabled={!internship || isSending || isChatLocked}
-                  className={`flex-1 h-11 bg-gray-50 border border-gray-200 rounded-full px-5 text-[13.5px] focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 focus:bg-white transition-all disabled:opacity-50 ${isRTL ? "text-right" : "text-left"}`}
+                  className={`flex-1 h-11 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-full px-5 text-[13.5px] text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 dark:focus:bg-slate-700 transition-all disabled:opacity-50 ${isRTL ? "text-right" : "text-left"}`}
                   value={newMessage}
                   onChange={(e) => setNewMessage(e.target.value)}
                 />
@@ -524,9 +524,9 @@ function MessagesContent() {
 
           {/* Coordination Details Sidebar */}
           {showFiles && (
-            <div className={`w-80 border-gray-100 bg-white flex flex-col animate-in ${isRTL ? "border-r slide-in-from-left" : "border-l slide-in-from-right"} duration-300`}>
-              <div className={`p-4 border-b border-gray-100 bg-gray-50/50 flex items-center justify-between ${isRTL ? "flex-row-reverse" : ""}`}>
-                <h3 className="text-[12px] font-bold text-gray-900 uppercase tracking-widest font-bold">
+            <div className={`w-80 border-gray-100 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col animate-in ${isRTL ? "border-r slide-in-from-left" : "border-l slide-in-from-right"} duration-300`}>
+              <div className={`p-4 border-b border-gray-100 dark:border-slate-800 bg-gray-50/50 dark:bg-slate-800/50 flex items-center justify-between ${isRTL ? "flex-row-reverse" : ""}`}>
+                <h3 className="text-[12px] font-bold text-gray-900 dark:text-white uppercase tracking-widest font-bold">
                   {sidebarTab === "files" ? t("messages.files") : t("messages.participants")}
                 </h3>
                 {sidebarTab === "files" ? <FileText className="h-4 w-4 text-gray-400" /> : <Users className="h-4 w-4 text-gray-400" />}
@@ -536,18 +536,18 @@ function MessagesContent() {
                 {sidebarTab === "participants" ? (
                   <div className="space-y-6">
                     {/* Supervisor */}
-                    <div className="space-y-2">
-                      <p className="text-[10px] text-gray-400 font-bold uppercase tracking-tighter px-1">
+                     <div className="space-y-2">
+                      <p className="text-[10px] text-gray-400 dark:text-gray-500 font-bold uppercase tracking-tighter px-1">
                         {t("messages.supervisor")}
                       </p>
-                      <div className="rounded-xl border border-gray-100 bg-white p-2.5 shadow-sm">
+                      <div className="rounded-xl border border-gray-100 dark:border-slate-800 bg-white dark:bg-slate-800/50 p-2.5 shadow-sm">
                         <div className={`flex items-center gap-4 ${isRTL ? "flex-row-reverse text-right" : ""}`}>
-                          <div className="h-8 w-8 rounded-full bg-indigo-50 text-indigo-700 flex items-center justify-center font-bold text-[12px] flex-shrink-0">
+                          <div className="h-8 w-8 rounded-full bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 flex items-center justify-center font-bold text-[12px] flex-shrink-0">
                             {internship?.teacher?.name.charAt(0) || "S"}
                           </div>
                           <div className="min-w-0 flex-1">
-                            <p className="text-[12px] font-bold text-gray-900 truncate">{internship?.teacher?.name || "No Supervisor"}</p>
-                            <p className="text-[10px] text-gray-500 truncate">{internship?.teacher?.email || "N/A"}</p>
+                            <p className="text-[12px] font-bold text-gray-900 dark:text-white truncate">{internship?.teacher?.name || "No Supervisor"}</p>
+                            <p className="text-[10px] text-gray-500 dark:text-gray-400 truncate">{internship?.teacher?.email || "N/A"}</p>
                           </div>
                         </div>
                       </div>
@@ -558,19 +558,19 @@ function MessagesContent() {
                       <p className="text-[10px] text-gray-400 font-bold uppercase tracking-tighter px-1">
                         {t("messages.students")}
                       </p>
-                      <div className="space-y-2">
+                       <div className="space-y-2">
                         {internship?.students.map((s, idx) => (
-                          <div key={`${s.student.email}-${idx}`} className="rounded-xl border border-gray-100 bg-white p-2.5 shadow-sm">
+                          <div key={`${s.student.email}-${idx}`} className="rounded-xl border border-gray-100 dark:border-slate-800 bg-white dark:bg-slate-800/50 p-2.5 shadow-sm">
                             <div className={`flex items-center gap-4 ${isRTL ? "flex-row-reverse text-right" : ""}`}>
-                              <div className={`h-8 w-8 rounded-full flex items-center justify-center font-bold text-[12px] flex-shrink-0 ${s.isLeader ? "bg-amber-50 text-amber-700" : "bg-emerald-50 text-emerald-700"}`}>
+                              <div className={`h-8 w-8 rounded-full flex items-center justify-center font-bold text-[12px] flex-shrink-0 ${s.isLeader ? "bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400" : "bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400"}`}>
                                 {s.student.name.charAt(0)}
                               </div>
                               <div className="min-w-0 flex-1">
                                 <div className={`flex items-center gap-1.5 ${isRTL ? "flex-row-reverse" : ""}`}>
-                                  <p className="text-[12px] font-bold text-gray-900 truncate">{s.student.name}</p>
-                                  {s.isLeader && <span className="text-[8px] bg-amber-100 text-amber-700 px-1 rounded uppercase font-bold">Leader</span>}
+                                  <p className="text-[12px] font-bold text-gray-900 dark:text-white truncate">{s.student.name}</p>
+                                  {s.isLeader && <span className="text-[8px] bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 px-1 rounded uppercase font-bold">Leader</span>}
                                 </div>
-                                <p className="text-[10px] text-gray-500 truncate">{s.student.email || "N/A"}</p>
+                                <p className="text-[10px] text-gray-500 dark:text-gray-400 truncate">{s.student.email || "N/A"}</p>
                               </div>
                             </div>
                           </div>
@@ -587,27 +587,27 @@ function MessagesContent() {
                       </div>
                     ) : (
                       sharedFiles.map((file) => (
-                        <a
+                         <a
                           key={file.id}
                           href={file.url}
                           target="_blank"
                           rel="noreferrer"
-                          className={`flex items-start gap-3 p-2.5 rounded-xl hover:bg-gray-50 border border-transparent hover:border-gray-100 transition-all group ${isRTL ? "flex-row-reverse" : ""}`}
+                          className={`flex items-start gap-3 p-2.5 rounded-xl hover:bg-gray-50 dark:hover:bg-slate-800/50 border border-transparent hover:border-gray-100 dark:hover:border-slate-700 transition-all group ${isRTL ? "flex-row-reverse" : ""}`}
                         >
-                          <div className={`h-9 w-9 rounded-lg flex items-center justify-center flex-shrink-0 ${file.category === "DOCUMENT" ? "bg-amber-50 text-amber-600" : "bg-indigo-50 text-indigo-600"
+                          <div className={`h-9 w-9 rounded-lg flex items-center justify-center flex-shrink-0 ${file.category === "DOCUMENT" ? "bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400" : "bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400"
                             }`}>
                             <FileText className="h-4 w-4" />
                           </div>
                           <div className={`min-w-0 flex-1 ${isRTL ? "text-right" : "text-left"}`}>
-                            <p className="text-[12px] font-semibold text-gray-800 truncate group-hover:text-indigo-700 transition-colors" title={file.name}>
+                            <p className="text-[12px] font-semibold text-gray-800 dark:text-gray-200 truncate group-hover:text-indigo-700 dark:group-hover:text-indigo-400 transition-colors" title={file.name}>
                               {file.name}
                             </p>
                             <div className={`flex items-center gap-1.5 mt-0.5 ${isRTL ? "flex-row-reverse" : ""}`}>
-                              <span className={`text-[9px] font-bold px-1 rounded uppercase ${file.category === "DOCUMENT" ? "bg-amber-100 text-amber-700" : "bg-indigo-100 text-indigo-700"
+                              <span className={`text-[9px] font-bold px-1 rounded uppercase ${file.category === "DOCUMENT" ? "bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300" : "bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300"
                                 }`}>
                                 {file.category === "DOCUMENT" ? "Doc" : "Chat"}
                               </span>
-                              <span className="text-[10px] text-gray-400 truncate">
+                              <span className="text-[10px] text-gray-400 dark:text-gray-500 truncate">
                                 {file.senderName} · {format(new Date(file.sentAt), "d MMM")}
                               </span>
                             </div>
@@ -626,17 +626,17 @@ function MessagesContent() {
       {/* ── FILE CONFIRM MODAL ────────────────────────────────────────────── */}
       {pendingFile && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden">
-            <div className="px-6 pt-6 pb-4 border-b border-gray-100">
-              <h3 className="text-[15px] font-semibold text-gray-900">Send this file?</h3>
-              <p className="text-[12px] text-gray-400 mt-0.5">Review the file before sending it to the group.</p>
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden border border-gray-100 dark:border-slate-800">
+            <div className="px-6 pt-6 pb-4 border-b border-gray-100 dark:border-slate-800">
+              <h3 className="text-[15px] font-semibold text-gray-900 dark:text-white">Send this file?</h3>
+              <p className="text-[12px] text-gray-400 dark:text-gray-500 mt-0.5">Review the file before sending it to the group.</p>
             </div>
             <div className="px-6 py-4">
-              <div className="flex items-center gap-4 bg-gray-50 border border-gray-200 rounded-xl px-4 py-3">
+              <div className="flex items-center gap-4 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl px-4 py-3">
                 <span className="text-3xl">{fileIcon(pendingFile.name)}</span>
                 <div className="min-w-0">
-                  <p className="text-[13px] font-semibold text-gray-800 truncate">{pendingFile.name}</p>
-                  <p className="text-[11px] text-gray-400 mt-0.5">{fmtBytes(pendingFile.size)}</p>
+                  <p className="text-[13px] font-semibold text-gray-800 dark:text-gray-200 truncate">{pendingFile.name}</p>
+                  <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5">{fmtBytes(pendingFile.size)}</p>
                 </div>
               </div>
               {newMessage.trim() && (
@@ -646,10 +646,10 @@ function MessagesContent() {
                 </div>
               )}
             </div>
-            <div className="px-6 pb-6 flex gap-3">
+             <div className="px-6 pb-6 flex gap-3">
               <button
                 onClick={() => { setPendingFile(null); if (fileInputRef.current) fileInputRef.current.value = ""; }}
-                className="flex-1 h-10 rounded-xl border border-gray-200 text-[13px] font-medium text-gray-600 hover:bg-gray-50 transition-colors">
+                className="flex-1 h-10 rounded-xl border border-gray-200 dark:border-slate-700 text-[13px] font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors">
                 Cancel
               </button>
               <button
@@ -662,23 +662,23 @@ function MessagesContent() {
         </div>
       )}
 
-      {/* ── DELETE CONFIRM MODAL ──────────────────────────────────────────── */}
+       {/* ── DELETE CONFIRM MODAL ──────────────────────────────────────────── */}
       {deleteTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xs mx-4 overflow-hidden">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-xs mx-4 overflow-hidden border border-gray-100 dark:border-slate-800">
             <div className="px-6 pt-6 pb-4 flex flex-col items-center text-center">
-              <div className="h-12 w-12 rounded-full bg-red-100 flex items-center justify-center mb-4">
+              <div className="h-12 w-12 rounded-full bg-red-100 dark:bg-red-900/20 flex items-center justify-center mb-4">
                 <AlertTriangle className="h-6 w-6 text-red-500" />
               </div>
-              <h3 className="text-[15px] font-semibold text-gray-900">Delete message?</h3>
-              <p className="text-[12px] text-gray-400 mt-1">
+              <h3 className="text-[15px] font-semibold text-gray-900 dark:text-white">Delete message?</h3>
+              <p className="text-[12px] text-gray-400 dark:text-gray-500 mt-1">
                 This message will be permanently removed from the conversation.
               </p>
             </div>
             <div className="px-6 pb-6 flex gap-3">
               <button
                 onClick={() => setDeleteTarget(null)}
-                className="flex-1 h-10 rounded-xl border border-gray-200 text-[13px] font-medium text-gray-600 hover:bg-gray-50 transition-colors">
+                className="flex-1 h-10 rounded-xl border border-gray-200 dark:border-slate-700 text-[13px] font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors">
                 Keep it
               </button>
               <button
