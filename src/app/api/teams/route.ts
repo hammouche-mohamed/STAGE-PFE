@@ -14,11 +14,11 @@ export async function POST(req: NextRequest) {
     // ── GUARD: Check if student is already in a valid team ─────────────────
     const existingMember = await prisma.teamMember.findFirst({
       where: { studentId: session.user.id },
-      include: { team: true }
+      include: { studentteam: true } as any
     });
 
     if (existingMember) {
-      if (!existingMember.team) {
+      if (!(existingMember as any).studentteam) {
         // Orphaned member record — team was deleted but member wasn't cleaned up
         await prisma.teamMember.delete({ where: { id: existingMember.id } });
       } else {
@@ -103,31 +103,46 @@ export async function GET(req: NextRequest) {
       const member = await prisma.teamMember.findFirst({
         where: { studentId: session.user.id },
         include: {
-          team: {
+          studentteam: {
             include: {
-              members: {
-                include: { student: { select: { id: true, name: true, email: true } } }
+              teammember: {
+                include: { user: { select: { id: true, name: true, email: true } } }
               },
-              invitations: {
+              teaminvitation: {
                 where: { status: "PENDING" },
-                include: { invitedStudent: { select: { id: true, name: true, email: true } } }
+                include: { user: { select: { id: true, name: true, email: true } } }
               }
             }
           }
         }
-      });
+      } as any);
 
       if (!member) {
         return NextResponse.json({ data: null });
       }
 
+      const m = member as any;
+
       // Clean up orphaned member record (team was deleted but member wasn't)
-      if (!member.team) {
+      if (!m.studentteam) {
         await prisma.teamMember.delete({ where: { id: member.id } });
         return NextResponse.json({ data: null });
       }
 
-      return NextResponse.json({ data: member.team });
+      // Map to expected frontend structure
+      const team = {
+        ...m.studentteam,
+        members: m.studentteam.teammember.map((tm: any) => ({
+          ...tm,
+          student: tm.user
+        })),
+        invitations: m.studentteam.teaminvitation.map((ti: any) => ({
+          ...ti,
+          invitedStudent: ti.user
+        }))
+      };
+
+      return NextResponse.json({ data: team });
     }
 
     if (session.user.role === "ADMIN") {
@@ -139,14 +154,24 @@ export async function GET(req: NextRequest) {
       const teams = await prisma.studentTeam.findMany({
         where: whereClause,
         include: {
-          members: {
-            include: { student: { select: { id: true, name: true, email: true } } }
+          teammember: {
+            include: { user: { select: { id: true, name: true, email: true } } }
           },
           filiere: { select: { name: true } }
         },
         orderBy: { createdAt: "desc" }
-      });
-      return NextResponse.json({ data: teams });
+      } as any);
+
+      // Map for admin as well
+      const mappedTeams = (teams as any[]).map(t => ({
+        ...t,
+        members: t.teammember.map((tm: any) => ({
+          ...tm,
+          student: tm.user
+        }))
+      }));
+
+      return NextResponse.json({ data: mappedTeams });
     }
 
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
