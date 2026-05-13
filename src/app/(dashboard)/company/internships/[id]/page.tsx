@@ -158,9 +158,9 @@ export default function CompanyInternshipDetailPage() {
         <StatusBadge status={internship.status} />
       </div>
 
-      <div className="bg-white border border-gray-200 rounded-md p-6 shadow-sm">
-        <h1 className="text-[20px] font-bold text-gray-900 mb-2">{internship.topic.title}</h1>
-        <div className="flex items-center gap-4 text-[12px] text-gray-500 mb-6">
+      <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-md p-6 shadow-sm">
+        <h1 className="text-[20px] font-bold text-gray-900 dark:text-white mb-2">{internship.topic.title}</h1>
+        <div className="flex items-center gap-4 text-[12px] text-gray-500 dark:text-gray-400 mb-6">
           <span className="flex items-center gap-1.5">
             <Calendar className="h-3.5 w-3.5" />
             {internship.academicYear}
@@ -170,22 +170,22 @@ export default function CompanyInternshipDetailPage() {
             {internship.students.length} {t("common.users")}
           </span>
         </div>
-        <p className="text-[14px] text-gray-600 leading-relaxed">
+        <p className="text-[14px] text-gray-600 dark:text-gray-300 leading-relaxed">
           {internship.topic.description}
         </p>
       </div>
 
       {internship.status === "DOCUMENT_SENT" && (
-        <div className="bg-indigo-50 border border-indigo-200 rounded-md p-6 shadow-sm">
-          <h2 className="text-[15px] font-bold text-indigo-900 mb-2 flex items-center">
+        <div className="bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800/30 rounded-md p-6 shadow-sm">
+          <h2 className="text-[15px] font-bold text-indigo-900 dark:text-indigo-300 mb-2 flex items-center">
             <CheckCircle2 className="h-5 w-5 mr-2 text-indigo-600" />
             Confirm Internship Dates &amp; Supervisor
           </h2>
 
           {internship.internshipType === "PFE" ? (
-            <div className="bg-purple-50 border border-purple-200 rounded-md p-4 mb-4">
-              <p className="text-[13px] text-purple-800 font-semibold mb-1">📌 PFE Internship — End Date Managed by Administration</p>
-              <p className="text-[12px] text-purple-700">
+            <div className="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800/30 rounded-md p-4 mb-4">
+              <p className="text-[13px] text-purple-800 dark:text-purple-300 font-semibold mb-1">📌 PFE Internship — End Date Managed by Administration</p>
+              <p className="text-[12px] text-purple-700 dark:text-purple-200/80">
                 For PFE internships, the end date is automatically set by the administration's final report deadline.
                 {internship.finalDeadline
                   ? ` The current end date is: ${format(new Date(internship.finalDeadline), "PPP")}.`
@@ -193,7 +193,7 @@ export default function CompanyInternshipDetailPage() {
               </p>
             </div>
           ) : (
-            <p className="text-[12px] text-indigo-700 mb-6">
+            <p className="text-[12px] text-indigo-700 dark:text-indigo-300 mb-6">
               The administration has sent the convention. Please confirm the actual start/end dates and provide the contact info for the technical supervisor.
             </p>
           )}
@@ -238,38 +238,38 @@ export default function CompanyInternshipDetailPage() {
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-white border border-gray-200 rounded-md p-6 shadow-sm">
-          <h2 className="text-[15px] font-bold text-gray-900 mb-4 flex items-center">
+        <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-md p-6 shadow-sm">
+          <h2 className="text-[15px] font-bold text-gray-900 dark:text-white mb-4 flex items-center">
             <Users className="h-4 w-4 mr-2 text-indigo-500" />
             {t("dashboard.team")}
           </h2>
           <div className="space-y-4">
             {internship.students.map(s => (
-              <div key={s.student.email} className="flex items-center gap-3 p-3 bg-gray-50 rounded-md">
-                <div className="h-8 w-8 rounded-full bg-white border border-gray-200 flex items-center justify-center text-gray-400">
+              <div key={s.student.email} className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-slate-800/50 rounded-md border border-transparent dark:border-slate-700/50">
+                <div className="h-8 w-8 rounded-full bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 flex items-center justify-center text-gray-400 dark:text-gray-500">
                   <User className="h-4 w-4" />
                 </div>
                 <div>
-                  <p className="text-[13px] font-bold text-gray-900">{s.student.name}</p>
-                  <p className="text-[11px] text-gray-500">{s.student.email}</p>
+                  <p className="text-[13px] font-bold text-gray-900 dark:text-white">{s.student.name}</p>
+                  <p className="text-[11px] text-gray-500 dark:text-gray-400">{s.student.email}</p>
                 </div>
               </div>
             ))}
           </div>
         </div>
 
-        <div className="bg-white border border-gray-200 rounded-md p-6 shadow-sm">
-          <h2 className="text-[15px] font-bold text-gray-900 mb-4 flex items-center">
+        <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-md p-6 shadow-sm">
+          <h2 className="text-[15px] font-bold text-gray-900 dark:text-white mb-4 flex items-center">
             <Star className="h-4 w-4 mr-2 text-amber-500" />
             {t("dashboard.supervisor")} — {t("status.COMPLETED")}
           </h2>
-          <p className="text-[12px] text-gray-500 mb-6 leading-relaxed">
+          <p className="text-[12px] text-gray-500 dark:text-gray-400 mb-6 leading-relaxed">
             Please submit the final score for the students you hosted. This score will contribute to their final academic grade.
           </p>
 
           <div className="space-y-4">
             <div>
-              <label className="text-[12px] font-bold text-gray-700 block mb-2">Technical Evaluation Score (0-20)</label>
+              <label className="text-[12px] font-bold text-gray-700 dark:text-gray-300 block mb-2">Technical Evaluation Score (0-20)</label>
               <input
                 type="number"
                 min="0"
@@ -298,13 +298,13 @@ export default function CompanyInternshipDetailPage() {
         </div>
       </div>
 
-      <div className="bg-white border border-gray-200 rounded-md p-6 shadow-sm">
-        <h2 className="text-[15px] font-bold text-gray-900 mb-6 flex items-center justify-between">
+      <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-md p-6 shadow-sm">
+        <h2 className="text-[15px] font-bold text-gray-900 dark:text-white mb-6 flex items-center justify-between">
            <div className="flex items-center">
               <FileText className="h-4 w-4 mr-2 text-indigo-500" />
               Internship Documents
            </div>
-           <span className="text-[11px] font-medium text-gray-400 bg-gray-50 px-2 py-1 rounded">
+           <span className="text-[11px] font-medium text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-slate-800 border border-transparent dark:border-slate-700 px-2 py-1 rounded">
               {documents.length} Files
            </span>
         </h2>

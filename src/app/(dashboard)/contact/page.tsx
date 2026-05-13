@@ -27,7 +27,7 @@ export default function ContactAdminPage() {
               </div>
               <div className="space-y-1">
                 <h3 className="font-bold text-gray-900 dark:text-white uppercase text-[12px] tracking-wider">{t("contactPage.emailSupport")}</h3>
-                <p className="text-gray-600 dark:text-gray-300 text-[14px]">administration@esst-u.dz</p>
+                <p className="text-gray-600 dark:text-gray-300 text-[14px]">contact@esst-sup.com</p>
                 <p className="text-gray-400 dark:text-gray-500 text-[12px]">{t("contactPage.emailDesc")}</p>
               </div>
             </div>
@@ -40,7 +40,7 @@ export default function ContactAdminPage() {
               </div>
               <div className="space-y-1">
                 <h3 className="font-bold text-gray-900 dark:text-white uppercase text-[12px] tracking-wider">{t("contactPage.phone")}</h3>
-                <p className="text-gray-600 dark:text-gray-300 text-[14px]">+213 (0) 23 45 67 89</p>
+                <p className="text-gray-600 dark:text-gray-300 text-[14px]">+213 (0) 771 94 00 45<br />+213 (0) 561 97 03 05</p>
                 <p className="text-gray-400 dark:text-gray-500 text-[12px]">{t("contactPage.phoneDesc")}</p>
               </div>
             </div>
@@ -63,7 +63,7 @@ export default function ContactAdminPage() {
         {/* Quick Actions / FAQ */}
         <div className="bg-indigo-600 rounded-2xl p-8 text-white flex flex-col justify-between shadow-xl relative overflow-hidden group">
           <div className="absolute top-0 right-0 -mt-8 -mr-8 h-32 w-32 bg-white/10 rounded-full blur-2xl group-hover:bg-white/20 transition-colors" />
-          
+
           <div className="relative space-y-6">
             <div className="h-14 w-14 bg-white/20 rounded-2xl flex items-center justify-center mb-4">
               <ShieldCheck className="h-8 w-8" />
@@ -81,10 +81,10 @@ export default function ContactAdminPage() {
           </div>
 
           <div className="relative pt-8">
-            <Button 
+            <Button
               variant="outline"
               className="w-full bg-white text-indigo-600 hover:bg-indigo-50 border-none font-bold h-auto py-4 text-[15px] rounded-xl shadow-lg transition-all"
-              onClick={() => window.open("https://esst-dz.com", "_blank")}
+              onClick={() => window.open("https://esst-sup.com", "_blank")}
             >
               {t("contactPage.visitWebsite")}
               <ExternalLink className="ml-2 h-4 w-4" />
