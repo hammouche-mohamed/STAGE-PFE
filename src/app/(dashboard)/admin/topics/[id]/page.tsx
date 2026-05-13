@@ -96,6 +96,8 @@ export default function AdminTopicDetailPage() {
   });
   const [filieres, setFilieres] = useState<Filiere[]>([]);
   const [selectedLevels, setSelectedLevels] = useState<string[]>([]);
+  const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false);
+  const [rejectionReasonInput, setRejectionReasonInput] = useState("");
 
   useEffect(() => {
     const fetchData = async () => {
@@ -208,6 +210,19 @@ export default function AdminTopicDetailPage() {
     } finally {
       setIsUpdating(false);
     }
+  };
+
+  const handleApprove = () => {
+    handleUpdate({ ...editData, status: "OPEN_FOR_SELECTION" });
+  };
+
+  const handleReject = () => {
+    if (!rejectionReasonInput.trim()) {
+      toast.error("Please provide a rejection reason");
+      return;
+    }
+    handleUpdate({ ...editData, status: "REJECTED", rejectionReason: rejectionReasonInput });
+    setIsRejectDialogOpen(false);
   };
 
   const toggleLevel = (level: string) => {
@@ -331,18 +346,9 @@ export default function AdminTopicDetailPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
                   <div className="space-y-1.5">
                     <label className="text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">{t("common.status")}</label>
-                    <select 
-                      className="admin-input w-full text-[13px] h-10"
-                      value={editData.status}
-                      onChange={(e) => setEditData({...editData, status: e.target.value})}
-                      disabled={session?.user?.isSuperAdmin}
-                    >
-                      <option value="PENDING_ADMIN">Waiting Review</option>
-                      <option value="PENDING_TEACHER">Waiting Supervisor Approval</option>
-                      <option value="OPEN_FOR_SELECTION">Approved & Open for Selection</option>
-                      <option value="REJECTED">Rejected</option>
-                      {editData.status === "TAKEN" && <option value="TAKEN" disabled>Assigned to Students (Taken)</option>}
-                    </select>
+                    <div className="flex items-center h-10">
+                      <StatusBadge status={topic.status} />
+                    </div>
                   </div>
 
                   <div className="space-y-1.5">
@@ -421,22 +427,53 @@ export default function AdminTopicDetailPage() {
                     ))}
                   </div>
                 </div>
-             </div>
 
-             {editData.status === "REJECTED" && (
-                <div className="mt-6 pt-6 border-t border-gray-100">
-                   <label className="text-[12px] font-bold text-red-700 flex items-center mb-2">
+                                    {/* Validation Actions */}
+              {!session?.user?.isSuperAdmin && ["PENDING_ADMIN", "PENDING_TEACHER", "REJECTED"].includes(topic.status) && (
+                <div className="mt-8 pt-8 border-t border-gray-200 dark:border-slate-800">
+                  <div className="flex flex-col gap-4">
+                    <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400">
+                      <AlertCircle className="h-4 w-4" />
+                      <span className="text-[12px] font-bold uppercase tracking-wider">Moderation Actions</span>
+                    </div>
+                    <div className="flex flex-wrap gap-3">
+                      <Button 
+                        onClick={handleApprove} 
+                        isLoading={isUpdating}
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white border-none min-w-[140px]"
+                      >
+                        <CheckCircle2 className="h-4 w-4 mr-2" />
+                        Approve Topic
+                      </Button>
+                      <Button 
+                        variant="outline"
+                        onClick={() => setIsRejectDialogOpen(true)}
+                        disabled={isUpdating}
+                        className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 dark:border-red-900/30 dark:hover:bg-red-900/20 min-w-[140px]"
+                      >
+                        <XCircle className="h-4 w-4 mr-2" />
+                        Reject Topic
+                      </Button>
+                    </div>
+                    <p className="text-[11px] text-gray-400 italic mt-1">
+                      Note: Once approved, the topic will be immediately visible to students for selection.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {topic.status === "REJECTED" && (
+                <div className="mt-6 pt-6 border-t border-gray-100 dark:border-slate-800">
+                   <label className="text-[12px] font-bold text-red-700 dark:text-red-400 flex items-center mb-2">
                       <AlertCircle className="h-4 w-4 mr-2" />
                       Rejection Reason
                    </label>
-                   <textarea 
-                     className="admin-input border-red-100 bg-red-50 text-red-900"
-                     value={topic.rejectionReason || ""}
-                     placeholder="Provide details on why this topic was rejected..."
-                     readOnly
-                   />
+                   <div className="p-4 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-900/30 text-red-900 dark:text-red-200 text-[13px] italic">
+                     {topic.rejectionReason || "No reason provided."}
+                   </div>
                 </div>
-             )}
+              )}
+             </div>
 
              {topic.pendingEditData && (
                <div className="mt-8 pt-8 border-t border-gray-200">
@@ -700,6 +737,28 @@ export default function AdminTopicDetailPage() {
         confirmLabel={t("common.delete")}
         variant="danger"
         isLoading={isDeleting}
+      />
+
+      <ConfirmDialog
+        isOpen={isRejectDialogOpen}
+        onClose={() => setIsRejectDialogOpen(false)}
+        onConfirm={handleReject}
+        title="Reject Topic"
+        description={
+          <div className="space-y-4 pt-2">
+            <p className="text-[13px] text-gray-500">Please provide a reason for rejecting this topic. This will be visible to the proposer.</p>
+            <textarea
+              className="admin-input w-full min-h-[100px] text-[13px]"
+              placeholder="Reason for rejection..."
+              value={rejectionReasonInput}
+              onChange={(e) => setRejectionReasonInput(e.target.value)}
+              autoFocus
+            />
+          </div>
+        }
+        confirmText="Confirm Rejection"
+        confirmVariant="danger"
+        isLoading={isUpdating}
       />
     </div>
   );
