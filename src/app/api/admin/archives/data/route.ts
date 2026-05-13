@@ -45,22 +45,21 @@ export async function GET(req: NextRequest) {
         break;
 
       case 'teachers':
-        // Teachers involved in topics or internships this year
         data = await prisma.user.findMany({
           where: {
             role: 'TEACHER',
             OR: [
-              { proposedTopics: { some: { academicYear: year, ...(filiereId && { filiereId }) } } },
-              { assignedTopics: { some: { academicYear: year, ...(filiereId && { filiereId }) } } },
-              { internships: { some: { academicYear: year, ...(filiereId && { topic: { filiereId } }) } } }
+              { user_topic_proposedByIdTouser: { some: { academicYear: year, ...(filiereId && { filiereId }) } } },
+              { user_topic_assignedTeacherIdTouser: { some: { academicYear: year, ...(filiereId && { filiereId }) } } },
+              { internship: { some: { academicYear: year, ...(filiereId && { topic: { filiereId } }) } } }
             ]
           },
           include: {
             teacherprofile: { include: { filiere: true } },
             _count: {
               select: {
-                internships: { where: { academicYear: year } },
-                proposedTopics: { where: { academicYear: year } }
+                internship: { where: { academicYear: year } },
+                user_topic_proposedByIdTouser: { where: { academicYear: year } }
               }
             }
           }
@@ -68,17 +67,16 @@ export async function GET(req: NextRequest) {
         break;
 
       case 'companies':
-        // Companies who proposed topics this year
         data = await prisma.user.findMany({
           where: {
             role: 'COMPANY',
-            proposedTopics: { some: { academicYear: year, ...(filiereId && { filiereId }) } }
+            user_topic_proposedByIdTouser: { some: { academicYear: year, ...(filiereId && { filiereId }) } }
           },
           include: {
             companyprofile: true,
             _count: {
               select: {
-                proposedTopics: { where: { academicYear: year } }
+                user_topic_proposedByIdTouser: { where: { academicYear: year } }
               }
             }
           }
@@ -149,7 +147,64 @@ export async function GET(req: NextRequest) {
         break;
     }
 
-    return NextResponse.json({ data });
+    // Map schema field names back to friendly names expected by the client
+    const mappedData = (data as any[]).map(item => {
+      if (type === 'internships') {
+        return {
+          ...item,
+          teacher: item.user || { name: 'Unknown' },
+          students: (item.internshipstudent || []).map((s: any) => ({
+            ...s,
+            student: s.user
+          })),
+          _count: {
+            messages: item._count?.message || 0,
+            documents: item._count?.document || 0
+          }
+        };
+      }
+      if (type === 'students') {
+        return {
+          ...item,
+          studentProfile: item.studentprofile,
+          internshipStudents: (item.internshipstudent || []).map((s: any) => ({
+            ...s,
+            internship: s.internship
+          }))
+        };
+      }
+      if (type === 'teachers') {
+        return {
+          ...item,
+          teacherProfile: item.teacherprofile,
+          _count: {
+            internships: item._count?.internship || 0,
+            proposedTopics: item._count?.user_topic_proposedByIdTouser || 0
+          }
+        };
+      }
+      if (type === 'companies') {
+        return {
+          ...item,
+          companyProfile: item.companyprofile,
+          _count: {
+            proposedTopics: item._count?.user_topic_proposedByIdTouser || 0
+          }
+        };
+      }
+      if (type === 'topics') {
+        return {
+          ...item,
+          proposedBy: item.user_topic_proposedByIdTouser || { name: 'Unknown' },
+          _count: {
+            studentApplications: item._count?.studentapplication || 0
+          }
+        };
+      }
+      return item;
+    });
+
+    return NextResponse.json({ data: mappedData });
   } catch (error) {
     console.error('[admin/archives/data]', error);
     return NextResponse.json({ error: 'Fetch failed' }, { status: 500 });
