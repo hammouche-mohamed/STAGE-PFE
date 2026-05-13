@@ -40,9 +40,9 @@ export async function GET(
         },
         studentapplication: {
           include: {
-            team: {
+            studentteam: {
               include: {
-                members: {
+                teammember: {
                   include: {
                     user: { select: { id: true, name: true, email: true } }
                   }
