@@ -1,13 +1,13 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { formatShortDate } from "@/lib/utils/formatDate";
 import { StatusBadge } from "@/components/ui/StatusBadge";
+import { Modal } from "@/components/ui/Modal";
+import { Button } from "@/components/ui/Button";
 import { FileIcon, Eye, Check, X, MessageSquare, Trash2, Download } from "lucide-react";
 import { toast } from "sonner";
 import { InternshipDocument } from "@/types/document";
-
-
 import { useTranslation } from "@/lib/i18n/LanguageContext";
 
 interface DocumentListProps {
@@ -20,6 +20,44 @@ interface DocumentListProps {
 export const DocumentList: React.FC<DocumentListProps> = ({ documents, onReview, onDelete, canReview }) => {
   const { t } = useTranslation();
   
+  const [reviewModal, setReviewModal] = useState<{
+    isOpen: boolean;
+    docId: string;
+    status: "APPROVED" | "REJECTED";
+    title: string;
+    description: string;
+    comment: string;
+  }>({
+    isOpen: false,
+    docId: "",
+    status: "APPROVED",
+    title: "",
+    description: "",
+    comment: "",
+  });
+
+  const handleOpenReview = (docId: string, status: "APPROVED" | "REJECTED") => {
+    setReviewModal({
+      isOpen: true,
+      docId,
+      status,
+      title: status === "APPROVED" ? "Approve Document" : "Reject Document",
+      description: status === "APPROVED" 
+        ? "Add an optional comment for the approval." 
+        : "Please provide a reason for rejecting this document.",
+      comment: "",
+    });
+  };
+
+  const handleSubmitReview = () => {
+    if (reviewModal.status === "REJECTED" && !reviewModal.comment.trim()) {
+      toast.error("A reason is required for rejection.");
+      return;
+    }
+    onReview?.(reviewModal.docId, reviewModal.status, reviewModal.comment);
+    setReviewModal(prev => ({ ...prev, isOpen: false }));
+  };
+
   const getTypeLabel = (type: string) => {
     return t(`documents.types.${type}` as any) || type.replace(/_/g, " ");
   };
@@ -90,21 +128,14 @@ export const DocumentList: React.FC<DocumentListProps> = ({ documents, onReview,
                       {canReview && doc.status === "UPLOADED" && (
                         <>
                           <button 
-                            onClick={() => {
-                              const comment = prompt("Add a comment (optional):") || "";
-                              onReview?.(doc.id, "APPROVED", comment);
-                            }}
+                            onClick={() => handleOpenReview(doc.id, "APPROVED")}
                             className="p-1.5 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-md transition-all"
                             title="Approve"
                           >
                             <Check className="h-4 w-4" />
                           </button>
                           <button 
-                            onClick={() => {
-                              const comment = prompt("Reason for rejection:") || "";
-                              if (!comment) return;
-                              onReview?.(doc.id, "REJECTED", comment);
-                            }}
+                            onClick={() => handleOpenReview(doc.id, "REJECTED")}
                             className="p-1.5 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition-all"
                             title="Reject"
                           >
@@ -142,6 +173,43 @@ export const DocumentList: React.FC<DocumentListProps> = ({ documents, onReview,
           </tbody>
         </table>
       </div>
+
+      <Modal
+        isOpen={reviewModal.isOpen}
+        onClose={() => setReviewModal(prev => ({ ...prev, isOpen: false }))}
+        title={reviewModal.title}
+        footer={
+          <>
+            <Button 
+              variant="outline" 
+              onClick={() => setReviewModal(prev => ({ ...prev, isOpen: false }))}
+            >
+              {t("common.cancel", { defaultValue: "Cancel" })}
+            </Button>
+            <Button 
+              variant={reviewModal.status === "APPROVED" ? "primary" : "danger"}
+              onClick={handleSubmitReview}
+            >
+              {t("common.confirm", { defaultValue: "Confirm" })}
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          <p className="text-[13px] text-gray-500 dark:text-gray-400">
+            {reviewModal.description}
+          </p>
+          <div>
+            <textarea
+              className="w-full min-h-[100px] text-[13px] p-3 border border-gray-200 dark:border-slate-700 rounded-md bg-white dark:bg-slate-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50 resize-y"
+              placeholder={reviewModal.status === "APPROVED" ? "Optional comment..." : "Required reason..."}
+              value={reviewModal.comment}
+              onChange={(e) => setReviewModal(prev => ({ ...prev, comment: e.target.value }))}
+              autoFocus
+            />
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 };
