@@ -137,8 +137,8 @@ export default async function AdminDashboardPage() {
         }}
       />
     );
-  } catch (error) {
-    console.error("Admin Dashboard Error:", error);
+  } catch (error: any) {
+    console.error("Admin Dashboard Critical Error:", error?.message || error);
     // Return minimal dashboard if data fetching fails
     return (
       <AdminDashboardClient

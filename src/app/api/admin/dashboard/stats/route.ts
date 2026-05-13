@@ -11,7 +11,12 @@ export async function GET(req: NextRequest) {
 
   const { searchParams } = new URL(req.url);
   const filiereId = searchParams.get("filiereId");
-  const currentAcademicYear = await SettingsService.getCurrentAcademicYear();
+  
+  // Bypass cache for debugging
+  const currentAcademicYearResult = await prisma.systemSettings.findUnique({
+    where: { key: "currentAcademicYear" }
+  });
+  const currentAcademicYear = currentAcademicYearResult?.value || "N/A";
   const yearFilter = currentAcademicYear && currentAcademicYear !== "N/A" ? { academicYear: currentAcademicYear } : {};
 
   // If not super admin, they can only see their own filiere
