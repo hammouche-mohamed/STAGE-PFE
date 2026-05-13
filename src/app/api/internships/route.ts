@@ -198,7 +198,7 @@ export async function POST(req: NextRequest) {
               isLeader: i === 0,
             })),
           },
-        },
+        } as any,
         include: {
           internshipstudent: { include: { user: { select: { id: true, name: true } } } },
         } as any,
