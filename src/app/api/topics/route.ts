@@ -336,9 +336,10 @@ export async function GET(req: NextRequest) {
       data: topics,
       pagination: { page, limit, total, pages: Math.ceil(total / limit) },
     });
-  } catch (error) {
-    console.error(error);
-    return NextResponse.json({ error: 'Failed to load topics.' }, { status: 500 });
+  } catch (error: any) {
+    const message = error?.message || 'Unknown error';
+    console.error('[Topics API Error]', message, error?.code, error?.stack?.split('\n')[0]);
+    return NextResponse.json({ error: `Failed to load topics: ${message}` }, { status: 500 });
   }
 }
 

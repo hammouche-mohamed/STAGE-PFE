@@ -52,6 +52,7 @@ export default function AdminTopicsPage() {
   const [filiereFilter, setFiliereFilter] = useState("ALL");
   const [assignmentFilter, setAssignmentFilter] = useState("ALL");
   const [filieres, setFilieres] = useState<any[]>([]);
+  const [apiError, setApiError] = useState<string | null>(null);
 
   const fetchFilieres = async () => {
     try {
@@ -65,6 +66,7 @@ export default function AdminTopicsPage() {
 
   const fetchTopics = useCallback(async (silent = false) => {
     if (!silent) setIsLoading(true);
+    setApiError(null);
     try {
       const params = new URLSearchParams();
       if (filiereFilter !== "ALL") params.append("filiereId", filiereFilter);
@@ -72,8 +74,15 @@ export default function AdminTopicsPage() {
       
       const res = await fetch(`/api/topics?${params.toString()}`);
       const data = await res.json();
-      setTopics(data.data || []);
-    } catch (error) {
+      if (!res.ok) {
+        setApiError(data.error || `API Error ${res.status}`);
+        setTopics([]);
+      } else {
+        setTopics(data.data || []);
+      }
+    } catch (error: any) {
+      const msg = error?.message || "Network error";
+      setApiError(msg);
       if (!silent) toast.error(t("toast.loadFailed"));
     } finally {
       if (!silent) setIsLoading(false);
@@ -204,6 +213,12 @@ export default function AdminTopicsPage() {
       <div className="space-y-3">
         {isLoading ? (
           <div className="text-center py-12 text-gray-400 dark:text-gray-500 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-md">{t("common.loading")}</div>
+        ) : apiError ? (
+          <div className="text-center py-12 bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800 rounded-md">
+            <p className="text-[13px] font-semibold text-red-600 dark:text-red-400">API Error</p>
+            <p className="text-[12px] text-red-500 dark:text-red-300 mt-1">{apiError}</p>
+            <button onClick={() => fetchTopics()} className="mt-3 text-[12px] text-indigo-600 hover:underline">Retry</button>
+          </div>
         ) : filteredTopics.length === 0 ? (
           <EmptyState 
             icon={BookOpen}
