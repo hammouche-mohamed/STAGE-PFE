@@ -177,7 +177,7 @@ export async function POST(req: NextRequest) {
     // Fetch topic to inherit internship type
     const topic = await prisma.topic.findUnique({
       where: { id: topicId },
-      select: { internshipType: true },
+      select: { internshipType: true, title: true },
     });
 
     // NFR-RDI1: wrap multi-table writes in a transaction
