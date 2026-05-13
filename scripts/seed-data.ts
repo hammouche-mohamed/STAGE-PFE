@@ -94,7 +94,7 @@ async function main() {
 
   console.log("Creating department admins...");
   const admins = [];
-  
+
   // Create the requested Super Admin first
   await prisma.user.create({
     data: {

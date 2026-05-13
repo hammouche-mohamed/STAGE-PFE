@@ -18,118 +18,147 @@ export default async function AdminDashboardPage() {
     ? (await prisma.topic.findMany({ where: { filiereId }, select: { id: true } })).map(t => t.id)
     : null;
 
-  const [
-    studentCount,
-    teacherCount,
-    companyCount,
-    activeInternships,
-    pendingConfirmations,
-    pendingRegistrations,
-    recentTopics,
-    pendingCompanyProposals,
-  ] = await Promise.all([
-    prisma.studentProfile.count({ 
-      where: { 
-        academicYear: currentAcademicYear,
-        ...( !isSuperAdmin && filiereId ? { filiereId } : {} )
-      } 
-    }),
-    prisma.user.count({ where: { role: "TEACHER", isActive: true } }),
-    prisma.user.count({ where: { role: "COMPANY", isActive: true } }),
-    prisma.internship.count({ 
-      where: { 
-        status: "IN_PROGRESS", 
-        academicYear: currentAcademicYear,
-        ...( filiereTopicIds ? { topicId: { in: filiereTopicIds } } : {} )
-      }
-    }),
-    prisma.internship.count({ 
-      where: { 
-        status: "PENDING_ADMIN_CONFIRMATION",
-        ...( filiereTopicIds ? { topicId: { in: filiereTopicIds } } : {} )
-      }
-    }),
-    prisma.registrationRequest.findMany({
-      where: { 
-        status: "PENDING",
-        // Registration requests are usually global, but we could scope them if needed
-      },
-      orderBy: { createdAt: "desc" },
-      take: 5,
-      select: { id: true, name: true, email: true, role: true, createdAt: true, status: true },
-    }),
-    prisma.topic.count({ 
-      where: { 
-        status: "PENDING_ADMIN",
-        ...( !isSuperAdmin && filiereId ? { filiereId } : {} )
-      } as any
-    }),
-    prisma.topic.count({
-      where: {
-        type: "COMPANY_PROPOSED",
-        status: "PENDING_ADMIN",
-        ...( !isSuperAdmin && filiereId ? { filiereId } : {} )
-      }
-    }),
-    prisma.topic.count({ 
-      where: { 
-        status: "APPROVED",
-        academicYear: currentAcademicYear,
-        ...( !isSuperAdmin && filiereId ? { filiereId } : {} )
-      } as any
-    }),
-    prisma.topic.count({ 
-      where: { 
-        status: "REJECTED",
-        academicYear: currentAcademicYear,
-        ...( !isSuperAdmin && filiereId ? { filiereId } : {} )
-      } as any
-    }),
-    prisma.internship.count({ 
-      where: { 
-        status: "COMPLETED",
-        academicYear: currentAcademicYear,
-        ...( filiereTopicIds ? { topicId: { in: filiereTopicIds } } : {} )
-      }
-    }),
-    prisma.teacherApplication.count({
-      where: {
-        status: "PENDING",
-        ...( !isSuperAdmin && filiereId ? { topic: { filiereId } } : {} )
-      }
-    }),
-    prisma.user.findMany({
-      where: {
-        role: "STUDENT",
-        isActive: true,
-        ...( !isSuperAdmin && filiereId ? { studentProfile: { filiereId } } : {} ),
-        studentProfile: { academicYear: currentAcademicYear },
-        internshipStudents: { none: {} }
-      },
-      select: { id: true, name: true, email: true },
-      take: 20,
-      orderBy: { name: 'asc' }
-    }),
-  ]);
+  try {
+    const [
+      studentCount,
+      teacherCount,
+      companyCount,
+      activeInternships,
+      pendingConfirmations,
+      pendingRegistrations,
+      recentTopics,
+      pendingCompanyProposals,
+      topicsApproved,
+      topicsRejected,
+      internshipsCompleted,
+      pendingSupervisionRequests,
+      studentsAtRisk,
+    ] = await Promise.all([
+      prisma.studentProfile.count({ 
+        where: { 
+          academicYear: currentAcademicYear,
+          ...( !isSuperAdmin && filiereId ? { filiereId } : {} )
+        } 
+      }),
+      prisma.user.count({ where: { role: "TEACHER", isActive: true } }),
+      prisma.user.count({ where: { role: "COMPANY", isActive: true } }),
+      prisma.internship.count({ 
+        where: { 
+          status: "IN_PROGRESS", 
+          academicYear: currentAcademicYear,
+          ...( filiereTopicIds ? { topicId: { in: filiereTopicIds } } : {} )
+        }
+      }),
+      prisma.internship.count({ 
+        where: { 
+          status: "PENDING_ADMIN_CONFIRMATION",
+          ...( filiereTopicIds ? { topicId: { in: filiereTopicIds } } : {} )
+        }
+      }),
+      prisma.registrationRequest.findMany({
+        where: { 
+          status: "PENDING",
+        },
+        orderBy: { createdAt: "desc" },
+        take: 5,
+        select: { id: true, name: true, email: true, role: true, createdAt: true, status: true },
+      }),
+      prisma.topic.count({ 
+        where: { 
+          status: "PENDING_ADMIN",
+          ...( !isSuperAdmin && filiereId ? { filiereId } : {} )
+        } as any
+      }),
+      prisma.topic.count({
+        where: {
+          type: "COMPANY_PROPOSED",
+          status: "PENDING_ADMIN",
+          ...( !isSuperAdmin && filiereId ? { filiereId } : {} )
+        }
+      }),
+      prisma.topic.count({ 
+        where: { 
+          status: "APPROVED",
+          academicYear: currentAcademicYear,
+          ...( !isSuperAdmin && filiereId ? { filiereId } : {} )
+        } as any
+      }),
+      prisma.topic.count({ 
+        where: { 
+          status: "REJECTED",
+          academicYear: currentAcademicYear,
+          ...( !isSuperAdmin && filiereId ? { filiereId } : {} )
+        } as any
+      }),
+      prisma.internship.count({ 
+        where: { 
+          status: "COMPLETED",
+          academicYear: currentAcademicYear,
+          ...( filiereTopicIds ? { topicId: { in: filiereTopicIds } } : {} )
+        }
+      }),
+      prisma.teacherApplication.count({
+        where: {
+          status: "PENDING",
+          ...( !isSuperAdmin && filiereId ? { topic: { filiereId } } : {} )
+        }
+      }),
+      prisma.user.findMany({
+        where: {
+          role: "STUDENT",
+          isActive: true,
+          ...( !isSuperAdmin && filiereId ? { studentProfile: { filiereId } } : {} ),
+          studentProfile: { academicYear: currentAcademicYear },
+          internshipStudents: { none: {} }
+        },
+        select: { id: true, name: true, email: true },
+        take: 20,
+        orderBy: { name: 'asc' }
+      }),
+    ]);
 
-  return (
-    <AdminDashboardClient
-      studentCount={studentCount}
-      teacherCount={teacherCount}
-      companyCount={companyCount}
-      activeInternships={activeInternships}
-      pendingConfirmations={pendingConfirmations}
-      pendingRegistrations={pendingRegistrations}
-      recentTopics={recentTopics}
-      currentAcademicYear={currentAcademicYear}
-      pendingCompanyProposals={pendingCompanyProposals}
-      initialStats={{
-        topicsApproved,
-        topicsRejected,
-        internshipsCompleted,
-        pendingSupervisionRequests,
-        studentsAtRisk,
-      }}
-    />
-  );
+    return (
+      <AdminDashboardClient
+        studentCount={studentCount}
+        teacherCount={teacherCount}
+        companyCount={companyCount}
+        activeInternships={activeInternships}
+        pendingConfirmations={pendingConfirmations}
+        pendingRegistrations={pendingRegistrations as any}
+        recentTopics={recentTopics}
+        currentAcademicYear={currentAcademicYear}
+        pendingCompanyProposals={pendingCompanyProposals}
+        initialStats={{
+          topicsApproved,
+          topicsRejected,
+          internshipsCompleted,
+          pendingSupervisionRequests,
+          studentsAtRisk,
+        }}
+      />
+    );
+  } catch (error) {
+    console.error("Admin Dashboard Error:", error);
+    // Return minimal dashboard if data fetching fails
+    return (
+      <AdminDashboardClient
+        studentCount={0}
+        teacherCount={0}
+        companyCount={0}
+        activeInternships={0}
+        pendingConfirmations={0}
+        pendingRegistrations={[]}
+        recentTopics={0}
+        currentAcademicYear={currentAcademicYear}
+        pendingCompanyProposals={0}
+        initialStats={{
+          topicsApproved: 0,
+          topicsRejected: 0,
+          internshipsCompleted: 0,
+          pendingSupervisionRequests: 0,
+          studentsAtRisk: [],
+        }}
+      />
+    );
+  }
 }
