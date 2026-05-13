@@ -72,15 +72,15 @@ function DocumentsContent() {
       <div className="flex flex-col space-y-4">
         <Link 
           href={backUrl} 
-          className="flex items-center text-[12px] text-indigo-600 hover:text-indigo-800 font-medium transition-colors w-fit bg-indigo-50 px-3 py-1 rounded-full"
+          className="flex items-center text-[12px] text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 font-medium transition-colors w-fit bg-indigo-50 dark:bg-indigo-900/30 px-3 py-1 rounded-full"
         >
           <ChevronLeft className={`h-4 w-4 ${isRTL ? "ml-1 rotate-180" : "mr-1"}`} />
           {t("common.back")}
         </Link>
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-[17px] font-semibold text-gray-900">{t("documents.title")}</h1>
-            <p className="text-[13px] text-gray-500 mt-0.5">
+            <h1 className="text-[17px] font-semibold text-gray-900 dark:text-white">{t("documents.title")}</h1>
+            <p className="text-[13px] text-gray-500 dark:text-gray-400 mt-0.5">
               {!internshipId ? t("common.none") : t("common.documents")}
             </p>
           </div>
@@ -88,10 +88,10 @@ function DocumentsContent() {
       </div>
 
       {!internshipId && !isLoading ? (
-        <div className="p-8 bg-amber-50 border border-amber-200 rounded-md flex flex-col items-center justify-center text-center">
-          <Info className="h-8 w-8 text-amber-500 mb-2" />
-          <p className="text-[14px] font-medium text-amber-800">{t("dashboard.noInternship")}</p>
-          <p className="text-[12px] text-amber-600 mt-1">{t("internship.noInternship")}</p>
+        <div className="p-8 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-900/30 rounded-md flex flex-col items-center justify-center text-center">
+          <Info className="h-8 w-8 text-amber-500 dark:text-amber-400 mb-2" />
+          <p className="text-[14px] font-medium text-amber-800 dark:text-amber-500">{t("dashboard.noInternship")}</p>
+          <p className="text-[12px] text-amber-600 dark:text-amber-400/80 mt-1">{t("internship.noInternship")}</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 items-start">
@@ -111,9 +111,9 @@ function DocumentsContent() {
               />
             )}
             
-            <div className="p-5 bg-indigo-50 border border-indigo-100 rounded-md">
-              <h3 className="text-[13px] font-semibold text-indigo-900 uppercase tracking-widest mb-3">{t("documents.guidelines")}</h3>
-              <ul className="text-[12px] text-indigo-700 list-disc list-inside space-y-2">
+            <div className="p-5 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-900/30 rounded-md">
+              <h3 className="text-[13px] font-semibold text-indigo-900 dark:text-indigo-400 uppercase tracking-widest mb-3">{t("documents.guidelines")}</h3>
+              <ul className="text-[12px] text-indigo-700 dark:text-indigo-300 list-disc list-inside space-y-2">
                 <li>{t("documents.guideline1")}</li>
                 <li>{t("documents.guideline2")}</li>
                 <li>{t("documents.guideline3")}</li>

@@ -22,7 +22,7 @@ export async function GET(
             title: true,
             description: true,
             companyName: true,
-            user_topic_proposedByIdTouser: { select: { name: true } }
+            proposedBy: { select: { name: true } }
           }
         },
         user: {
@@ -51,10 +51,6 @@ export async function GET(
     // Map schema field names back to friendly names expected by the client
     const mapped = {
       ...internship,
-      topic: {
-        ...(internship as any).topic,
-        proposedBy: (internship as any).topic.user_topic_proposedByIdTouser,
-      },
       teacher: (internship as any).user,
       students: ((internship as any).internshipstudent || []).map((s: any) => ({
         ...s,

@@ -49,8 +49,8 @@ export async function GET(req: NextRequest) {
           where: {
             role: 'TEACHER',
             OR: [
-              { user_topic_proposedByIdTouser: { some: { academicYear: year, ...(filiereId && { filiereId }) } } },
-              { user_topic_assignedTeacherIdTouser: { some: { academicYear: year, ...(filiereId && { filiereId }) } } },
+              { proposedTopics: { some: { academicYear: year, ...(filiereId && { filiereId }) } } },
+              { assignedTopics: { some: { academicYear: year, ...(filiereId && { filiereId }) } } },
               { internship: { some: { academicYear: year, ...(filiereId && { topic: { filiereId } }) } } }
             ]
           },
@@ -59,7 +59,7 @@ export async function GET(req: NextRequest) {
             _count: {
               select: {
                 internship: { where: { academicYear: year } },
-                user_topic_proposedByIdTouser: { where: { academicYear: year } }
+                proposedTopics: { where: { academicYear: year } }
               }
             }
           }
@@ -70,13 +70,13 @@ export async function GET(req: NextRequest) {
         data = await prisma.user.findMany({
           where: {
             role: 'COMPANY',
-            user_topic_proposedByIdTouser: { some: { academicYear: year, ...(filiereId && { filiereId }) } }
+            proposedTopics: { some: { academicYear: year, ...(filiereId && { filiereId }) } }
           },
           include: {
             companyprofile: true,
             _count: {
               select: {
-                user_topic_proposedByIdTouser: { where: { academicYear: year } }
+                proposedTopics: { where: { academicYear: year } }
               }
             }
           }
@@ -90,7 +90,7 @@ export async function GET(req: NextRequest) {
             ...(filiereId && { filiereId })
           },
           include: {
-            user_topic_proposedByIdTouser: { select: { name: true, email: true } },
+            proposedBy: { select: { name: true, email: true } },
             filiere: true,
             _count: { select: { studentapplication: true } }
           }
@@ -179,7 +179,7 @@ export async function GET(req: NextRequest) {
           teacherProfile: item.teacherprofile,
           _count: {
             internships: item._count?.internship || 0,
-            proposedTopics: item._count?.user_topic_proposedByIdTouser || 0
+            proposedTopics: item._count?.proposedTopics || 0
           }
         };
       }
@@ -188,14 +188,14 @@ export async function GET(req: NextRequest) {
           ...item,
           companyProfile: item.companyprofile,
           _count: {
-            proposedTopics: item._count?.user_topic_proposedByIdTouser || 0
+            proposedTopics: item._count?.proposedTopics || 0
           }
         };
       }
       if (type === 'topics') {
         return {
           ...item,
-          proposedBy: item.user_topic_proposedByIdTouser || { name: 'Unknown' },
+          proposedBy: item.proposedBy || { name: 'Unknown' },
           _count: {
             studentApplications: item._count?.studentapplication || 0
           }

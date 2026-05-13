@@ -74,7 +74,7 @@ export async function GET(req: NextRequest) {
               internshipstudent: { include: { user: { select: { name: true } } } },
             } as any,
           },
-          user_document_uploadedByIdTouser: { select: { name: true, role: true } },
+          uploadedBy: { select: { name: true, role: true } },
         } as any,
         orderBy: { uploadedAt: 'asc' },
       });
@@ -83,7 +83,7 @@ export async function GET(req: NextRequest) {
       rows.push('ID,Type,Name,Uploaded By,Role,Status,Uploaded At,Topic,Students');
       for (const d of documents) {
         const students = ((d as any).internship?.internshipstudent || []).map((s: any) => s.user?.name).join(' | ');
-        const uploadedBy = (d as any).user_document_uploadedByIdTouser || { name: 'N/A', role: 'N/A' };
+        const uploadedBy = (d as any).uploadedBy || { name: 'N/A', role: 'N/A' };
         rows.push(
           [
             d.id,
@@ -193,14 +193,10 @@ export async function GET(req: NextRequest) {
     }
 
     if (type === 'topics' || type === 'all') {
-      const rawTopics = await prisma.topic.findMany({
+      const topics = await prisma.topic.findMany({
         where: { academicYear: year || undefined, ...(filiereId && { filiereId }) },
-        include: { user_topic_proposedByIdTouser: { select: { name: true } }, filiere: true }
+        include: { proposedBy: { select: { name: true } }, filiere: true }
       } as any);
-      const topics = rawTopics.map((t: any) => ({
-        ...t,
-        proposedBy: t.user_topic_proposedByIdTouser || null
-      }));
       rows.push('=== TOPICS ===');
       rows.push('ID,Title,Type,Status,Proposed By,Department,Capacity');
       for (const t of topics) {

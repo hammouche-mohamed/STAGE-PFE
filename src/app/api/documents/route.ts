@@ -128,7 +128,12 @@ export async function GET(req: NextRequest) {
       orderBy: [{ type: "asc" }, { version: "desc" }]
     });
 
-    return NextResponse.json({ data: documents });
+    const formattedDocuments = documents.map(doc => ({
+      ...doc,
+      uploadedBy: doc.uploadedBy
+    }));
+
+    return NextResponse.json({ data: formattedDocuments });
   } catch (error) {
     return NextResponse.json({ error: "Fetch failed" }, { status: 500 });
   }

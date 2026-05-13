@@ -18,19 +18,32 @@ export default async function InternshipDetailPage({ params }: { params: Promise
     notFound();
   }
 
-  const internship = await prisma.internship.findUnique({
+  const internshipRaw = await prisma.internship.findUnique({
     where: { id },
     include: {
       topic: { select: { title: true, type: true, description: true } },
-      teacher: { select: { name: true, email: true } },
-      students: { include: { student: { select: { name: true, email: true } } } },
-      _count: { select: { documents: true, messages: true } },
+      user: { select: { name: true, email: true } },
+      internshipstudent: { include: { user: { select: { name: true, email: true } } } },
+      _count: { select: { document: true, message: true } },
     },
   });
 
-  if (!internship) {
+  if (!internshipRaw) {
     notFound();
   }
+
+  const internship = {
+    ...internshipRaw,
+    teacher: internshipRaw.user || { name: 'Unknown', email: '' },
+    students: internshipRaw.internshipstudent.map(s => ({
+      ...s,
+      student: s.user
+    })),
+    _count: {
+      documents: internshipRaw._count.document,
+      messages: internshipRaw._count.message
+    }
+  };
 
   return (
     <div className="space-y-6">

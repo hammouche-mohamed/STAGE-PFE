@@ -120,22 +120,22 @@ export default function StudentTeamPage() {
     return (
       <div className="space-y-6 max-w-3xl mx-auto">
         <div>
-          <h1 className="text-[17px] font-semibold text-gray-900 flex items-center gap-2">
-            <Users className="h-5 w-5 text-indigo-600" />
+          <h1 className="text-[17px] font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+            <Users className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
             My Team
           </h1>
-          <p className="text-[13px] text-gray-500 mt-1">
+          <p className="text-[13px] text-gray-500 dark:text-gray-400 mt-1">
             You are not part of any team yet.
           </p>
         </div>
 
         {!showCreateTeam ? (
-          <div className="bg-white border border-gray-200 rounded-xl p-8 text-center">
-            <div className="h-16 w-16 bg-indigo-50 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Users className="h-8 w-8 text-indigo-500" />
+          <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl p-8 text-center">
+            <div className="h-16 w-16 bg-indigo-50 dark:bg-indigo-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Users className="h-8 w-8 text-indigo-500 dark:text-indigo-400" />
             </div>
-            <h2 className="text-[15px] font-bold text-gray-900 mb-2">Create a New Team</h2>
-            <p className="text-[13px] text-gray-500 mb-6">
+            <h2 className="text-[15px] font-bold text-gray-900 dark:text-white mb-2">Create a New Team</h2>
+            <p className="text-[13px] text-gray-500 dark:text-gray-400 mb-6">
               Form a team to start working on your PFE. You will be the leader and can invite other students.
             </p>
             <Button onClick={() => setShowCreateTeam(true)} className="px-8 bg-indigo-600 hover:bg-indigo-700 text-white">
@@ -144,8 +144,8 @@ export default function StudentTeamPage() {
             </Button>
           </div>
         ) : (
-          <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
-            <h2 className="text-[14px] font-bold text-gray-900 mb-4">Team Details</h2>
+          <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl p-6 shadow-sm">
+            <h2 className="text-[14px] font-bold text-gray-900 dark:text-white mb-4">Team Details</h2>
             <div className="space-y-4">
               <div>
                 <label className="admin-form-label">Motivation / Reason for team (Optional)</label>
@@ -170,11 +170,11 @@ export default function StudentTeamPage() {
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
       <div>
-        <h1 className="text-[17px] font-semibold text-gray-900 flex items-center gap-2">
-          <Users className="h-5 w-5 text-indigo-600" />
+        <h1 className="text-[17px] font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+          <Users className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
           My Team
         </h1>
-        <p className="text-[13px] text-gray-500 mt-1">
+        <p className="text-[13px] text-gray-500 dark:text-gray-400 mt-1">
           Manage your team members and invitations.
         </p>
       </div>
@@ -182,38 +182,38 @@ export default function StudentTeamPage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="md:col-span-2 space-y-6">
           {/* Members List */}
-          <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
-            <div className="px-6 py-4 border-b border-gray-100 bg-gray-50/50 flex items-center justify-between">
-              <h2 className="text-[14px] font-bold text-gray-900 flex items-center gap-2">
+          <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm">
+            <div className="px-6 py-4 border-b border-gray-100 dark:border-slate-800 bg-gray-50/50 dark:bg-slate-800/50 flex items-center justify-between">
+              <h2 className="text-[14px] font-bold text-gray-900 dark:text-white flex items-center gap-2">
                 Team Members
-                <span className="px-2 py-0.5 bg-indigo-100 text-indigo-700 text-[10px] rounded-full">
+                <span className="px-2 py-0.5 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 text-[10px] rounded-full">
                   {team.members.length}
                 </span>
               </h2>
               {team.reason && (
-                <span className="text-[11px] text-gray-500 italic">"{team.reason}"</span>
+                <span className="text-[11px] text-gray-500 dark:text-gray-400 italic">"{team.reason}"</span>
               )}
             </div>
-            <div className="divide-y divide-gray-50">
+            <div className="divide-y divide-gray-50 dark:divide-slate-800">
               {team.members.map((m: any) => (
-                <div key={m.id} className="p-4 flex items-center justify-between hover:bg-gray-50/50 transition-colors">
+                <div key={m.id} className="p-4 flex items-center justify-between hover:bg-gray-50/50 dark:hover:bg-slate-800/50 transition-colors">
                   <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 bg-indigo-50 rounded-full flex items-center justify-center font-bold text-indigo-600">
+                    <div className="h-10 w-10 bg-indigo-50 dark:bg-indigo-900/20 rounded-full flex items-center justify-center font-bold text-indigo-600 dark:text-indigo-400">
                       {m.student.name.charAt(0)}
                     </div>
                     <div>
-                      <p className="text-[14px] font-medium text-gray-900 flex items-center gap-2">
+                      <p className="text-[14px] font-medium text-gray-900 dark:text-white flex items-center gap-2">
                         {m.student.name}
                         {m.isLeader && (
-                          <span className="text-[10px] px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded-sm font-bold uppercase tracking-wider">
+                          <span className="text-[10px] px-1.5 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 rounded-sm font-bold uppercase tracking-wider">
                             Leader
                           </span>
                         )}
                         {m.studentId === session?.user?.id && (
-                          <span className="text-[10px] px-1.5 py-0.5 bg-gray-100 text-gray-600 rounded-sm">You</span>
+                          <span className="text-[10px] px-1.5 py-0.5 bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-gray-400 rounded-sm">You</span>
                         )}
                       </p>
-                      <p className="text-[12px] text-gray-500">{m.student.email}</p>
+                      <p className="text-[12px] text-gray-500 dark:text-gray-400">{m.student.email}</p>
                     </div>
                   </div>
                 </div>
@@ -223,18 +223,18 @@ export default function StudentTeamPage() {
 
           {/* Pending Invitations */}
           {team.invitations.length > 0 && (
-            <div className="bg-white border border-amber-200 rounded-xl overflow-hidden shadow-sm">
-              <div className="px-6 py-3 border-b border-amber-100 bg-amber-50/30">
-                <h2 className="text-[13px] font-bold text-amber-900">Pending Invitations</h2>
+            <div className="bg-white dark:bg-slate-900 border border-amber-200 dark:border-amber-900/30 rounded-xl overflow-hidden shadow-sm">
+              <div className="px-6 py-3 border-b border-amber-100 dark:border-amber-900/20 bg-amber-50/30 dark:bg-amber-900/10">
+                <h2 className="text-[13px] font-bold text-amber-900 dark:text-amber-400">Pending Invitations</h2>
               </div>
-              <div className="divide-y divide-amber-50">
+              <div className="divide-y divide-amber-50 dark:divide-amber-900/20">
                 {team.invitations.map((inv: any) => (
                   <div key={inv.id} className="p-4 flex items-center justify-between">
                     <div>
-                      <p className="text-[13px] font-medium text-gray-900">{inv.invitedStudent.name}</p>
-                      <p className="text-[11px] text-gray-500">{inv.invitedStudent.email}</p>
+                      <p className="text-[13px] font-medium text-gray-900 dark:text-white">{inv.invitedStudent.name}</p>
+                      <p className="text-[11px] text-gray-500 dark:text-gray-400">{inv.invitedStudent.email}</p>
                     </div>
-                    <span className="text-[10px] px-2 py-1 bg-amber-100 text-amber-700 rounded-full font-semibold">
+                    <span className="text-[10px] px-2 py-1 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 rounded-full font-semibold">
                       Awaiting Reply
                     </span>
                   </div>
@@ -246,11 +246,11 @@ export default function StudentTeamPage() {
 
         {/* Sidebar Actions */}
         <div className="space-y-6">
-          <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
-            <h3 className="text-[13px] font-bold text-gray-900 mb-4">Actions</h3>
+          <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl p-5 shadow-sm">
+            <h3 className="text-[13px] font-bold text-gray-900 dark:text-white mb-4">Actions</h3>
             <Button 
               variant="outline" 
-              className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+              className="w-full justify-start text-red-600 hover:text-red-700 dark:hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 border-red-200 dark:border-red-900/30"
               onClick={() => setLeaveConfirmOpen(true)}
             >
               <LogOut className="h-4 w-4 mr-2" />
@@ -259,16 +259,16 @@ export default function StudentTeamPage() {
           </div>
 
           {isLeader && availableStudents.length > 0 && (
-            <div className="bg-white border border-indigo-200 rounded-xl overflow-hidden shadow-sm">
-              <div className="px-5 py-3 border-b border-indigo-100 bg-indigo-50/50">
-                <h3 className="text-[13px] font-bold text-indigo-900">Invite Students</h3>
+            <div className="bg-white dark:bg-slate-900 border border-indigo-200 dark:border-indigo-900/30 rounded-xl overflow-hidden shadow-sm">
+              <div className="px-5 py-3 border-b border-indigo-100 dark:border-indigo-900/20 bg-indigo-50/50 dark:bg-indigo-900/10">
+                <h3 className="text-[13px] font-bold text-indigo-900 dark:text-indigo-400">Invite Students</h3>
               </div>
-              <div className="p-2 max-h-[300px] overflow-y-auto divide-y divide-gray-50">
+              <div className="p-2 max-h-[300px] overflow-y-auto divide-y divide-gray-50 dark:divide-slate-800">
                 {availableStudents.map((s) => (
-                  <div key={s.id} className="p-3 flex flex-col gap-2 hover:bg-gray-50 rounded-lg">
+                  <div key={s.id} className="p-3 flex flex-col gap-2 hover:bg-gray-50 dark:hover:bg-slate-800/50 rounded-lg">
                     <div>
-                      <p className="text-[13px] font-medium text-gray-900 truncate">{s.user.name}</p>
-                      <p className="text-[11px] text-gray-500 truncate">{s.user.email}</p>
+                      <p className="text-[13px] font-medium text-gray-900 dark:text-white truncate">{s.user.name}</p>
+                      <p className="text-[11px] text-gray-500 dark:text-gray-400 truncate">{s.user.email}</p>
                     </div>
                     <Button 
                       size="sm" 

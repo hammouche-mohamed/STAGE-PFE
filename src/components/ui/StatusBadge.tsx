@@ -43,6 +43,10 @@ const statusMap: Record<string, { label: string; classes: string }> = {
   FINAL_REPORT_SUBMITTED:     { label: "Report Submitted",      classes: "bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400" },
   PENDING_ADMIN_CONFIRMATION: { label: "Awaiting Admin",        classes: "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400" },
   COMPLETED:        { label: "Completed",              classes: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" },
+  
+  // Document statuses
+  UPLOADED:         { label: "Uploaded",               classes: "bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400" },
+  REVIEWED:         { label: "Reviewed",               classes: "bg-purple-50 text-purple-600 dark:bg-purple-900/20 dark:text-purple-400" },
 };
 
 export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, className = "" }) => {

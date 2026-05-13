@@ -146,8 +146,8 @@ model Document {
   companyComment                   String?         @db.Text
   uploadedAt                       DateTime        @default(now())
   internship                       Internship      @relation(fields: [internshipId], references: [id], onDelete: Cascade)
-  user_document_reviewedByIdTouser User?           @relation("document_reviewedByIdTouser", fields: [reviewedById], references: [id])
-  user_document_uploadedByIdTouser User            @relation("document_uploadedByIdTouser", fields: [uploadedById], references: [id], onDelete: Cascade)
+  reviewedBy                       User?           @relation("document_reviewedByIdTouser", fields: [reviewedById], references: [id])
+  uploadedBy                       User            @relation("document_uploadedByIdTouser", fields: [uploadedById], references: [id], onDelete: Cascade)
 
   @@index([internshipId], map: "Document_internshipId_idx")
   @@index([uploadedById], map: "Document_uploadedById_idx")
@@ -463,10 +463,10 @@ model Topic {
   internship                         Internship?
   studentapplication                 StudentApplication[]
   teacherapplication                 TeacherApplication[]
-  user_topic_assignedTeacherIdTouser User?                @relation("topic_assignedTeacherIdTouser", fields: [assignedTeacherId], references: [id])
-  user_topic_directAssigneeIdTouser  User?                @relation("topic_directAssigneeIdTouser", fields: [directAssigneeId], references: [id])
+  assignedTeacher                    User?                @relation("topic_assignedTeacherIdTouser", fields: [assignedTeacherId], references: [id])
+  directAssignee                     User?                @relation("topic_directAssigneeIdTouser", fields: [directAssigneeId], references: [id])
   filiere                            Filiere?             @relation(fields: [filiereId], references: [id])
-  user_topic_proposedByIdTouser      User                 @relation("topic_proposedByIdTouser", fields: [proposedById], references: [id], onDelete: Cascade)
+  proposedBy                         User                 @relation("topic_proposedByIdTouser", fields: [proposedById], references: [id], onDelete: Cascade)
   validation                         Validation[]
 
   @@index([assignedTeacherId], map: "Topic_assignedTeacherId_idx")
@@ -494,8 +494,8 @@ model User {
   binomeinvitation                                      binomeinvitation[]
   companyprofile                                        CompanyProfile?
   deadline                                              Deadline[]
-  document_document_reviewedByIdTouser                  Document[]           @relation("document_reviewedByIdTouser")
-  document_document_uploadedByIdTouser                  Document[]           @relation("document_uploadedByIdTouser")
+  reviewedDocuments                                     Document[]           @relation("document_reviewedByIdTouser")
+  uploadedDocuments                                     Document[]           @relation("document_uploadedByIdTouser")
   internship                                            Internship[]
   internshipstudent                                     InternshipStudent[]
   message                                               Message[]
@@ -511,9 +511,9 @@ model User {
   teacherprofile                                        TeacherProfile?
   teaminvitation                                        TeamInvitation[]
   teammember                                            TeamMember[]
-  topic_topic_assignedTeacherIdTouser                   Topic[]              @relation("topic_assignedTeacherIdTouser")
-  topic_topic_directAssigneeIdTouser                    Topic[]              @relation("topic_directAssigneeIdTouser")
-  topic_topic_proposedByIdTouser                        Topic[]              @relation("topic_proposedByIdTouser")
+  assignedTopics                                        Topic[]              @relation("topic_assignedTeacherIdTouser")
+  directAssignedTopics                                  Topic[]              @relation("topic_directAssigneeIdTouser")
+  proposedTopics                                        Topic[]              @relation("topic_proposedByIdTouser")
   validation                                            Validation[]
 
   @@index([name], map: "User_name_idx")

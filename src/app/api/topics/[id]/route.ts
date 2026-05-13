@@ -25,12 +25,12 @@ export async function GET(
         } 
       },
       include: {
-        user_topic_proposedByIdTouser: { 
+        proposedBy: { 
           include: {
             companyprofile: true
           }
         },
-        user_topic_assignedTeacherIdTouser: { select: { id: true, name: true } },
+        assignedTeacher: { select: { id: true, name: true } },
         filiere: true,
         teacherapplication: {
           include: {
@@ -62,25 +62,16 @@ export async function GET(
       }, { status: 404 });
     }
 
-    // Map internally for internal logic
-    const t = topic as any;
-    const proposedBy = t.user_topic_proposedByIdTouser || t.proposedBy;
-    const assignedTeacher = t.user_topic_assignedTeacherIdTouser || t.assignedTeacher;
-    const teacherApplications = t.teacherapplication || t.teacherApplications || [];
-    const studentApplications = t.studentapplication || t.studentApplications || [];
-
     // Merge company info if missing on the topic record but available on the profile
     const enrichedTopic = {
       ...topic,
-      proposedBy,
-      assignedTeacher,
-      teacherApplications,
-      studentApplications,
-      companyName: topic.companyName || proposedBy?.companyprofile?.companyName || proposedBy?.companyProfile?.companyName,
-      companySector: topic.companySector || proposedBy?.companyprofile?.sector || proposedBy?.companyProfile?.sector,
-      contactPerson: topic.contactPerson || proposedBy?.name,
-      contactEmail: topic.contactEmail || proposedBy?.email,
-      contactPhone: topic.contactPhone || proposedBy?.companyprofile?.contactPhone || proposedBy?.companyProfile?.contactPhone
+      teacherApplications: (topic as any).teacherapplication || [],
+      studentApplications: (topic as any).studentapplication || [],
+      companyName: topic.companyName || (topic as any).proposedBy?.companyprofile?.companyName,
+      companySector: topic.companySector || (topic as any).proposedBy?.companyprofile?.sector,
+      contactPerson: topic.contactPerson || (topic as any).proposedBy?.name,
+      contactEmail: topic.contactEmail || (topic as any).proposedBy?.email,
+      contactPhone: topic.contactPhone || (topic as any).proposedBy?.companyprofile?.contactPhone
     };
 
     return NextResponse.json({ data: enrichedTopic });
@@ -105,7 +96,7 @@ export async function PATCH(
 
     const topic = await prisma.topic.findUnique({
       where: { id },
-      include: { user_topic_proposedByIdTouser: true, proposedBy: true } as any,
+      include: { proposedBy: true },
     });
     if (!topic) return NextResponse.json({ error: "Topic not found" }, { status: 404 });
 
@@ -235,7 +226,7 @@ export async function PATCH(
     const updated = await prisma.topic.update({
       where: { id },
       data: {
-        ...(teacherId !== undefined && { assignedTeacherId: teacherId }),
+        ...(teacherId !== undefined && { assignedTeacherId: teacherId || null }),
         ...(status && { status }),
         ...(title && { title }),
         ...(description && { description }),

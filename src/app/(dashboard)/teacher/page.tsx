@@ -25,7 +25,7 @@ export default async function TeacherDashboardPage() {
     select: {
       id: true,
       name: true,
-      teacherProfile: { select: { maxStudents: true, currentLoad: true } },
+      teacherprofile: { select: { maxStudents: true, currentLoad: true } },
     },
   });
 
@@ -59,7 +59,7 @@ export default async function TeacherDashboardPage() {
       where: { teacherId: teacher.id, status: "IN_PROGRESS" },
       include: {
         topic: { select: { title: true } },
-        students: { include: { student: { select: { name: true } } } },
+        internshipstudent: { include: { user: { select: { name: true } } } },
       },
       take: 5,
       orderBy: { updatedAt: "desc" }
@@ -67,7 +67,7 @@ export default async function TeacherDashboardPage() {
     prisma.message.findMany({
       where: { internship: { teacherId: teacher.id } },
       include: {
-        sender: { select: { name: true } },
+        user: { select: { name: true } },
         internship: { select: { topic: { select: { title: true } } } }
       },
       take: 4,
@@ -99,7 +99,7 @@ export default async function TeacherDashboardPage() {
           label="Supervisions"
           value={internshipCount}
           icon={Briefcase}
-          subValue={`${teacher.teacherProfile?.maxStudents ?? 5} max capacity`}
+          subValue={`${teacher.teacherprofile?.maxStudents ?? 5} max capacity`}
         />
         <StatsCard
           label="Company Topics"
@@ -166,7 +166,7 @@ export default async function TeacherDashboardPage() {
                         {internship.topic.title}
                       </p>
                       <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1 truncate">
-                        {internship.students.map(s => s.student.name).join(" · ")}
+                        {internship.internshipstudent.map(s => s.user.name).join(" · ")}
                       </p>
                     </div>
                     <div className="h-8 w-8 rounded-full bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400 group-hover:bg-indigo-600 group-hover:text-white transition-all">
@@ -194,7 +194,7 @@ export default async function TeacherDashboardPage() {
                 recentMessages.map((m) => (
                   <div key={m.id} className="p-3 border-b border-gray-50 dark:border-slate-800 last:border-0">
                     <div className="flex justify-between items-start gap-2">
-                      <p className="text-[12px] font-bold text-gray-900 dark:text-white truncate">{m.sender.name}</p>
+                      <p className="text-[12px] font-bold text-gray-900 dark:text-white truncate">{m.user.name}</p>
                       <span className="text-[9px] text-gray-400 dark:text-gray-500 shrink-0 font-medium uppercase tracking-tighter">
                         {new Date(m.sentAt).toLocaleDateString([], { month: 'short', day: 'numeric' })}
                       </span>

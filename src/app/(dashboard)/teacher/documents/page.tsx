@@ -39,6 +39,13 @@ export default function TeacherDocumentsPage() {
     try {
       const docRes = await fetch(`/api/documents?internshipId=${id}`);
       const docData = await docRes.json();
+      
+      if (!docRes.ok) {
+        toast.error(docData.error || t("toast.loadDocumentsFailed"));
+        setDocuments([]);
+        return;
+      }
+      
       setDocuments(docData.data || []);
     } catch (error) {
       toast.error(t("toast.loadDocumentsFailed"));

@@ -50,8 +50,8 @@ export class InternshipService {
     const internship = await prisma.internship.findUnique({
       where: { id: internshipId },
       include: {
-        students: { select: { studentId: true } },
-        teacher: { select: { id: true, name: true } },
+        internshipstudent: { select: { studentId: true } },
+        user: { select: { id: true, name: true } },
       },
     });
 
@@ -93,7 +93,7 @@ export class InternshipService {
 
     // Notify all parties
     const recipients = [
-      ...internship.students.map((s) => s.studentId),
+      ...internship.internshipstudent.map((s) => s.studentId),
       internship.teacherId,
     ];
 
@@ -177,8 +177,8 @@ export class InternshipService {
     const internship = await prisma.internship.findUnique({
       where: { id: internshipId },
       include: {
-        students: { select: { studentId: true } },
-        teacher: { select: { id: true } },
+        internshipstudent: { select: { studentId: true } },
+        user: { select: { id: true } },
         topic: {
           select: {
             proposedById: true,
@@ -194,7 +194,7 @@ export class InternshipService {
     }
 
     // Verify the actor is a student on this internship
-    const isStudent = internship.students.some((s) => s.studentId === studentId);
+    const isStudent = internship.internshipstudent.some((s) => s.studentId === studentId);
     if (!isStudent) throw new Error('You are not a student on this internship.');
 
     await prisma.$transaction(async (tx) => {
@@ -245,7 +245,7 @@ export class InternshipService {
     const internship = await prisma.internship.findUnique({
       where: { id: internshipId },
       include: {
-        students: { select: { studentId: true } },
+        internshipstudent: { select: { studentId: true } },
         topic: { select: { proposedById: true } },
       },
     });
@@ -284,7 +284,7 @@ export class InternshipService {
     });
 
     // Notify students
-    for (const { studentId } of internship.students) {
+    for (const { studentId } of internship.internshipstudent) {
       await NotificationService.trigger({
         userId: studentId,
         type: 'FINAL_REPORT_TEACHER_VALIDATED',
@@ -312,7 +312,7 @@ export class InternshipService {
     const internship = await prisma.internship.findUnique({
       where: { id: internshipId },
       include: {
-        students: { select: { studentId: true } },
+        internshipstudent: { select: { studentId: true } },
         topic: { select: { proposedById: true } },
       },
     });
@@ -351,7 +351,7 @@ export class InternshipService {
     });
 
     // Notify students
-    for (const { studentId } of internship.students) {
+    for (const { studentId } of internship.internshipstudent) {
       await NotificationService.trigger({
         userId: studentId,
         type: 'FINAL_REPORT_COMPANY_VALIDATED',
@@ -379,8 +379,8 @@ export class InternshipService {
     const internship = await prisma.internship.findUnique({
       where: { id: internshipId },
       include: {
-        students: { select: { studentId: true } },
-        teacher: { select: { id: true } },
+        internshipstudent: { select: { studentId: true } },
+        user: { select: { id: true } },
         topic: { select: { proposedById: true } },
       },
     });
@@ -415,7 +415,7 @@ export class InternshipService {
 
     // Notify: students + teacher + company
     const notifyIds = [
-      ...internship.students.map((s) => s.studentId),
+      ...internship.internshipstudent.map((s) => s.studentId),
       internship.teacherId,
       internship.topic.proposedById,
     ];
@@ -447,7 +447,7 @@ export class InternshipService {
   ) {
     const internship = await prisma.internship.findUnique({
       where: { id: internshipId },
-      include: { students: { select: { studentId: true } } },
+      include: { internshipstudent: { select: { studentId: true } } },
     });
 
     if (!internship) throw new Error('Internship not found');
@@ -475,7 +475,7 @@ export class InternshipService {
       });
     });
 
-    for (const { studentId } of internship.students) {
+    for (const { studentId } of internship.internshipstudent) {
       await NotificationService.trigger({
         userId: studentId,
         type: 'REVISION_REQUESTED',

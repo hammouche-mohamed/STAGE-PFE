@@ -83,7 +83,7 @@ export async function GET(req: NextRequest) {
     const topicDetails = await prisma.topic.findMany({
       where: { id: { in: topTopicIds } },
       include: {
-        user_topic_proposedByIdTouser: {
+        proposedBy: {
           include: { companyprofile: { select: { companyName: true } } },
         },
       },
@@ -93,7 +93,7 @@ export async function GET(req: NextRequest) {
       const tc = topCompanies.find((t) => t.topicId === topic.id);
       const name =
         topic.companyName ||
-        topic.user_topic_proposedByIdTouser?.companyprofile?.companyName ||
+        topic.proposedBy?.companyprofile?.companyName ||
         'Unknown Company';
       return { companyName: name, internshipCount: tc?._count._all || 0 };
     });

@@ -69,23 +69,8 @@ export async function POST(req: NextRequest) {
 
     const publicUrl = `/api/uploads/${upload.id}`;
 
-    // NFR-RDI1: persist the document record to the database
-    const document = await prisma.document.create({
-      data: {
-        id: randomUUID(),
-        internshipId,
-        uploadedById: session.user.id,
-        type: type as never,
-        fileName: file.name,
-        fileUrl: publicUrl,
-        fileSize: file.size,
-        status: "UPLOADED",
-        uploadedAt: new Date(),
-      },
-    });
 
     return NextResponse.json({
-      data: document,
       url: publicUrl,
       name: file.name,
       size: file.size,

@@ -102,8 +102,8 @@ export const UploadDocumentSection: React.FC<UploadDocumentSectionProps> = ({
   };
 
   return (
-    <div className="bg-white border border-gray-200 rounded-md p-6 shadow-sm">
-      <div className="flex items-center space-x-2 mb-6 text-indigo-700">
+    <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-md p-6 shadow-sm">
+      <div className="flex items-center space-x-2 mb-6 text-indigo-700 dark:text-indigo-400">
         <FileUp className="h-5 w-5" />
         <h2 className="text-[15px] font-semibold uppercase tracking-wider">{t("documents.uploadNew")}</h2>
       </div>
@@ -121,7 +121,7 @@ export const UploadDocumentSection: React.FC<UploadDocumentSectionProps> = ({
               <option key={type.value} value={type.value}>{type.label}</option>
             ))}
           </select>
-          <p className="mt-2 text-[11px] text-gray-400 flex items-start">
+          <p className="mt-2 text-[11px] text-gray-400 dark:text-gray-500 flex items-start">
             <Info className="h-3 w-3 mr-1 mt-0.5 shrink-0" />
             {t("documents.pdfRequired")}
           </p>
@@ -141,33 +141,33 @@ export const UploadDocumentSection: React.FC<UploadDocumentSectionProps> = ({
           {!selectedFile ? (
             <div 
               onClick={() => fileInputRef.current?.click()}
-              className="flex flex-col items-center justify-center p-8 border-2 border-dashed border-gray-100 rounded-md bg-gray-50/50 hover:bg-gray-50 hover:border-indigo-200 transition-all cursor-pointer"
+              className="flex flex-col items-center justify-center p-8 border-2 border-dashed border-gray-100 dark:border-slate-800 bg-gray-50/50 dark:bg-slate-800/50 hover:bg-gray-50 dark:hover:bg-slate-800 hover:border-indigo-200 dark:hover:border-indigo-500/50 transition-all cursor-pointer"
             >
-              <div className="h-10 w-10 bg-white rounded-full shadow-sm flex items-center justify-center mb-3">
-                <FileUp className="h-5 w-5 text-indigo-600" />
+              <div className="h-10 w-10 bg-white dark:bg-slate-900 rounded-full shadow-sm flex items-center justify-center mb-3">
+                <FileUp className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
               </div>
-              <span className="text-[13px] font-medium text-gray-900">{t("documents.chooseFile")}</span>
-              <span className="text-[11px] text-gray-400 mt-1">{t("documents.dragDrop")}</span>
+              <span className="text-[13px] font-medium text-gray-900 dark:text-white">{t("documents.chooseFile")}</span>
+              <span className="text-[11px] text-gray-400 dark:text-gray-500 mt-1">{t("documents.dragDrop")}</span>
             </div>
           ) : (
-            <div className="p-4 bg-indigo-50/50 border border-indigo-100 rounded-md">
+            <div className="p-4 bg-indigo-50/50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-900/30 rounded-md">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
-                  <div className="h-8 w-8 bg-white rounded flex items-center justify-center shadow-sm">
-                    <FileText className="h-4 w-4 text-indigo-600" />
+                  <div className="h-8 w-8 bg-white dark:bg-slate-900 rounded flex items-center justify-center shadow-sm">
+                    <FileText className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
                   </div>
                   <div>
-                    <p className="text-[13px] font-medium text-gray-900 truncate max-w-[180px]">
+                    <p className="text-[13px] font-medium text-gray-900 dark:text-white truncate max-w-[180px]">
                       {selectedFile.name}
                     </p>
-                    <p className="text-[11px] text-gray-500">
+                    <p className="text-[11px] text-gray-500 dark:text-gray-400">
                       {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
                     </p>
                   </div>
                 </div>
                 <button 
                   onClick={() => setSelectedFile(null)}
-                  className="p-1 hover:bg-white rounded-full transition-colors text-gray-400 hover:text-red-500"
+                  className="p-1 hover:bg-white dark:hover:bg-slate-900 rounded-full transition-colors text-gray-400 hover:text-red-500 dark:hover:text-red-400"
                   disabled={isUploading || isSyncing}
                 >
                   <X className="h-4 w-4" />

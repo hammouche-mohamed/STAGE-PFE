@@ -218,44 +218,44 @@ export default function AdminInternshipDetailPage() {
 
          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2 space-y-6">
-               <div className="bg-white border border-gray-200 rounded-md p-6 shadow-sm">
+               <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-md p-6 shadow-sm">
                   <div className="flex items-center gap-3 mb-4">
                      <StatusBadge status={internship.status} />
-                     <span className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">{internship.academicYear}</span>
+                     <span className="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">{internship.academicYear}</span>
                   </div>
-                  <h1 className="text-[20px] font-bold text-gray-900 mb-4">{internship.topic.title}</h1>
-                  <p className="text-[14px] text-gray-600 leading-relaxed mb-6">
+                  <h1 className="text-[20px] font-bold text-gray-900 dark:text-white mb-4">{internship.topic.title}</h1>
+                  <p className="text-[14px] text-gray-600 dark:text-gray-300 leading-relaxed mb-6">
                      {internship.topic.description}
                   </p>
 
-                  <div className="grid grid-cols-2 gap-6 pt-6 border-t border-gray-100">
+                  <div className="grid grid-cols-2 gap-6 pt-6 border-t border-gray-100 dark:border-slate-800">
                      <div>
                         <label className="text-[11px] font-bold text-gray-400 uppercase tracking-widest block mb-2">Academic Supervisor</label>
                         <div className="flex items-center gap-2">
-                           <div className="h-8 w-8 rounded-full bg-indigo-50 text-indigo-700 flex items-center justify-center font-bold text-[11px]">
+                           <div className="h-8 w-8 rounded-full bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-400 flex items-center justify-center font-bold text-[11px]">
                               {internship.teacher.name.charAt(0)}
                            </div>
-                           <span className="text-[13px] font-medium text-gray-900">{internship.teacher.name}</span>
+                           <span className="text-[13px] font-medium text-gray-900 dark:text-white">{internship.teacher.name}</span>
                         </div>
                      </div>
                      <div>
                         <label className="text-[11px] font-bold text-gray-400 uppercase tracking-widest block mb-2">Host Organization</label>
                         <div className="flex items-center gap-2">
                            <Building2 className="h-4 w-4 text-gray-400" />
-                           <span className="text-[13px] font-medium text-gray-900">{internship.topic.companyName || "N/A"}</span>
+                           <span className="text-[13px] font-medium text-gray-900 dark:text-white">{internship.topic.companyName || "N/A"}</span>
                         </div>
                      </div>
                   </div>
                </div>
 
                {!session?.user?.isSuperAdmin && (
-                 <div className="bg-white border border-gray-200 rounded-md p-6 shadow-sm">
-                    <h2 className="text-[14px] font-bold text-gray-900 mb-6 flex items-center justify-between">
+                 <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-md p-6 shadow-sm">
+                    <h2 className="text-[14px] font-bold text-gray-900 dark:text-white mb-6 flex items-center justify-between">
                        <div className="flex items-center">
                           <FileText className="h-4 w-4 mr-2 text-indigo-500" />
                           Internship Documents
                        </div>
-                       <span className="text-[11px] font-medium text-gray-400 bg-gray-50 px-2 py-1 rounded">
+                       <span className="text-[11px] font-medium text-gray-400 bg-gray-50 dark:bg-slate-800 px-2 py-1 rounded">
                           {documents.length} Files
                        </span>
                     </h2>
@@ -269,52 +269,52 @@ export default function AdminInternshipDetailPage() {
             </div>
 
                <div className="space-y-6">
-                  <div className="bg-white border border-gray-200 rounded-md p-5 shadow-sm">
-                     <h3 className="text-[12px] font-bold text-gray-900 uppercase tracking-wide mb-4">Internship Status</h3>
+                  <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-md p-5 shadow-sm">
+                     <h3 className="text-[12px] font-bold text-gray-900 dark:text-white uppercase tracking-wide mb-4">Internship Status</h3>
                      <div className="space-y-4">
                         <div className="flex items-center justify-between text-[13px]">
-                           <span className="text-gray-500">Creation Date</span>
-                           <span className="text-gray-900">{format(new Date(internship.createdAt), "PP")}</span>
+                           <span className="text-gray-500 dark:text-gray-400">Creation Date</span>
+                           <span className="text-gray-900 dark:text-white">{format(new Date(internship.createdAt), "PP")}</span>
                         </div>
                         <div className="flex items-center justify-between text-[13px]">
-                           <span className="text-gray-500">Academic Year</span>
-                           <span className="text-gray-900 font-medium">{internship.academicYear}</span>
+                           <span className="text-gray-500 dark:text-gray-400">Academic Year</span>
+                           <span className="text-gray-900 dark:text-white font-medium">{internship.academicYear}</span>
                         </div>
                         {internship.internshipType && (
                            <div className="flex items-center justify-between text-[13px]">
-                              <span className="text-gray-500">Type</span>
+                              <span className="text-gray-500 dark:text-gray-400">Type</span>
                               <span className={`px-2 py-0.5 rounded text-[11px] font-bold uppercase ${
-                                 internship.internshipType === 'PFE' ? 'bg-purple-50 text-purple-700' : 'bg-blue-50 text-blue-700'
+                                 internship.internshipType === 'PFE' ? 'bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-400' : 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400'
                               }`}>{internship.internshipType}</span>
                            </div>
                         )}
                         {internship.midtermDeadline && (
                            <div className="flex items-center justify-between text-[13px]">
-                              <span className="text-gray-500">Mid-Report Deadline</span>
-                              <span className="text-gray-900 font-medium">{format(new Date(internship.midtermDeadline), "PP")}</span>
+                              <span className="text-gray-500 dark:text-gray-400">Mid-Report Deadline</span>
+                              <span className="text-gray-900 dark:text-white font-medium">{format(new Date(internship.midtermDeadline), "PP")}</span>
                            </div>
                         )}
                         {internship.finalDeadline && (
                            <div className="flex items-center justify-between text-[13px]">
-                              <span className="text-gray-500">Final Deadline</span>
-                              <span className="text-indigo-700 font-bold">{format(new Date(internship.finalDeadline), "PP")}</span>
+                              <span className="text-gray-500 dark:text-gray-400">Final Deadline</span>
+                              <span className="text-indigo-700 dark:text-indigo-400 font-bold">{format(new Date(internship.finalDeadline), "PP")}</span>
                            </div>
                         )}
                         {internship.startDate && (
                           <>
-                            <div className="pt-2 border-t border-gray-50 mt-2">
+                            <div className="pt-2 border-t border-gray-50 dark:border-slate-800 mt-2">
                                <span className="text-[11px] font-bold text-gray-400 uppercase tracking-widest block mb-2">Duration</span>
-                               <div className="flex items-center gap-2 text-[13px] text-gray-900">
+                               <div className="flex items-center gap-2 text-[13px] text-gray-900 dark:text-white">
                                   <Calendar className="h-4 w-4 text-indigo-500" />
                                   {format(new Date(internship.startDate), "PP")} — {internship.endDate ? format(new Date(internship.endDate), "PP") : "..."}
                                </div>
                             </div>
                             {internship.technicalSupervisorName && (
-                               <div className="pt-2 mt-2 border-t border-gray-50">
+                               <div className="pt-2 mt-2 border-t border-gray-50 dark:border-slate-800">
                                   <span className="text-[11px] font-bold text-gray-400 uppercase tracking-widest block mb-2">Technical Supervisor</span>
-                                  <div className="text-[13px] text-gray-900">
+                                  <div className="text-[13px] text-gray-900 dark:text-white">
                                      <p className="font-medium">{internship.technicalSupervisorName}</p>
-                                     <p className="text-gray-500 text-[11px]">{internship.technicalSupervisorEmail}</p>
+                                     <p className="text-gray-500 dark:text-gray-400 text-[11px]">{internship.technicalSupervisorEmail}</p>
                                   </div>
                                </div>
                             )}
@@ -325,13 +325,13 @@ export default function AdminInternshipDetailPage() {
 
                   {/* Set Final Deadline Panel (Admin Action) */}
                   {!session?.user?.isSuperAdmin && internship.status !== 'COMPLETED' && internship.status !== 'CANCELLED' && (
-                     <div className="bg-white border border-amber-200 rounded-md p-5 shadow-sm">
-                        <h3 className="text-[12px] font-bold text-amber-800 uppercase tracking-wide mb-1 flex items-center gap-1.5">
+                     <div className="bg-white dark:bg-slate-900 border border-amber-200 dark:border-amber-900/30 rounded-md p-5 shadow-sm">
+                        <h3 className="text-[12px] font-bold text-amber-800 dark:text-amber-500 uppercase tracking-wide mb-1 flex items-center gap-1.5">
                            <Clock className="h-3.5 w-3.5" />
                            Set Final Report Deadline
                         </h3>
                         {internship.internshipType === 'PFE' && (
-                           <p className="text-[11px] text-amber-700 mb-3 bg-amber-50 rounded p-2">
+                           <p className="text-[11px] text-amber-700 dark:text-amber-400 mb-3 bg-amber-50 dark:bg-amber-900/20 rounded p-2">
                               ⚠️ PFE: Setting this deadline will automatically update the internship <strong>end date</strong> to match.
                            </p>
                         )}
@@ -356,8 +356,8 @@ export default function AdminInternshipDetailPage() {
                      </div>
                   )}
 
-                  <div className="bg-indigo-600 rounded-md p-5 text-white shadow-lg">
-                     <FileText className="h-6 w-6 mb-4 text-indigo-200" />
+                  <div className="bg-indigo-600 dark:bg-indigo-900/40 border border-transparent dark:border-indigo-800/50 rounded-md p-5 text-white shadow-lg">
+                     <FileText className="h-6 w-6 mb-4 text-indigo-200 dark:text-indigo-400" />
                      <h3 className="text-[15px] font-bold">Admin Checklist</h3>
                      <ul className="mt-4 space-y-3 text-[12px]">
                         <li className="flex items-center gap-2">
