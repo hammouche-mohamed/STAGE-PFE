@@ -22,9 +22,9 @@ export default async function CompanyDashboardPage() {
     select: {
       id: true,
       name: true,
-      companyProfile: { select: { companyName: true } },
+      companyprofile: { select: { companyName: true } },
     },
-  });
+  } as any);
 
   if (!company) return <div className="p-8 text-gray-400">Company profile not found.</div>;
 
@@ -65,7 +65,7 @@ export default async function CompanyDashboardPage() {
         <div>
           <h1 className="text-[17px] font-semibold text-gray-900 dark:text-white">Partner Dashboard</h1>
           <p className="text-[13px] text-gray-500 dark:text-gray-400 mt-0.5">
-            Welcome back, {company.companyProfile?.companyName ?? company.name}. Manage your
+            Welcome back, {(company as any).companyprofile?.companyName ?? company.name}. Manage your
             recruitment and internship tracks.
           </p>
         </div>
