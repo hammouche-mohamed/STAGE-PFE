@@ -88,7 +88,7 @@ export default async function AdminDashboardPage() {
             ...(!isSuperAdmin && filiereId ? { studentprofile: { filiereId } } : {}),
             studentprofile: { academicYear: currentAcademicYear },
             internshipstudent: { none: {} },
-          },
+          } as any,
           select: { id: true, name: true, email: true },
           take: 20,
           orderBy: { name: "asc" },

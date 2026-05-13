@@ -52,11 +52,11 @@ export async function GET(
     const mapped = {
       ...internship,
       topic: {
-        ...internship.topic,
-        proposedBy: internship.topic.user_topic_proposedByIdTouser,
+        ...(internship as any).topic,
+        proposedBy: (internship as any).topic.user_topic_proposedByIdTouser,
       },
-      teacher: internship.user,
-      students: (internship.internshipstudent || []).map((s: any) => ({
+      teacher: (internship as any).user,
+      students: ((internship as any).internshipstudent || []).map((s: any) => ({
         ...s,
         student: s.user,
       })),
