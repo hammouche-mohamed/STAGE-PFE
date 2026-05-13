@@ -81,32 +81,36 @@ export function AdminDashboardClient({
     try {
       const res = await fetch(`/api/admin/dashboard/stats?filiereId=${fid}`);
       const data = await res.json();
-      if (res.ok) {
-        setStats(data);
+      if (res.ok && data && typeof data.studentCount !== 'undefined') {
+        // Only update if we got real data back (not zeros from a failed fetch)
+        setStats(prev => ({ ...prev, ...data }));
       }
     } catch (error) {
-      console.error("Failed to fetch dashboard stats");
+      console.error("Failed to fetch dashboard stats - keeping existing data");
     } finally {
       setIsLoadingStats(false);
     }
   }, []);
 
-  // Debounce the filter change to prevent rapid-fire API calls
-  // that exhaust database connections in serverless environments
+  // Only fetch stats when the filter changes (not on initial mount, since SSR data is already correct)
+  const isFirstMount = React.useRef(true);
   React.useEffect(() => {
     const fid = filiereId === "all" ? (session?.user?.isSuperAdmin ? "all" : session?.user?.filiereId || "all") : filiereId;
-    
+
+    // Skip the initial mount fetch — SSR data is already loaded
+    if (isFirstMount.current) {
+      isFirstMount.current = false;
+      // Poll every 5 minutes to keep data fresh
+      const pollId = setInterval(() => fetchStats(fid), 300000);
+      return () => clearInterval(pollId);
+    }
+
+    // Debounce filter-driven refetches
     const debounceTimer = setTimeout(() => {
-      if (fid !== "all" || session?.user?.isSuperAdmin) {
-        fetchStats(fid);
-      }
-    }, 500); // 500ms debounce
-
-    // Auto-poll dashboard stats every 5 minutes (reduced from 60s to save DB connections)
-    const pollId = setInterval(() => {
       fetchStats(fid);
-    }, 300000);
+    }, 500);
 
+    const pollId = setInterval(() => fetchStats(fid), 300000);
     return () => {
       clearTimeout(debounceTimer);
       clearInterval(pollId);

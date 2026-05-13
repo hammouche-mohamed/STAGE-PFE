@@ -192,13 +192,18 @@ export async function GET(req: NextRequest) {
 
   try {
     // Get IDs of topics that are linked to COMPLETED or CANCELLED internships
-    const completedInternships = await prisma.internship.findMany({
-      where: { status: { in: ['COMPLETED', 'CANCELLED'] } },
-      select: { topicId: true }
-    });
-    const completedTopicIds = completedInternships.map(i => i.topicId);
-
-    where.id = { notIn: completedTopicIds };
+    try {
+      const completedInternships = await prisma.internship.findMany({
+        where: { status: { in: ['COMPLETED', 'CANCELLED'] } },
+        select: { topicId: true }
+      });
+      const completedTopicIds = completedInternships.map(i => i.topicId);
+      if (completedTopicIds.length > 0) {
+        where.id = { notIn: completedTopicIds };
+      }
+    } catch {
+      // Non-critical — show all topics if this fails
+    }
 
     // ── ACADEMIC YEAR FILTER ────────────────────────────────────────────────
     // Admins see all years by default unless specified.
