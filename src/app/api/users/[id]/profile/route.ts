@@ -27,7 +27,7 @@ export async function GET(
         teacherprofile: { select: { speciality: true, grade: true, maxStudents: true } },
         companyprofile: { select: { companyName: true, sector: true, wilaya: true, contactPhone: true } },
       },
-    });
+    } as any);
 
     if (!user) return NextResponse.json({ error: "Not found" }, { status: 404 });
 

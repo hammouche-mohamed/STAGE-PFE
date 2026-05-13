@@ -42,7 +42,7 @@ export async function GET(
           }
         }
       }
-    });
+    } as any);
 
     if (!internship) {
       return NextResponse.json({ error: 'Internship not found' }, { status: 404 });

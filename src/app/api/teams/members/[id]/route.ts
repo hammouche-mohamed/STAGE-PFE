@@ -83,7 +83,7 @@ export async function DELETE(
       // Notify Admin
       const adminUsers = await prisma.user.findMany({
         where: { role: "ADMIN", adminprofile: { filiereId: team.filiereId } }
-      });
+      } as any);
 
       for (const admin of adminUsers) {
         await NotificationService.trigger({

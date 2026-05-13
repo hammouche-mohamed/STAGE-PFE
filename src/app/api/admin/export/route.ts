@@ -133,13 +133,17 @@ export async function GET(req: NextRequest) {
     }
 
     if (type === 'students' || type === 'all') {
-      const students = await prisma.user.findMany({
+      const rawStudents = await prisma.user.findMany({
         where: { 
           role: 'STUDENT', 
           studentprofile: { academicYear: year || undefined, ...(filiereId && { filiereId }) } 
         },
         include: { studentprofile: { include: { filiere: true } } }
-      });
+      } as any);
+      const students = rawStudents.map((s: any) => ({
+        ...s,
+        studentProfile: s.studentprofile
+      }));
       rows.push('=== STUDENTS ===');
       rows.push('ID,Name,Email,Department,Speciality,Level');
       for (const s of students) {
@@ -156,7 +160,7 @@ export async function GET(req: NextRequest) {
     }
 
     if (type === 'teachers' || type === 'all') {
-      const teachers = await prisma.user.findMany({
+      const rawTeachers = await prisma.user.findMany({
         where: { 
           role: 'TEACHER',
           OR: [
@@ -165,7 +169,11 @@ export async function GET(req: NextRequest) {
           ]
         },
         include: { teacherprofile: { include: { filiere: true } } }
-      });
+      } as any);
+      const teachers = rawTeachers.map((t: any) => ({
+        ...t,
+        teacherProfile: t.teacherprofile
+      }));
       rows.push('=== TEACHERS ===');
       rows.push('ID,Name,Email,Grade,Department,Speciality');
       for (const t of teachers) {
@@ -182,10 +190,14 @@ export async function GET(req: NextRequest) {
     }
 
     if (type === 'topics' || type === 'all') {
-      const topics = await prisma.topic.findMany({
+      const rawTopics = await prisma.topic.findMany({
         where: { academicYear: year || undefined, ...(filiereId && { filiereId }) },
         include: { user_topic_proposedByIdTouser: { select: { name: true } }, filiere: true }
-      });
+      } as any);
+      const topics = rawTopics.map((t: any) => ({
+        ...t,
+        proposedBy: t.user_topic_proposedByIdTouser || null
+      }));
       rows.push('=== TOPICS ===');
       rows.push('ID,Title,Type,Status,Proposed By,Department,Capacity');
       for (const t of topics) {

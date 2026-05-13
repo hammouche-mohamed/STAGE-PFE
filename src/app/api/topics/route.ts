@@ -126,7 +126,7 @@ export async function POST(req: NextRequest) {
             { adminprofile: { isSuperAdmin: true } },
             { adminprofile: { filiereId: validatedData.filiereId } }
           ]
-        } : {})
+        } : {} as any)
       },
       select: { id: true },
     });

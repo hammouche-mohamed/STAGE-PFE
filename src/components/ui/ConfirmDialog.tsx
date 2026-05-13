@@ -15,6 +15,7 @@ interface ConfirmDialogProps {
   cancelLabel?: string;
   variant?: "danger" | "warning";
   isLoading?: boolean;
+  children?: React.ReactNode;
 }
 
 export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
@@ -27,6 +28,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   cancelLabel = "Cancel",
   variant = "danger",
   isLoading = false,
+  children,
 }) => {
   const Icon = variant === "danger" ? Trash2 : AlertTriangle;
   const iconBg = variant === "danger" 
@@ -66,6 +68,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
           <p className="text-[14px] text-gray-600 dark:text-gray-300 leading-relaxed">
             {description}
           </p>
+          {children}
         </div>
       </div>
     </Modal>

@@ -20,37 +20,37 @@ export async function GET(req: NextRequest) {
     : session.user.filiereId;
 
   try {
-    const internships = await prisma.internship.findMany({
+    const rawInternships = await prisma.internship.findMany({
       where: {
         academicYear: (year && year !== 'all') ? year : undefined,
         // Archives usually means finished, but for oversight we should see Active too
-        status: { in: ['ACTIVE', 'COMPLETED', 'CANCELLED'] },
+        status: { in: ['IN_PROGRESS', 'COMPLETED', 'CANCELLED'] },
         ...(filiereId && filiereId !== 'all' && { topic: { filiereId } })
       },
       include: {
         topic: { select: { title: true, internshipType: true } },
-        teacher: { select: { name: true } },
-        students: { include: { student: { select: { name: true } } } },
-        messages: {
+        user: { select: { name: true } },
+        internshipstudent: { include: { user: { select: { name: true } } } },
+        message: {
           select: { id: true, content: true, sentAt: true },
           orderBy: { sentAt: 'desc' },
           take: 1,
         },
-        _count: { select: { messages: true } },
+        _count: { select: { message: true } },
       },
       orderBy: { createdAt: 'desc' },
-    });
+    } as any);
 
-    const threads = internships.map((i: typeof internships[number]) => ({
+    const threads = rawInternships.map((i: any) => ({
       internshipId: i.id,
       topic: i.topic.title,
       internshipType: i.internshipType ?? 'N/A',
       academicYear: i.academicYear,
-      students: i.students.map((s: { student: { name: string } }) => s.student.name),
-      teacher: i.teacher.name,
-      totalMessages: i._count.messages,
-      lastMessage: i.messages[0]?.content?.substring(0, 60) ?? '',
-      lastSentAt: i.messages[0]?.sentAt?.toISOString() ?? null,
+      students: i.internshipstudent.map((s: any) => s.user.name),
+      teacher: i.user.name,
+      totalMessages: i._count.message,
+      lastMessage: i.message[0]?.content?.substring(0, 60) ?? '',
+      lastSentAt: i.message[0]?.sentAt?.toISOString() ?? null,
     }));
 
     return NextResponse.json({ data: threads });

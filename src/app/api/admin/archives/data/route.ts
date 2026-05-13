@@ -41,7 +41,7 @@ export async function GET(req: NextRequest) {
               include: { internship: { include: { topic: true } } }
             }
           }
-        });
+        } as any);
         break;
 
       case 'teachers':
@@ -64,7 +64,7 @@ export async function GET(req: NextRequest) {
               }
             }
           }
-        });
+        } as any);
         break;
 
       case 'companies':
@@ -82,7 +82,7 @@ export async function GET(req: NextRequest) {
               }
             }
           }
-        });
+        } as any);
         break;
 
       case 'topics':
@@ -96,7 +96,7 @@ export async function GET(req: NextRequest) {
             filiere: true,
             _count: { select: { studentapplication: true } }
           }
-        });
+        } as any);
         break;
 
       case 'documents':
@@ -111,7 +111,7 @@ export async function GET(req: NextRequest) {
             uploadedBy: { select: { name: true, role: true } },
             internship: { include: { topic: { select: { title: true } } } }
           }
-        });
+        } as any);
         break;
 
       case 'audit':
@@ -128,7 +128,7 @@ export async function GET(req: NextRequest) {
             user: { select: { name: true, email: true } }
           },
           orderBy: { createdAt: 'desc' }
-        });
+        } as any);
         break;
 
       case 'internships':
@@ -140,12 +140,12 @@ export async function GET(req: NextRequest) {
           },
           include: {
             topic: { select: { title: true, internshipType: true } },
-            teacher: { select: { name: true, email: true } },
-            students: { include: { student: { select: { name: true, email: true } } } },
-            _count: { select: { messages: true, documents: true } }
+            user: { select: { name: true, email: true } },
+            internshipstudent: { include: { user: { select: { name: true, email: true } } } },
+            _count: { select: { message: true, document: true } }
           },
           orderBy: { createdAt: 'desc' }
-        });
+        } as any);
         break;
     }
 

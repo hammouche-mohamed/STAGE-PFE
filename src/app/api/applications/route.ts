@@ -127,10 +127,11 @@ export async function POST(req: NextRequest) {
         id: randomUUID(),
         topicId,
         teamId,
+        leaderId: session.user.id,
         message,
         status: "PENDING",
       },
-    });
+    } as any);
 
     // ── NOTIFICATIONS ────────────────────────────────────────────────────────
     // 1. Notify Assigned Teacher (if any)
@@ -158,7 +159,7 @@ export async function POST(req: NextRequest) {
             { adminprofile: { isSuperAdmin: true } },
             { adminprofile: { filiereId: topic.filiereId } }
           ]
-        } : {})
+        } : {} as any)
       },
       select: { id: true }
     });

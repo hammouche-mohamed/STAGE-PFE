@@ -50,7 +50,7 @@ export async function GET(req: NextRequest) {
         where: { 
           role: "TEACHER", 
           isActive: true,
-          ...(targetFiliereId ? { teacherprofile: { filiereId: targetFiliereId } } : {})
+          ...(targetFiliereId ? { teacherprofile: { filiereId: targetFiliereId } } : {} as any)
         } as any
       }),
       prisma.user.count({ where: { role: "COMPANY", isActive: true } }),
@@ -106,7 +106,7 @@ export async function GET(req: NextRequest) {
           isActive: true,
           studentprofile: {
             academicYear: currentAcademicYear,
-            ...(targetFiliereId ? { filiereId: targetFiliereId } : {}),
+            ...(targetFiliereId ? { filiereId: targetFiliereId } : {} as any),
           },
           internshipstudent: { none: {} },
         } as any,

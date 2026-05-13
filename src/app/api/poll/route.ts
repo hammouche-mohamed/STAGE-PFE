@@ -40,8 +40,8 @@ export async function GET(req: NextRequest) {
     if (role === "ADMIN") {
       const [regTs, topicTs, internshipTs, userListTs] = await Promise.all([
         prisma.registrationRequest.findFirst({
-          orderBy: { updatedAt: "desc" },
-          select: { updatedAt: true },
+          orderBy: { createdAt: "desc" },
+          select: { createdAt: true },
         }),
         prisma.topic.findFirst({
           orderBy: { updatedAt: "desc" },
@@ -56,9 +56,9 @@ export async function GET(req: NextRequest) {
           orderBy: { updatedAt: "desc" },
           select: { updatedAt: true },
         }),
-      ]);
+      ] as any);
 
-      timestamps.registrations = regTs?.updatedAt?.toISOString() ?? null;
+      timestamps.registrations = regTs?.createdAt?.toISOString() ?? null;
       timestamps.topics = topicTs?.updatedAt?.toISOString() ?? null;
       timestamps.internships = internshipTs?.updatedAt?.toISOString() ?? null;
       timestamps.users = userListTs?.updatedAt?.toISOString() ?? null;
@@ -76,7 +76,7 @@ export async function GET(req: NextRequest) {
           orderBy: { updatedAt: "desc" },
           select: { updatedAt: true },
         }),
-      ]);
+      ] as any);
       timestamps.internships = internshipTs?.updatedAt?.toISOString() ?? null;
       timestamps.topics = topicTs?.updatedAt?.toISOString() ?? null;
     }
@@ -85,7 +85,7 @@ export async function GET(req: NextRequest) {
     if (role === "STUDENT") {
       const [internshipTs, topicTs, invitationTs] = await Promise.all([
         prisma.internship.findFirst({
-          where: { students: { some: { studentId: session.user.id } } },
+          where: { internshipstudent: { some: { studentId: session.user.id } } },
           orderBy: { updatedAt: "desc" },
           select: { updatedAt: true },
         }),
@@ -95,13 +95,13 @@ export async function GET(req: NextRequest) {
         }),
         prisma.binomeInvitation.findFirst({
           where: { invitedStudentId: session.user.id },
-          orderBy: { updatedAt: "desc" },
-          select: { updatedAt: true },
+          orderBy: { createdAt: "desc" },
+          select: { createdAt: true },
         }),
-      ]);
+      ] as any);
       timestamps.internships = internshipTs?.updatedAt?.toISOString() ?? null;
       timestamps.topics = topicTs?.updatedAt?.toISOString() ?? null;
-      timestamps.invitations = invitationTs?.updatedAt?.toISOString() ?? null;
+      timestamps.invitations = invitationTs?.createdAt?.toISOString() ?? null;
     }
 
     // Company-specific domains
@@ -114,17 +114,17 @@ export async function GET(req: NextRequest) {
         }),
         prisma.studentApplication.findFirst({
           where: { topic: { proposedById: session.user.id } },
-          orderBy: { updatedAt: "desc" },
-          select: { updatedAt: true },
+          orderBy: { appliedAt: "desc" },
+          select: { appliedAt: true },
         }),
         prisma.internship.findFirst({
           where: { topic: { proposedById: session.user.id } },
           orderBy: { updatedAt: "desc" },
           select: { updatedAt: true },
         }),
-      ]);
+      ] as any);
       timestamps.topics = topicTs?.updatedAt?.toISOString() ?? null;
-      timestamps.applications = applicationTs?.updatedAt?.toISOString() ?? null;
+      timestamps.applications = applicationTs?.appliedAt?.toISOString() ?? null;
       timestamps.internships = internshipTs?.updatedAt?.toISOString() ?? null;
     }
 

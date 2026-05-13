@@ -87,15 +87,15 @@ export async function GET(req: NextRequest) {
           include: { companyprofile: { select: { companyName: true } } },
         },
       },
-    });
+    } as any);
 
-    const topCompaniesFormatted = topCompanies.map((tc) => {
-      const topic = topicDetails.find((t) => t.id === tc.topicId);
+    const topCompaniesFormatted = topicDetails.map((topic: any) => {
+      const tc = topCompanies.find((t) => t.topicId === topic.id);
       const name =
-        topic?.companyName ||
-        topic?.proposedBy?.companyProfile?.companyName ||
+        topic.companyName ||
+        topic.user_topic_proposedByIdTouser?.companyprofile?.companyName ||
         'Unknown Company';
-      return { companyName: name, internshipCount: tc._count._all };
+      return { companyName: name, internshipCount: tc?._count._all || 0 };
     });
 
     return NextResponse.json({

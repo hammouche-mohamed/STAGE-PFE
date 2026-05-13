@@ -227,7 +227,7 @@ export async function POST(req: NextRequest) {
             { adminprofile: { isSuperAdmin: true } },
             { adminprofile: { filiereId: targetFiliereId } }
           ]
-        } : {})
+        } : {} as any)
       },
       select: { id: true } 
     });

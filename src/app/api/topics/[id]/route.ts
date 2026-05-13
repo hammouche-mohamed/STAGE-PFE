@@ -143,7 +143,7 @@ export async function PATCH(
               { adminprofile: { isSuperAdmin: true } },
               { adminprofile: { filiereId: topic.filiereId } }
             ]
-          } : {})
+          } : {} as any)
         },
         select: { id: true },
       } as any);

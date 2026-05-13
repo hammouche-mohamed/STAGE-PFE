@@ -295,19 +295,18 @@ export default function StudentTeamPage() {
         confirmLabel="Leave Team"
         cancelLabel="Cancel"
         variant="danger"
-        customBody={
-          <div className="mt-4">
-            <label className="text-[12px] font-semibold text-gray-700 mb-1 block">Reason for leaving (Required)</label>
-            <textarea
-              className="w-full border border-gray-300 rounded-md p-2 text-[13px]"
-              rows={3}
-              placeholder="Explain why you are leaving..."
-              value={leaveReason}
-              onChange={(e) => setLeaveReason(e.target.value)}
-            />
-          </div>
-        }
-      />
+      >
+        <div className="mt-4">
+          <label className="text-[12px] font-semibold text-gray-700 mb-1 block">Reason for leaving (Required)</label>
+          <textarea
+            className="w-full border border-gray-300 rounded-md p-2 text-[13px]"
+            rows={3}
+            placeholder="Explain why you are leaving..."
+            value={leaveReason}
+            onChange={(e) => setLeaveReason(e.target.value)}
+          />
+        </div>
+      </ConfirmDialog>
     </div>
   );
 }

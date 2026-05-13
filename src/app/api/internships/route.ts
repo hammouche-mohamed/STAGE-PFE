@@ -250,7 +250,7 @@ export async function POST(req: NextRequest) {
       const superAdmins = await prisma.user.findMany({
         where: { adminprofile: { isSuperAdmin: true } },
         select: { id: true }
-      });
+      } as any);
 
       if (superAdmins.length > 0) {
         await prisma.notification.createMany({

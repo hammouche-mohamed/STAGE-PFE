@@ -71,7 +71,7 @@ export async function PATCH(
             { adminprofile: { isSuperAdmin: true } }
           ]
         }
-      });
+      } as any);
       for (const admin of deptAdmins) {
          await NotificationService.trigger({
           userId: admin.id,

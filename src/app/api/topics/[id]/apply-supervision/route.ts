@@ -22,7 +22,7 @@ export async function POST(
       prisma.topic.findUnique({
         where: { id },
         include: { user_topic_proposedByIdTouser: true }
-      }),
+      } as any),
       prisma.teacherProfile.findUnique({
         where: { userId: session.user.id }
       })
@@ -79,7 +79,7 @@ export async function POST(
             { adminprofile: { isSuperAdmin: true } },
             { adminprofile: { filiereId: topic.filiereId } }
           ]
-        } : {})
+        } : {} as any)
       }
     });
 

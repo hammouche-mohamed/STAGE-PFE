@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { toast } from "sonner";
 import { format, formatDistanceToNow } from "date-fns";
-import { Bell, CheckCircle, XCircle, Clock, BookOpen, User } from "lucide-react";
+import { Bell, CheckCircle, XCircle, Clock, BookOpen, User, Users } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { InternshipTypeBadge } from "@/components/ui/InternshipTypeBadge";
 import { useTranslation } from "@/lib/i18n/LanguageContext";
