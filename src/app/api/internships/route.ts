@@ -201,7 +201,7 @@ export async function POST(req: NextRequest) {
         },
         include: {
           internshipstudent: { include: { user: { select: { id: true, name: true } } } },
-        },
+        } as any,
       });
 
       await tx.topic.update({
@@ -220,8 +220,8 @@ export async function POST(req: NextRequest) {
     
     // Notify students
     if (students.length > 0) {
-      await prisma.notification.createMany({
-        data: students.map(uid => ({
+      await (prisma as any).notification.createMany({
+        data: students.map((uid: string) => ({
           id: randomUUID(),
           userId: uid,
           type: 'INTERNSHIP_STARTED',

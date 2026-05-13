@@ -85,7 +85,7 @@ export async function PATCH(
       include: {
         internshipstudent: { select: { studentId: true } },
         topic: { select: { proposedById: true, type: true } },
-      },
+      } as any,
     });
 
     if (!internship) return NextResponse.json({ error: 'Internship not found' }, { status: 404 });
@@ -136,9 +136,9 @@ export async function PATCH(
     }
 
     // Notify company
-    if (internship.topic.proposedById) {
+    if ((internship as any).topic.proposedById) {
       await NotificationService.trigger({
-        userId: internship.topic.proposedById,
+        userId: (internship as any).topic.proposedById,
         type: 'DEADLINE_REMINDER',
         title: isPFE ? 'PFE End Date Updated' : 'Final Report Deadline Set',
         message: isPFE

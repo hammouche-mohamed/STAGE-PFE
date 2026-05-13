@@ -36,13 +36,13 @@ export async function PATCH(
             internshipstudent: { select: { studentId: true } },
           },
         },
-      },
+      } as any,
     });
 
     if (!document) return NextResponse.json({ error: 'Document not found' }, { status: 404 });
 
     // Verify this company owns the internship's topic
-    if (document.internship.topic.proposedById !== session.user.id) {
+    if ((document as any).internship.topic.proposedById !== session.user.id) {
       return NextResponse.json({ error: 'Forbidden — not your internship' }, { status: 403 });
     }
 

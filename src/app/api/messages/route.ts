@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
       select: {
         teacherId: true,
         internshipstudent: { select: { studentId: true } },
-      },
+      } as any,
     });
 
     if (!internship) {
@@ -64,7 +64,7 @@ export async function POST(req: NextRequest) {
       },
       include: {
         user: { select: { name: true } },
-      },
+      } as any,
     });
 
     // Notify other participants (except sender)

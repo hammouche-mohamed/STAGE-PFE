@@ -34,7 +34,7 @@ export async function GET(req: NextRequest) {
           topic: { select: { title: true, internshipType: true } },
           user: { select: { name: true, email: true } },
           internshipstudent: { include: { user: { select: { name: true, email: true } } } },
-        },
+        } as any,
         orderBy: { createdAt: 'asc' },
       });
 
@@ -49,7 +49,7 @@ export async function GET(req: NextRequest) {
             i.academicYear,
             i.internshipType ?? 'N/A',
             i.status,
-            `"${i.topic.title.replace(/"/g, '""')}"`,
+            `"${(i as any).topic.title.replace(/"/g, '""')}"`,
             `"${teacherName}"`,
             `"${students}"`,
             i.startDate?.toISOString().split('T')[0] ?? '',
@@ -72,10 +72,10 @@ export async function GET(req: NextRequest) {
             include: {
               topic: { select: { title: true } },
               internshipstudent: { include: { user: { select: { name: true } } } },
-            },
+            } as any,
           },
           user_document_uploadedByIdTouser: { select: { name: true, role: true } },
-        },
+        } as any,
         orderBy: { uploadedAt: 'asc' },
       });
 
@@ -93,7 +93,7 @@ export async function GET(req: NextRequest) {
             uploadedBy.role,
             d.status,
             d.uploadedAt.toISOString(),
-            `"${d.internship.topic.title.replace(/"/g, '""')}"`,
+            `"${(d as any).internship.topic.title.replace(/"/g, '""')}"`,
             `"${students}"`,
           ].join(','),
         );
@@ -110,8 +110,8 @@ export async function GET(req: NextRequest) {
           user: { select: { name: true, role: true } },
           internship: {
             include: { topic: { select: { title: true } } },
-          },
-        },
+          } as any,
+        } as any,
         orderBy: { sentAt: 'asc' },
       });
 
@@ -126,7 +126,7 @@ export async function GET(req: NextRequest) {
             m.sentAt.toISOString(),
             `"${sender.name}"`,
             sender.role,
-            `"${m.internship.topic.title.replace(/"/g, '""')}"`,
+            `"${(m as any).internship.topic.title.replace(/"/g, '""')}"`,
             `"${preview}"`,
             m.requiresAction ? 'YES' : 'NO',
           ].join(','),

@@ -42,7 +42,7 @@ export async function GET(req: NextRequest) {
           where: { internship: { teacherId: userId }, status: "UPLOADED" },
         }),
         prisma.message.count({
-          where: { internship: { teacherId: userId }, messageread: { none: { userId } } },
+          where: { internship: { teacherId: userId }, messageread: { none: { userId } } } as any,
         })
       ]);
       counts["/teacher/internships"] = internCount;
@@ -54,7 +54,7 @@ export async function GET(req: NextRequest) {
           where: { topic: { proposedById: userId }, status: "PENDING" },
         }),
         prisma.message.count({
-          where: { internship: { topic: { proposedById: userId } }, messageread: { none: { userId } } },
+          where: { internship: { topic: { proposedById: userId } }, messageread: { none: { userId } } } as any,
         })
       ]);
       counts["/company/applications"] = appCount;
@@ -68,7 +68,7 @@ export async function GET(req: NextRequest) {
           where: {
             internship: { internshipstudent: { some: { studentId: userId } } },
             messageread: { none: { userId } },
-          },
+          } as any,
         })
       ]);
       counts["/student/invitations"] = invitCount;
