@@ -290,7 +290,8 @@ export async function GET(req: NextRequest) {
     }
 
     // NFR-P2: explicit field selection
-    // Build select dynamically to avoid passing `false` for relation fields (Prisma runtime error)
+    // IMPORTANT: Use schema field names (not friendly aliases) — Vercel regenerates Prisma Client fresh
+    // Schema uses: user_topic_proposedByIdTouser, user_topic_assignedTeacherIdTouser, teacherapplication
     const baseSelect = {
       id: true,
       title: true,
@@ -309,14 +310,14 @@ export async function GET(req: NextRequest) {
       updatedAt: true,
       pendingEditData: true,
       pendingEditRequestedAt: true,
-      proposedBy: { select: { id: true, name: true } },
-      assignedTeacher: { select: { id: true, name: true } },
+      user_topic_proposedByIdTouser: { select: { id: true, name: true } },
+      user_topic_assignedTeacherIdTouser: { select: { id: true, name: true } },
     };
 
     const topicSelect = session.user.role === 'TEACHER'
       ? {
           ...baseSelect,
-          teacherApplications: {
+          teacherapplication: {
             where: { teacherId: session.user.id },
             select: { id: true, status: true },
           },
@@ -324,7 +325,7 @@ export async function GET(req: NextRequest) {
       : baseSelect;
 
     console.log('[Topics GET] final where:', JSON.stringify(where));
-    const [topics, total] = await Promise.all([
+    const [rawTopics, total] = await Promise.all([
       prisma.topic.findMany({
         where,
         select: topicSelect as any,
@@ -334,6 +335,19 @@ export async function GET(req: NextRequest) {
       }),
       prisma.topic.count({ where }),
     ]);
+
+    // Map schema field names back to friendly names expected by the client
+    const topics = rawTopics.map((t: any) => ({
+      ...t,
+      proposedBy: t.user_topic_proposedByIdTouser || null,
+      assignedTeacher: t.user_topic_assignedTeacherIdTouser || null,
+      teacherApplications: t.teacherapplication || [],
+      // Remove the long-name fields
+      user_topic_proposedByIdTouser: undefined,
+      user_topic_assignedTeacherIdTouser: undefined,
+      teacherapplication: undefined,
+    }));
+
     console.log('[Topics GET] returned:', topics.length, 'topics, total:', total);
 
     return NextResponse.json({

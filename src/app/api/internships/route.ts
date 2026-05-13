@@ -60,7 +60,8 @@ export async function GET(req: NextRequest) {
     if (internshipType) where.internshipType = internshipType;
     if (statusFilter) where.status = statusFilter;
 
-    // NFR-P2: explicit field selection — never fetch unnecessary columns
+    // NFR-P2: explicit field selection — use schema field names (Vercel regenerates Prisma Client from schema)
+    // Schema: user (not teacher), internshipstudent (not students), document/message (not documents/messages)
     const [internships, total] = await Promise.all([
       prisma.internship.findMany({
         where,
@@ -81,11 +82,10 @@ export async function GET(req: NextRequest) {
           companyValidatedFinalReport: true,
           createdAt: true,
           topic: { select: { title: true, type: true, internshipType: true, companyName: true, description: true } },
-          teacher: { select: { id: true, name: true, email: true } },
-          students: { include: { student: { select: { id: true, name: true, email: true } } } },
-          _count: { select: { documents: true, messages: true } },
-
-        },
+          user: { select: { id: true, name: true, email: true } },
+          internshipstudent: { select: { id: true, studentId: true, isLeader: true, user: { select: { id: true, name: true, email: true } } } },
+          _count: { select: { document: true, message: true } },
+        } as any,
         orderBy: { createdAt: 'desc' },
         take: limit,
         skip,
@@ -93,16 +93,33 @@ export async function GET(req: NextRequest) {
       prisma.internship.count({ where }),
     ]);
 
+    // Map schema field names back to friendly names expected by the client
+    const mappedInternships = (internships as any[]).map(i => ({
+      ...i,
+      teacher: i.user || { id: '', name: 'Unknown', email: '' },
+      students: (i.internshipstudent || []).map((s: any) => ({
+        ...s,
+        student: s.user,
+      })),
+      _count: {
+        documents: i._count?.document ?? 0,
+        messages: i._count?.message ?? 0,
+      },
+      // Clean up raw schema fields
+      user: undefined,
+      internshipstudent: undefined,
+    }));
+
     // Stitch in teacher departments manually to bypass missing schema relations
-    const teacherIds = [...new Set(internships.filter(i => i.teacher).map(i => i.teacher!.id))];
+    const teacherIds = [...new Set(mappedInternships.filter(i => i.teacher?.id).map(i => i.teacher.id))];
     const [teacherProfiles, allFilieres] = await Promise.all([
       teacherIds.length > 0 ? prisma.teacherProfile.findMany({ where: { userId: { in: teacherIds } } }) : Promise.resolve([]),
       prisma.filiere.findMany({ select: { id: true, name: true } })
     ]);
 
-    const stitchedInternships = internships.map(i => {
-      if (!i.teacher) return { ...i, teacher: { id: '', name: 'Unknown', email: '', filiereName: 'N/A' } };
-      const prof = teacherProfiles.find(p => p.userId === i.teacher!.id);
+    const stitchedInternships = mappedInternships.map(i => {
+      if (!i.teacher?.id) return { ...i, teacher: { id: '', name: 'Unknown', email: '', filiereName: 'N/A' } };
+      const prof = teacherProfiles.find(p => p.userId === i.teacher.id);
       const filiere = prof ? allFilieres.find(f => f.id === prof.filiereId) : null;
       return {
         ...i,

@@ -128,8 +128,9 @@ export default function AdminTopicsPage() {
   }, [fetchTopics]);
 
   const filteredTopics = topics.filter(t => {
+    const proposedByName = t.proposedBy?.name || '';
     const matchesSearch = t.title.toLowerCase().includes(search.toLowerCase()) || 
-                         t.proposedBy.name.toLowerCase().includes(search.toLowerCase());
+                         proposedByName.toLowerCase().includes(search.toLowerCase());
     
     let matchesStatus = false;
     if (statusFilter === "ALL") matchesStatus = true;
