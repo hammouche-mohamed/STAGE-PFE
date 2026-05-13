@@ -30,20 +30,27 @@ export async function GET(req: NextRequest) {
       if (topicId) where.topicId = topicId;
     }
 
-    const applications = await prisma.studentApplication.findMany({
+    const applications = await (prisma.studentApplication.findMany as any)({
       where,
       include: { 
         topic: { select: { title: true, type: true, status: true } },
-        team: {
+        studentteam: {
           include: {
-            members: { include: { student: { select: { name: true, email: true } } } }
+            teammember: { include: { student: { select: { name: true, email: true } } } }
           }
         }
       },
       orderBy: { appliedAt: "desc" },
     });
 
-    return NextResponse.json({ data: applications });
+    const mappedApplications = (applications as any).map((app: any) => ({
+      ...app,
+      team: app.studentteam ? {
+        members: app.studentteam.teammember
+      } : null
+    }));
+
+    return NextResponse.json({ data: mappedApplications });
   } catch (error) {
     console.error(error);
     return NextResponse.json({ error: "Fetch failed" }, { status: 500 });

@@ -312,6 +312,11 @@ export async function GET(req: NextRequest) {
       pendingEditRequestedAt: true,
       user_topic_proposedByIdTouser: { select: { id: true, name: true } },
       user_topic_assignedTeacherIdTouser: { select: { id: true, name: true } },
+      _count: {
+        select: {
+          studentapplication: true
+        }
+      }
     };
 
     const topicSelect = session.user.role === 'TEACHER'
@@ -342,6 +347,9 @@ export async function GET(req: NextRequest) {
       proposedBy: t.user_topic_proposedByIdTouser || null,
       assignedTeacher: t.user_topic_assignedTeacherIdTouser || null,
       teacherApplications: t.teacherapplication || [],
+      _count: {
+        applications: t._count?.studentapplication || 0
+      },
       // Remove the long-name fields
       user_topic_proposedByIdTouser: undefined,
       user_topic_assignedTeacherIdTouser: undefined,
