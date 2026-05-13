@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import { writeFile, mkdir } from "fs/promises";
-import { join } from "path";
-import { randomUUID } from "crypto";
 import prisma from "@/lib/prisma";
+import { randomUUID } from "crypto";
 
 // NFR-S5: Allowlist of accepted MIME types
 const ALLOWED_MIME = new Set([
@@ -57,17 +55,19 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Internship not found." }, { status: 404 });
     }
 
-    const ext = file.name.split(".").pop() || "pdf";
-    const filename = `doc-${randomUUID()}.${ext}`;
-    const uploadsDir = join(process.cwd(), "public", "uploads", "documents");
-
-    await mkdir(uploadsDir, { recursive: true });
-
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
-    await writeFile(join(uploadsDir, filename), buffer);
 
-    const publicUrl = `/uploads/documents/${filename}`;
+    // Save to database instead of filesystem (Vercel is read-only)
+    const upload = await prisma.upload.create({
+      data: {
+        fileName: file.name,
+        fileType: file.type || "application/pdf",
+        content: buffer,
+      },
+    });
+
+    const publicUrl = `/api/uploads/${upload.id}`;
 
     // NFR-RDI1: persist the document record to the database
     const document = await prisma.document.create({
