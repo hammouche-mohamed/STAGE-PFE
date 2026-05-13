@@ -22,7 +22,7 @@ export async function GET(
             title: true,
             description: true,
             companyName: true,
-            proposedBy: { select: { name: true } }
+            user_topic_proposedByIdTouser: { select: { name: true } }
           }
         },
         teacher: {

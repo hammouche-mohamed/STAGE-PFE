@@ -184,7 +184,7 @@ export async function GET(req: NextRequest) {
     if (type === 'topics' || type === 'all') {
       const topics = await prisma.topic.findMany({
         where: { academicYear: year || undefined, ...(filiereId && { filiereId }) },
-        include: { proposedBy: { select: { name: true } }, filiere: true }
+        include: { user_topic_proposedByIdTouser: { select: { name: true } }, filiere: true }
       });
       rows.push('=== TOPICS ===');
       rows.push('ID,Title,Type,Status,Proposed By,Department,Capacity');

@@ -25,12 +25,12 @@ export async function GET(
         } 
       },
       include: {
-        proposedBy: { 
+        user_topic_proposedByIdTouser: { 
           include: {
             companyprofile: true
           }
         },
-        assignedTeacher: { select: { id: true, name: true } },
+        user_topic_assignedTeacherIdTouser: { select: { id: true, name: true } },
         filiere: true,
         teacherapplication: {
           include: {
@@ -53,7 +53,7 @@ export async function GET(
           orderBy: { appliedAt: 'desc' }
         }
       }
-    });
+    } as any);
 
     if (!topic) {
       console.warn(`[TOPIC_DETAIL] Not found: "${id}"`);
@@ -62,14 +62,25 @@ export async function GET(
       }, { status: 404 });
     }
 
+    // Map internally for internal logic
+    const t = topic as any;
+    const proposedBy = t.user_topic_proposedByIdTouser || t.proposedBy;
+    const assignedTeacher = t.user_topic_assignedTeacherIdTouser || t.assignedTeacher;
+    const teacherApplications = t.teacherapplication || t.teacherApplications || [];
+    const studentApplications = t.studentapplication || t.studentApplications || [];
+
     // Merge company info if missing on the topic record but available on the profile
     const enrichedTopic = {
       ...topic,
-      companyName: topic.companyName || topic.proposedBy?.companyProfile?.companyName,
-      companySector: topic.companySector || topic.proposedBy?.companyProfile?.sector,
-      contactPerson: topic.contactPerson || topic.proposedBy?.name,
-      contactEmail: topic.contactEmail || topic.proposedBy?.email,
-      contactPhone: topic.contactPhone || topic.proposedBy?.companyProfile?.contactPhone
+      proposedBy,
+      assignedTeacher,
+      teacherApplications,
+      studentApplications,
+      companyName: topic.companyName || proposedBy?.companyprofile?.companyName || proposedBy?.companyProfile?.companyName,
+      companySector: topic.companySector || proposedBy?.companyprofile?.sector || proposedBy?.companyProfile?.sector,
+      contactPerson: topic.contactPerson || proposedBy?.name,
+      contactEmail: topic.contactEmail || proposedBy?.email,
+      contactPhone: topic.contactPhone || proposedBy?.companyprofile?.contactPhone || proposedBy?.companyProfile?.contactPhone
     };
 
     return NextResponse.json({ data: enrichedTopic });
@@ -94,7 +105,7 @@ export async function PATCH(
 
     const topic = await prisma.topic.findUnique({
       where: { id },
-      include: { proposedBy: true },
+      include: { user_topic_proposedByIdTouser: true, proposedBy: true } as any,
     });
     if (!topic) return NextResponse.json({ error: "Topic not found" }, { status: 404 });
 
@@ -135,7 +146,7 @@ export async function PATCH(
           } : {})
         },
         select: { id: true },
-      });
+      } as any);
 
       if (admins.length > 0) {
         await prisma.notification.createMany({
@@ -286,7 +297,7 @@ export async function PATCH(
     // Notify Super Admins if a Department Admin took action
     if (!session.user.isSuperAdmin) {
       const superAdmins = await prisma.user.findMany({
-        where: { adminprofile: { isSuperAdmin: true } },
+        where: { adminprofile: { isSuperAdmin: true } } as any,
         select: { id: true }
       });
 

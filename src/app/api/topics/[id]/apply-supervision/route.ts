@@ -21,7 +21,7 @@ export async function POST(
     const [topic, teacherProfile] = await Promise.all([
       prisma.topic.findUnique({
         where: { id },
-        include: { proposedBy: true }
+        include: { user_topic_proposedByIdTouser: true }
       }),
       prisma.teacherProfile.findUnique({
         where: { userId: session.user.id }

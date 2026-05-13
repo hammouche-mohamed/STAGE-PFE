@@ -92,7 +92,7 @@ export async function GET(req: NextRequest) {
             ...(filiereId && { filiereId })
           },
           include: {
-            proposedBy: { select: { name: true, email: true } },
+            user_topic_proposedByIdTouser: { select: { name: true, email: true } },
             filiere: true,
             _count: { select: { studentapplication: true } }
           }

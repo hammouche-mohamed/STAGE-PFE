@@ -83,7 +83,7 @@ export async function GET(req: NextRequest) {
     const topicDetails = await prisma.topic.findMany({
       where: { id: { in: topTopicIds } },
       include: {
-        proposedBy: {
+        user_topic_proposedByIdTouser: {
           include: { companyprofile: { select: { companyName: true } } },
         },
       },

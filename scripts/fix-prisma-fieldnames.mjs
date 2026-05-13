@@ -43,6 +43,12 @@ const REPLACEMENTS = [
   [/\bstudentApplications:\s*\{/g, 'studentapplication: {', 'studentApplications: { → studentapplication: {'],
   [/\bstudentApplications:\s*true\b/g, 'studentapplication: true', 'studentApplications: true → studentapplication: true'],
   
+  // On Topic model - User relations (aliases)
+  [/\bproposedBy:\s*\{/g, 'user_topic_proposedByIdTouser: {', 'proposedBy: { → user_topic_proposedByIdTouser: {'],
+  [/\bproposedBy:\s*true\b/g, 'user_topic_proposedByIdTouser: true', 'proposedBy: true → user_topic_proposedByIdTouser: true'],
+  [/\bassignedTeacher:\s*\{/g, 'user_topic_assignedTeacherIdTouser: {', 'assignedTeacher: { → user_topic_assignedTeacherIdTouser: {'],
+  [/\bassignedTeacher:\s*true\b/g, 'user_topic_assignedTeacherIdTouser: true', 'assignedTeacher: true → user_topic_assignedTeacherIdTouser: true'],
+  
   // On User model - internship student relation
   [/\binternshipStudents:\s*\{\s*none/g, 'internshipstudent: { none', 'internshipStudents: { none → internshipstudent: { none'],
   [/\binternshipStudents:\s*\{/g, 'internshipstudent: {', 'internshipStudents: { → internshipstudent: {'],
