@@ -85,9 +85,9 @@ export default async function AdminDashboardPage() {
           where: {
             role: "STUDENT",
             isActive: true,
-            ...(!isSuperAdmin && filiereId ? { studentProfile: { filiereId } } : {}),
-            studentProfile: { academicYear: currentAcademicYear },
-            internshipStudents: { none: {} },
+            ...(!isSuperAdmin && filiereId ? { studentprofile: { filiereId } } : {}),
+            studentprofile: { academicYear: currentAcademicYear },
+            internshipstudent: { none: {} },
           },
           select: { id: true, name: true, email: true },
           take: 20,
