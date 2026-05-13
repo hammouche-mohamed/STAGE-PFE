@@ -18,6 +18,8 @@ export const topicSchema = z.object({
 
   // For company proposed (PATH A)
   companyName: z.string().optional(),
+  targetLevels: z.string().optional(),
+  proposedByStudent: z.boolean().optional(),
 });
 
 export type TopicInput = z.infer<typeof topicSchema>;

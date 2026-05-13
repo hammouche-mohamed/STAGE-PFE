@@ -61,6 +61,7 @@ interface Topic {
   contactPerson?: string | null;
   contactEmail?: string | null;
   contactPhone?: string | null;
+  proposedByStudent: boolean;
 }
 
 interface Teacher {
@@ -409,18 +410,26 @@ export default function AdminTopicDetailPage() {
                 </div>
 
                 <div className="pt-6 border-t border-gray-100">
-                  <label className="text-[11px] font-bold text-gray-500 uppercase tracking-widest block mb-2">Target Study Levels</label>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-[11px] font-bold text-gray-500 uppercase tracking-widest block">Target Study Levels</label>
+                    {topic.proposedByStudent && (
+                      <span className="text-[10px] bg-amber-50 text-amber-600 px-2 py-0.5 rounded-full font-bold border border-amber-100">
+                        Restricted to Proposer Level
+                      </span>
+                    )}
+                  </div>
                   <div className="flex flex-wrap gap-2">
                     {studyLevels.map(level => (
                       <button
                         key={level}
                         type="button"
-                        onClick={() => !session?.user?.isSuperAdmin && toggleLevel(level)}
+                        onClick={() => !session?.user?.isSuperAdmin && !topic.proposedByStudent && toggleLevel(level)}
+                        disabled={session?.user?.isSuperAdmin || topic.proposedByStudent}
                         className={`px-4 py-1.5 rounded-md text-[12px] font-bold transition-all ${
                           selectedLevels.includes(level)
                             ? "bg-indigo-600 text-white shadow-sm"
                             : "bg-gray-100 text-gray-500 hover:bg-gray-200"
-                        } ${session?.user?.isSuperAdmin ? "cursor-default" : "cursor-pointer"}`}
+                        } ${(session?.user?.isSuperAdmin || topic.proposedByStudent) ? "cursor-default opacity-80" : "cursor-pointer"}`}
                       >
                         {level}
                       </button>

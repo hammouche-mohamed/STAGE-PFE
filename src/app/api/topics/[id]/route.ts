@@ -244,7 +244,7 @@ export async function PATCH(
         ...(requiredSkills !== undefined && { requiredSkills }),
         ...(internshipType !== undefined && { internshipType }),
         ...(filiereId !== undefined && { filiereId: filiereId || null }),
-        ...(targetLevels !== undefined && { targetLevels: targetLevels || null }),
+        ...(targetLevels !== undefined && !topic.proposedByStudent && { targetLevels: targetLevels || null }),
         ...(rejectionReason && {
           rejectionReason,
           ...(status === "REJECTED" && { supervisorRejectionCount: { increment: 1 } }),

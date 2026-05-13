@@ -48,6 +48,9 @@ export async function POST(req: NextRequest) {
 
     const result = await prisma.$transaction(async (tx: any) => {
       // 1. Create Topic
+      const isStudent = session.user.role === 'STUDENT';
+      const studentLevel = (session.user as any).level;
+      
       const topic = await tx.topic.create({
         data: {
           id: randomUUID(),
@@ -62,6 +65,8 @@ export async function POST(req: NextRequest) {
           filiereId: validatedData.filiereId,
           assignedTeacherId: validatedData.assignedTeacherId,
           status: 'PENDING_ADMIN',
+          proposedByStudent: isStudent,
+          targetLevels: isStudent ? studentLevel : (validatedData.targetLevels || 'L1,L2,L3,M1,M2'),
           updatedAt: new Date(),
         },
       });
