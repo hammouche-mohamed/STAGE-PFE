@@ -133,9 +133,9 @@ export function AdminDashboardClient({
         <div className="bg-amber-100 text-amber-600 p-4 rounded-full">
           <AlertCircle className="h-12 w-12" />
         </div>
-        <h2 className="text-xl font-bold text-gray-900">Department Assignment Required</h2>
+        <h2 className="text-xl font-bold text-gray-900">{t("dashboard.deptAssignmentRequired")}</h2>
         <p className="text-gray-500 max-w-md">
-          You are currently an unassigned administrator. You must be assigned to a department (filière) by a Super Administrator before you can view dashboard data or manage users.
+          {t("dashboard.unassignedAdminDesc")}
         </p>
       </div>
     );
@@ -147,7 +147,7 @@ export function AdminDashboardClient({
         <div className={isRTL ? "text-right" : ""}>
           <h1 className="text-[17px] font-semibold text-gray-900 dark:text-white">{t("dashboard.recentActivity")}</h1>
           <p className="text-[13px] text-gray-500 dark:text-gray-400 mt-0.5">
-            {t("dashboard.welcome")}, {session?.user?.isSuperAdmin ? "Global Administrator" : "Department Administrator"}.
+            {t("dashboard.welcome")}, {session?.user?.isSuperAdmin ? t("roles.SUPER_ADMIN") : t("roles.ADMIN")}.
           </p>
         </div>
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 w-full sm:w-auto">
@@ -165,7 +165,7 @@ export function AdminDashboardClient({
               onChange={(e) => setFiliereId(e.target.value)}
               disabled={isLoadingStats}
             >
-              <option value="all">All Departments</option>
+              <option value="all">{t("dashboard.allDepartments")}</option>
               {filieres.map((f) => (
                 <option key={f.id} value={f.id}>{f.name}</option>
               ))}
@@ -184,12 +184,12 @@ export function AdminDashboardClient({
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         <StatsCard label={t("dashboard.totalStudents")} value={studentCount} icon={Users} subValue={t("common.users")} />
         <StatsCard label={t("dashboard.totalTeachers")} value={teacherCount} icon={ShieldCheck} subValue={t("nav.supervision")} />
-        <StatsCard label="Companies" value={companyCount} icon={Briefcase} subValue="Partners" />
+        <StatsCard label={t("dashboard.companies")} value={companyCount} icon={Briefcase} subValue={t("dashboard.partners")} />
         <StatsCard
-          label="Company Proposals"
+          label={t("dashboard.companyProposals")}
           value={(stats as any).pendingCompanyProposals || 0}
           icon={BookOpen}
-          subValue="Pending Review"
+          subValue={t("dashboard.pendingReview")}
           subValueColor="amber"
         />
         <StatsCard
@@ -211,41 +211,41 @@ export function AdminDashboardClient({
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-5 shadow-sm transition-colors">
-                <p className="text-[12px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-4">Topics Status</p>
+                <p className="text-[12px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-4">{t("dashboard.topicsStatus")}</p>
                 <div className="flex flex-col gap-3 w-full">
                   <div className="flex items-center justify-between">
-                    <span className="text-[13px] text-gray-600 dark:text-gray-300">Approved</span>
+                    <span className="text-[13px] text-gray-600 dark:text-gray-300">{t("dashboard.approved")}</span>
                     <span className="text-[13px] font-bold text-emerald-600 dark:text-emerald-400">{(stats as any).topicsApproved || 0}</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-[13px] text-gray-600 dark:text-gray-300">Pending Review</span>
+                    <span className="text-[13px] text-gray-600 dark:text-gray-300">{t("dashboard.pendingReview")}</span>
                     <span className="text-[13px] font-bold text-amber-600 dark:text-amber-400">{recentTopics}</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-[13px] text-gray-600 dark:text-gray-300">Rejected</span>
+                    <span className="text-[13px] text-gray-600 dark:text-gray-300">{t("dashboard.rejected")}</span>
                     <span className="text-[13px] font-bold text-red-600 dark:text-red-400">{(stats as any).topicsRejected || 0}</span>
                   </div>
                   <div className="flex items-center justify-between pt-2 border-t border-gray-50 dark:border-gray-800 mt-1">
-                    <span className="text-[12px] font-medium text-gray-500 dark:text-gray-400">Supervision Requests</span>
+                    <span className="text-[12px] font-medium text-gray-500 dark:text-gray-400">{t("dashboard.supervisionRequests")}</span>
                     <span className="text-[12px] font-bold text-indigo-600 dark:text-indigo-400">{(stats as any).pendingSupervisionRequests || 0}</span>
                   </div>
                 </div>
               </div>
 
               <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-5 shadow-sm transition-colors">
-                <p className="text-[12px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-4">Internships Status</p>
+                <p className="text-[12px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-4">{t("dashboard.internshipsStatus")}</p>
                 <div className="flex flex-col gap-3 w-full">
                   <div className="flex items-center justify-between">
-                    <span className="text-[13px] text-gray-600 dark:text-gray-300">Active (In Progress)</span>
+                    <span className="text-[13px] text-gray-600 dark:text-gray-300">{t("dashboard.activeInProgress")}</span>
                     <span className="text-[13px] font-bold text-indigo-600 dark:text-indigo-400">{activeInternships}</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-[13px] text-gray-600 dark:text-gray-300">Completed</span>
+                    <span className="text-[13px] text-gray-600 dark:text-gray-300">{t("dashboard.completed")}</span>
                     <span className="text-[13px] font-bold text-emerald-600 dark:text-emerald-400">{(stats as any).internshipsCompleted || 0}</span>
                   </div>
                   <div className="flex items-center justify-between mt-auto pt-3 border-t border-gray-50 dark:border-gray-800 w-full">
                     <Link href="/admin/internships" className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 uppercase tracking-wider">
-                      View All
+                      {t("dashboard.viewAll")}
                     </Link>
                   </div>
                 </div>
@@ -261,7 +261,7 @@ export function AdminDashboardClient({
             </h2>
             <div className="bg-white dark:bg-gray-900 border border-amber-200 dark:border-amber-900/30 rounded-xl shadow-sm overflow-hidden transition-colors">
               <div className="bg-amber-50 dark:bg-amber-900/20 px-4 py-3 border-b border-amber-100 dark:border-amber-900/30 flex items-center justify-between">
-                <span className="text-[12px] font-semibold text-amber-800 dark:text-amber-300">Students without active internships</span>
+                <span className="text-[12px] font-semibold text-amber-800 dark:text-amber-300">{t("dashboard.studentsWithoutInternships")}</span>
                 <span className="px-2 py-0.5 bg-amber-200 dark:bg-amber-800 text-amber-800 dark:text-amber-100 text-[10px] font-bold rounded-full">
                   {((stats as any).studentsAtRisk?.length) || 0} {t("common.users")}
                 </span>
@@ -269,7 +269,7 @@ export function AdminDashboardClient({
               <div className={`divide-y divide-gray-100 dark:divide-gray-800 ${session?.user?.isSuperAdmin ? "grid grid-cols-1 md:grid-cols-2" : "max-h-[300px] overflow-y-auto"}`}>
                 {!((stats as any).studentsAtRisk) || (stats as any).studentsAtRisk.length === 0 ? (
                   <div className={`p-6 text-center text-[12px] text-gray-400 dark:text-gray-500 ${session?.user?.isSuperAdmin ? "md:col-span-2" : ""}`}>
-                    All students are successfully placed!
+                    {t("dashboard.allPlaced")}
                   </div>
                 ) : (
                   (stats as any).studentsAtRisk.map((student: any) => (
@@ -341,16 +341,16 @@ export function AdminDashboardClient({
                   </div>
                   <div className={isRTL ? "text-right" : ""}>
                     <p className="text-[13px] font-medium text-emerald-900 dark:text-emerald-100">
-                      {(stats as any).pendingSupervisionRequests} Supervision Requests
+                      {(stats as any).pendingSupervisionRequests} {t("dashboard.supervisionRequests")}
                     </p>
                     <p className="text-[11px] text-emerald-700 dark:text-emerald-400 mt-0.5">
-                      Teachers waiting for assignment
+                      {t("dashboard.teachersWaiting")}
                     </p>
                     <Link
                       href="/admin/topics"
                       className="text-[11px] font-bold text-emerald-800 dark:text-emerald-400 uppercase mt-2 block hover:underline"
                     >
-                      Manage →
+                      {t("dashboard.manage")} →
                     </Link>
                   </div>
                 </div>
