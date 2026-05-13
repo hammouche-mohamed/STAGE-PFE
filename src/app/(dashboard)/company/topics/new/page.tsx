@@ -73,16 +73,16 @@ export default function NewTopicPage() {
   return (
     <div className="max-w-[800px] mx-auto space-y-6">
       <div className="flex items-center mb-6">
-        <Link href="/company/topics" className="mr-4 text-gray-400 hover:text-gray-900 transition-colors">
+        <Link href="/company/topics" className="mr-4 text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">
           <ArrowLeft className="h-5 w-5" />
         </Link>
         <div>
-          <h1 className="text-[17px] font-semibold text-gray-900">{t("topics.propose")}</h1>
-          <p className="text-[13px] text-gray-500 mt-0.5">{t("common.appSubtitle")}</p>
+          <h1 className="text-[17px] font-semibold text-gray-900 dark:text-white">{t("topics.propose")}</h1>
+          <p className="text-[13px] text-gray-500 dark:text-gray-400 mt-0.5">{t("common.appSubtitle")}</p>
         </div>
       </div>
 
-      <div className="bg-white border border-gray-200 rounded-md overflow-hidden shadow-sm">
+      <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-md overflow-hidden shadow-sm">
         <form onSubmit={handleSubmit(onSubmit)} className="p-8 space-y-6">
           <Input
             label="Topic Title"
@@ -93,7 +93,7 @@ export default function NewTopicPage() {
           />
 
           <div className="w-full">
-            <label className="admin-form-label">Full Description <span className="text-red-500">*</span></label>
+            <label className="admin-form-label dark:text-gray-300">Full Description <span className="text-red-500">*</span></label>
             <textarea
               {...register("description")}
               rows={6}
@@ -114,10 +114,10 @@ export default function NewTopicPage() {
           </div>
 
           <div className="w-full">
-            <label className="admin-form-label">Target Department (Filière) <span className="text-red-500">*</span></label>
+            <label className="admin-form-label dark:text-gray-300">Target Department (Filière) <span className="text-red-500">*</span></label>
             <select 
               {...register("filiereId")} 
-              className={`admin-input ${errors.filiereId ? "border-red-500" : ""}`}
+              className={`admin-input dark:bg-slate-800 dark:border-slate-700 dark:text-white ${errors.filiereId ? "border-red-500" : ""}`}
             >
               <option value="">Select a department...</option>
               {filieres.map(f => (
@@ -129,7 +129,7 @@ export default function NewTopicPage() {
 
           <div className="grid grid-cols-2 gap-6">
             <div className="w-full">
-              <label className="admin-form-label">Maximum Students</label>
+              <label className="admin-form-label dark:text-gray-300">Maximum Students</label>
               <Input
                 type="number"
                 min={1}
@@ -141,22 +141,22 @@ export default function NewTopicPage() {
             </div>
             
             <div className="w-full">
-              <label className="admin-form-label">Academic Year</label>
+              <label className="admin-form-label dark:text-gray-300">Academic Year</label>
               <input 
                 type="text" 
                 {...register("academicYear")} 
                 readOnly 
-                className="admin-input bg-gray-50 text-gray-500 cursor-not-allowed border-gray-200" 
+                className="admin-input bg-gray-50 dark:bg-slate-800 text-gray-500 dark:text-gray-400 cursor-not-allowed border-gray-200 dark:border-slate-700" 
               />
               <p className="text-[11px] text-gray-400 mt-1">Set automatically by system.</p>
             </div>
           </div>
 
-          <div className="pt-6 border-t border-gray-100 flex justify-end">
-            <Button type="button" variant="outline" className="mr-3" onClick={() => router.back()}>
+          <div className="pt-6 border-t border-gray-100 dark:border-slate-800 flex justify-end">
+            <Button type="button" variant="outline" className="mr-3 dark:border-slate-700 dark:text-gray-300" onClick={() => router.back()}>
               Cancel
             </Button>
-            <Button type="submit" isLoading={isLoading}>
+            <Button type="submit" isLoading={isLoading} className="bg-indigo-600 hover:bg-indigo-700">
               Submit Proposal
             </Button>
           </div>
