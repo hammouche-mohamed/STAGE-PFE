@@ -60,7 +60,7 @@ export default function AdminArchivesPage() {
     }
   }, [session]);
 
-  const fetchData = async () => {
+  const fetchData = async (signal?: AbortSignal) => {
     if (!selectedYear) return;
     setIsLoading(true);
     try {
@@ -70,18 +70,26 @@ export default function AdminArchivesPage() {
       });
       if (filiereFilter !== "all") params.set("filiereId", filiereFilter);
       
-      const res = await fetch(`/api/admin/archives/data?${params}`);
+      const res = await fetch(`/api/admin/archives/data?${params}`, { signal });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || "Failed to load archive data");
+      }
       const data = await res.json();
       setArchiveData(data.data || []);
-    } catch {
-      toast.error("Failed to load archive data");
+    } catch (err: any) {
+      if (err?.name === "AbortError") return; // ignore cancelled requests
+      toast.error(err?.message || "Failed to load archive data");
+      setArchiveData([]);
     } finally {
       setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchData();
+    const controller = new AbortController();
+    fetchData(controller.signal);
+    return () => controller.abort(); // cancel on unmount or filter change
   }, [selectedYear, filiereFilter, activeTab]);
 
   const handleExport = async () => {
@@ -128,9 +136,15 @@ export default function AdminArchivesPage() {
               <p className="text-[11px] text-gray-400">{i.students.map((s: any) => s.student.name).join(" & ")}</p>
             </td>
             <td>
-              <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${i.topic.internshipType === 'PFE' ? 'bg-purple-100 text-purple-700' : 'bg-emerald-100 text-emerald-700'}`}>
-                {i.topic.internshipType}
-              </span>
+              {(() => {
+                const internshipType = i.internshipType || i.topic?.internshipType;
+                if (!internshipType) return <span className="text-[11px] text-gray-400 italic">—</span>;
+                return (
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${internshipType === 'PFE' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'}`}>
+                    {internshipType}
+                  </span>
+                );
+              })()}
             </td>
             <td className="text-[12px]">{i.teacher.name}</td>
             <td className="text-center font-bold text-indigo-600">{i._count.messages}</td>
@@ -149,9 +163,10 @@ export default function AdminArchivesPage() {
       <thead className="admin-table-header">
         <tr>
           <th>Student</th>
+          <th>Level</th>
           <th>Speciality</th>
           <th>Department</th>
-          <th>Internship</th>
+          <th>Internship (Finished)</th>
         </tr>
       </thead>
       <tbody>
@@ -161,15 +176,20 @@ export default function AdminArchivesPage() {
               <p className="font-medium text-[13px]">{s.name}</p>
               <p className="text-[11px] text-gray-400">{s.email}</p>
             </td>
-            <td className="text-[12px]">{s.studentProfile?.speciality}</td>
+            <td className="text-[12px]">
+              <span className="px-1.5 py-0.5 bg-violet-50 dark:bg-violet-900/20 text-violet-700 dark:text-violet-400 text-[10px] font-bold rounded border border-violet-200 dark:border-violet-800">
+                {s.studentProfile?.level || "—"}
+              </span>
+            </td>
+            <td className="text-[12px]">{s.studentProfile?.speciality || "—"}</td>
             <td className="text-[12px]">{s.studentProfile?.filiere?.name || "—"}</td>
             <td>
               {s.internshipStudents?.[0] ? (
-                <span className="text-[11px] text-emerald-600 font-medium">
-                  Assigned: {s.internshipStudents[0].internship.topic.title.substring(0, 30)}...
+                <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium">
+                  ✓ {s.internshipStudents[0].internship?.topic?.title?.substring(0, 35)}…
                 </span>
               ) : (
-                <span className="text-[11px] text-gray-400 italic">No internship assigned</span>
+                <span className="text-[11px] text-gray-400 italic">No finished internship this year</span>
               )}
             </td>
           </tr>
@@ -240,7 +260,7 @@ export default function AdminArchivesPage() {
           <th>Type</th>
           <th>Proposed By</th>
           <th className="text-center">Applications</th>
-          <th>Status</th>
+          <th>Outcome</th>
         </tr>
       </thead>
       <tbody>
@@ -250,14 +270,22 @@ export default function AdminArchivesPage() {
               <p className="font-medium text-[13px] truncate max-w-[300px]">{tp.title}</p>
             </td>
             <td>
-              <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${tp.internshipType === 'PFE' ? 'bg-purple-100 text-purple-700' : 'bg-emerald-100 text-emerald-700'}`}>
-                {tp.internshipType}
-              </span>
+              {tp.internshipType ? (
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${tp.internshipType === 'PFE' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'}`}>
+                  {tp.internshipType}
+                </span>
+              ) : <span className="text-gray-400 text-[11px]">—</span>}
             </td>
-            <td className="text-[12px]">{tp.proposedBy.name}</td>
-            <td className="text-center font-bold text-indigo-600">{tp._count.studentApplications}</td>
+            <td className="text-[12px]">{tp.proposedBy?.name}</td>
+            <td className="text-center font-bold text-indigo-600">{tp._count?.studentApplications}</td>
             <td>
-              <span className="text-[11px] font-medium text-gray-500 uppercase">{tp.status.replace(/_/g, ' ')}</span>
+              <span className={`text-[11px] font-bold px-2 py-0.5 rounded uppercase ${
+                tp.internshipStatus === 'COMPLETED' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
+                : tp.internshipStatus === 'CANCELLED' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                : 'bg-gray-100 text-gray-500'
+              }`}>
+                {(tp.internshipStatus || tp.status).replace(/_/g, ' ')}
+              </span>
             </td>
           </tr>
         ))}
@@ -426,8 +454,16 @@ export default function AdminArchivesPage() {
           <div className="py-24 text-center text-gray-400 flex flex-col items-center gap-4">
              <Archive className="h-10 w-10 opacity-20" />
              <div className="flex flex-col gap-1">
-                <p className="font-bold text-[14px]">No historical data found</p>
-                <p className="text-[12px]">Try selecting a different academic year or department.</p>
+                <p className="font-bold text-[14px]">No archived records found</p>
+                <p className="text-[12px]">
+                  {activeTab === "internships" && "Only COMPLETED or CANCELLED internships appear here."}
+                  {activeTab === "topics" && "Only topics that were taken and whose internship finished appear here."}
+                  {activeTab === "students" && "No students were enrolled in this department for that year."}
+                  {activeTab === "teachers" && "No teachers supervised a finished internship in this period."}
+                  {activeTab === "companies" && "No company topics resulted in a finished internship this year."}
+                  {activeTab === "documents" && "No documents from completed internships found."}
+                  {activeTab === "audit" && "No audit events recorded in this period."}
+                </p>
              </div>
           </div>
         ) : (
