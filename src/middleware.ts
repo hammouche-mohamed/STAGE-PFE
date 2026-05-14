@@ -32,7 +32,13 @@ export default auth((req) => {
       const role = session?.user?.role;
       return NextResponse.redirect(new URL(`/${role?.toLowerCase() || ""}`, nextUrl));
     }
-    return NextResponse.next();
+    // The /login page itself must not be cached either, otherwise the
+    // browser can restore a stale form (with the old error banner / inputs)
+    // when the user navigates back after signing in.
+    const res = NextResponse.next();
+    res.headers.set("Cache-Control", "no-store, no-cache, must-revalidate, private");
+    res.headers.set("Pragma", "no-cache");
+    return res;
   }
 
   if (nextUrl.pathname === "/") {
@@ -72,7 +78,14 @@ export default auth((req) => {
     return NextResponse.redirect(new URL("/login", nextUrl.origin));
   }
 
-  return NextResponse.next();
+  // 6. Disable browser cache + bfcache on authenticated pages.
+  // Without this, pressing the browser "Back" button after logout visually
+  // restores the previous dashboard from disk / back-forward cache.
+  const res = NextResponse.next();
+  res.headers.set("Cache-Control", "no-store, no-cache, must-revalidate, private");
+  res.headers.set("Pragma", "no-cache");
+  res.headers.set("Expires", "0");
+  return res;
 });
 
 export const config = {

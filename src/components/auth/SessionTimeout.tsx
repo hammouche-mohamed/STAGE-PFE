@@ -12,11 +12,21 @@ export default function SessionTimeout() {
   const pathname = usePathname();
 
   const handleLogout = useCallback(
-    (reason: "idle" | "expired") => {
+    async (reason: "idle" | "expired") => {
       const callbackUrl = pathname && pathname !== "/login" ? pathname : "/";
-      signOut({
-        callbackUrl: `/login?error=${reason === "idle" ? "SessionTimeout" : "SessionExpired"}&callbackUrl=${encodeURIComponent(callbackUrl)}`,
-      });
+      const loginUrl = `/login?error=${reason === "idle" ? "SessionTimeout" : "SessionExpired"}&callbackUrl=${encodeURIComponent(callbackUrl)}`;
+
+      // Clear the session server-side without letting next-auth handle the
+      // redirect — it does a soft SPA nav which keeps stale JS state and lets
+      // the browser put the authenticated page into bfcache (so pressing
+      // "Back" later visually restores it).
+      await signOut({ redirect: false });
+
+      // Hard navigation via location.replace:
+      //  • forces a fresh document load (no stale csrf / session state)
+      //  • replaces the history entry, so "Back" no longer returns to the
+      //    authenticated route.
+      window.location.replace(loginUrl);
     },
     [pathname],
   );
@@ -57,8 +67,18 @@ export default function SessionTimeout() {
       const response = await originalFetch(...args);
 
       // Only react to 401 from our own /api/* routes (not /api/auth which is
-      // expected to 401 during normal sign-in flow).
-      const url = typeof args[0] === "string" ? args[0] : (args[0] as Request).url;
+      // expected to 401 during normal sign-in flow). Fetch accepts
+      // string | URL | Request — handle all three without throwing, so RSC
+      // navigation (which passes a Request) isn't broken.
+      const input = args[0];
+      let url = "";
+      if (typeof input === "string") {
+        url = input;
+      } else if (input instanceof URL) {
+        url = input.href;
+      } else if (input && typeof (input as Request).url === "string") {
+        url = (input as Request).url;
+      }
       const isOurApi = url.includes("/api/") && !url.includes("/api/auth");
 
       if (response.status === 401 && isOurApi && !redirecting) {

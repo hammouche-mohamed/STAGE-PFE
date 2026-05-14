@@ -36,6 +36,17 @@ function LoginForm() {
   const error = searchParams.get("error");
   const { t, language, setLanguage, isRTL } = useTranslation();
 
+  // If the browser restored the login page from bfcache (e.g. after the user
+  // hit "Back" from a previously authenticated page), force a fresh load so
+  // the form state and CSRF cookie are guaranteed clean.
+  React.useEffect(() => {
+    const onPageShow = (e: PageTransitionEvent) => {
+      if (e.persisted) window.location.reload();
+    };
+    window.addEventListener("pageshow", onPageShow);
+    return () => window.removeEventListener("pageshow", onPageShow);
+  }, []);
+
   const { register, handleSubmit, formState: { errors } } = useForm<LoginInput>({
     resolver: zodResolver(loginSchema),
   });
@@ -65,9 +76,9 @@ function LoginForm() {
         const role = sessionResult?.user?.role?.toLowerCase();
         
         if (role) {
-          window.location.href = `/${role}`;
+          window.location.replace(`/${role}`);
         } else {
-          window.location.href = "/";
+          window.location.replace("/");
         }
       }, 500);
     } catch (e) {
