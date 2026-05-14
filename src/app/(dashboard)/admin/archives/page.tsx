@@ -386,7 +386,11 @@ export default function AdminArchivesPage() {
             <select
               className="admin-input h-9 py-0 text-[12px] min-w-[140px] appearance-none pr-8"
               value={selectedYear}
-              onChange={(e) => setSelectedYear(e.target.value)}
+              onChange={(e) => {
+                setArchiveData([]);
+                setIsLoading(true);
+                setSelectedYear(e.target.value);
+              }}
             >
               {years.map(y => <option key={y} value={y}>{y}</option>)}
             </select>
@@ -404,7 +408,11 @@ export default function AdminArchivesPage() {
         {tabs.map((tab) => (
           <button
             key={tab.id}
-            onClick={() => setActiveTab(tab.id as TabType)}
+            onClick={() => {
+              setArchiveData([]);
+              setIsLoading(true);
+              setActiveTab(tab.id as TabType);
+            }}
             className={`flex items-center gap-2 px-6 py-3 text-[13px] font-medium border-b-2 transition-all whitespace-nowrap ${
               activeTab === tab.id
                 ? "border-indigo-600 text-indigo-600"
@@ -432,7 +440,11 @@ export default function AdminArchivesPage() {
           <select
             className="admin-input h-8 py-0 text-[12px] min-w-[200px]"
             value={filiereFilter}
-            onChange={(e) => setFiliereFilter(e.target.value)}
+            onChange={(e) => {
+              setArchiveData([]);
+              setIsLoading(true);
+              setFiliereFilter(e.target.value);
+            }}
           >
             <option value="all">All Departments</option>
             {filieres.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
