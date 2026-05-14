@@ -14,6 +14,7 @@ export default async function AdminDashboardPage() {
   const isSuperAdmin = session.user.isSuperAdmin;
   const filiereId = session.user.filiereId;
 
+  // Filiere filter for dept-scoped queries
   const filiereFilter = (!isSuperAdmin && filiereId) ? { filiereId } : {};
 
   // Defaults for graceful fallback
@@ -25,16 +26,28 @@ export default async function AdminDashboardPage() {
   let studentsAtRisk: any[] = [];
 
   try {
-    // ── BATCH 1: Core counts ───────────────────────────────────────────────
+    // ── BATCH 1: Core counts ────────────────────────────────────────────────
+    // Student count = ALL active students (not year-locked — new year shouldn't zero this)
     [studentCount, teacherCount, companyCount, activeInternships, pendingConfirmations] =
       await Promise.all([
-        prisma.studentProfile.count({
-          where: { academicYear: currentAcademicYear, ...filiereFilter },
+        prisma.user.count({
+          where: {
+            role: "STUDENT",
+            isActive: true,
+            ...(!isSuperAdmin && filiereId
+              ? { studentprofile: { filiereId } } as any
+              : {}),
+          },
         }),
         prisma.user.count({ where: { role: "TEACHER", isActive: true } }),
         prisma.user.count({ where: { role: "COMPANY", isActive: true } }),
         prisma.internship.count({
-          where: { status: "IN_PROGRESS", academicYear: currentAcademicYear } as any,
+          where: {
+            status: "IN_PROGRESS",
+            ...(currentAcademicYear && currentAcademicYear !== "N/A"
+              ? { academicYear: currentAcademicYear }
+              : {}),
+          } as any,
         }),
         prisma.internship.count({
           where: { status: "PENDING_ADMIN_CONFIRMATION" } as any,
@@ -45,7 +58,9 @@ export default async function AdminDashboardPage() {
   }
 
   try {
-    // ── BATCH 2: Topic counts + registrations ──────────────────────────────
+    // ── BATCH 2: Topic counts + registrations ───────────────────────────────
+    // Pending topics are NOT year-locked (they carry over until resolved)
+    // Approved/rejected show counts across all years for relevance
     [recentTopics, pendingCompanyProposals, topicsApproved, topicsRejected, pendingRegistrations] =
       await Promise.all([
         prisma.topic.count({
@@ -55,10 +70,10 @@ export default async function AdminDashboardPage() {
           where: { type: "COMPANY_PROPOSED", status: "PENDING_ADMIN", ...filiereFilter },
         }),
         prisma.topic.count({
-          where: { status: "APPROVED", academicYear: currentAcademicYear, ...filiereFilter } as any,
+          where: { status: "APPROVED", ...filiereFilter } as any,
         }),
         prisma.topic.count({
-          where: { status: "REJECTED", academicYear: currentAcademicYear, ...filiereFilter } as any,
+          where: { status: "REJECTED", ...filiereFilter } as any,
         }),
         prisma.registrationRequest.findMany({
           where: { status: "PENDING" },
@@ -72,26 +87,36 @@ export default async function AdminDashboardPage() {
   }
 
   try {
-    // ── BATCH 3: Internship stats + unplaced students ──────────────────────
+    // ── BATCH 3: Internship stats + unplaced students ───────────────────────
     [internshipsCompleted, pendingSupervisionRequests, studentsAtRisk] =
       await Promise.all([
         prisma.internship.count({
-          where: { status: "COMPLETED", academicYear: currentAcademicYear } as any,
+          where: {
+            status: "COMPLETED",
+            ...(currentAcademicYear && currentAcademicYear !== "N/A"
+              ? { academicYear: currentAcademicYear }
+              : {}),
+          } as any,
         }),
         prisma.teacherApplication.count({
           where: { status: "PENDING", ...(!isSuperAdmin && filiereId ? { topic: { filiereId } } : {}) },
         }),
+        // Students without any internship assignment — year-aware if year is set
         prisma.user.findMany({
           where: {
             role: "STUDENT",
             isActive: true,
-            ...(!isSuperAdmin && filiereId ? { studentprofile: { filiereId } } : {}),
-            studentprofile: { academicYear: currentAcademicYear },
+            ...(!isSuperAdmin && filiereId
+              ? { studentprofile: { filiereId } }
+              : {}),
+            ...(currentAcademicYear && currentAcademicYear !== "N/A"
+              ? { studentprofile: { academicYear: currentAcademicYear } }
+              : {}),
             internshipstudent: { none: {} },
           } as any,
-          select: { 
-            id: true, 
-            name: true, 
+          select: {
+            id: true,
+            name: true,
             email: true,
             studentprofile: { select: { level: true, filiere: { select: { name: true } } } }
           },

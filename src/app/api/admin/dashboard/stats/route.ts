@@ -38,12 +38,13 @@ export async function GET(req: NextRequest) {
       studentsAtRisk,
       pendingCompanyProposals,
     ] = await Promise.all([
-      // Align with SSR: Count from StudentProfile to ensure academicYear filter works correctly
-      prisma.studentProfile.count({ 
-        where: { 
-          ...yearFilter,
-          ...(targetFiliereId ? { filiereId: targetFiliereId } : {})
-        } as any
+      // Count ALL active students — not year-locked
+      prisma.user.count({
+        where: {
+          role: "STUDENT",
+          isActive: true,
+          ...(targetFiliereId ? { studentprofile: { filiereId: targetFiliereId } } as any : {})
+        }
       }),
       // Teachers don't usually have academic year, but they have a filiere
       prisma.user.count({ 
@@ -67,6 +68,7 @@ export async function GET(req: NextRequest) {
           ...(targetFiliereId ? { topic: { filiereId: targetFiliereId } } : {})
         } as any
       }),
+      // Pending topics are not year-locked
       prisma.topic.count({ 
         where: { 
           status: "PENDING_ADMIN",
@@ -76,14 +78,12 @@ export async function GET(req: NextRequest) {
       prisma.topic.count({ 
         where: { 
           status: "APPROVED",
-          ...yearFilter,
           ...(targetFiliereId ? { filiereId: targetFiliereId } : {})
         } as any
       }),
       prisma.topic.count({ 
         where: { 
           status: "REJECTED",
-          ...yearFilter,
           ...(targetFiliereId ? { filiereId: targetFiliereId } : {})
         } as any
       }),

@@ -69,6 +69,8 @@ export default function AdminTopicsPage() {
     setApiError(null);
     try {
       const params = new URLSearchParams();
+      // Admins manage topics across all years — don't lock to current system year
+      params.append("academicYear", "all");
       if (filiereFilter !== "ALL") params.append("filiereId", filiereFilter);
       if (assignmentFilter !== "ALL") params.append("assigned", assignmentFilter === "ASSIGNED" ? "true" : "false");
       
