@@ -2,19 +2,19 @@
 
 import { useEffect, useCallback } from "react";
 import { useSession, signOut } from "next-auth/react";
-import { usePathname } from "next/navigation";
 
 // NFR-S6: 5-minute idle timeout. Mirrors the JWT maxAge in auth.config.ts.
 const TIMEOUT_MS = 5 * 60 * 1000;
 
 export default function SessionTimeout() {
   const { status } = useSession();
-  const pathname = usePathname();
 
   const handleLogout = useCallback(
     async (reason: "idle" | "expired") => {
-      const callbackUrl = pathname && pathname !== "/login" ? pathname : "/";
-      const loginUrl = `/login?error=${reason === "idle" ? "SessionTimeout" : "SessionExpired"}&callbackUrl=${encodeURIComponent(callbackUrl)}`;
+      // After idle/expired logout the user is sent to the public home page
+      // (not the login page). The reason is passed as a query param so the
+      // landing page can show a banner / toast if desired.
+      const target = `/?logout=${reason === "idle" ? "idle" : "expired"}`;
 
       // Clear the session server-side without letting next-auth handle the
       // redirect — it does a soft SPA nav which keeps stale JS state and lets
@@ -26,9 +26,9 @@ export default function SessionTimeout() {
       //  • forces a fresh document load (no stale csrf / session state)
       //  • replaces the history entry, so "Back" no longer returns to the
       //    authenticated route.
-      window.location.replace(loginUrl);
+      window.location.replace(target);
     },
-    [pathname],
+    [],
   );
 
   // ── 1. Idle timer (client-side activity tracking) ──────────────────────────

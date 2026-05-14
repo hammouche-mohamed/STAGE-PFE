@@ -134,15 +134,21 @@ export async function GET(req: NextRequest) {
         break;
 
       // ── TOPICS ──────────────────────────────────────────────────────────────
-      // Only show TAKEN topics whose linked internship is COMPLETED or CANCELLED.
-      // Pending, open, or unfinished topics are NOT archived.
+      // Two cohorts qualify as "finished" for archive purposes:
+      //   • TAKEN topics whose linked internship is COMPLETED or CANCELLED
+      //   • REJECTED topics (refused by the admin / teacher / company)
+      // Pending, approved-unclaimed, open-for-selection, or in-progress
+      // topics are NOT archived — they stay live in the main tables so the
+      // app keeps working into the next academic year.
       case 'topics':
         data = await prisma.topic.findMany({
           where: {
             academicYear: year,
-            status: 'TAKEN',
-            internship: { status: { in: FINISHED_STATUSES } },
             ...(filiereId && { filiereId }),
+            OR: [
+              { status: 'TAKEN', internship: { status: { in: FINISHED_STATUSES } } },
+              { status: 'REJECTED' },
+            ],
           } as any,
           include: {
             proposedBy: { select: { name: true, email: true } },

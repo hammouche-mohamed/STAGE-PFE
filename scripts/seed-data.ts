@@ -6,6 +6,7 @@ const prisma = new PrismaClient();
 async function main() {
   const archiveYear = "2024-2025";
   const currentYear = "2025-2026";
+  const nextYear = "2026-2027";
   const levels = ["L1", "L2", "L3", "M1", "M2"];
   const passwordHashes = {
     student: await bcrypt.hash("studentstudent12", 10),
@@ -370,6 +371,307 @@ async function main() {
       internshipType: "PFE",
       internshipstudent: { create: [{ studentId: students[0].id, isLeader: true }] },
       updatedAt: new Date(),
+    }
+  });
+
+  // ── NEXT YEAR DATA (2026-2027) ──────────────────────────────────────────────
+  // Seeded so the platform can be tested against the upcoming academic year
+  // (year-rollover scenarios, "future planning" views, etc.).
+  // Reuses the existing user pool — no new users are created.
+  console.log("Generating Next Year Data (2026-2027)...");
+
+  // (a) PENDING_ADMIN — companies have submitted topics, admin review pending.
+  for (let i = 0; i < 3; i++) {
+    await (prisma.topic as any).create({
+      data: {
+        title: `Future Industry Topic ${i + 1}`,
+        description: "Company proposal awaiting admin validation for next year.",
+        type: "COMPANY_PROPOSED",
+        status: "PENDING_ADMIN",
+        academicYear: nextYear,
+        proposedById: companies[i % companies.length].id,
+        filiereId: createdDepts[i % createdDepts.length].id,
+        maxStudents: 2,
+        targetLevels: "L3,M1,M2",
+        updatedAt: new Date(),
+      }
+    });
+  }
+
+  // (b) APPROVED, no assigned teacher — visible to teachers who can apply.
+  for (let i = 0; i < 2; i++) {
+    await (prisma.topic as any).create({
+      data: {
+        title: `Next-Year Open Supervision ${i + 1}`,
+        description: "Admin-approved next-year topic, awaiting a supervisor.",
+        type: "COMPANY_PROPOSED",
+        status: "APPROVED",
+        academicYear: nextYear,
+        proposedById: companies[i % companies.length].id,
+        filiereId: createdDepts[(i + 1) % createdDepts.length].id,
+        maxStudents: 1,
+        assignedTeacherId: null,
+        targetLevels: "L3,M1,M2",
+        updatedAt: new Date(),
+      }
+    });
+  }
+
+  // (c) OPEN_FOR_SELECTION — supervisor already assigned, students can pick.
+  for (let i = 0; i < 3; i++) {
+    await (prisma.topic as any).create({
+      data: {
+        title: `Next-Year Available Project ${i + 1}`,
+        description: "Topic open for student selection in the upcoming year.",
+        type: i % 2 === 0 ? "COMPANY_PROPOSED" : "STUDENT_PROPOSED",
+        status: "OPEN_FOR_SELECTION",
+        academicYear: nextYear,
+        proposedById: i % 2 === 0
+          ? companies[i % companies.length].id
+          : students[20 + i].id,
+        filiereId: createdDepts[i % createdDepts.length].id,
+        assignedTeacherId: supervisors[i % supervisors.length].id,
+        maxStudents: i % 2 === 0 ? 2 : 1,
+        targetLevels: "L3,M1,M2",
+        updatedAt: new Date(),
+      }
+    });
+  }
+
+  // (d) TAKEN with internship REQUESTED — students picked them, paperwork
+  //     not finalised yet.
+  for (let i = 0; i < 2; i++) {
+    const student = students[24 + i];
+    const supervisor = supervisors[i % supervisors.length];
+    const topic = await (prisma.topic as any).create({
+      data: {
+        title: `Next-Year Early Pick ${i + 1}`,
+        description: "Early-claimed topic for next year, awaiting confirmation.",
+        type: "STUDENT_PROPOSED",
+        status: "TAKEN",
+        academicYear: nextYear,
+        proposedById: student.id,
+        filiereId: createdDepts[i % createdDepts.length].id,
+        assignedTeacherId: supervisor.id,
+        maxStudents: 1,
+        targetLevels: "L3,M1,M2",
+        updatedAt: new Date(),
+      }
+    });
+    await (prisma.internship as any).create({
+      data: {
+        topicId: topic.id,
+        teacherId: supervisor.id,
+        academicYear: nextYear,
+        status: "REQUESTED",
+        internshipType: "PFE",
+        internshipstudent: { create: [{ studentId: student.id, isLeader: true }] },
+        updatedAt: new Date(),
+      }
+    });
+  }
+
+  // (e) One TAKEN topic with an IN_PROGRESS internship — an early starter
+  //     who began their project ahead of the official year start.
+  {
+    const student = students[28];
+    const supervisor = supervisors[0];
+    const topic = await (prisma.topic as any).create({
+      data: {
+        title: `Next-Year Early Starter`,
+        description: "Internship already underway for the upcoming year.",
+        type: "COMPANY_PROPOSED",
+        status: "TAKEN",
+        academicYear: nextYear,
+        proposedById: companies[0].id,
+        filiereId: createdDepts[0].id,
+        assignedTeacherId: supervisor.id,
+        maxStudents: 1,
+        updatedAt: new Date(),
+      }
+    });
+    await (prisma.internship as any).create({
+      data: {
+        topicId: topic.id,
+        teacherId: supervisor.id,
+        academicYear: nextYear,
+        status: "IN_PROGRESS",
+        internshipType: "NORMAL",
+        internshipstudent: { create: [{ studentId: student.id, isLeader: true }] },
+        updatedAt: new Date(),
+      }
+    });
+  }
+
+  // ── REJECTED TOPICS (per year) ──────────────────────────────────────────────
+  // REJECTED topics belong in the archive view of the year they were rejected
+  // in. They are NOT a carry-over — once refused they're considered "closed
+  // business" for that academic year.
+  console.log("Generating rejected topics...");
+  for (const [yearLabel, count] of [[archiveYear, 2], [currentYear, 1]] as const) {
+    for (let i = 0; i < count; i++) {
+      await (prisma.topic as any).create({
+        data: {
+          title: `Refused Topic ${yearLabel} #${i + 1}`,
+          description: "Proposal that the validation chain refused.",
+          type: "STUDENT_PROPOSED",
+          status: "REJECTED",
+          academicYear: yearLabel,
+          proposedById: students[i + (yearLabel === archiveYear ? 0 : 16)].id,
+          filiereId: createdDepts[i % createdDepts.length].id,
+          maxStudents: 1,
+          rejectionReason: "Out of scope for the filière",
+          updatedAt: new Date(),
+        }
+      });
+    }
+  }
+
+  // ── TEACHER APPLICATIONS ────────────────────────────────────────────────────
+  // • Archive year (2024-2025): one APPROVED + one REJECTED — frozen in time,
+  //   they belong to the archive of that year.
+  // • Current year (2025-2026): one PENDING — a real carry-over: when the
+  //   admin promotes 2026-2027 to "current", this pending row must remain
+  //   alive in the main table so the workflow keeps functioning.
+  // • Next year (2026-2027): one PENDING — proves the new-year pipeline is
+  //   already active for supervisors.
+  console.log("Generating teacher applications (carry-over + archived)...");
+  const openSupervisionTopic = await (prisma.topic as any).findFirst({
+    where: { status: "APPROVED", academicYear: currentYear, assignedTeacherId: null },
+  });
+  if (openSupervisionTopic) {
+    await (prisma.teacherApplication as any).create({
+      data: {
+        teacherId: supervisors[0].id,
+        topicId: openSupervisionTopic.id,
+        status: "PENDING",
+        message: "I would be happy to supervise this topic.",
+      }
+    });
+  }
+
+  const archiveTakenTopic = await (prisma.topic as any).findFirst({
+    where: { status: "TAKEN", academicYear: archiveYear },
+  });
+  if (archiveTakenTopic) {
+    await (prisma.teacherApplication as any).create({
+      data: {
+        teacherId: supervisors[1].id,
+        topicId: archiveTakenTopic.id,
+        status: "APPROVED",
+        message: "Application from last year — accepted.",
+      }
+    });
+    await (prisma.teacherApplication as any).create({
+      data: {
+        teacherId: supervisors[2].id,
+        topicId: archiveTakenTopic.id,
+        status: "REJECTED",
+        message: "Application from last year — rejected.",
+      }
+    });
+  }
+
+  const nextYearOpenTopic = await (prisma.topic as any).findFirst({
+    where: { status: "APPROVED", academicYear: nextYear, assignedTeacherId: null },
+  });
+  if (nextYearOpenTopic) {
+    await (prisma.teacherApplication as any).create({
+      data: {
+        teacherId: supervisors[3].id,
+        topicId: nextYearOpenTopic.id,
+        status: "PENDING",
+        message: "Applying to supervise this next-year topic.",
+      }
+    });
+  }
+
+  // ── REGISTRATION REQUESTS ───────────────────────────────────────────────────
+  // Same lifecycle pattern as teacher applications:
+  // • Archive year: a few APPROVED + REJECTED requests (frozen).
+  // • Current year: PENDING requests — must survive the year-rollover so the
+  //   admin can still process them after promotion.
+  // • Next year: PENDING requests already coming in.
+  console.log("Generating registration requests (carry-over + archived)...");
+  const reqHash = await bcrypt.hash("requestrequest12", 10);
+
+  // Archive year — frozen historical requests
+  await (prisma.registrationRequest as any).createMany({
+    data: [
+      {
+        name: "Old Student Request",
+        email: "old.student@example.com",
+        password: reqHash,
+        role: "STUDENT" as const,
+        status: "APPROVED" as const,
+        academicYear: archiveYear,
+        speciality: createdDepts[0].name,
+        promotion: "L3",
+        level: "L3" as any,
+        studentId: "REQ0001",
+        createdAt: new Date(`${archiveYear.split('-')[0]}-10-05`),
+        reviewedAt: new Date(`${archiveYear.split('-')[0]}-10-08`),
+      },
+      {
+        name: "Old Company Request",
+        email: "old.company@example.com",
+        password: reqHash,
+        role: "COMPANY" as const,
+        status: "REJECTED" as const,
+        academicYear: archiveYear,
+        companyName: "Spam Industries",
+        sector: "Unknown",
+        wilaya: "Algiers",
+        adminComment: "Could not verify legal entity",
+        createdAt: new Date(`${archiveYear.split('-')[0]}-11-12`),
+        reviewedAt: new Date(`${archiveYear.split('-')[0]}-11-14`),
+      },
+    ]
+  });
+
+  // Current year — pending (carry-over)
+  await (prisma.registrationRequest as any).createMany({
+    data: [
+      {
+        name: "Late Student Applicant",
+        email: "late.student@example.com",
+        password: reqHash,
+        role: "STUDENT" as const,
+        status: "PENDING" as const,
+        academicYear: currentYear,
+        speciality: createdDepts[1].name,
+        promotion: "M1",
+        level: "M1" as any,
+        studentId: "REQ0042",
+        createdAt: new Date(),
+      },
+      {
+        name: "New Teacher Applicant",
+        email: "new.teacher@example.com",
+        password: reqHash,
+        role: "TEACHER" as const,
+        status: "PENDING" as const,
+        academicYear: currentYear,
+        speciality: createdDepts[2].name,
+        grade: "Maitre Assistant",
+        createdAt: new Date(),
+      },
+    ]
+  });
+
+  // Next year — pending requests for the upcoming year
+  await (prisma.registrationRequest as any).create({
+    data: {
+      name: "Next-Year Company",
+      email: "next.year.company@example.com",
+      password: reqHash,
+      role: "COMPANY" as const,
+      status: "PENDING" as const,
+      academicYear: nextYear,
+      companyName: "Future Tech SARL",
+      sector: "Software",
+      wilaya: "Oran",
+      createdAt: new Date(),
     }
   });
 
