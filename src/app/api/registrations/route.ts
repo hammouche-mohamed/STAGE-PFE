@@ -9,8 +9,11 @@ import { MailService } from "@/lib/services/mail.service";
 
 export async function GET(req: NextRequest) {
   const session = await auth();
-  if (!session || session.user.role !== "ADMIN") {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+  // Registrations (granting dashboard access) are a SuperAdmin
+  // responsibility. Department admins only manage users that have already
+  // been assigned to their filière.
+  if (!session || session.user.role !== "ADMIN" || !session.user.isSuperAdmin) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   try {
@@ -262,7 +265,7 @@ export async function POST(req: NextRequest) {
     
     // NFR-N1: Send confirmation email to the user
     // We do this asynchronously to avoid blocking the response
-    MailService.sendRegistrationReceived(validatedData.email, validatedData.name).catch(err => 
+    MailService.sendRegistrationReceived(validatedData.email, validatedData.name, validatedData.role).catch(err =>
       console.error("Delayed registration email failed:", err)
     );
 
@@ -286,21 +289,20 @@ export async function POST(req: NextRequest) {
   }
 }
 
-export async function DELETE(req: NextRequest) {
+export async function DELETE(_req: NextRequest) {
   const session = await auth();
-  if (!session || session.user.role !== "ADMIN") {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+  // SuperAdmin-only — registration management is a SuperAdmin responsibility.
+  if (!session || session.user.role !== "ADMIN" || !session.user.isSuperAdmin) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   try {
     const { count } = await prisma.registrationRequest.deleteMany({
-      where: {
-        status: { in: ["APPROVED", "REJECTED"] }
-      }
+      where: { status: { in: ["APPROVED", "REJECTED"] } },
     });
 
-    return NextResponse.json({ 
-      message: `${count} handled requests cleared from history.` 
+    return NextResponse.json({
+      message: `${count} handled requests cleared from history.`,
     });
   } catch (error) {
     console.error("Bulk delete registrations failed:", error);

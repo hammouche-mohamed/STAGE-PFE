@@ -6,6 +6,7 @@ import { AuditService } from '@/lib/services/audit.service';
 import { TeacherLoadService } from '@/lib/services/teacherLoad.service';
 import { NotificationService } from '@/lib/services/notification.service';
 import { SettingsService } from '@/lib/services/settings.service';
+import { assertNoActiveInternship } from '@/lib/services/internshipGuard.service';
 import { randomUUID } from 'crypto';
 
 export async function GET(req: NextRequest) {
@@ -183,6 +184,10 @@ export async function POST(req: NextRequest) {
 
     // NFR-RDI1: wrap multi-table writes in a transaction
     const internship = await prisma.$transaction(async (tx) => {
+      // NFR-RDI3: prevent the same student from holding two active
+      // internships in the same academic year.
+      await assertNoActiveInternship(tx, studentIds, academicYear);
+
       const created = await tx.internship.create({
         data: {
           id: randomUUID(),
@@ -284,6 +289,11 @@ export async function POST(req: NextRequest) {
         { error: 'Please check your input and try again.' },
         { status: 400 },
       );
+    }
+    // NFR-RDI3 conflict: surface the friendly message from assertNoActiveInternship.
+    const message = error instanceof Error ? error.message : '';
+    if (message.includes('one active internship per academic year')) {
+      return NextResponse.json({ error: message }, { status: 409 });
     }
     console.error(error);
     return NextResponse.json(

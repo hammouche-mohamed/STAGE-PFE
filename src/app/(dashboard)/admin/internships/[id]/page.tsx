@@ -154,42 +154,33 @@ export default function AdminInternshipDetailPage() {
       }
    };
 
-   const generateConvention = () => {
+   const generateConvention = async () => {
       if (!internship) return;
-
-      const content = `
-      INTERNSHIP CONVENTION
-      ---------------------
-      Academic Year: ${internship.academicYear}
-      Topic: ${internship.topic.title}
-      
-      STUDENT(S):
-      ${internship.students.map(s => `- ${s.student.name} (${s.student.studentId})`).join("\n")}
-      
-      ACADEMIC SUPERVISOR:
-      ${internship.teacher.name}
-      
-      HOST ORGANIZATION:
-      ${internship.topic.companyName || "N/A"}
-      
-      Generated on: ${format(new Date(), "PPP")}
-    `;
-
-      const blob = new Blob([content], { type: "text/plain" });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `Convention_${internship.id}.txt`;
-      link.click();
-      toast.success("Convention generated successfully");
+      try {
+         const res = await fetch(`/api/internships/${internship.id}/convention`);
+         if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            throw new Error(err.error || "Failed to generate convention");
+         }
+         const blob = await res.blob();
+         const url = URL.createObjectURL(blob);
+         const link = document.createElement("a");
+         link.href = url;
+         link.download = `convention_${internship.id}.pdf`;
+         link.click();
+         URL.revokeObjectURL(url);
+         toast.success("Convention generated successfully");
+      } catch (err: any) {
+         toast.error(err?.message || "Failed to generate convention");
+      }
    };
 
    if (isLoading) return <div className="p-8 text-center text-gray-400">Loading details...</div>;
    if (!internship) return <div className="p-8 text-center text-gray-400">Internship not found.</div>;
 
    return (
-      <div className="space-y-6 max-w-5xl mx-auto">
-         <div className="flex items-center justify-between">
+      <div className="space-y-6 max-w-5xl mx-auto print-container">
+         <div className="flex items-center justify-between no-print">
             <Link
                href="/admin/internships"
                className="inline-flex items-center gap-2 text-[13px] text-indigo-600 hover:text-indigo-800"

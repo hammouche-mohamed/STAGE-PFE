@@ -9,6 +9,10 @@ export async function GET(req: NextRequest) {
 
   const { searchParams } = new URL(req.url);
   const topicId = searchParams.get("topicId");
+  // NFR-SC2: paginate — max 20 records per page by default.
+  const page = Math.max(1, parseInt(searchParams.get("page") ?? "1", 10));
+  const limit = Math.min(100, Math.max(1, parseInt(searchParams.get("limit") ?? "20", 10)));
+  const skip = (page - 1) * limit;
 
   try {
     const where: any = {};
@@ -18,41 +22,68 @@ export async function GET(req: NextRequest) {
     } else if (session.user.role === "STUDENT") {
       const member = await prisma.teamMember.findFirst({
         where: { studentId: session.user.id },
+        select: { teamId: true },
       });
       if (member) {
         where.teamId = member.teamId;
         where.status = { not: "REJECTED" };
       } else {
-        // If they have no team, they have no applications
-        return NextResponse.json({ data: [] });
+        return NextResponse.json({ data: [], pagination: { page, limit, total: 0 } });
       }
     } else if (session.user.role === "ADMIN") {
       if (topicId) where.topicId = topicId;
     }
 
-    const applications = await (prisma.studentApplication.findMany as any)({
-      where,
-      include: { 
-        topic: { select: { title: true, type: true, status: true } },
-        studentteam: {
-          include: {
-            teammember: { include: { student: { select: { name: true, email: true } } } }
-          }
-        }
-      },
-      orderBy: { appliedAt: "desc" },
-    });
+    const [applications, total] = await Promise.all([
+      prisma.studentApplication.findMany({
+        where,
+        select: {
+          id: true,
+          topicId: true,
+          status: true,
+          appliedAt: true,
+          reviewedAt: true,
+          message: true,
+          isBinome: true,
+          leaderId: true,
+          partnerId: true,
+          topic: { select: { title: true, type: true, status: true } },
+          studentteam: {
+            select: {
+              id: true,
+              teammember: {
+                select: { user: { select: { id: true, name: true, email: true } } },
+              },
+            },
+          },
+        },
+        orderBy: { appliedAt: "desc" },
+        take: limit,
+        skip,
+      }),
+      prisma.studentApplication.count({ where }),
+    ]);
 
-    const mappedApplications = (applications as any).map((app: any) => ({
+    // Backwards-compatible shape: surface a `team.members` alias.
+    const mappedApplications = applications.map((app: any) => ({
       ...app,
-      team: app.studentteam ? {
-        members: app.studentteam.teammember
-      } : null
+      team: app.studentteam
+        ? {
+            members: (app.studentteam.teammember ?? []).map((m: any) => ({
+              student: m.user,
+            })),
+          }
+        : null,
     }));
 
-    return NextResponse.json({ data: mappedApplications });
+    const response = NextResponse.json({
+      data: mappedApplications,
+      pagination: { page, limit, total, pages: Math.ceil(total / limit) },
+    });
+    response.headers.set("Cache-Control", "private, max-age=10, stale-while-revalidate=30");
+    return response;
   } catch (error) {
-    console.error(error);
+    console.error("[applications GET]", error);
     return NextResponse.json({ error: "Fetch failed" }, { status: 500 });
   }
 }

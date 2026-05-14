@@ -19,6 +19,10 @@ const nextConfig: NextConfig = {
   experimental: {
     optimizePackageImports: ["lucide-react", "recharts", "date-fns", "sonner", "lucide-react"],
   },
+  // pdfkit reads its AFM font files from disk via `fs.readFileSync`. Bundling
+  // it through webpack breaks those reads, so leave it as an external
+  // dependency on the server.
+  serverExternalPackages: ["pdfkit"],
   images: {
     remotePatterns: [
       {

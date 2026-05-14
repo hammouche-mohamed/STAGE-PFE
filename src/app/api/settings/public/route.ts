@@ -19,7 +19,13 @@ export async function GET() {
     // Merge Filieres into result
     result.filieres = filieres;
 
-    return NextResponse.json({ data: result });
+    const response = NextResponse.json({ data: result });
+    // Public, infrequently-changing config — cache aggressively at the edge.
+    response.headers.set(
+      "Cache-Control",
+      "public, max-age=300, stale-while-revalidate=600",
+    );
+    return response;
   } catch {
     return NextResponse.json({ data: { filieres: [] } });
   }

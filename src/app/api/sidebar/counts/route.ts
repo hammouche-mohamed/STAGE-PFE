@@ -16,16 +16,36 @@ export async function GET(req: NextRequest) {
     if (role === "ADMIN") {
       const filiereId = session.user.isSuperAdmin ? null : session.user.filiereId;
 
+      // FR-A1: scope the registrations badge to the dept admin's filière.
+      // Match the same speciality-by-filière-name rule used by the API.
+      let regWhere: Record<string, any> = { status: "PENDING" };
+      if (!session.user.isSuperAdmin) {
+        if (!filiereId) {
+          regWhere = { id: "__none__" };
+        } else {
+          const filiere = await prisma.filiere.findUnique({
+            where: { id: filiereId },
+            select: { name: true, code: true },
+          });
+          const matchValues = [filiere?.name, filiere?.code].filter(Boolean) as string[];
+          regWhere = {
+            status: "PENDING",
+            role: { in: ["STUDENT", "TEACHER"] },
+            ...(matchValues.length > 0 ? { speciality: { in: matchValues } } : { speciality: "__none__" }),
+          };
+        }
+      }
+
       const [regCount, topicCount, internCount] = await Promise.all([
-        prisma.registrationRequest.count({ where: { status: "PENDING" } }),
-        prisma.topic.count({ 
-          where: { 
+        prisma.registrationRequest.count({ where: regWhere as any }),
+        prisma.topic.count({
+          where: {
             status: "PENDING_ADMIN",
             ...(filiereId ? { filiereId } : {})
           } as any,
         }),
-        prisma.internship.count({ 
-          where: { 
+        prisma.internship.count({
+          where: {
             status: "REQUESTED",
             ...(filiereId ? { topic: { filiereId } } : {})
           } as any,

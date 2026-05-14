@@ -98,6 +98,9 @@ export function PollingProvider({ children }: { children: React.ReactNode }) {
   // ── Poll ─────────────────────────────────────────────────────────────────
   const doPoll = useCallback(async () => {
     if (status !== "authenticated") return;
+    // Don't hit the DB when the tab isn't visible — saves money on Aiven
+    // and avoids waking the laptop just to refresh a hidden tab.
+    if (typeof document !== "undefined" && document.visibilityState === "hidden") return;
 
     try {
       const res = await fetch("/api/poll", { cache: "no-store" });
@@ -146,7 +149,18 @@ export function PollingProvider({ children }: { children: React.ReactNode }) {
     doPoll();
 
     const interval = setInterval(doPoll, POLL_INTERVAL_MS);
-    return () => clearInterval(interval);
+
+    // When the tab becomes visible again, refresh immediately so the user
+    // sees current data without waiting up to 30 s for the next tick.
+    const onVisible = () => {
+      if (document.visibilityState === "visible") doPoll();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
   }, [status, doPoll, session?.user?.id]);
 
   return (

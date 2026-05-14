@@ -79,7 +79,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ role: initialRole, logoUrl }) 
             ...(!session?.user?.isSuperAdmin ? [{ label: t("common.messages"), icon: MessageSquare, href: "/admin/messages", active: pathname.startsWith("/admin/messages") }] : []),
             { label: t("nav.archives"), icon: Archive, href: "/admin/archives", active: pathname.startsWith("/admin/archives") },
           ];
-          
+
+          // Registrations (granting account access) is a SuperAdmin-only flow.
           if (session?.user?.isSuperAdmin) {
             adminItems.splice(1, 0, { label: t("common.registrations"), icon: UserIcon, href: "/admin/registrations", active: pathname.startsWith("/admin/registrations") });
             adminItems.push({ label: t("nav.audit"), icon: FileText, href: "/admin/audit-logs", active: pathname.startsWith("/admin/audit-logs") });

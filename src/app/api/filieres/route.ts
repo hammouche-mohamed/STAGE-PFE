@@ -8,8 +8,16 @@ export async function GET() {
     const filieres = await prisma.filiere.findMany({
       where: { isActive: true },
       orderBy: { name: "asc" },
+      // Don't ship internal columns the UI never needs.
+      select: { id: true, name: true, code: true, isActive: true },
     });
-    return NextResponse.json({ data: filieres });
+    const response = NextResponse.json({ data: filieres });
+    // Filières change rarely — let the browser/edge cache aggressively.
+    response.headers.set(
+      "Cache-Control",
+      "public, max-age=300, stale-while-revalidate=600",
+    );
+    return response;
   } catch {
     return NextResponse.json({ error: "Failed to load filières" }, { status: 500 });
   }

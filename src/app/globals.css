@@ -413,3 +413,62 @@
 .dark * {
   scrollbar-color: #1e293b #0f172a;
 }
+
+/* ─── PRINT STYLES ───────────────────────────────────────────────────────────
+   Hide app chrome (nav, sidebar, buttons, toasts) and print only the
+   .print-container content. Add `no-print` to anything inside the container
+   that should still be hidden (e.g. action toolbars, sticky panels).
+*/
+@media print {
+  /* Hide everything by default… */
+  body * {
+    visibility: hidden;
+  }
+  /* …then re-show the print container and its descendants. */
+  .print-container,
+  .print-container * {
+    visibility: visible;
+  }
+  .print-container {
+    position: absolute;
+    inset: 0;
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    max-width: none;
+    background: white !important;
+    color: black !important;
+  }
+
+  /* Always-hidden classes */
+  .no-print,
+  nav,
+  aside,
+  button,
+  [role="dialog"],
+  [data-sonner-toaster],
+  header[class*="sticky"],
+  .sidebar,
+  .toolbar {
+    display: none !important;
+  }
+
+  /* Page setup */
+  @page {
+    margin: 1.5cm;
+    size: A4;
+  }
+
+  /* Avoid awkward page breaks inside cards */
+  .print-container > * {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* Force light theme for print */
+  .dark, .dark * {
+    background: white !important;
+    color: black !important;
+    border-color: #e5e7eb !important;
+  }
+}

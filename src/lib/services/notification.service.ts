@@ -50,8 +50,13 @@ export class NotificationService {
 
       if (user) {
         try {
-          const html = NotificationService._buildEmailHtml(title, message, user.name, link);
-          await MailService.sendEmail({ to: user.email, subject: title, html, text: message });
+          const html = NotificationService._buildEmailHtml(title, message, user.name, link, type);
+          await MailService.sendEmail({
+            to: user.email,
+            subject: `${title} — ESST Portal`,
+            html,
+            text: `${title}\n\nHello ${user.name},\n\n${message}${link ? `\n\nOpen the portal: ${process.env.NEXT_PUBLIC_APP_URL || ""}${link}` : ""}`,
+          });
 
           // Mark email as delivered
           await prisma.notification.update({
@@ -92,8 +97,19 @@ export class NotificationService {
     for (const n of failed) {
       if (!n.user) continue;
       try {
-        const html = NotificationService._buildEmailHtml(n.title, n.message, n.user.name, n.link ?? undefined);
-        await MailService.sendEmail({ to: n.user.email, subject: n.title, html, text: n.message });
+        const html = NotificationService._buildEmailHtml(
+          n.title,
+          n.message,
+          n.user.name,
+          n.link ?? undefined,
+          n.type as unknown as string,
+        );
+        await MailService.sendEmail({
+          to: n.user.email,
+          subject: `${n.title} — ESST Portal`,
+          html,
+          text: `${n.title}\n\nHello ${n.user.name},\n\n${n.message}${n.link ? `\n\nOpen the portal: ${process.env.NEXT_PUBLIC_APP_URL || ""}${n.link}` : ""}`,
+        });
         await prisma.notification.update({ where: { id: n.id }, data: { emailSent: true } });
         retried++;
       } catch {
@@ -140,31 +156,59 @@ export class NotificationService {
     }
   }
 
-  /** Shared HTML email template */
+  /**
+   * Pick a context-appropriate CTA label based on the notification type.
+   * Falls back to "Open in portal" for unknown types.
+   */
+  private static _ctaLabelForType(type?: string): string {
+    if (!type) return "Open in portal";
+    if (type.startsWith("DOCUMENT_")) return "Review document";
+    if (type.startsWith("MESSAGE_")) return "Open conversation";
+    if (type.startsWith("TOPIC_")) return "View topic";
+    if (type.startsWith("STUDENT_TOPIC_")) return "View topic";
+    if (type.startsWith("REGISTRATION_")) return "View registration";
+    if (type.startsWith("APPLICATION_")) return "View application";
+    if (type.startsWith("BINOME_")) return "View invitation";
+    if (type.startsWith("INTERNSHIP_") || type.startsWith("FINAL_REPORT_")) return "Open internship";
+    if (type.startsWith("DEADLINE_") || type === "MINI_PRESENTATION_SCHEDULED" || type === "MINI_PRESENTATION_REMINDER")
+      return "View calendar";
+    if (type.startsWith("TEACHER_")) return "Open assignment";
+    if (type.startsWith("ACCOUNT_") || type === "PASSWORD_RESET") return "Open profile";
+    return "Open in portal";
+  }
+
+  /**
+   * Shared HTML email body. The MailService wraps this in the official
+   * branded layout (header/footer), so we only render the inner block here.
+   * All user-controlled values are HTML-escaped to prevent stored XSS.
+   */
   private static _buildEmailHtml(
     title: string,
     message: string,
     userName: string,
     link?: string,
+    type?: string,
   ): string {
+    const safeTitle = MailService.escape(title);
+    const safeName = MailService.escape(userName);
+    const safeMessage = MailService.escapeAndBr(message);
+    const cta = MailService.escape(NotificationService._ctaLabelForType(type));
+    const safeLink = link ? `${process.env.NEXT_PUBLIC_APP_URL || ""}${link}` : "";
+
     return `
-      <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;border:1px solid #e1e1e1;">
-        <h2 style="color:#4f46e5;text-align:center;">${title}</h2>
-        <p>Hello ${userName},</p>
-        <p>${message.replace(/\n/g, '<br />')}</p>
-        ${
-          link
-            ? `<p style="text-align:center;margin-top:20px;">
-                <a href="${process.env.NEXT_PUBLIC_APP_URL}${link}"
-                   style="background:#4f46e5;color:#fff;padding:10px 20px;border-radius:6px;text-decoration:none;">
-                  View Details
-                </a>
-               </p>`
-            : ''
-        }
-        <hr style="margin:30px 0;border:0;border-top:1px solid #e1e1e1;" />
-        <p style="text-align:center;color:#9ca3af;font-size:12px;">Official ESST Alger Administrative Portal</p>
-      </div>
+      <h2 style="color:#1e293b;margin:0 0 16px;font-size:22px;font-weight:600;">${safeTitle}</h2>
+      <p style="color:#475569;font-size:15px;margin:0 0 16px;">Hello ${safeName},</p>
+      <p style="color:#475569;font-size:15px;line-height:1.6;margin:0 0 28px;">${safeMessage}</p>
+      ${
+        safeLink
+          ? `<div style="text-align:left;">
+              <a href="${MailService.escape(safeLink)}"
+                 style="display:inline-block;background:#4f46e5;color:#ffffff;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:600;font-size:14px;">
+                ${cta}
+              </a>
+             </div>`
+          : ""
+      }
     `;
   }
 }

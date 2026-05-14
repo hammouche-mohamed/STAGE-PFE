@@ -5,13 +5,17 @@ import { SidebarProvider } from "@/lib/contexts/SidebarContext";
 import { PollingProvider } from "@/lib/contexts/PollingContext";
 import { auth } from "@/lib/auth";
 import prisma from "@/lib/prisma";
-import { cache } from "react";
+import { unstable_cache } from "next/cache";
 
-const getUniversityLogo = cache(async () => {
-  return prisma.systemSettings.findUnique({
-    where: { key: "universityLogo" }
-  });
-});
+// The university logo is a SystemSettings row that almost never changes.
+// `unstable_cache` keeps the result in Next's data cache across requests
+// (not just within one request like React's `cache`), so navigating
+// between dashboard pages no longer hits the DB every time.
+const getUniversityLogo = unstable_cache(
+  async () => prisma.systemSettings.findUnique({ where: { key: "universityLogo" } }),
+  ["dashboard-university-logo"],
+  { revalidate: 600, tags: ["systemSettings"] },
+);
 
 export const dynamic = "force-dynamic";
 

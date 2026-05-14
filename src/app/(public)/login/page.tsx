@@ -137,8 +137,10 @@ function LoginForm() {
 
             {error && (
               <div className="mb-4 p-3 bg-amber-50 dark:bg-amber-900/20 border-l-2 border-amber-600 text-[11px] text-amber-700 dark:text-amber-400 font-medium rounded-r">
-                {error === "SessionRequired" || error === "OAuthSignin" 
-                  ? t("errors.sessionExpired") 
+                {error === "SessionTimeout"
+                  ? "You were signed out after 5 minutes of inactivity. Please sign in again."
+                  : error === "SessionExpired" || error === "SessionRequired" || error === "OAuthSignin"
+                  ? t("errors.sessionExpired")
                   : `${t("errors.serverError")}: ${error}`}
               </div>
             )}

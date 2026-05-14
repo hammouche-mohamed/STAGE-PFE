@@ -55,6 +55,9 @@ export async function GET(req: NextRequest) {
       allowedUserIds = ["UNASSIGNED_ADMIN_BLOCK"];
     }
 
+    // NFR-P2: nest profiles directly via Prisma `include` so this is a
+    // single round-trip instead of the previous 6 (users + 4 profile tables
+    // + a global filiere dump).
     const users = await prisma.user.findMany({
       where: {
         ...(role && { role: role as any }),
@@ -72,51 +75,26 @@ export async function GET(req: NextRequest) {
           ]
         } : {})
       },
+      include: {
+        studentprofile: { include: { filiere: { select: { id: true, name: true, code: true } } } },
+        teacherprofile: { include: { filiere: { select: { id: true, name: true, code: true } } } },
+        companyprofile: true,
+        adminprofile: { include: { filiere: { select: { id: true, name: true, code: true } } } },
+      },
       orderBy: { name: "asc" },
       take: limit,
       skip: skip,
     });
 
-    // Manually fetch and stitch profiles to bypass missing schema relations
-    const userIds = users.map(u => u.id);
-    const [studentProfiles, teacherProfiles, companyProfiles, adminProfiles, allFilieres] = await Promise.all([
-      prisma.studentProfile.findMany({ where: { userId: { in: userIds } } }),
-      prisma.teacherProfile.findMany({ where: { userId: { in: userIds } } }),
-      prisma.companyProfile.findMany({ where: { userId: { in: userIds } } }),
-      prisma.adminProfile.findMany({ where: { userId: { in: userIds } } }),
-      prisma.filiere.findMany()
-    ]);
-
-    // Stitch together
-    const safeUsers = users.map(u => {
-      const { password, ...safeUser } = u;
-      
-      const adminProf = adminProfiles.find(p => p.userId === u.id);
-      const teacherProf = teacherProfiles.find(p => p.userId === u.id);
-      const studentProf = studentProfiles.find(p => p.userId === u.id);
-      
-      // Manually attach filiere object if needed by the frontend
-      const stitchedAdminProfile = adminProf ? {
-        ...adminProf,
-        filiere: allFilieres.find(f => f.id === adminProf.filiereId) || null
-      } : null;
-
-      const stitchedTeacherProfile = teacherProf ? {
-        ...teacherProf,
-        filiere: allFilieres.find(f => f.id === teacherProf.filiereId) || null
-      } : null;
-
-      const stitchedStudentProfile = studentProf ? {
-        ...studentProf,
-        filiere: allFilieres.find(f => f.id === studentProf.filiereId) || null
-      } : null;
-
+    // Map schema field names (lowercase) to the camelCase shape the UI expects.
+    const safeUsers = users.map((u) => {
+      const { password, studentprofile, teacherprofile, companyprofile, adminprofile, ...rest } = u as any;
       return {
-        ...safeUser,
-        studentProfile: stitchedStudentProfile,
-        teacherProfile: stitchedTeacherProfile,
-        companyProfile: companyProfiles.find(p => p.userId === u.id) || null,
-        adminProfile: stitchedAdminProfile,
+        ...rest,
+        studentProfile: studentprofile ?? null,
+        teacherProfile: teacherprofile ?? null,
+        companyProfile: companyprofile ?? null,
+        adminProfile: adminprofile ?? null,
       };
     });
 

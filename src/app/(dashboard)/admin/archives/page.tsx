@@ -33,7 +33,6 @@ export default function AdminArchivesPage() {
   const [selectedYear, setSelectedYear] = useState<string>("");
   const [filiereFilter, setFiliereFilter] = useState<string>("all");
   const [filieres, setFilieres] = useState<any[]>([]);
-  const [exportType, setExportType] = useState<string>("all");
   const [isExporting, setIsExporting] = useState(false);
 
   // Accurate Year Generation
@@ -92,13 +91,16 @@ export default function AdminArchivesPage() {
     return () => controller.abort(); // cancel on unmount or filter change
   }, [selectedYear, filiereFilter, activeTab]);
 
-  const handleExport = async () => {
+  const handleExport = async (mode: "current" | "all" = "current") => {
     setIsExporting(true);
     try {
+      // Honor the user's selection: by default export only the active tab,
+      // applying both year and department filters from the page.
+      const exportType = mode === "all" ? "all" : activeTab;
       const params = new URLSearchParams({ type: exportType });
       if (selectedYear) params.set("year", selectedYear);
       if (filiereFilter !== "all") params.set("filiereId", filiereFilter);
-      
+
       const res = await fetch(`/api/admin/export?${params}`);
       if (!res.ok) throw new Error("Export failed");
       const blob = await res.blob();
@@ -108,7 +110,7 @@ export default function AdminArchivesPage() {
       a.download = `archive_${selectedYear}_${exportType}_${new Date().toISOString().split("T")[0]}.csv`;
       a.click();
       URL.revokeObjectURL(url);
-      toast.success("Export downloaded successfully");
+      toast.success(`Exported ${exportType === "all" ? "all categories" : exportType}`);
     } catch {
       toast.error("Export failed");
     } finally {
@@ -396,9 +398,13 @@ export default function AdminArchivesPage() {
             </select>
             <ChevronRight className="absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400 rotate-90" />
           </div>
-          <Button size="sm" variant="outline" onClick={handleExport} isLoading={isExporting}>
+          <Button size="sm" variant="outline" onClick={() => handleExport("current")} isLoading={isExporting}>
             <Download className="h-4 w-4 mr-2" />
-            {t("common.export")}
+            {t("common.export")} ({activeTab})
+          </Button>
+          <Button size="sm" variant="outline" onClick={() => handleExport("all")} isLoading={isExporting}>
+            <Download className="h-4 w-4 mr-2" />
+            Export All
           </Button>
         </div>
       </div>

@@ -43,7 +43,7 @@ export async function POST(req: Request) {
     });
 
     // Send Email
-    await MailService.sendPasswordResetCode(email, code);
+    await MailService.sendPasswordResetCode(email, code, user.name);
 
     return NextResponse.json({ message: "Verification code sent to your email." });
   } catch (error) {

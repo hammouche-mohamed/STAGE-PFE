@@ -1,16 +1,42 @@
 import { transporter } from "../mail-transport";
 
-const APP_NAME = "ESST Internship portal";
-const NAVY = "#1e293b";    // Slate 800
-const ACCENT = "#4f46e5";  // Indigo 600
-const TEXT_GRAY = "#475569"; // Slate 600
+const APP_NAME = "ESST Internship Portal";
+const NAVY = "#1e293b";
+const ACCENT = "#4f46e5";
+const TEXT_GRAY = "#475569";
+
+/**
+ * Escape user-controlled strings before injecting into an HTML email.
+ * Prevents stored-XSS via names, comments, message text, etc.
+ */
+function escapeHtml(value: unknown): string {
+  if (value === null || value === undefined) return "";
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+/**
+ * Convert a plain-text body to safe HTML: escape, then turn newlines into <br>.
+ */
+function escapeAndBr(value: unknown): string {
+  return escapeHtml(value).replace(/\n/g, "<br />");
+}
+
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "";
 
 export class MailService {
+  /** Public so other services (e.g. NotificationService) can sanitize input. */
+  static escape = escapeHtml;
+  static escapeAndBr = escapeAndBr;
+
   private static getEmailLayout(content: string) {
     return `
       <div style="margin: 0; padding: 0; width: 100%; background-color: #f1f5f9; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
         <table align="center" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; border: 1px solid #e2e8f0;">
-          <!-- Classic Academic Header -->
           <tr>
             <td style="padding: 60px 40px 45px; border-bottom: 2px solid #f1f5f9; text-align: center;">
               <h1 style="color: ${NAVY}; margin: 0; font-size: 24px; font-weight: 700; letter-spacing: 0.02em; font-family: 'Times New Roman', Times, serif; text-transform: none;">
@@ -22,18 +48,16 @@ export class MailService {
               </p>
             </td>
           </tr>
-          <!-- Main Content -->
           <tr>
             <td style="padding: 48px 40px;">
               ${content}
             </td>
           </tr>
-          <!-- Footer -->
           <tr>
             <td style="padding: 32px 40px 60px; background-color: #f8fafc; border-top: 1px solid #e2e8f0; text-align: center;">
               <p style="margin: 0; font-size: 13px; color: ${TEXT_GRAY}; line-height: 1.5;">
                 © ${new Date().getFullYear()} ESST — Internship Management Portal<br>
-                <span style="font-size: 11px; color: #94a3b8;">This is an official communication from the administration.</span>
+                <span style="font-size: 11px; color: #94a3b8;">This is an automated message — please do not reply directly.</span>
               </p>
             </td>
           </tr>
@@ -42,39 +66,52 @@ export class MailService {
     `;
   }
 
-  static async sendPasswordResetCode(email: string, code: string) {
+  // ── Password reset ────────────────────────────────────────────────────────
+  static async sendPasswordResetCode(email: string, code: string, name?: string) {
+    const safeCode = escapeHtml(code);
+    const greeting = name ? `Hello ${escapeHtml(name)},` : "Hello,";
     const html = this.getEmailLayout(`
-      <h2 style="color: ${NAVY}; margin: 0 0 20px; font-size: 24px; font-weight: 600;">Authorization Code</h2>
-      <p style="color: ${TEXT_GRAY}; line-height: 1.6; font-size: 16px; margin: 0 0 32px;">
-        A request has been made to reset your portal password. Please use the following code to verify your identity:
+      <h2 style="color: ${NAVY}; margin: 0 0 20px; font-size: 24px; font-weight: 600;">Password reset request</h2>
+      <p style="color: ${TEXT_GRAY}; line-height: 1.6; font-size: 16px; margin: 0 0 12px;">${greeting}</p>
+      <p style="color: ${TEXT_GRAY}; line-height: 1.6; font-size: 15px; margin: 0 0 28px;">
+        We received a request to reset the password on your ESST Portal account.
+        Use the verification code below to continue. This code expires in <strong>5 minutes</strong>.
       </p>
-      <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 24px; text-align: center; margin-bottom: 32px;">
-        <span style="font-size: 32px; font-weight: 700; letter-spacing: 10px; color: ${ACCENT}; font-family: monospace;">${code}</span>
+      <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 24px; text-align: center; margin-bottom: 28px;">
+        <span style="font-size: 32px; font-weight: 700; letter-spacing: 10px; color: ${ACCENT}; font-family: monospace;">${safeCode}</span>
       </div>
-      <p style="color: #64748b; font-size: 14px; margin: 0; text-align: center;">
-        This code is valid for 5 minutes. If you did not initiate this request, please secure your account immediately.
+      <p style="color: #64748b; font-size: 13px; margin: 0; line-height: 1.6;">
+        If you did not request a password reset, you can safely ignore this email — your password will not change.
+        If you suspect your account is being targeted, please contact the administration.
       </p>
     `);
 
     return transporter.sendMail({
       from: `"${APP_NAME}" <${process.env.SMTP_USER}>`,
       to: email,
-      subject: `Verification Code: ${code}`,
+      // Security: do NOT put the code in the subject — it's visible in inbox previews and server logs.
+      subject: "ESST Portal — Password reset code",
       html,
+      text: `Your ESST Portal password reset code is: ${code}\nThis code is valid for 5 minutes.\nIf you did not request this, you can ignore this email.`,
     });
   }
 
+  // ── Generic notification (used by NotificationService) ────────────────────
   static async sendNotification(email: string, title: string, message: string, link?: string) {
+    const safeTitle = escapeHtml(title);
+    const safeMessage = escapeAndBr(message);
+    const safeLink = link ? `${APP_URL}${link}` : null;
+
     const html = this.getEmailLayout(`
-      <h2 style="color: ${NAVY}; margin: 0 0 20px; font-size: 24px; font-weight: 600;">${title}</h2>
-      <p style="color: ${TEXT_GRAY}; line-height: 1.6; font-size: 16px; margin: 0 0 40px;">
-        ${message}
+      <h2 style="color: ${NAVY}; margin: 0 0 20px; font-size: 22px; font-weight: 600;">${safeTitle}</h2>
+      <p style="color: ${TEXT_GRAY}; line-height: 1.6; font-size: 15px; margin: 0 0 32px;">
+        ${safeMessage}
       </p>
-      ${link ? `
+      ${safeLink ? `
         <div style="text-align: left;">
-          <a href="${process.env.NEXT_PUBLIC_APP_URL}${link}" 
-             style="display: inline-block; background-color: ${ACCENT}; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 15px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
-            Open Portal Application
+          <a href="${escapeHtml(safeLink)}"
+             style="display: inline-block; background-color: ${ACCENT}; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 15px;">
+            Open in portal
           </a>
         </div>
       ` : ""}
@@ -83,14 +120,25 @@ export class MailService {
     return transporter.sendMail({
       from: `"${APP_NAME}" <${process.env.SMTP_USER}>`,
       to: email,
-      subject: title,
+      subject: `${safeTitle} — ESST Portal`,
       html,
+      text: `${title}\n\n${message}${link ? `\n\nOpen the portal: ${APP_URL}${link}` : ""}`,
     });
   }
 
-  static async sendEmail({ to, subject, html, text }: { to: string; subject: string; html: string; text?: string }) {
+  // ── Raw send (the body is wrapped in the layout) ──────────────────────────
+  static async sendEmail({
+    to,
+    subject,
+    html,
+    text,
+  }: {
+    to: string;
+    subject: string;
+    html: string;
+    text?: string;
+  }) {
     const styledHtml = this.getEmailLayout(html);
-
     return transporter.sendMail({
       from: `"${APP_NAME}" <${process.env.SMTP_USER}>`,
       to,
@@ -100,130 +148,175 @@ export class MailService {
     });
   }
 
-  static async sendStatusUpdate(email: string, name: string, status: string, comment?: string | null, updatedData?: Record<string, any>, fullData?: any) {
-    const isApproved = status === 'APPROVED';
-    const statusColor = isApproved ? '#059669' : '#dc2626';
-    
-    // Format modifications or summary
-    let infoHtml = '';
+  // ── Registration approval / rejection ─────────────────────────────────────
+  static async sendStatusUpdate(
+    email: string,
+    name: string,
+    status: string,
+    comment?: string | null,
+    updatedData?: Record<string, any>,
+    fullData?: any,
+  ) {
+    const isApproved = status === "APPROVED";
+    const statusColor = isApproved ? "#059669" : "#dc2626";
+    const safeName = escapeHtml(name);
+    const safeStatus = escapeHtml(status);
+    const safeComment = comment ? escapeHtml(comment) : null;
+    const role = (fullData?.role as string | undefined)?.toUpperCase();
+
+    // Role-aware messaging
+    const approvedMessage =
+      role === "STUDENT"
+        ? "Your student account is now active. You can sign in to browse company-proposed internship topics, propose your own, and form a binôme."
+        : role === "TEACHER"
+        ? "Your teacher account is now active. You can sign in to review proposals assigned to you and supervise approved internships."
+        : role === "COMPANY"
+        ? "Your company account is now active. You can sign in to publish internship topics and follow their validation by the administration."
+        : "Your account is now active. You can sign in to access your dashboard.";
+
+    const rejectedMessage =
+      "After review, the administration was unable to approve your registration request at this time. " +
+      (comment
+        ? "See the reviewer's note below."
+        : "If you believe this was a mistake, please contact the department administration.");
+
+    let infoHtml = "";
     const hasModifs = updatedData && Object.keys(updatedData).length > 0;
 
     if (fullData) {
-      const isCompany = fullData.role === 'COMPANY';
-      const label1 = isCompany ? 'Sector' : 'Speciality';
-      const value1 = isCompany ? fullData.sector : fullData.speciality;
-      const label2 = isCompany ? 'Wilaya' : 'Promotion';
-      const value2 = isCompany ? fullData.wilaya : fullData.promotion;
-      const label3 = isCompany ? 'Company Name' : 'Academic Year';
-      const value3 = isCompany ? fullData.companyName : fullData.academicYear;
+      const isCompany = role === "COMPANY";
+      const fields = isCompany
+        ? [
+            { label: "Sector", value: fullData.sector },
+            { label: "Wilaya", value: fullData.wilaya },
+            { label: "Company name", value: fullData.companyName },
+          ]
+        : [
+            { label: "Speciality", value: fullData.speciality },
+            { label: "Promotion / Level", value: fullData.promotion || fullData.level },
+            { label: "Academic year", value: fullData.academicYear },
+          ];
+
+      const rowsHtml = fields
+        .map(
+          (f) => `
+            <tr>
+              <td style="padding: 8px 0; border-bottom: 1px solid #edf2f7; color: ${TEXT_GRAY}; font-size: 13px; font-weight: 600; width: 40%;">${escapeHtml(f.label)}</td>
+              <td style="padding: 8px 0; border-bottom: 1px solid #edf2f7; color: ${NAVY}; font-size: 13px; text-align: right;">${escapeHtml(f.value || "—")}</td>
+            </tr>`,
+        )
+        .join("");
 
       infoHtml = `
         <div style="margin-top: 24px; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px; background-color: #f8fafc;">
           <p style="color: ${NAVY}; font-weight: 700; margin: 0 0 12px; font-size: 13px; text-transform: uppercase; letter-spacing: 0.05em;">
-            ${hasModifs ? 'Administrative Modifications Applied' : 'Your Profile Information'}
-          </p>
-          <p style="color: ${TEXT_GRAY}; font-size: 14px; margin-bottom: 12px;">
-            ${hasModifs 
-              ? 'The administration has adjusted your profile data during the review process. Please review your final details below:' 
-              : 'Here is a summary of your registration details for your records:'}
+            ${hasModifs ? "Information adjusted by the administration" : "Your registration details"}
           </p>
           <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse: collapse;">
-            <tr>
-              <td style="padding: 8px 0; border-bottom: 1px solid #edf2f7; color: ${TEXT_GRAY}; font-size: 13px; font-weight: 600; width: 40%;">${label1}</td>
-              <td style="padding: 8px 0; border-bottom: 1px solid #edf2f7; color: ${NAVY}; font-size: 13px; text-align: right;">${value1 || "N/A"}</td>
-            </tr>
-            <tr>
-              <td style="padding: 8px 0; border-bottom: 1px solid #edf2f7; color: ${TEXT_GRAY}; font-size: 13px; font-weight: 600;">${label2}</td>
-              <td style="padding: 8px 0; border-bottom: 1px solid #edf2f7; color: ${NAVY}; font-size: 13px; text-align: right;">${value2 || "N/A"}</td>
-            </tr>
-            <tr>
-              <td style="padding: 8px 0; border-bottom: 1px solid #edf2f7; color: ${TEXT_GRAY}; font-size: 13px; font-weight: 600;">${label3}</td>
-              <td style="padding: 8px 0; border-bottom: 1px solid #edf2f7; color: ${NAVY}; font-size: 13px; text-align: right;">${value3 || "N/A"}</td>
-            </tr>
-            ${hasModifs ? `
-              <tr>
-                <td colspan="2" style="padding-top: 12px; color: ${TEXT_GRAY}; font-size: 11px; font-style: italic;">
-                  * Fields updated by admin: ${Object.keys(updatedData).map(k => k.replace(/([A-Z])/g, ' $1').trim()).join(', ')}
-                </td>
-              </tr>
-            ` : ''}
+            ${rowsHtml}
+            ${
+              hasModifs
+                ? `<tr><td colspan="2" style="padding-top: 12px; color: ${TEXT_GRAY}; font-size: 11px; font-style: italic;">
+                    * Fields updated: ${escapeHtml(
+                      Object.keys(updatedData!).map((k) => k.replace(/([A-Z])/g, " $1").trim()).join(", "),
+                    )}
+                  </td></tr>`
+                : ""
+            }
           </table>
         </div>
       `;
     }
 
     const html = this.getEmailLayout(`
-      <h2 style="color: ${NAVY}; margin: 0 0 8px; font-size: 22px; font-weight: 600;">Dear ${name},</h2>
-      <p style="color: ${TEXT_GRAY}; font-size: 16px; margin: 0 0 32px;">This is an update regarding your registration request.</p>
-      
-      <div style="border-radius: 8px; background-color: ${isApproved ? '#f0fdf4' : '#fef2f2'}; padding: 24px; margin-bottom: 32px; border-left: 4px solid ${statusColor};">
+      <h2 style="color: ${NAVY}; margin: 0 0 8px; font-size: 22px; font-weight: 600;">Dear ${safeName},</h2>
+      <p style="color: ${TEXT_GRAY}; font-size: 15px; margin: 0 0 28px;">
+        Here is an update regarding your registration on the ESST Internship Portal.
+      </p>
+
+      <div style="border-radius: 8px; background-color: ${isApproved ? "#f0fdf4" : "#fef2f2"}; padding: 24px; margin-bottom: 28px; border-left: 4px solid ${statusColor};">
         <p style="color: ${NAVY}; font-weight: 700; margin: 0 0 12px; font-size: 14px; text-transform: uppercase; letter-spacing: 0.05em;">
-          Registration Status: <span style="color: ${statusColor};">${status}</span>
+          Registration: <span style="color: ${statusColor};">${safeStatus}</span>
         </p>
         <p style="color: ${TEXT_GRAY}; line-height: 1.6; margin: 0; font-size: 15px;">
-          ${isApproved 
-            ? "We are pleased to inform you that your registration has been approved. You may now access the full features of the portal." 
-            : "We regret to inform you that your registration was not approved at this time."}
+          ${isApproved ? escapeHtml(approvedMessage) : escapeHtml(rejectedMessage)}
         </p>
-        ${comment ? `
-          <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid ${isApproved ? '#dcfce7' : '#fee2e2'};">
-            <p style="margin: 0; font-size: 14px; color: ${NAVY};">
-              <strong>Official Remark:</strong><br>
-              <span style="color: ${TEXT_GRAY}; font-style: italic;">"${comment}"</span>
-            </p>
-          </div>
-        ` : ""}
+        ${
+          safeComment
+            ? `<div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid ${isApproved ? "#dcfce7" : "#fee2e2"};">
+                <p style="margin: 0; font-size: 14px; color: ${NAVY};">
+                  <strong>Reviewer's note:</strong><br>
+                  <span style="color: ${TEXT_GRAY}; font-style: italic;">"${safeComment}"</span>
+                </p>
+              </div>`
+            : ""
+        }
       </div>
 
-      ${infoHtml}
-      
-      ${isApproved ? `
-      <div style="text-align: center; margin-top: 32px;">
-        <a href="${process.env.NEXT_PUBLIC_APP_URL}/login" 
-           style="display: inline-block; background-color: ${NAVY}; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 15px;">
-          Sign In to Portal
-        </a>
-      </div>
-      ` : ""}
+      ${isApproved ? infoHtml : ""}
+
+      ${
+        isApproved
+          ? `<div style="text-align: center; margin-top: 32px;">
+              <a href="${escapeHtml(APP_URL)}/login"
+                 style="display: inline-block; background-color: ${NAVY}; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 15px;">
+                Sign in to the portal
+              </a>
+            </div>`
+          : ""
+      }
     `);
 
     return transporter.sendMail({
       from: `"${APP_NAME}" <${process.env.SMTP_USER}>`,
       to: email,
-      subject: `Portal Update: Registration ${status}`,
+      subject: isApproved
+        ? "ESST Portal — Your registration has been approved"
+        : "ESST Portal — Update on your registration",
       html,
+      text: `Dear ${name},\n\nRegistration status: ${status}\n\n${isApproved ? approvedMessage : rejectedMessage}${comment ? `\n\nReviewer's note: "${comment}"` : ""}\n\nESST Internship Portal`,
     });
   }
+
+  // ── Admin invitation ──────────────────────────────────────────────────────
   static async sendAdminInvitation(email: string, name: string, password: string, isSuperAdmin: boolean) {
-    const roleText = isSuperAdmin ? "Administrator" : "Department Administrator";
-    
+    const roleText = isSuperAdmin ? "Super Administrator" : "Department Administrator";
+    const safeName = escapeHtml(name);
+    const safeEmail = escapeHtml(email);
+    const safePassword = escapeHtml(password);
+    const safeRole = escapeHtml(roleText);
+
     const html = this.getEmailLayout(`
-      <h2 style="color: ${NAVY}; margin: 0 0 20px; font-size: 24px; font-weight: 600;">Welcome to ESST Portal</h2>
-      <p style="color: ${TEXT_GRAY}; line-height: 1.6; font-size: 16px; margin: 0 0 24px;">
-        Dear ${name},<br><br>
-        You have been invited to join the ESST Internship Management Portal as an <strong>${roleText}</strong>.
+      <h2 style="color: ${NAVY}; margin: 0 0 20px; font-size: 24px; font-weight: 600;">Welcome to the ESST Portal</h2>
+      <p style="color: ${TEXT_GRAY}; line-height: 1.6; font-size: 15px; margin: 0 0 24px;">
+        Dear ${safeName},<br><br>
+        You have been granted <strong>${safeRole}</strong> access to the ESST Internship Management Portal.
       </p>
-      
-      <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 24px; margin-bottom: 32px;">
+
+      <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 24px; margin-bottom: 24px;">
         <p style="color: ${NAVY}; font-weight: 700; margin: 0 0 16px; font-size: 14px; text-transform: uppercase; letter-spacing: 0.05em;">
-          Your Access Credentials
+          Your access credentials
         </p>
         <p style="margin: 0 0 8px; font-size: 15px; color: ${TEXT_GRAY};">
-          <strong>Email:</strong> ${email}
+          <strong>Email:</strong> ${safeEmail}
         </p>
         <p style="margin: 0; font-size: 15px; color: ${TEXT_GRAY};">
-          <strong>Temporary Password:</strong> <span style="font-family: monospace; background: #e2e8f0; padding: 2px 6px; border-radius: 4px;">${password}</span>
+          <strong>Temporary password:</strong>
+          <span style="font-family: monospace; background: #e2e8f0; padding: 2px 6px; border-radius: 4px;">${safePassword}</span>
         </p>
       </div>
 
-      <p style="color: ${TEXT_GRAY}; line-height: 1.6; font-size: 15px; margin: 0 0 32px;">
-        For security reasons, you will be required to change this temporary password immediately upon your first login.
-      </p>
-      
+      <div style="background-color: #fffbeb; border-left: 4px solid #f59e0b; padding: 16px 20px; border-radius: 6px; margin-bottom: 28px;">
+        <p style="margin: 0; color: #92400e; font-size: 13px; line-height: 1.5;">
+          <strong>Security notice:</strong> change this temporary password immediately on your first sign-in.
+          Never share these credentials. Delete this email once you have signed in successfully.
+        </p>
+      </div>
+
       <div style="text-align: left;">
-        <a href="${process.env.NEXT_PUBLIC_APP_URL}/login" 
-           style="display: inline-block; background-color: ${ACCENT}; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 15px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
-          Sign In to Portal
+        <a href="${escapeHtml(APP_URL)}/login"
+           style="display: inline-block; background-color: ${ACCENT}; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 15px;">
+          Sign in to the portal
         </a>
       </div>
     `);
@@ -231,25 +324,39 @@ export class MailService {
     return transporter.sendMail({
       from: `"${APP_NAME}" <${process.env.SMTP_USER}>`,
       to: email,
-      subject: `Invitation: ESST Portal ${roleText} Access`,
+      subject: `ESST Portal — ${roleText} access granted`,
       html,
+      text: `Dear ${name},\n\nYou have been granted ${roleText} access to the ESST Portal.\n\nEmail: ${email}\nTemporary password: ${password}\n\nChange your password on first login. Sign in: ${APP_URL}/login`,
     });
   }
 
-  static async sendRegistrationReceived(email: string, name: string) {
+  // ── Registration received (acknowledgement) ───────────────────────────────
+  static async sendRegistrationReceived(email: string, name: string, role?: string) {
+    const safeName = escapeHtml(name);
+    const reviewWindow = "within the next few working days";
+    const roleSpecific =
+      role === "STUDENT"
+        ? "Your student registration has been received and is awaiting administrative review."
+        : role === "TEACHER"
+        ? "Your teacher registration has been received and is awaiting administrative review. You will be assigned to a department once approved."
+        : role === "COMPANY"
+        ? "Your company registration has been received and is awaiting administrative review."
+        : "Your registration request has been received and is awaiting administrative review.";
+
     const html = this.getEmailLayout(`
-      <h2 style="color: ${NAVY}; margin: 0 0 20px; font-size: 24px; font-weight: 600;">Registration Received</h2>
-      <p style="color: ${TEXT_GRAY}; line-height: 1.6; font-size: 16px; margin: 0 0 24px;">
-        Dear ${name},<br><br>
-        Thank you for registering with the ESST Internship Management Portal. We have successfully received your request.
+      <h2 style="color: ${NAVY}; margin: 0 0 20px; font-size: 22px; font-weight: 600;">Registration received</h2>
+      <p style="color: ${TEXT_GRAY}; line-height: 1.6; font-size: 15px; margin: 0 0 20px;">
+        Dear ${safeName},<br><br>
+        ${escapeHtml(roleSpecific)}
       </p>
-      <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 24px; margin-bottom: 32px;">
-        <p style="color: ${TEXT_GRAY}; line-height: 1.6; margin: 0; font-size: 15px;">
-          Your request is currently being reviewed by the administration. You will receive another email once your account has been activated.
+      <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; margin-bottom: 24px;">
+        <p style="color: ${TEXT_GRAY}; line-height: 1.6; margin: 0; font-size: 14px;">
+          You will receive a follow-up email <strong>${reviewWindow}</strong> with the outcome of the review.
+          No further action is required from you at this stage.
         </p>
       </div>
-      <p style="color: #64748b; font-size: 14px; margin: 0;">
-        If you have any questions, please contact the department administration.
+      <p style="color: #64748b; font-size: 13px; margin: 0;">
+        For any urgent question, please contact the department administration.
       </p>
     `);
 
@@ -257,39 +364,45 @@ export class MailService {
       return await transporter.sendMail({
         from: `"${APP_NAME}" <${process.env.SMTP_USER}>`,
         to: email,
-        subject: "Registration Received - ESST Portal",
+        subject: "ESST Portal — Registration received, pending review",
         html,
+        text: `Dear ${name},\n\n${roleSpecific}\n\nYou will receive a follow-up email ${reviewWindow}.`,
       });
     } catch (error) {
       console.error("Failed to send registration confirmation email:", error);
     }
   }
 
+  // ── Profile modified by admin ─────────────────────────────────────────────
   static async sendProfileModified(
     email: string,
     name: string,
     modifications: string[],
     role: string,
   ) {
-    const changesHtml = modifications.length > 0
-      ? modifications.map(m => `
-          <tr>
-            <td style="padding: 8px 0; border-bottom: 1px solid #edf2f7; color: ${TEXT_GRAY}; font-size: 14px;">
-              ${m.replace(/^• /, "").replace(/: (.+)$/, `: <strong style="color:${NAVY};">$1</strong>`)}
-            </td>
-          </tr>
-        `).join("")
-      : `<tr><td style="padding: 8px 0; color: ${TEXT_GRAY}; font-size: 14px;">Your account details were reviewed and updated by the administration.</td></tr>`;
+    const safeName = escapeHtml(name);
+    const safeRole = escapeHtml(role);
+
+    const changesHtml =
+      modifications.length > 0
+        ? modifications
+            .map((m) => {
+              const safe = escapeHtml(m).replace(/^•\s*/, "").replace(/: (.+)$/, `: <strong style="color:${NAVY};">$1</strong>`);
+              return `<tr><td style="padding: 8px 0; border-bottom: 1px solid #edf2f7; color: ${TEXT_GRAY}; font-size: 14px;">${safe}</td></tr>`;
+            })
+            .join("")
+        : `<tr><td style="padding: 8px 0; color: ${TEXT_GRAY}; font-size: 14px;">Your account details were reviewed and updated by the administration.</td></tr>`;
 
     const html = this.getEmailLayout(`
-      <h2 style="color: ${NAVY}; margin: 0 0 8px; font-size: 22px; font-weight: 600;">Dear ${name},</h2>
+      <h2 style="color: ${NAVY}; margin: 0 0 8px; font-size: 22px; font-weight: 600;">Dear ${safeName},</h2>
       <p style="color: ${TEXT_GRAY}; font-size: 15px; margin: 0 0 28px;">
-        An administrator has made changes to your <strong>${role}</strong> account. Please review the modifications below.
+        An administrator has updated your <strong>${safeRole}</strong> account on the ESST Portal.
+        Please review the changes below.
       </p>
 
       <div style="border-radius: 8px; background-color: #eff6ff; padding: 24px; margin-bottom: 28px; border-left: 4px solid #3b82f6;">
         <p style="color: ${NAVY}; font-weight: 700; margin: 0 0 16px; font-size: 13px; text-transform: uppercase; letter-spacing: 0.05em;">
-          Account Modifications Applied
+          Changes applied
         </p>
         <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse: collapse;">
           ${changesHtml}
@@ -297,13 +410,13 @@ export class MailService {
       </div>
 
       <p style="color: ${TEXT_GRAY}; font-size: 14px; margin: 0 0 28px; line-height: 1.6;">
-        If you believe these changes were made in error or you have any questions, please contact the administration.
+        If any of these changes look unexpected, contact the administration immediately so they can be reviewed.
       </p>
 
       <div style="text-align: left;">
-        <a href="${process.env.NEXT_PUBLIC_APP_URL}/profile"
+        <a href="${escapeHtml(APP_URL)}/profile"
            style="display: inline-block; background-color: ${NAVY}; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 15px;">
-          Review My Profile
+          Review my profile
         </a>
       </div>
     `);
@@ -311,8 +424,9 @@ export class MailService {
     return transporter.sendMail({
       from: `"${APP_NAME}" <${process.env.SMTP_USER}>`,
       to: email,
-      subject: "Your Account Has Been Updated — ESST Portal",
+      subject: "ESST Portal — Your account was updated by the administration",
       html,
+      text: `Dear ${name},\n\nAn administrator updated your ${role} account.\n\nChanges:\n${modifications.join("\n")}\n\nReview your profile: ${APP_URL}/profile`,
     });
   }
 }

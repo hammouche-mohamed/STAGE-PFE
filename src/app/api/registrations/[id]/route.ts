@@ -11,8 +11,9 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const session = await auth();
-  if (!session || session.user.role !== 'ADMIN') {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  // Granting / refusing dashboard access is SuperAdmin-only.
+  if (!session || session.user.role !== 'ADMIN' || !session.user.isSuperAdmin) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
   try {
@@ -219,12 +220,13 @@ export async function PATCH(
 }
 
 export async function DELETE(
-  req: NextRequest,
+  _req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const session = await auth();
-  if (!session || session.user.role !== 'ADMIN') {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  // SuperAdmin-only — registration management is a SuperAdmin responsibility.
+  if (!session || session.user.role !== 'ADMIN' || !session.user.isSuperAdmin) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
   try {

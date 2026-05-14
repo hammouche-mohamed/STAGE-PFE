@@ -212,6 +212,69 @@ export async function GET(req: NextRequest) {
       }
     }
 
+    if (type === 'companies' || type === 'all') {
+      // Companies that have proposed at least one topic in the given year/filière.
+      const companies = await prisma.user.findMany({
+        where: {
+          role: 'COMPANY',
+          proposedTopics: {
+            some: {
+              ...(year ? { academicYear: year } : {}),
+              ...(filiereId ? { filiereId } : {}),
+            },
+          },
+        },
+        include: {
+          companyprofile: true,
+          _count: { select: { proposedTopics: true } },
+        },
+      });
+      rows.push('=== COMPANIES ===');
+      rows.push('ID,Company Name,Contact Email,Sector,Wilaya,Topics Proposed');
+      for (const c of companies as any[]) {
+        rows.push([
+          c.id,
+          `"${(c.companyprofile?.companyName || c.name || '').replace(/"/g, '""')}"`,
+          c.email,
+          `"${c.companyprofile?.sector || ''}"`,
+          `"${c.companyprofile?.wilaya || ''}"`,
+          c._count?.proposedTopics ?? 0,
+        ].join(','));
+      }
+    }
+
+    if (type === 'audit' || type === 'all') {
+      // Audit logs filtered by academic year window if provided. The year
+      // string is "YYYY-YYYY" (academic year), so derive Sept→Aug bounds.
+      const yearWhere: Record<string, any> = {};
+      if (year && /^\d{4}-\d{4}$/.test(year)) {
+        const [start] = year.split('-').map((s) => parseInt(s, 10));
+        yearWhere.createdAt = {
+          gte: new Date(start, 8, 1), // Sept 1
+          lt: new Date(start + 1, 8, 1), // Sept 1 next year
+        };
+      }
+      const logs = await prisma.auditLog.findMany({
+        where: yearWhere,
+        include: { user: { select: { name: true, email: true, role: true } } },
+        orderBy: { createdAt: 'asc' },
+        take: 5000,
+      });
+      rows.push('=== AUDIT LOG ===');
+      rows.push('Timestamp,Actor,Role,Action,Target Type,Target ID,IP');
+      for (const a of logs) {
+        rows.push([
+          a.createdAt.toISOString(),
+          `"${(a.user?.name || 'System').replace(/"/g, '""')}"`,
+          a.user?.role || '',
+          a.action,
+          a.targetType,
+          a.targetId,
+          a.ipAddress || '',
+        ].join(','));
+      }
+    }
+
     const csv = rows.join('\n');
     const filename = `history_${year || 'all'}_${type}_${new Date().toISOString().split('T')[0]}.csv`;
 

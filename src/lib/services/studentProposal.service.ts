@@ -6,6 +6,7 @@ import type { StudentProposedTopicInput } from '@/types/topic';
 import { AuditService } from './audit.service';
 import { NotificationService } from './notification.service';
 import { SettingsService } from './settings.service';
+import { assertNoActiveInternship } from './internshipGuard.service';
 
 export class StudentProposalService {
   // ─── Submit proposal (PATH B) ─────────────────────────────────────────────
@@ -161,6 +162,9 @@ export class StudentProposalService {
     const academicYear = await SettingsService.getCurrentAcademicYear();
 
     await prisma.$transaction(async (tx) => {
+      // NFR-RDI3: refuse if the student already has an active internship for this year.
+      await assertNoActiveInternship(tx, [topic.directAssigneeId!], academicYear);
+
       // 1. Mark topic as TAKEN and assign teacher
       await tx.topic.update({
         where: { id: topicId },
