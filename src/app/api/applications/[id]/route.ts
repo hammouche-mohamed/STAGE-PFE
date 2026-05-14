@@ -24,11 +24,11 @@ export async function PATCH(
       where: { id },
       include: { 
         topic: true,
-        team: {
+        studentteam: {
           include: {
-            members: {
+            teammember: {
               where: { isLeader: true },
-              include: { student: true }
+              include: { user: true }
             }
           }
         }
@@ -48,7 +48,7 @@ export async function PATCH(
       data: { status, reviewedAt: new Date() }
     });
 
-    const leader = application.team.members[0]?.student;
+    const leader = application.studentteam?.teammember[0]?.user;
     if (leader) {
       await NotificationService.trigger({
         userId: leader.id,

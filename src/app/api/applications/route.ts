@@ -89,7 +89,7 @@ export async function POST(req: NextRequest) {
     // ── Get User's Team ───────────────────────────────────────────────────────
     let member = await prisma.teamMember.findFirst({
       where: { studentId: session.user.id },
-      include: { team: true }
+      include: { studentteam: true }
     });
 
     // If student has no team, auto-create a team of 1
@@ -109,7 +109,7 @@ export async function POST(req: NextRequest) {
 
       member = await prisma.teamMember.create({
         data: { teamId: team.id, studentId: session.user.id, isLeader: true },
-        include: { team: true }
+        include: { studentteam: true }
       });
     }
 

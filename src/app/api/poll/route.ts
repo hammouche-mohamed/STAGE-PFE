@@ -93,7 +93,7 @@ export async function GET(req: NextRequest) {
           orderBy: { updatedAt: "desc" },
           select: { updatedAt: true },
         }),
-        prisma.binomeInvitation.findFirst({
+        prisma.binomeinvitation.findFirst({
           where: { invitedStudentId: session.user.id },
           orderBy: { createdAt: "desc" },
           select: { createdAt: true },

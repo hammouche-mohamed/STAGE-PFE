@@ -50,7 +50,7 @@ export default function AuditLogsPage() {
   const [endDate, setEndDate] = useState("");
 
   // Authentication check
-  if (session && !session.user.isSuperAdmin) {
+  if (session && !(session.user as any).isSuperAdmin) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px] text-center p-6 bg-white dark:bg-slate-900 rounded-xl border border-dashed border-gray-300 dark:border-slate-700 shadow-sm">
         <div className="h-16 w-16 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-full flex items-center justify-center mb-4">

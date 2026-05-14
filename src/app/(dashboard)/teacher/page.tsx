@@ -26,8 +26,8 @@ export default async function TeacherDashboardPage() {
       id: true,
       name: true,
       teacherprofile: { select: { maxStudents: true, currentLoad: true } },
-    },
-  });
+    } as any,
+  }) as any;
 
   if (!teacher) return <div className="p-8 text-gray-400">Teacher profile not found.</div>;
 
@@ -55,24 +55,24 @@ export default async function TeacherDashboardPage() {
         teacherValidatedFinalReport: false,
       },
     }),
-    prisma.internship.findMany({
-      where: { teacherId: teacher.id, status: "IN_PROGRESS" },
-      include: {
-        topic: { select: { title: true } },
-        internshipstudent: { include: { user: { select: { name: true } } } },
-      },
-      take: 5,
-      orderBy: { updatedAt: "desc" }
-    }),
-    prisma.message.findMany({
-      where: { internship: { teacherId: teacher.id } },
-      include: {
-        user: { select: { name: true } },
-        internship: { select: { topic: { select: { title: true } } } }
-      },
-      take: 4,
-      orderBy: { sentAt: "desc" }
-    }),
+      prisma.internship.findMany({
+        where: { teacherId: teacher.id, status: "IN_PROGRESS" },
+        include: {
+          topic: { select: { title: true } },
+          internshipstudent: { include: { user: { select: { name: true } } } },
+        } as any,
+        take: 5,
+        orderBy: { updatedAt: "desc" }
+      }),
+      prisma.message.findMany({
+        where: { internship: { teacherId: teacher.id } },
+        include: {
+          user: { select: { name: true } },
+          internship: { select: { topic: { select: { title: true } } } }
+        } as any,
+        take: 4,
+        orderBy: { sentAt: "desc" }
+      }),
     prisma.topic.count({
       where: {
         type: "COMPANY_PROPOSED",
@@ -106,7 +106,7 @@ export default async function TeacherDashboardPage() {
           value={companyTopicCount}
           icon={Building2}
           subValue="Waiting supervisor"
-          subValueColor={companyTopicCount > 0 ? "indigo" : "gray"}
+          subValueColor={companyTopicCount > 0 ? "amber" : "gray"}
         />
         <StatsCard
           label="Applications"
@@ -163,10 +163,10 @@ export default async function TeacherDashboardPage() {
                   <div className="flex items-center justify-between">
                     <div className="min-w-0 flex-1">
                       <p className="text-[13px] font-bold text-gray-900 dark:text-white truncate group-hover:text-indigo-700 dark:group-hover:text-indigo-400 transition-colors">
-                        {internship.topic.title}
+                        {(internship as any).topic?.title}
                       </p>
                       <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1 truncate">
-                        {internship.internshipstudent.map(s => s.user.name).join(" · ")}
+                        {(internship as any).internshipstudent?.map((s: any) => s.user?.name).join(" · ")}
                       </p>
                     </div>
                     <div className="h-8 w-8 rounded-full bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400 group-hover:bg-indigo-600 group-hover:text-white transition-all">
@@ -194,13 +194,13 @@ export default async function TeacherDashboardPage() {
                 recentMessages.map((m) => (
                   <div key={m.id} className="p-3 border-b border-gray-50 dark:border-slate-800 last:border-0">
                     <div className="flex justify-between items-start gap-2">
-                      <p className="text-[12px] font-bold text-gray-900 dark:text-white truncate">{m.user.name}</p>
+                      <p className="text-[12px] font-bold text-gray-900 dark:text-white truncate">{(m as any).user?.name}</p>
                       <span className="text-[9px] text-gray-400 dark:text-gray-500 shrink-0 font-medium uppercase tracking-tighter">
                         {new Date(m.sentAt).toLocaleDateString([], { month: 'short', day: 'numeric' })}
                       </span>
                     </div>
-                    <p className="text-[11px] text-gray-500 dark:text-gray-400 truncate mt-0.5" title={m.internship.topic.title}>
-                      {m.internship.topic.title}
+                    <p className="text-[11px] text-gray-500 dark:text-gray-400 truncate mt-0.5" title={(m as any).internship?.topic?.title}>
+                      {(m as any).internship?.topic?.title}
                     </p>
                     <p className="text-[12px] text-gray-600 dark:text-gray-300 line-clamp-1 mt-1 italic">
                       &quot;{m.content.replace(/^↩ .*?\n\n/, "").slice(0, 50)}...&quot;

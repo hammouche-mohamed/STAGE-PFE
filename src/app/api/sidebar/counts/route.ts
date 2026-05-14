@@ -61,7 +61,7 @@ export async function GET(req: NextRequest) {
       counts["/company/messages"] = msgCount;
     } else if (role === "STUDENT") {
       const [invitCount, msgCount] = await Promise.all([
-        prisma.binomeInvitation.count({ 
+        prisma.binomeinvitation.count({ 
           where: { invitedStudentId: userId, status: "PENDING" },
         }),
         prisma.message.count({

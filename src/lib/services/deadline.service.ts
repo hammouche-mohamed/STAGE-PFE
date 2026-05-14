@@ -24,8 +24,8 @@ export class DeadlineService {
     const internships = await prisma.internship.findMany({
       where: { status: 'IN_PROGRESS' },
       include: {
-        students: { select: { studentId: true } },
-        teacher: { select: { id: true } },
+        internshipstudent: { select: { studentId: true } },
+        user: { select: { id: true } },
         topic: { select: { title: true } },
       },
     });
@@ -39,7 +39,7 @@ export class DeadlineService {
     let finalReminders = 0;
 
     for (const internship of internships) {
-      const studentIds = internship.students.map((s) => s.studentId);
+      const studentIds = internship.internshipstudent.map((s) => s.studentId);
       const title = internship.topic.title;
 
       // ── Midterm reminder (PFE only, skip if null) ──────────────────────────

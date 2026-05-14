@@ -279,14 +279,14 @@ export function AdminDashboardClient({
                         <span className="text-[11px] text-gray-500 dark:text-gray-400 truncate">{student.email}</span>
                       </div>
                       <div className={`flex flex-col items-end flex-shrink-0 ${isRTL ? "items-start" : "items-end"}`}>
-                        {student.studentProfile?.level && (
+                        {student.studentprofile?.level && (
                           <span className="px-2 py-0.5 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-[10px] font-bold rounded uppercase tracking-wider border border-gray-200 dark:border-gray-700">
-                            {student.studentProfile.level}
+                            {student.studentprofile.level}
                           </span>
                         )}
-                        {session?.user?.isSuperAdmin && student.studentProfile?.filiere?.name && (
-                          <span className="text-[10px] text-gray-500 dark:text-gray-400 mt-1 max-w-[120px] truncate" title={student.studentProfile.filiere.name}>
-                            {student.studentProfile.filiere.name}
+                        {session?.user?.isSuperAdmin && student.studentprofile?.filiere?.name && (
+                          <span className="text-[10px] text-gray-500 dark:text-gray-400 mt-1 max-w-[120px] truncate" title={student.studentprofile.filiere.name}>
+                            {student.studentprofile.filiere.name}
                           </span>
                         )}
                       </div>

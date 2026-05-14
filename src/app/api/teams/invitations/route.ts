@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
     // Verify team
     const team = await prisma.studentTeam.findUnique({
       where: { id: teamId },
-      include: { members: true, invitations: { where: { status: "PENDING" } } }
+      include: { teammember: true, teaminvitation: { where: { status: "PENDING" } } }
     });
 
     if (!team) return NextResponse.json({ error: "Team not found" }, { status: 404 });
@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
     const maxTeamSizeSetting = await prisma.systemSettings.findUnique({ where: { key: "MAX_TEAM_SIZE" } });
     const maxTeamSize = maxTeamSizeSetting ? parseInt(maxTeamSizeSetting.value) : 2;
 
-    const currentTotalSize = team.members.length + team.invitations.length;
+    const currentTotalSize = team.teammember.length + team.teaminvitation.length;
     if (currentTotalSize >= maxTeamSize) {
       return NextResponse.json({ error: `You cannot invite more students. Max team size is ${maxTeamSize}.` }, { status: 400 });
     }
@@ -103,11 +103,11 @@ export async function GET(req: NextRequest) {
     const invitations = await prisma.teamInvitation.findMany({
       where: { invitedStudentId: session.user.id },
       include: {
-        team: {
+        studentteam: {
           include: {
-            members: {
+            teammember: {
               where: { isLeader: true },
-              include: { student: { select: { name: true, email: true } } }
+              include: { user: { select: { name: true, email: true } } }
             }
           }
         }

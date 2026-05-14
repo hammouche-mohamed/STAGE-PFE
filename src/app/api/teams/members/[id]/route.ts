@@ -21,12 +21,12 @@ export async function DELETE(
 
     const team = await prisma.studentTeam.findUnique({
       where: { id: teamId },
-      include: { members: { include: { student: true } } }
+      include: { teammember: { include: { user: true } } }
     });
 
     if (!team) return NextResponse.json({ error: "Team not found" }, { status: 404 });
 
-    const member = team.members.find(m => m.studentId === session.user.id);
+    const member = team.teammember.find(m => m.studentId === session.user.id);
     if (!member) {
       return NextResponse.json({ error: "You are not in this team" }, { status: 403 });
     }
@@ -45,7 +45,7 @@ export async function DELETE(
 
       if (member.isLeader) {
         // Find next member to be leader
-        const nextMember = team.members.find(m => m.id !== member.id);
+        const nextMember = team.teammember.find(m => m.id !== member.id);
         if (nextMember) {
           await tx.studentTeam.update({
             where: { id: teamId },
@@ -65,8 +65,8 @@ export async function DELETE(
     });
 
     // Send notifications if the team still exists
-    if (team.members.length > 1) {
-      const remainingMembers = team.members.filter(m => m.id !== member.id);
+    if (team.teammember.length > 1) {
+      const remainingMembers = team.teammember.filter(m => m.id !== member.id);
       
       for (const m of remainingMembers) {
         await NotificationService.trigger({

@@ -93,7 +93,7 @@ export default async function AdminDashboardPage() {
             id: true, 
             name: true, 
             email: true,
-            studentProfile: { select: { level: true, filiere: { select: { name: true } } } }
+            studentprofile: { select: { level: true, filiere: { select: { name: true } } } }
           },
           take: 20,
           orderBy: { name: "asc" },

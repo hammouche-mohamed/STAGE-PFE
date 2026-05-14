@@ -158,9 +158,9 @@ export default function TeacherTopicsPage() {
                   </td>
                   <td data-label="Status">
                     {activeTab === "MY" && topic.teacherApplications && topic.teacherApplications.length > 0 && !topic.assignedTeacherId ? (
-                      <StatusBadge status="PENDING" text="Application Pending" />
+                      <StatusBadge status="PENDING" label="Application Pending" />
                     ) : (
-                      <StatusBadge status={topic.assignedTeacherId === (session as any)?.user?.id ? "APPROVED" : topic.status} text={topic.assignedTeacherId === (session as any)?.user?.id ? "Supervising" : undefined} />
+                      <StatusBadge status={topic.assignedTeacherId === (session as any)?.user?.id ? "APPROVED" : topic.status} label={topic.assignedTeacherId === (session as any)?.user?.id ? "Supervising" : undefined} />
                     )}
                   </td>
                   <td data-label="Date">

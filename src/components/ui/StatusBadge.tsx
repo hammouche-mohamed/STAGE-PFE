@@ -20,6 +20,7 @@ export type StatusType =
 
 interface StatusBadgeProps {
   status: StatusType | string;
+  label?: string;
   className?: string;
 }
 
@@ -49,14 +50,14 @@ const statusMap: Record<string, { label: string; classes: string }> = {
   REVIEWED:         { label: "Reviewed",               classes: "bg-purple-50 text-purple-600 dark:bg-purple-900/20 dark:text-purple-400" },
 };
 
-export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, className = "" }) => {
+export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, label, className = "" }) => {
   const config = statusMap[status] ?? { label: status, classes: "bg-gray-100 text-gray-600" };
 
   return (
     <span
       className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] sm:text-[11px] font-medium whitespace-nowrap ${config.classes} ${className}`}
     >
-      {config.label}
+      {label ?? config.label}
     </span>
   );
 };

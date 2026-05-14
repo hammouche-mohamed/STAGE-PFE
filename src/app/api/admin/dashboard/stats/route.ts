@@ -114,7 +114,7 @@ export async function GET(req: NextRequest) {
           id: true, 
           name: true, 
           email: true,
-          studentProfile: { select: { level: true, filiere: { select: { name: true } } } }
+          studentprofile: { select: { level: true, filiere: { select: { name: true } } } }
         },
         take: 20,
         orderBy: { name: "asc" },

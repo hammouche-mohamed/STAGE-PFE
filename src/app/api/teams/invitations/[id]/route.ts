@@ -18,7 +18,7 @@ export async function PATCH(
 
     const invitation = await prisma.teamInvitation.findUnique({
       where: { id },
-      include: { team: { include: { members: true } } }
+      include: { studentteam: { include: { teammember: true } } }
     });
 
     if (!invitation || invitation.invitedStudentId !== session.user.id) {
@@ -34,7 +34,7 @@ export async function PATCH(
       const maxTeamSizeSetting = await prisma.systemSettings.findUnique({ where: { key: "MAX_TEAM_SIZE" } });
       const maxTeamSize = maxTeamSizeSetting ? parseInt(maxTeamSizeSetting.value) : 2;
 
-      if (invitation.team.members.length >= maxTeamSize) {
+      if (invitation.studentteam.teammember.length >= maxTeamSize) {
         return NextResponse.json({ error: "Team is already full" }, { status: 400 });
       }
 
@@ -71,7 +71,7 @@ export async function PATCH(
 
       // Notify the leader
       await NotificationService.trigger({
-        userId: invitation.team.leaderId,
+        userId: invitation.studentteam.leaderId,
         type: "BINOME_ACCEPTED",
         title: "Team Invitation Accepted",
         message: `${session.user.name} has joined your team.`,
@@ -90,7 +90,7 @@ export async function PATCH(
 
       // Notify the leader
       await NotificationService.trigger({
-        userId: invitation.team.leaderId,
+        userId: invitation.studentteam.leaderId,
         type: "BINOME_DECLINED",
         title: "Team Invitation Declined",
         message: `${session.user.name} has declined to join your team. ${comment ? `Reason: ${comment}` : ''}`,
@@ -101,7 +101,7 @@ export async function PATCH(
 
       // Notify the Admin if requested by user feedback
       const adminUsers = await prisma.user.findMany({
-        where: { role: "ADMIN", adminprofile: { filiereId: invitation.team.filiereId } }
+        where: { role: "ADMIN", adminprofile: { filiereId: invitation.studentteam.filiereId } }
       } as any);
 
       for (const admin of adminUsers) {
@@ -109,7 +109,7 @@ export async function PATCH(
           userId: admin.id,
           type: "BINOME_DECLINED",
           title: "Team Invitation Rejected",
-          message: `Student ${session.user.name} rejected a team invitation from Team ${invitation.team.id}. Reason: ${comment || 'No reason'}`,
+          message: `Student ${session.user.name} rejected a team invitation from Team ${invitation.studentteam.id}. Reason: ${comment || 'No reason'}`,
           relatedId: invitation.teamId,
           relatedType: "Team",
           link: "/admin/users?tab=teams",

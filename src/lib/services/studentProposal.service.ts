@@ -106,8 +106,8 @@ export class StudentProposalService {
       where: {
         role: 'ADMIN',
         OR: [
-          { adminProfile: { isSuperAdmin: true } },
-          { adminProfile: { filiereId: studentProfile?.filiereId } }
+          { adminprofile: { isSuperAdmin: true } },
+          { adminprofile: { filiereId: studentProfile?.filiereId } }
         ]
       },
       select: { id: true },
@@ -181,7 +181,7 @@ export class StudentProposalService {
           status: 'REQUESTED',
           internshipType: topic.internshipType ?? 'PFE',
           updatedAt: new Date(),
-          students: {
+          internshipstudent: {
             create: {
               id: randomUUID(),
               studentId: topic.directAssigneeId!,

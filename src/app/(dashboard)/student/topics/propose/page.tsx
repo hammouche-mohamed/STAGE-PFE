@@ -17,6 +17,7 @@ import { useTranslation } from "@/lib/i18n/LanguageContext";
 const proposalSchema = z.object({
   title: z.string().min(5, "Title must be at least 5 characters"),
   description: z.string().min(20, "Description must be at least 20 characters"),
+  requiredSkills: z.string().optional(),
   internshipType: z.enum(["PFE", "NORMAL"]),
   companyName: z.string().min(2, "Company name is required"),
   companySector: z.string().optional(),
@@ -246,6 +247,11 @@ export default function ProposeTopicPage() {
             <label className="admin-form-label">{t("topics.proposePage.descLabel")} <span className="text-red-500">*</span></label>
             <textarea {...register("description")} rows={5} className="admin-input h-auto py-2" placeholder={t("topics.proposePage.descPlaceholder")} />
             {errors.description && <p className="mt-1 text-[11px] text-red-600">{errors.description.message}</p>}
+          </div>
+
+          <div>
+            <label className="admin-form-label">{t("topics.requiredSkills") || "Required Skills / Technologies"}</label>
+            <Input placeholder={t("topics.proposePage.skillsPlaceholder") || "e.g. React, Node.js, Python..."} {...register("requiredSkills")} />
           </div>
         </div>
 
