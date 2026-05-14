@@ -273,6 +273,106 @@ async function main() {
     });
   }
 
+  // ── UNASSIGNED TOPICS (no internship yet) ───────────────────────────────────
+  // These exist so the three roles can verify visibility:
+  //   • Admin sees every status in their filière (Admin Topics page)
+  //   • Teacher sees APPROVED topics with no assigned teacher in their filière
+  //   • Student sees OPEN_FOR_SELECTION topics in their filière
+  //
+  // Note: none of these are linked to an internship, so the year-archive
+  // logic (which only includes TAKEN + COMPLETED/CANCELLED) will NOT pull
+  // them in. They stay live across year rollovers.
+  console.log("Generating unassigned topics (cross-role visibility)...");
+
+  // APPROVED but no teacher assigned yet — teachers can apply to supervise
+  for (let i = 0; i < 3; i++) {
+    await (prisma.topic as any).create({
+      data: {
+        title: `Open Supervision Topic ${i + 1}`,
+        description: "Admin-approved topic awaiting a supervisor.",
+        type: "COMPANY_PROPOSED",
+        status: "APPROVED",
+        academicYear: currentYear,
+        proposedById: companies[i % companies.length].id,
+        filiereId: createdDepts[i % createdDepts.length].id,
+        maxStudents: 1,
+        assignedTeacherId: null,
+        targetLevels: "L3,M1,M2",
+        updatedAt: new Date(),
+      }
+    });
+  }
+
+  // OPEN_FOR_SELECTION — students can pick & apply
+  for (let i = 0; i < 4; i++) {
+    const dept = createdDepts[i % createdDepts.length];
+    const sup = supervisors[i % supervisors.length];
+    await (prisma.topic as any).create({
+      data: {
+        title: `Available Project ${i + 1}`,
+        description: "Subject open for student selection this year.",
+        type: i % 2 === 0 ? "COMPANY_PROPOSED" : "STUDENT_PROPOSED",
+        status: "OPEN_FOR_SELECTION",
+        academicYear: currentYear,
+        proposedById: i % 2 === 0 ? companies[i % companies.length].id : students[i].id,
+        filiereId: dept.id,
+        assignedTeacherId: sup.id,
+        maxStudents: i % 2 === 0 ? 2 : 1,
+        targetLevels: "L3,M1,M2",
+        updatedAt: new Date(),
+      }
+    });
+  }
+
+  // ── ARCHIVE-YEAR CARRY-OVERS ────────────────────────────────────────────────
+  // Topics from the previous academic year that did NOT finish cleanly.
+  // They must remain in the database; the archive view correctly excludes
+  // them because archive only includes TAKEN topics whose internship is
+  // COMPLETED or CANCELLED.
+  console.log("Generating archive-year carry-overs (must not be archived/deleted)...");
+
+  // 1. An archive-year topic that was APPROVED but never picked up.
+  await (prisma.topic as any).create({
+    data: {
+      title: `Unclaimed Archive Topic`,
+      description: "Approved last year but no internship was ever created.",
+      type: "COMPANY_PROPOSED",
+      status: "APPROVED",
+      academicYear: archiveYear,
+      proposedById: companies[0].id,
+      filiereId: createdDepts[0].id,
+      maxStudents: 1,
+      updatedAt: new Date(),
+    }
+  });
+
+  // 2. An archive-year topic whose internship is still IN_PROGRESS
+  //    (genuine carry-over into the new year).
+  const carryTopic = await (prisma.topic as any).create({
+    data: {
+      title: `Carry-Over Project`,
+      description: "Started last year, still running.",
+      type: "STUDENT_PROPOSED",
+      status: "TAKEN",
+      academicYear: archiveYear,
+      proposedById: students[0].id,
+      filiereId: createdDepts[0].id,
+      maxStudents: 1,
+      updatedAt: new Date(),
+    }
+  });
+  await (prisma.internship as any).create({
+    data: {
+      topicId: carryTopic.id,
+      teacherId: supervisors[0].id,
+      academicYear: archiveYear,
+      status: "IN_PROGRESS",
+      internshipType: "PFE",
+      internshipstudent: { create: [{ studentId: students[0].id, isLeader: true }] },
+      updatedAt: new Date(),
+    }
+  });
+
   // ── AUDIT LOGS ──────────────────────────────────────────────────────────────
   console.log("Creating Audit Logs...");
   // Logs for archive year
