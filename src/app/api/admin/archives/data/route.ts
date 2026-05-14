@@ -87,6 +87,12 @@ export async function GET(req: NextRequest) {
                     status: { in: FINISHED_STATUSES },
                   },
                 },
+                proposedTopics: {
+                  where: {
+                    academicYear: year,
+                    status: 'TAKEN',
+                  }
+                }
               },
             },
           },

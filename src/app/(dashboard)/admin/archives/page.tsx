@@ -149,8 +149,8 @@ export default function AdminArchivesPage() {
               })()}
             </td>
             <td className="text-[12px]">{i.teacher?.name || "Unassigned"}</td>
-            <td className="text-center font-bold text-indigo-600">{i._count.messages}</td>
-            <td className="text-center font-bold text-blue-600">{i._count.documents}</td>
+            <td className="text-center font-bold text-indigo-600">{i._count?.messages || 0}</td>
+            <td className="text-center font-bold text-blue-600">{i._count?.documents || 0}</td>
             <td>
               <span className="text-[11px] font-medium text-gray-500 uppercase">{i.status.replace(/_/g, ' ')}</span>
             </td>
@@ -220,8 +220,8 @@ export default function AdminArchivesPage() {
             </td>
             <td className="text-[12px]">{t.teacherProfile?.grade || "—"}</td>
             <td className="text-[12px]">{t.teacherProfile?.filiere?.name || "—"}</td>
-            <td className="text-center font-bold text-indigo-600">{t._count.internships}</td>
-            <td className="text-center font-bold text-emerald-600">{t._count.proposedTopics}</td>
+            <td className="text-center font-bold text-indigo-600">{t._count?.internship || 0}</td>
+            <td className="text-center font-bold text-emerald-600">{t._count?.proposedTopics || 0}</td>
           </tr>
         ))}
       </tbody>
@@ -342,9 +342,9 @@ export default function AdminArchivesPage() {
         {archiveData.map((a) => (
           <tr key={a.id} className="admin-table-row">
             <td>
-               <span className="text-[11px] font-bold bg-gray-50 px-2 py-0.5 rounded border italic">
-                 {a.action.replace(/_/g, ' ')}
-               </span>
+                <span className="text-[11px] font-bold bg-gray-50 dark:bg-slate-800 px-2 py-0.5 rounded border border-gray-200 dark:border-slate-700 text-gray-700 dark:text-slate-300 italic whitespace-nowrap">
+                  {a.action.replace(/_/g, ' ')}
+                </span>
             </td>
             <td>
               <p className="font-medium text-[12px]">{a.user?.name || "System"}</p>
