@@ -18,7 +18,7 @@ type ProfileData = {
   department?: string | null;
   avatarUrl?: string;
   adminProfile?: { filiere?: { name: string } | null } | null;
-  studentProfile?: { filiere?: { name: string } | null } | null;
+  studentProfile?: { filiere?: { name: string } | null, level?: string | null } | null;
   teacherProfile?: { filiere?: { name: string } | null } | null;
 };
 
@@ -331,6 +331,13 @@ export default function ProfilePage() {
               <Input
                 label={t("admin.users.assignedFiliere")}
                 value={profile?.department || t("common.none")}
+                disabled
+              />
+            )}
+            {profile?.role === "STUDENT" && (
+              <Input
+                label={t("topics.list.level") || "Academic Level"}
+                value={profile?.studentProfile?.level || t("common.none")}
                 disabled
               />
             )}

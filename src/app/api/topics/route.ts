@@ -313,6 +313,10 @@ export async function GET(req: NextRequest) {
       updatedAt: true,
       pendingEditData: true,
       pendingEditRequestedAt: true,
+      targetLevels: true,
+      filiereId: true,
+      requiredSkills: true,
+      filiere: { select: { id: true, name: true, code: true } },
       proposedBy: { select: { id: true, name: true } },
       assignedTeacher: { select: { id: true, name: true } },
       _count: {
