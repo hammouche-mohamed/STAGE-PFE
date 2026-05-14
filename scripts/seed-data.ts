@@ -304,8 +304,18 @@ async function main() {
     });
   }
 
-  // OPEN_FOR_SELECTION — students can pick & apply
-  for (let i = 0; i < 4; i++) {
+  // OPEN_FOR_SELECTION — students can pick & apply.
+  // Mix internshipType (NORMAL for L1/L2/M1, PFE for L3/M2) and targetLevels
+  // so every student level finds something on their topics page.
+  const openForSelectionTemplates = [
+    { internshipType: "NORMAL", targetLevels: "L1,L2,L3,M1,M2" },
+    { internshipType: "NORMAL", targetLevels: "L1,L2" },
+    { internshipType: "PFE",    targetLevels: "L3,M2" },
+    { internshipType: "PFE",    targetLevels: "M1,M2" },
+  ] as const;
+
+  for (let i = 0; i < openForSelectionTemplates.length; i++) {
+    const tpl = openForSelectionTemplates[i];
     const dept = createdDepts[i % createdDepts.length];
     const sup = supervisors[i % supervisors.length];
     await (prisma.topic as any).create({
@@ -313,13 +323,14 @@ async function main() {
         title: `Available Project ${i + 1}`,
         description: "Subject open for student selection this year.",
         type: i % 2 === 0 ? "COMPANY_PROPOSED" : "STUDENT_PROPOSED",
+        internshipType: tpl.internshipType,
         status: "OPEN_FOR_SELECTION",
         academicYear: currentYear,
         proposedById: i % 2 === 0 ? companies[i % companies.length].id : students[i].id,
         filiereId: dept.id,
         assignedTeacherId: sup.id,
         maxStudents: i % 2 === 0 ? 2 : 1,
-        targetLevels: "L3,M1,M2",
+        targetLevels: tpl.targetLevels,
         updatedAt: new Date(),
       }
     });

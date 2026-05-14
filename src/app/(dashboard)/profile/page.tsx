@@ -330,7 +330,13 @@ export default function ProfilePage() {
             {profile?.role !== "COMPANY" && !session?.user?.isSuperAdmin && (
               <Input
                 label={t("admin.users.assignedFiliere")}
-                value={profile?.department || t("common.none")}
+                value={
+                  profile?.studentProfile?.filiere?.name ||
+                  profile?.teacherProfile?.filiere?.name ||
+                  profile?.adminProfile?.filiere?.name ||
+                  profile?.department ||
+                  t("common.none")
+                }
                 disabled
               />
             )}

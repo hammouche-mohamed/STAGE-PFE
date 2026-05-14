@@ -383,14 +383,14 @@ export default function StudentInternshipPage() {
           </div>
 
           {/* Document Library CTA */}
-          <div className="doc-library-cta bg-gray-900 rounded-md p-5 text-white shadow-lg overflow-hidden relative">
+          <div className="doc-library-cta bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-md p-5 text-gray-900 dark:text-white shadow-sm dark:shadow-lg overflow-hidden relative">
             <div className="relative z-10">
-              <FileText className="h-6 w-6 text-indigo-400 mb-4" />
+              <FileText className="h-6 w-6 text-indigo-600 dark:text-indigo-400 mb-4" />
               <h3 className="text-[15px] font-bold">{t("internship.reportPanel.documentLibrary")}</h3>
-              <p className="text-[12px] text-gray-400 mt-2 leading-relaxed">
+              <p className="text-[12px] text-gray-500 dark:text-gray-400 mt-2 leading-relaxed">
                 {t("internship.reportPanel.documentLibraryDesc")}
               </p>
-              <Link href={uploadUrl} className="mt-4 inline-flex items-center text-[12px] font-bold text-indigo-400 uppercase tracking-wide hover:underline">
+              <Link href={uploadUrl} className="mt-4 inline-flex items-center text-[12px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wide hover:underline">
                 {t("internship.reportPanel.manageDocuments")}
                 <ArrowRight className="ml-1 h-3 w-3" />
               </Link>

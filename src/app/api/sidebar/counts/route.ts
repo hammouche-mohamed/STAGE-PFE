@@ -58,11 +58,15 @@ export async function GET(req: NextRequest) {
     } else if (role === "TEACHER") {
       const [internCount, docCount, msgCount] = await Promise.all([
         prisma.internship.count({ where: { teacherId: userId, status: "REQUESTED" } }),
-        prisma.document.count({ 
+        prisma.document.count({
           where: { internship: { teacherId: userId }, status: "UPLOADED" },
         }),
         prisma.message.count({
-          where: { internship: { teacherId: userId }, messageread: { none: { userId } } } as any,
+          where: {
+            internship: { teacherId: userId, status: { notIn: ["COMPLETED", "CANCELLED"] } },
+            senderId: { not: userId },
+            messageread: { none: { userId } },
+          } as any,
         })
       ]);
       counts["/teacher/internships"] = internCount;
@@ -70,23 +74,34 @@ export async function GET(req: NextRequest) {
       counts["/teacher/messages"] = msgCount;
     } else if (role === "COMPANY") {
       const [appCount, msgCount] = await Promise.all([
-        prisma.studentApplication.count({ 
+        prisma.studentApplication.count({
           where: { topic: { proposedById: userId }, status: "PENDING" },
         }),
         prisma.message.count({
-          where: { internship: { topic: { proposedById: userId } }, messageread: { none: { userId } } } as any,
+          where: {
+            internship: {
+              topic: { proposedById: userId },
+              status: { notIn: ["COMPLETED", "CANCELLED"] },
+            },
+            senderId: { not: userId },
+            messageread: { none: { userId } },
+          } as any,
         })
       ]);
       counts["/company/applications"] = appCount;
       counts["/company/messages"] = msgCount;
     } else if (role === "STUDENT") {
       const [invitCount, msgCount] = await Promise.all([
-        prisma.binomeinvitation.count({ 
+        prisma.binomeinvitation.count({
           where: { invitedStudentId: userId, status: "PENDING" },
         }),
         prisma.message.count({
           where: {
-            internship: { internshipstudent: { some: { studentId: userId } } },
+            internship: {
+              internshipstudent: { some: { studentId: userId } },
+              status: { notIn: ["COMPLETED", "CANCELLED"] },
+            },
+            senderId: { not: userId },
             messageread: { none: { userId } },
           } as any,
         })
