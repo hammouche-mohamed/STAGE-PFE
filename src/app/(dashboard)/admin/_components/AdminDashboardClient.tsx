@@ -273,24 +273,26 @@ export function AdminDashboardClient({
                   </div>
                 ) : (
                   (stats as any).studentsAtRisk.map((student: any) => (
-                    <div key={student.id} className="flex items-center justify-between p-4 hover:bg-amber-50/30 dark:hover:bg-amber-900/10 transition-colors border-b sm:border-r border-gray-50 dark:border-gray-800">
-                      <div className="flex flex-col flex-1 min-w-0 pr-2">
-                        <span className="text-[13px] font-bold text-gray-900 dark:text-white truncate">{student.name}</span>
-                        <span className="text-[11px] text-gray-500 dark:text-gray-400 truncate">{student.email}</span>
+                    <div key={student.id} className={`p-3 flex items-center justify-between border-b border-gray-100 dark:border-slate-800 last:border-0 hover:bg-gray-50/50 dark:hover:bg-slate-800/50 transition-colors`}>
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="h-8 w-8 rounded-full bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center flex-shrink-0">
+                          <Users className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
+                        </div>
+                        <div className="flex flex-col min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="text-[13px] font-bold text-gray-900 dark:text-white truncate">{student.name}</span>
+                            {student.studentprofile?.level && (
+                              <span className="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 text-[9px] font-bold rounded border border-gray-200 dark:border-gray-700">
+                                {student.studentprofile.level}
+                              </span>
+                            )}
+                          </div>
+                          <span className="text-[11px] text-gray-500 dark:text-gray-400 truncate">{student.email}</span>
+                        </div>
                       </div>
                       <div className={`flex flex-col items-end flex-shrink-0 ${isRTL ? "items-start" : "items-end"}`}>
-                        {student.studentprofile?.level && (
-                          <span className="px-2 py-0.5 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-[10px] font-bold rounded uppercase tracking-wider border border-gray-200 dark:border-gray-700">
-                            {student.studentprofile.level}
-                          </span>
-                        )}
-                        {student.studentprofile?.academicYear && (
-                          <span className="text-[9px] text-gray-400 dark:text-gray-500 mt-0.5 font-medium">
-                            {student.studentprofile.academicYear}
-                          </span>
-                        )}
                         {session?.user?.isSuperAdmin && student.studentprofile?.filiere?.name && (
-                          <span className="text-[10px] text-gray-500 dark:text-gray-400 mt-1 max-w-[120px] truncate" title={student.studentprofile.filiere.name}>
+                          <span className="text-[10px] font-medium text-gray-500 dark:text-gray-400 max-w-[120px] truncate" title={student.studentprofile.filiere.name}>
                             {student.studentprofile.filiere.name}
                           </span>
                         )}

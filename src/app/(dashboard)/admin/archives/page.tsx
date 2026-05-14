@@ -132,8 +132,10 @@ export default function AdminArchivesPage() {
         {archiveData.map((i) => (
           <tr key={i.id} className="admin-table-row">
             <td>
-              <p className="font-medium text-gray-900 dark:text-white text-[13px]">{i.topic.title}</p>
-              <p className="text-[11px] text-gray-400">{i.students.map((s: any) => s.student.name).join(" & ")}</p>
+              <p className="font-medium text-gray-900 dark:text-white text-[13px]">{i.topic?.title || "Untitled Topic"}</p>
+              <p className="text-[11px] text-gray-400">
+                {(i.students || []).map((s: any) => s.student?.name || "Unknown").join(" & ")}
+              </p>
             </td>
             <td>
               {(() => {
@@ -146,7 +148,7 @@ export default function AdminArchivesPage() {
                 );
               })()}
             </td>
-            <td className="text-[12px]">{i.teacher.name}</td>
+            <td className="text-[12px]">{i.teacher?.name || "Unassigned"}</td>
             <td className="text-center font-bold text-indigo-600">{i._count.messages}</td>
             <td className="text-center font-bold text-blue-600">{i._count.documents}</td>
             <td>
@@ -173,8 +175,8 @@ export default function AdminArchivesPage() {
         {archiveData.map((s) => (
           <tr key={s.id} className="admin-table-row">
             <td>
-              <p className="font-medium text-[13px]">{s.name}</p>
-              <p className="text-[11px] text-gray-400">{s.email}</p>
+              <p className="font-medium text-[13px]">{s.name || "Unknown Student"}</p>
+              <p className="text-[11px] text-gray-400">{s.email || "No Email"}</p>
             </td>
             <td className="text-[12px]">
               <span className="px-1.5 py-0.5 bg-violet-50 dark:bg-violet-900/20 text-violet-700 dark:text-violet-400 text-[10px] font-bold rounded border border-violet-200 dark:border-violet-800">
@@ -213,8 +215,8 @@ export default function AdminArchivesPage() {
         {archiveData.map((t) => (
           <tr key={t.id} className="admin-table-row">
             <td>
-              <p className="font-medium text-[13px]">{t.name}</p>
-              <p className="text-[11px] text-gray-400">{t.email}</p>
+              <p className="font-medium text-[13px]">{t.name || "Unknown Teacher"}</p>
+              <p className="text-[11px] text-gray-400">{t.email || "No Email"}</p>
             </td>
             <td className="text-[12px]">{t.teacherProfile?.grade || "—"}</td>
             <td className="text-[12px]">{t.teacherProfile?.filiere?.name || "—"}</td>
@@ -240,12 +242,12 @@ export default function AdminArchivesPage() {
         {archiveData.map((c) => (
           <tr key={c.id} className="admin-table-row">
             <td>
-              <p className="font-medium text-[13px]">{c.companyProfile?.companyName || c.name}</p>
-              <p className="text-[11px] text-gray-400">{c.email}</p>
+              <p className="font-medium text-[13px]">{c.companyProfile?.companyName || c.name || "Unknown Company"}</p>
+              <p className="text-[11px] text-gray-400">{c.email || "No Email"}</p>
             </td>
             <td className="text-[12px]">{c.companyProfile?.sector || "—"}</td>
             <td className="text-[12px]">{c.companyProfile?.wilaya || "—"}</td>
-            <td className="text-center font-bold text-emerald-600">{c._count.proposedTopics}</td>
+            <td className="text-center font-bold text-emerald-600">{c._count?.proposedTopics || 0}</td>
           </tr>
         ))}
       </tbody>
@@ -311,10 +313,10 @@ export default function AdminArchivesPage() {
               <p className="font-medium text-[13px]">{d.fileName}</p>
               <p className="text-[10px] text-gray-400">Type: {d.type}</p>
             </td>
-            <td className="text-[12px]">{d.internship.topic.title.substring(0, 40)}...</td>
+            <td className="text-[12px]">{d.internship?.topic?.title?.substring(0, 40) || "Untitled Topic"}...</td>
             <td>
-              <p className="text-[12px]">{d.uploadedBy.name}</p>
-              <p className="text-[10px] text-gray-400">{d.uploadedBy.role}</p>
+              <p className="text-[12px]">{d.uploadedBy?.name || "Unknown"}</p>
+              <p className="text-[10px] text-gray-400">{d.uploadedBy?.role || "User"}</p>
             </td>
             <td className="text-[12px] text-gray-500">{format(new Date(d.uploadedAt), "MMM d, yyyy")}</td>
             <td>
@@ -345,8 +347,8 @@ export default function AdminArchivesPage() {
                </span>
             </td>
             <td>
-              <p className="font-medium text-[12px]">{a.user.name}</p>
-              <p className="text-[10px] text-gray-400">{a.user.email}</p>
+              <p className="font-medium text-[12px]">{a.user?.name || "System"}</p>
+              <p className="text-[10px] text-gray-400">{a.user?.email || "No Email"}</p>
             </td>
             <td className="text-[12px] text-gray-500">{a.targetType} ({a.targetId})</td>
             <td className="text-[12px] text-gray-400">{format(new Date(a.createdAt), "MMM d, HH:mm")}</td>
