@@ -284,6 +284,11 @@ export function AdminDashboardClient({
                             {student.studentprofile.level}
                           </span>
                         )}
+                        {student.studentprofile?.academicYear && (
+                          <span className="text-[9px] text-gray-400 dark:text-gray-500 mt-0.5 font-medium">
+                            {student.studentprofile.academicYear}
+                          </span>
+                        )}
                         {session?.user?.isSuperAdmin && student.studentprofile?.filiere?.name && (
                           <span className="text-[10px] text-gray-500 dark:text-gray-400 mt-1 max-w-[120px] truncate" title={student.studentprofile.filiere.name}>
                             {student.studentprofile.filiere.name}

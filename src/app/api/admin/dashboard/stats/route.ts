@@ -104,9 +104,9 @@ export async function GET(req: NextRequest) {
         where: {
           role: "STUDENT",
           isActive: true,
+          // Merged into one object to avoid key collision
           studentprofile: {
-            academicYear: currentAcademicYear,
-            ...(targetFiliereId ? { filiereId: targetFiliereId } : {} as any),
+            ...(targetFiliereId ? { filiereId: targetFiliereId } : {}),
           },
           internshipstudent: { none: {} },
         } as any,
@@ -114,8 +114,8 @@ export async function GET(req: NextRequest) {
           id: true, 
           name: true, 
           email: true,
-          studentprofile: { select: { level: true, filiere: { select: { name: true } } } }
-        },
+          studentprofile: { select: { level: true, filiere: { select: { name: true } }, academicYear: true } }
+        } as any,
         take: 20,
         orderBy: { name: "asc" },
       }),

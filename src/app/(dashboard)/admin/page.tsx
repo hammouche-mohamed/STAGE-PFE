@@ -101,25 +101,23 @@ export default async function AdminDashboardPage() {
         prisma.teacherApplication.count({
           where: { status: "PENDING", ...(!isSuperAdmin && filiereId ? { topic: { filiereId } } : {}) },
         }),
-        // Students without any internship assignment — year-aware if year is set
+        // Students without any active internship — not year-locked (shows all unplaced students)
         prisma.user.findMany({
           where: {
             role: "STUDENT",
             isActive: true,
-            ...(!isSuperAdmin && filiereId
-              ? { studentprofile: { filiereId } }
-              : {}),
-            ...(currentAcademicYear && currentAcademicYear !== "N/A"
-              ? { studentprofile: { academicYear: currentAcademicYear } }
-              : {}),
+            // Merge studentprofile conditions into ONE object to avoid key collision
+            studentprofile: {
+              ...(!isSuperAdmin && filiereId ? { filiereId } : {}),
+            },
             internshipstudent: { none: {} },
           } as any,
           select: {
             id: true,
             name: true,
             email: true,
-            studentprofile: { select: { level: true, filiere: { select: { name: true } } } }
-          },
+            studentprofile: { select: { level: true, filiere: { select: { name: true } }, academicYear: true } }
+          } as any,
           take: 20,
           orderBy: { name: "asc" },
         }),
