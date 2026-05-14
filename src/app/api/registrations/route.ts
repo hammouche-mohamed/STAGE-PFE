@@ -88,6 +88,19 @@ export async function POST(req: NextRequest) {
   }
 
   try {
+    // FR-SA3: honor the SuperAdmin "registrationOpen" flag. When the flag is
+    // explicitly set to "false", reject new registrations.
+    const registrationOpenSetting = await prisma.systemSettings.findUnique({
+      where: { key: "registrationOpen" },
+      select: { value: true },
+    });
+    if (registrationOpenSetting && registrationOpenSetting.value.toLowerCase() === "false") {
+      return NextResponse.json(
+        { error: "Registration is currently closed. Please contact the administration." },
+        { status: 403 },
+      );
+    }
+
     const body = await req.json();
     const validatedData = registrationSchema.parse(body);
 

@@ -49,21 +49,6 @@ export default function AuditLogsPage() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
 
-  // Authentication check
-  if (session && !(session.user as any).isSuperAdmin) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[400px] text-center p-6 bg-white dark:bg-slate-900 rounded-xl border border-dashed border-gray-300 dark:border-slate-700 shadow-sm">
-        <div className="h-16 w-16 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-full flex items-center justify-center mb-4">
-          <ShieldCheck className="h-8 w-8" />
-        </div>
-        <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Access Restricted</h2>
-        <p className="text-gray-500 dark:text-gray-400 max-w-md mx-auto">
-          Only Super Administrators can view system audit logs.
-        </p>
-      </div>
-    );
-  }
-
   const parseDetails = (details: string | null) => {
     if (!details) return null;
     try {
@@ -90,7 +75,7 @@ export default function AuditLogsPage() {
         setTotalPages(data.pagination.pages);
         setTotalItems(data.pagination.total);
       }
-    } catch (error) {
+    } catch {
       if (!silent) toast.error("Failed to load audit logs");
     } finally {
       if (!silent) setIsLoading(false);
@@ -103,13 +88,30 @@ export default function AuditLogsPage() {
       fetchLogs(1, search);
     }, 500);
     return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search, startDate, endDate]);
 
   useEffect(() => {
     fetchLogs(page, search);
     const pollId = setInterval(() => fetchLogs(page, search, true), 30000);
     return () => clearInterval(pollId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page]);
+
+  // Authentication check — placed AFTER all hooks to satisfy rules-of-hooks.
+  if (session && !(session.user as any).isSuperAdmin) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] text-center p-6 bg-white dark:bg-slate-900 rounded-xl border border-dashed border-gray-300 dark:border-slate-700 shadow-sm">
+        <div className="h-16 w-16 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-full flex items-center justify-center mb-4">
+          <ShieldCheck className="h-8 w-8" />
+        </div>
+        <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Access Restricted</h2>
+        <p className="text-gray-500 dark:text-gray-400 max-w-md mx-auto">
+          Only Super Administrators can view system audit logs.
+        </p>
+      </div>
+    );
+  }
 
   const downloadCSV = () => {
     if (logs.length === 0) return;

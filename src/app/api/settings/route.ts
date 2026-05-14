@@ -23,6 +23,10 @@ export async function POST(req: NextRequest) {
   if (!session || session.user.role !== "ADMIN") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+  // FR-SA3: Only the SuperAdmin may modify system-wide settings.
+  if (!session.user.isSuperAdmin) {
+    return NextResponse.json({ error: "Forbidden: SuperAdmin only" }, { status: 403 });
+  }
 
   try {
     const { key, value } = await req.json();

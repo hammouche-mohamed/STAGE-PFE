@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
   }
 
   // Fetch the role-specific profile separately to bypass missing schema relations
-  let extendedUser = { ...user } as any;
+  const extendedUser = { ...user } as any;
   
   if (user.role === 'STUDENT') {
     extendedUser.studentProfile = await prisma.studentProfile.findUnique({ 

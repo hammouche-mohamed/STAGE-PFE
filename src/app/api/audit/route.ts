@@ -7,6 +7,11 @@ export async function GET(req: NextRequest) {
   if (!session || session.user.role !== "ADMIN") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+  // FR-A7: audit log viewer is restricted to SuperAdmin (the audit-logs UI
+  // already enforces this client-side; keep the API in sync).
+  if (!session.user.isSuperAdmin) {
+    return NextResponse.json({ error: "Forbidden: SuperAdmin only" }, { status: 403 });
+  }
 
   try {
     const { searchParams } = new URL(req.url);

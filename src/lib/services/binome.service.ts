@@ -33,7 +33,7 @@ export class BinomeService {
       include: {
         topic: { select: { id: true, title: true, internshipType: true } },
         user_studentapplication_leaderIdTouser: { include: { studentprofile: true } },
-      },
+      } as any,
     });
 
     if (!application) throw new Error('Application not found');
@@ -42,7 +42,7 @@ export class BinomeService {
     // Check receiver exists and is a student
     const receiver = await prisma.user.findUnique({
       where: { id: receiverId },
-      include: { studentprofile: true },
+      include: { studentprofile: true } as any,
     });
 
     if (!receiver || receiver.role !== 'STUDENT') {
@@ -50,8 +50,8 @@ export class BinomeService {
     }
 
     // Both students must be at the same academic level
-    const senderLevel = application.user_studentapplication_leaderIdTouser.studentprofile?.level;
-    const receiverLevel = receiver.studentprofile?.level;
+    const senderLevel = (application as any).user_studentapplication_leaderIdTouser.studentprofile?.level;
+    const receiverLevel = (receiver as any).studentprofile?.level;
 
     if (senderLevel && receiverLevel && senderLevel !== receiverLevel) {
       throw new Error(
@@ -72,7 +72,7 @@ export class BinomeService {
     }
 
     // Check for existing pending invitation on this application
-    const existingInvitation = await prisma.binomeinvitation.findUnique({
+    const existingInvitation = await (prisma as any).binomeinvitation.findUnique({
       where: { studentApplicationId: applicationId },
     });
 
@@ -87,7 +87,7 @@ export class BinomeService {
         data: { isBinome: true, partnerId: receiverId },
       });
 
-      const inv = await tx.binomeinvitation.create({
+      const inv = await (tx as any).binomeinvitation.create({
         data: {
           id: randomUUID(),
           studentApplicationId: applicationId,
@@ -119,8 +119,8 @@ export class BinomeService {
       userId: receiverId,
       type: 'BINOME_INVITATION',
       title: 'Binôme Invitation Received',
-      message: `${senderUser?.name ?? 'A student'} has invited you to apply together for "${application.topic.title}". Expires in 48 hours.`,
-      relatedId: invitation.id,
+      message: `${senderUser?.name ?? 'A student'} has invited you to apply together for "${(application as any).topic.title}". Expires in 48 hours.`,
+      relatedId: (invitation as any).id,
       relatedType: 'BinomeInvitation',
       link: '/student/invitations',
     });
@@ -141,7 +141,7 @@ export class BinomeService {
     userId: string,
     accept: boolean,
   ) {
-    const invitation = await prisma.binomeinvitation.findUnique({
+    const invitation = await (prisma as any).binomeinvitation.findUnique({
       where: { id: invitationId },
       include: {
         studentapplication: {
@@ -150,7 +150,7 @@ export class BinomeService {
             user_studentapplication_leaderIdTouser: { select: { id: true, name: true } },
           },
         },
-      },
+      } as any,
     });
 
     if (!invitation) throw new Error('Invitation not found');
@@ -158,8 +158,8 @@ export class BinomeService {
     if (invitation.status !== 'PENDING') throw new Error('Invitation is no longer pending');
 
     // Check expiry
-    if (new Date() > invitation.expiresAt) {
-      await prisma.binomeinvitation.update({
+    if (new Date() > (invitation as any).expiresAt) {
+      await (prisma as any).binomeinvitation.update({
         where: { id: invitationId },
         data: { status: 'EXPIRED', respondedAt: new Date() },
       });
@@ -168,7 +168,7 @@ export class BinomeService {
 
     if (accept) {
       await prisma.$transaction(async (tx: any) => {
-        await tx.binomeinvitation.update({
+      await (tx as any).binomeinvitation.update({
           where: { id: invitationId },
           data: { status: 'ACCEPTED', respondedAt: new Date() },
         });
@@ -218,10 +218,10 @@ export class BinomeService {
       });
 
       await NotificationService.trigger({
-        userId: invitation.studentapplication.user_studentapplication_leaderIdTouser.id,
+        userId: (invitation as any).studentapplication.user_studentapplication_leaderIdTouser.id,
         type: 'BINOME_DECLINED',
         title: 'Binôme Invitation Declined',
-        message: `Your partner declined your binôme invitation for "${invitation.studentapplication.topic.title}". You can invite someone else or switch to an individual application.`,
+        message: `Your partner declined your binôme invitation for "${(invitation as any).studentapplication.topic.title}". You can invite someone else or switch to an individual application.`,
         relatedId: invitationId,
         relatedType: 'BinomeInvitation',
         link: '/student/topics',
@@ -236,7 +236,7 @@ export class BinomeService {
    * Called daily by the cron job.
    */
   static async expireOldInvitations() {
-    const result = await prisma.binomeinvitation.updateMany({
+    const result = await (prisma as any).binomeinvitation.updateMany({
       where: {
         status: 'PENDING',
         expiresAt: { lt: new Date() },

@@ -33,15 +33,6 @@ interface RegistrationRequest {
 export default function AdminRegistrationsPage() {
   const { t } = useTranslation();
   const { data: session } = useSession();
-  
-  // Protect route for super admins only
-  if (session && !session.user.isSuperAdmin) {
-    return (
-      <div className="p-8 text-center text-gray-500 dark:text-gray-400 mt-20">
-        You do not have permission to view this page. This area is restricted to Super Administrators.
-      </div>
-    );
-  }
 
   const [requests, setRequests] = useState<RegistrationRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -56,6 +47,7 @@ export default function AdminRegistrationsPage() {
   const [rejectReason, setRejectReason] = useState("");
   const [blockEmail, setBlockEmail] = useState(false);
   const [filterStatus, setFilterStatus] = useState("PENDING");
+  const [isClearModalOpen, setIsClearModalOpen] = useState(false);
 
   const fetchRequests = useCallback(async (silent = false) => {
     if (!silent) setIsLoading(true);
@@ -63,11 +55,11 @@ export default function AdminRegistrationsPage() {
       const params = new URLSearchParams();
       if (search.trim()) params.append("search", search.trim());
       if (filterStatus !== "ALL") params.append("status", filterStatus);
-      
+
       const res = await fetch(`/api/registrations?${params.toString()}`);
       const data = await res.json();
       setRequests(data.data || []);
-    } catch (error) {
+    } catch {
       if (!silent) toast.error("Failed to load registrations");
     } finally {
       if (!silent) setIsLoading(false);
@@ -88,7 +80,7 @@ export default function AdminRegistrationsPage() {
         const res = await fetch("/api/settings/public", { cache: "no-store" });
         if (!res.ok) throw new Error("Failed to fetch settings");
         const d = await res.json();
-        
+
         const fetchedSpecialities = [];
         if (d.data?.filieres && d.data.filieres.length > 0) {
           fetchedSpecialities.push(...d.data.filieres.map((f: any) => f.name));
@@ -114,7 +106,7 @@ export default function AdminRegistrationsPage() {
 
   useEffect(() => {
     if (selectedRequest) {
-      setEditData({ 
+      setEditData({
         ...selectedRequest,
         promotion: selectedRequest.promotion || selectedRequest.level || ""
       });
@@ -123,7 +115,15 @@ export default function AdminRegistrationsPage() {
     }
   }, [selectedRequest]);
 
-  const [isClearModalOpen, setIsClearModalOpen] = useState(false);
+  // Protect route for super admins only — placed AFTER all hooks so the
+  // hook order stays stable across renders (rules-of-hooks).
+  if (session && !session.user.isSuperAdmin) {
+    return (
+      <div className="p-8 text-center text-gray-500 dark:text-gray-400 mt-20">
+        You do not have permission to view this page. This area is restricted to Super Administrators.
+      </div>
+    );
+  }
 
   const handleClearHistory = async () => {
     try {

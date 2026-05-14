@@ -161,7 +161,7 @@ export async function POST(req: NextRequest) {
     }
 
     const { default: bcrypt } = await import('bcryptjs');
-    const hashedPassword = await bcrypt.hash(password || "ESST2026", 10);
+    const hashedPassword = await bcrypt.hash(password || "ESST2026", 12);
 
     // Use a transaction to ensure both user and profile are created or neither
     const user = await prisma.$transaction(async (tx) => {

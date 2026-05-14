@@ -85,7 +85,7 @@ export async function GET(req: NextRequest) {
     if (role === "STUDENT") {
       const [internshipTs, topicTs, invitationTs] = await Promise.all([
         prisma.internship.findFirst({
-          where: { internshipstudent: { some: { studentId: session.user.id } } },
+          where: { internshipStudent: { some: { studentId: session.user.id } } } as any,
           orderBy: { updatedAt: "desc" },
           select: { updatedAt: true },
         }),
@@ -93,7 +93,7 @@ export async function GET(req: NextRequest) {
           orderBy: { updatedAt: "desc" },
           select: { updatedAt: true },
         }),
-        prisma.binomeinvitation.findFirst({
+        (prisma as any).binomeinvitation.findFirst({
           where: { invitedStudentId: session.user.id },
           orderBy: { createdAt: "desc" },
           select: { createdAt: true },

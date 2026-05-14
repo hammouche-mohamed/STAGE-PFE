@@ -98,7 +98,9 @@ export const authConfig = {
   },
   session: {
     strategy: 'jwt',
-    maxAge: 24 * 60 * 60, // 24 hours
-    updateAge: 24 * 60 * 60, // 24 hours (default)
+    // 15-minute idle timeout (NFR-S6). updateAge < maxAge gives a sliding
+    // window: every request within 5 min of expiry refreshes the token.
+    maxAge: 15 * 60,
+    updateAge: 5 * 60,
   },
 } satisfies NextAuthConfig;

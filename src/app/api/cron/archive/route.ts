@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { addDays } from "date-fns";
+import { TeacherLoadService } from "@/lib/services/teacherLoad.service";
 
 /**
  * Cron job: auto-archive internships past their finalDeadline.
@@ -24,7 +25,7 @@ export async function POST(req: NextRequest) {
         archivedAt: null,
         status: { in: ["IN_PROGRESS", "COMPLETED", "PENDING_ADMIN_CONFIRMATION"] },
       },
-      select: { id: true, finalDeadline: true },
+      select: { id: true, finalDeadline: true, teacherId: true },
     });
 
     if (toArchive.length === 0) {
@@ -41,6 +42,13 @@ export async function POST(req: NextRequest) {
         status: "COMPLETED",
       },
     });
+
+    // FR-T3: keep teacher currentLoad consistent. Recompute once per
+    // affected teacher rather than decrementing per-internship.
+    const affectedTeacherIds = Array.from(new Set(toArchive.map((i) => i.teacherId)));
+    for (const teacherId of affectedTeacherIds) {
+      await TeacherLoadService.recompute(teacherId);
+    }
 
     return NextResponse.json({ archived: toArchive.length, chatArchivedAt: chatArchiveDate });
   } catch (error) {
