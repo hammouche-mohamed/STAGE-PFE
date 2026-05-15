@@ -40,7 +40,13 @@ function TeacherMessagesContent() {
       );
       setInternships(active);
       if (active.length > 0 && !selectedId) {
-        setSelectedId(active[0].id);
+        // Honour ?internshipId= from the detail page's "Open messages" link.
+        const wanted =
+          typeof window !== "undefined"
+            ? new URLSearchParams(window.location.search).get("internshipId")
+            : null;
+        const match = wanted && active.some((i: any) => i.id === wanted);
+        setSelectedId(match ? (wanted as string) : active[0].id);
       }
     } catch {
       toast.error(t("toast.loadInternshipsFailed"));

@@ -19,9 +19,17 @@ export default function TeacherDocumentsPage() {
     try {
       const res = await fetch("/api/internships");
       const data = await res.json();
-      setInternships(data.data || []);
-      if (data.data && data.data.length > 0) {
-        setSelectedInternshipId(data.data[0].id);
+      const list = data.data || [];
+      setInternships(list);
+      if (list.length > 0) {
+        // Honour ?internshipId= from the detail page's "View documents" link
+        // so the right internship is pre-selected (no manual re-search).
+        const wanted =
+          typeof window !== "undefined"
+            ? new URLSearchParams(window.location.search).get("internshipId")
+            : null;
+        const match = wanted && list.some((i: any) => i.id === wanted);
+        setSelectedInternshipId(match ? (wanted as string) : list[0].id);
       }
     } catch (error) {
       toast.error(t("toast.loadInternshipsFailed"));

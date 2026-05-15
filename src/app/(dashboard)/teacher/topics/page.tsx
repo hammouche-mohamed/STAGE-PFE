@@ -89,8 +89,8 @@ export default function TeacherTopicsPage() {
         method: "POST",
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to apply");
-      toast.success("Supervision request sent to the administration.");
+      if (!res.ok) throw new Error(data.error || t("teacherTopics.applyFailed"));
+      toast.success(t("teacherTopics.requestSent"));
       setViewTopic(null);
       fetchTopics();
     } catch (error: any) {
@@ -101,9 +101,9 @@ export default function TeacherTopicsPage() {
   };
 
   const TABS: { id: Tab; label: string }[] = [
-    { id: "SUPERVISING", label: `Supervising (${supervising.length})` },
-    { id: "REQUESTED", label: `Requested (${requested.length})` },
-    { id: "MARKETPLACE", label: `Marketplace (${marketplace.length})` },
+    { id: "SUPERVISING", label: `${t("teacherTopics.tabSupervising")} (${supervising.length})` },
+    { id: "REQUESTED", label: `${t("teacherTopics.tabRequested")} (${requested.length})` },
+    { id: "MARKETPLACE", label: `${t("teacherTopics.tabMarketplace")} (${marketplace.length})` },
   ];
 
   const canApply =
@@ -165,10 +165,10 @@ export default function TeacherTopicsPage() {
                     <BookOpen className="h-8 w-8 text-gray-200 dark:text-slate-800" />
                     <p>
                       {activeTab === "SUPERVISING"
-                        ? "You are not supervising any topic yet."
+                        ? t("teacherTopics.emptySupervising")
                         : activeTab === "REQUESTED"
-                          ? "No pending supervision requests."
-                          : "No topics available for supervision in your department."}
+                          ? t("teacherTopics.emptyRequested")
+                          : t("teacherTopics.emptyMarketplace")}
                     </p>
                   </div>
                 </td>
@@ -196,9 +196,9 @@ export default function TeacherTopicsPage() {
                   </td>
                   <td data-label="Status">
                     {activeTab === "REQUESTED" ? (
-                      <StatusBadge status="PENDING" label="Request Pending" />
+                      <StatusBadge status="PENDING" label={t("teacherTopics.statusRequestPending")} />
                     ) : activeTab === "SUPERVISING" ? (
-                      <StatusBadge status="APPROVED" label="Supervising" />
+                      <StatusBadge status="APPROVED" label={t("teacherTopics.statusSupervising")} />
                     ) : (
                       <StatusBadge status={topic.status} />
                     )}
@@ -253,7 +253,7 @@ export default function TeacherTopicsPage() {
             <div className="grid grid-cols-2 gap-y-4 gap-x-6 text-[13px]">
               <div>
                 <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">
-                  Department
+                  {t("teacherTopics.department")}
                 </p>
                 <p className="flex items-center gap-1.5 text-gray-900 dark:text-white">
                   <GraduationCap className="h-3.5 w-3.5 text-gray-400" />
@@ -262,17 +262,17 @@ export default function TeacherTopicsPage() {
               </div>
               <div>
                 <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">
-                  Capacity
+                  {t("teacherTopics.capacity")}
                 </p>
                 <p className="flex items-center gap-1.5 text-gray-900 dark:text-white">
                   <Users className="h-3.5 w-3.5 text-gray-400" />
                   {viewTopic.maxStudents}{" "}
-                  {viewTopic.maxStudents > 1 ? "students" : "student"}
+                  {viewTopic.maxStudents > 1 ? t("teacherTopics.studentsUnit") : t("teacherTopics.studentUnit")}
                 </p>
               </div>
               <div>
                 <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">
-                  Target levels
+                  {t("teacherTopics.targetLevels")}
                 </p>
                 <p className="flex items-center gap-1.5 text-gray-900 dark:text-white">
                   <Layers className="h-3.5 w-3.5 text-gray-400" />
@@ -281,7 +281,7 @@ export default function TeacherTopicsPage() {
               </div>
               <div>
                 <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">
-                  Proposed by
+                  {t("teacherTopics.proposedBy")}
                 </p>
                 <p className="text-gray-900 dark:text-white">
                   {viewTopic.proposedBy?.name || "—"}
@@ -291,17 +291,17 @@ export default function TeacherTopicsPage() {
 
             <div>
               <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">
-                Description
+                {t("teacherTopics.description")}
               </p>
               <p className="text-[13px] text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">
-                {viewTopic.description || "No description provided."}
+                {viewTopic.description || t("teacherTopics.noDescription")}
               </p>
             </div>
 
             {viewTopic.requiredSkills && (
               <div>
                 <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">
-                  Required skills
+                  {t("teacherTopics.requiredSkills")}
                 </p>
                 <p className="text-[13px] text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">
                   {viewTopic.requiredSkills}
@@ -319,7 +319,7 @@ export default function TeacherTopicsPage() {
                   onClick={() => handleApply(viewTopic.id)}
                   isLoading={isApplying === viewTopic.id}
                 >
-                  {t("topics.apply", { defaultValue: "Apply to Supervise" })}
+                  {t("teacherTopics.apply")}
                 </Button>
               )}
             </div>

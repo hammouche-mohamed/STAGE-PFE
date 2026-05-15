@@ -63,8 +63,16 @@ export const Topbar: React.FC = () => {
     const parts = pathname.split("/").filter(Boolean);
     return parts.map((part, i) => {
       const href = "/" + parts.slice(0, i + 1).join("/");
-      // Use label from context if available (case-insensitive lookup), otherwise capitalize path part
-      const label = labels[part.toLowerCase()] || (part.charAt(0).toUpperCase() + part.slice(1));
+      const key = part.toLowerCase();
+      // 1) explicit label set by a page (e.g. internship title for an id)
+      // 2) translated segment name (breadcrumb.*) when it's a known route word
+      // 3) fall back to the capitalized raw segment
+      const translated = t(`breadcrumb.${key}` as any);
+      const label =
+        labels[key] ||
+        (translated && translated !== `breadcrumb.${key}`
+          ? translated
+          : part.charAt(0).toUpperCase() + part.slice(1));
       return { label, href };
     });
   };
@@ -87,7 +95,7 @@ export const Topbar: React.FC = () => {
             {breadcrumbs[breadcrumbs.length - 1]?.label || "Dashboard"}
           </h1>
           <div className="hidden md:flex items-center gap-1 text-[11px] text-gray-400 dark:text-gray-500">
-            <span>Home</span>
+            <span>{t("breadcrumb.home")}</span>
             {breadcrumbs.map((b, i) => (
               <React.Fragment key={b.href}>
                 <span>/</span>

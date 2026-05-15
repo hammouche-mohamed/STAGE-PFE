@@ -270,11 +270,13 @@ export async function GET(req: NextRequest) {
       where.OR = [
         { assignedTeacherId: session.user.id },
         { teacherapplication: { some: { teacherId: session.user.id } } },
-        { 
+        {
           AND: [
             { status: 'APPROVED' },
             { assignedTeacherId: null },
-            session.user.filiereId ? { filiereId: session.user.filiereId } : {},
+            // Strictly scope the marketplace to the teacher's own department.
+            // No department → see nothing here (never every department's topics).
+            { filiereId: session.user.filiereId ?? '__no_department__' },
           ]
         }
       ];

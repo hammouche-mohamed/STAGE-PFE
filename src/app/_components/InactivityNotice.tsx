@@ -39,16 +39,37 @@ export default function InactivityNotice() {
             "Your session has expired. Please sign in again to continue.",
           );
 
+    const TOAST_ID = "inactivity-logout";
     toast.warning(message, {
       duration: 7000,
       dismissible: true,
-      id: "inactivity-logout",
+      id: TOAST_ID,
     });
+
+    // Dismiss as soon as the user interacts with the page (any click/tap or
+    // key press), in addition to the 7s auto-dismiss.
+    const dismiss = () => {
+      toast.dismiss(TOAST_ID);
+      window.removeEventListener("pointerdown", dismiss);
+      window.removeEventListener("keydown", dismiss);
+    };
+    // Defer attaching so the same click that may have triggered navigation
+    // doesn't instantly close it.
+    const timer = setTimeout(() => {
+      window.addEventListener("pointerdown", dismiss, { once: true });
+      window.addEventListener("keydown", dismiss, { once: true });
+    }, 0);
 
     // Strip the param so refresh/back doesn't show it again.
     const url = new URL(window.location.href);
     url.searchParams.delete("logout");
     window.history.replaceState({}, "", url.pathname + url.search);
+
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener("pointerdown", dismiss);
+      window.removeEventListener("keydown", dismiss);
+    };
   }, [params, t]);
 
   return null;
