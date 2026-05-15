@@ -24,11 +24,13 @@ export async function GET(req: NextRequest) {
     const unavailableIds = unavailableMembers.map(m => m.studentId);
     unavailableIds.push(session.user.id); // exclude self
 
-    // Find students in the same filiere and academic year who are NOT in a team
+    // Team-invite rule: same department (filière) + same academic level.
+    // Cohort / academicYear is intentionally NOT part of the filter — two
+    // students at the same level in the same dept can form a team even if
+    // they enrolled in different academic years.
     const availableStudents = await prisma.studentProfile.findMany({
       where: {
         filiereId: studentProfile.filiereId,
-        academicYear: studentProfile.academicYear,
         level: studentProfile.level,
         userId: { notIn: unavailableIds }
       },

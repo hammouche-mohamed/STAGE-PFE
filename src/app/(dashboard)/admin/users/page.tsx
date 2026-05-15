@@ -56,8 +56,13 @@ interface User {
   } | null;
   studentProfile?: {
     filiere?: { name: string } | null;
+    level?: string | null;
+    promotion?: string | null;
+    studentId?: string | null;
   } | null;
 }
+
+const STUDENT_LEVELS = ["L1", "L2", "L3", "M1", "M2"] as const;
 
 export default function AdminUsersPage() {
   const { t, isRTL } = useTranslation();
@@ -77,6 +82,7 @@ export default function AdminUsersPage() {
   const [showEditConfirm, setShowEditConfirm] = useState(false);
   const [filiereFilter, setFiliereFilter] = useState("ALL");
   const [statusFilter, setStatusFilter] = useState("ALL");
+  const [levelFilter, setLevelFilter] = useState("ALL");
   
   const [activeTab, setActiveTab] = useState<"USERS" | "BLOCKLIST" | "TEAMS">("USERS");
   const [blocklist, setBlocklist] = useState<any[]>([]);
@@ -99,6 +105,7 @@ export default function AdminUsersPage() {
       if (roleFilter !== "ALL") params.append("role", roleFilter);
       if (filiereFilter !== "ALL") params.append("filiereId", filiereFilter);
       if (statusFilter !== "ALL") params.append("status", statusFilter.toLowerCase());
+      if (levelFilter !== "ALL") params.append("level", levelFilter);
       if (search.trim()) params.append("search", search.trim());
       
       const res = await fetch(`/api/users?${params.toString()}`);
@@ -167,7 +174,7 @@ export default function AdminUsersPage() {
 
   useEffect(() => {
     fetchUsers();
-  }, [roleFilter, filiereFilter, statusFilter, search]);
+  }, [roleFilter, filiereFilter, statusFilter, levelFilter, search]);
 
   // Auto-refresh user list when another admin modifies a user
   usePollingRefresh("users", fetchUsers);
@@ -484,7 +491,7 @@ export default function AdminUsersPage() {
             <option value="COMPANY">{t("roles.COMPANY")}</option>
             <option value="ADMIN">{t("roles.ADMIN")}</option>
           </select>
-          <select 
+          <select
             className="admin-input min-w-0 sm:min-w-[140px] w-full sm:w-auto"
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
@@ -493,6 +500,19 @@ export default function AdminUsersPage() {
             <option value="ACTIVE">{t("admin.users.active")}</option>
             <option value="INACTIVE">{t("admin.users.inactive")}</option>
           </select>
+          {(roleFilter === "STUDENT" || roleFilter === "ALL") && (
+            <select
+              className="admin-input min-w-0 sm:min-w-[120px] w-full sm:w-auto"
+              value={levelFilter}
+              onChange={(e) => setLevelFilter(e.target.value)}
+              title="Filter by student level"
+            >
+              <option value="ALL">{t("topics.list.level") || "Level"}: {t("common.all")}</option>
+              {STUDENT_LEVELS.map((lvl) => (
+                <option key={lvl} value={lvl}>{lvl}</option>
+              ))}
+            </select>
+          )}
         </div>
       </div>
 
@@ -723,7 +743,15 @@ export default function AdminUsersPage() {
                   </div>
                   <div>
                     <label className="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest block mb-1">Promotion</label>
-                    <p className="text-[14px] text-gray-900 dark:text-white">{userToView.studentProfile.promotion}</p>
+                    <p className="text-[14px] text-gray-900 dark:text-white">{userToView.studentProfile.promotion || "—"}</p>
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest block mb-1">{t("topics.list.level") || "Level"}</label>
+                    <p className="text-[14px] font-medium text-gray-900 dark:text-white">{userToView.studentProfile.level || "—"}</p>
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest block mb-1">Student ID</label>
+                    <p className="text-[14px] text-gray-900 dark:text-white">{userToView.studentProfile.studentId || "—"}</p>
                   </div>
                 </>
               )}

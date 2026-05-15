@@ -7,7 +7,6 @@ async function main() {
   const archiveYear = "2024-2025";
   const currentYear = "2025-2026";
   const nextYear = "2026-2027";
-  const levels = ["L1", "L2", "L3", "M1", "M2"];
   const passwordHashes = {
     student: await bcrypt.hash("studentstudent12", 10),
     supervisor: await bcrypt.hash("supervisorsupervisor12", 10),
@@ -134,10 +133,15 @@ async function main() {
 
   console.log("Creating students...");
   const students = [];
+  // Concentrate students at the two PFE-eligible levels (L3 + M2) so a
+  // student looking for a binôme actually has multiple peers in their
+  // filière/year cohort. With 8 students/dept split 4 + 4, every student
+  // sees 3 invitable peers instead of 1.
+  const pfeLevels = ["L3", "M2"];
   for (let i = 0; i < createdDepts.length; i++) {
     for (let j = 1; j <= 8; j++) {
       const idx = i * 8 + j;
-      const level = levels[j % levels.length];
+      const level = pfeLevels[(j - 1) % pfeLevels.length];
       const user = await (prisma.user as any).create({
         data: {
           name: `Student ${idx}`,

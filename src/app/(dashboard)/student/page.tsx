@@ -1,12 +1,12 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { 
-  LayoutDashboard, 
-  Briefcase, 
-  Users, 
-  FileText, 
-  MessageSquare, 
+import {
+  LayoutDashboard,
+  Briefcase,
+  Users,
+  FileText,
+  MessageSquare,
   Calendar,
   ChevronRight,
   ChevronLeft,
@@ -123,7 +123,7 @@ export default function StudentDashboard() {
       <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${isRTL ? "sm:flex-row-reverse" : ""}`}>
         <div>
           <h1 className="text-[17px] font-semibold text-gray-900 dark:text-white">
-            {t("dashboard.welcome")}, {session?.user?.name}! 👋
+            {t("dashboard.welcome")}, {session?.user?.name}!
           </h1>
           <p className="text-[13px] text-gray-500 dark:text-gray-400 mt-0.5">{t("common.appSubtitle")}</p>
         </div>
