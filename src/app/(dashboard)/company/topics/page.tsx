@@ -82,7 +82,8 @@ export default function CompanyTopicsPage() {
       });
 
       if (!res.ok) {
-        throw new Error("Failed to delete topic");
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Failed to delete topic");
       }
 
       toast.success(t("toast.topicProposalDeleted"));

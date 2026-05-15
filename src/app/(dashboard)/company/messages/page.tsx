@@ -114,9 +114,9 @@ function CompanyMessagesContent() {
   return (
     <div className="-mt-4 md:-mt-6 h-[calc(100vh-115px)] flex flex-col space-y-3 overflow-hidden">
       <div className="flex-shrink-0">
-        <h1 className="text-[17px] font-bold text-gray-900 dark:text-white leading-none">Intern Communications</h1>
+        <h1 className="text-[17px] font-bold text-gray-900 dark:text-white leading-none">{t("company.msg.title")}</h1>
         <p className="text-[12px] text-gray-500 dark:text-gray-400 mt-1">
-          Coordinate directly with your interns and their university supervisor.
+          {t("company.msg.desc")}
         </p>
       </div>
 
@@ -127,7 +127,7 @@ function CompanyMessagesContent() {
         `}>
           <div className="px-4 py-4 border-b border-gray-100 dark:border-slate-800 bg-gray-50/50 dark:bg-slate-800/50 flex items-center justify-between">
             <p className="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">
-              My Teams
+              {t("company.msg.myTeams")}
             </p>
           </div>
           <div className="flex-1 overflow-y-auto">
@@ -138,7 +138,7 @@ function CompanyMessagesContent() {
                 ))}
               </div>
             ) : internships.length === 0 ? (
-              <p className="p-6 text-center text-[12px] text-gray-400 dark:text-gray-500 italic">No teams assigned</p>
+              <p className="p-6 text-center text-[12px] text-gray-400 dark:text-gray-500 italic">{t("company.msg.noTeams")}</p>
             ) : (
               internships.map((i) => (
                 <button
@@ -272,7 +272,7 @@ function CompanyMessagesContent() {
 
                           {/* Company */}
                           <div className="space-y-2">
-                            <p className="text-[10px] text-gray-400 dark:text-gray-500 font-bold uppercase tracking-tighter px-1">Hosting Company</p>
+                            <p className="text-[10px] text-gray-400 dark:text-gray-500 font-bold uppercase tracking-tighter px-1">{t("company.msg.hostingCompany")}</p>
                             <div className="rounded-xl border border-gray-100 dark:border-slate-800 bg-white dark:bg-slate-800 p-2.5 shadow-sm">
                               <div className={`flex items-center gap-4 ${isRTL ? "flex-row-reverse text-right" : ""}`}>
                                 <div className="h-8 w-8 rounded-full bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 flex items-center justify-center font-bold text-[12px] flex-shrink-0">
@@ -280,7 +280,7 @@ function CompanyMessagesContent() {
                                 </div>
                                 <div className="min-w-0 flex-1">
                                   <p className="text-[12px] font-bold text-gray-900 dark:text-white truncate">{selectedInternship?.topic.companyName || "Company"}</p>
-                                  <p className="text-[10px] text-gray-500 dark:text-gray-400 truncate">Hosting Partner</p>
+                                  <p className="text-[10px] text-gray-500 dark:text-gray-400 truncate">{t("company.msg.hostingPartner")}</p>
                                 </div>
                               </div>
                             </div>
@@ -311,7 +311,7 @@ function CompanyMessagesContent() {
                           {sharedFiles.length === 0 ? (
                             <div className="text-center py-12">
                               <FileText className="h-10 w-10 text-gray-200 mx-auto mb-2" />
-                              <p className="text-[12px] text-gray-400">No shared files yet.</p>
+                              <p className="text-[12px] text-gray-400">{t("company.msg.noSharedFiles")}</p>
                             </div>
                           ) : (
                             sharedFiles.map((file) => (
@@ -347,7 +347,7 @@ function CompanyMessagesContent() {
             </div>
           ) : (
             <div className="flex-1 flex items-center justify-center">
-              <p className="text-gray-400 dark:text-gray-500 text-[13px]">Select a team to start communicating.</p>
+              <p className="text-gray-400 dark:text-gray-500 text-[13px]">{t("company.msg.selectTeam")}</p>
             </div>
           )}
         </div>
@@ -358,7 +358,7 @@ function CompanyMessagesContent() {
 
 export default function CompanyMessagesPage() {
   return (
-    <Suspense fallback={<div className="p-8 text-center text-gray-400">Loading Hub…</div>}>
+    <Suspense fallback={<div className="p-8 text-center text-gray-400">Loading...</div>}>
       <CompanyMessagesContent />
     </Suspense>
   );

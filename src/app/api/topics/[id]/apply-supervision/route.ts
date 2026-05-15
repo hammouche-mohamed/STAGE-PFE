@@ -131,3 +131,50 @@ export async function POST(
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
+
+// DELETE /api/topics/[id]/apply-supervision
+// A teacher withdraws their own PENDING supervision request, as long as the
+// admin has not yet acted on it (status still PENDING, topic not assigned).
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const session = await auth();
+  if (!session || session.user.role !== "TEACHER") {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  try {
+    const { id } = await params;
+
+    const application = await prisma.teacherApplication.findUnique({
+      where: { teacherId_topicId: { teacherId: session.user.id, topicId: id } },
+      include: { topic: { select: { title: true, assignedTeacherId: true } } },
+    });
+
+    if (!application) {
+      return NextResponse.json({ error: "No supervision request found." }, { status: 404 });
+    }
+
+    if (application.status !== "PENDING" || application.topic.assignedTeacherId) {
+      return NextResponse.json(
+        { error: "This request can no longer be cancelled — the administration has already acted on it." },
+        { status: 400 },
+      );
+    }
+
+    await prisma.teacherApplication.delete({ where: { id: application.id } });
+
+    await AuditService.log({
+      userId: session.user.id,
+      action: "TEACHER_SUPERVISION_WITHDRAWN",
+      targetType: "Topic",
+      targetId: application.topic.title,
+    });
+
+    return NextResponse.json({ message: "Supervision request cancelled." });
+  } catch (error: any) {
+    console.error("Cancel supervision request failed:", error);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
+}

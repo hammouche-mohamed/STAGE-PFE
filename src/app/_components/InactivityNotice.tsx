@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { useTranslation } from "@/lib/i18n/LanguageContext";
 
@@ -9,22 +8,27 @@ import { useTranslation } from "@/lib/i18n/LanguageContext";
  * Shows a toast when the user lands on "/" after an inactivity / expiry
  * logout. SessionTimeout redirects to `/?logout=idle` (or `expired`); this
  * reads that param, notifies, then strips it so a refresh won't re-fire.
+ *
+ * The effect runs ONCE on mount (empty deps). It must not depend on `t` or
+ * `useSearchParams()` — those change identity on re-render, which would tear
+ * down the click-to-dismiss listeners and never re-attach them.
  */
 export default function InactivityNotice() {
-  const params = useSearchParams();
   const { t } = useTranslation();
-  const shown = useRef(false);
+  const tRef = useRef(t);
+  tRef.current = t;
 
   useEffect(() => {
-    if (shown.current) return;
-    const reason = params.get("logout");
+    const reason =
+      typeof window !== "undefined"
+        ? new URLSearchParams(window.location.search).get("logout")
+        : null;
     if (reason !== "idle" && reason !== "expired") return;
-    shown.current = true;
 
-    // The app's t() returns the raw key path when a key is missing and has
-    // no defaultValue support — so guard against ever showing "auth.idleLogout".
+    // t() returns the raw key path when a key is missing — guard against
+    // ever displaying "auth.idleLogout".
     const resolve = (key: string, fallback: string) => {
-      const val = t(key as any);
+      const val = tRef.current(key as any);
       return !val || val === key ? fallback : val;
     };
 
@@ -40,37 +44,36 @@ export default function InactivityNotice() {
           );
 
     const TOAST_ID = "inactivity-logout";
-    toast.warning(message, {
-      duration: 7000,
-      dismissible: true,
-      id: TOAST_ID,
-    });
+    toast.warning(message, { duration: 8000, dismissible: true, id: TOAST_ID });
 
-    // Dismiss as soon as the user interacts with the page (any click/tap or
-    // key press), in addition to the 7s auto-dismiss.
-    const dismiss = () => {
-      toast.dismiss(TOAST_ID);
-      window.removeEventListener("pointerdown", dismiss);
-      window.removeEventListener("keydown", dismiss);
-    };
-    // Defer attaching so the same click that may have triggered navigation
-    // doesn't instantly close it.
-    const timer = setTimeout(() => {
-      window.addEventListener("pointerdown", dismiss, { once: true });
-      window.addEventListener("keydown", dismiss, { once: true });
-    }, 0);
-
-    // Strip the param so refresh/back doesn't show it again.
+    // Strip the param so a refresh/back doesn't replay it.
     const url = new URL(window.location.href);
     url.searchParams.delete("logout");
     window.history.replaceState({}, "", url.pathname + url.search);
 
+    // Dismiss on the first user interaction anywhere on the page.
+    const dismiss = () => {
+      toast.dismiss(TOAST_ID);
+      cleanup();
+    };
+    const cleanup = () => {
+      window.removeEventListener("pointerdown", dismiss, true);
+      window.removeEventListener("keydown", dismiss, true);
+    };
+    // Defer one tick so the click/navigation that landed here doesn't
+    // instantly close it. Capture phase so it fires even if something
+    // stops propagation.
+    const timer = setTimeout(() => {
+      window.addEventListener("pointerdown", dismiss, true);
+      window.addEventListener("keydown", dismiss, true);
+    }, 50);
+
     return () => {
       clearTimeout(timer);
-      window.removeEventListener("pointerdown", dismiss);
-      window.removeEventListener("keydown", dismiss);
+      cleanup();
     };
-  }, [params, t]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return null;
 }

@@ -34,12 +34,20 @@ export default function CompanyApplicationsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedApp, setSelectedApp] = useState<Application | null>(null);
   const [isProcessing, setIsProcessing] = useState<string | null>(null);
+  // When opened from a topic's "View Applications", scope to that topic only.
+  const [topicFilterId, setTopicFilterId] = useState<string | null>(null);
+  const [topicFilterTitle, setTopicFilterTitle] = useState<string | null>(null);
 
-  const fetchApplications = async () => {
+  const fetchApplications = async (topicId?: string | null) => {
     try {
-      const res = await fetch("/api/applications");
+      const url = topicId
+        ? `/api/applications?topicId=${encodeURIComponent(topicId)}`
+        : "/api/applications";
+      const res = await fetch(url);
       const data = await res.json();
-      setApplications(data.data || []);
+      const list = data.data || [];
+      setApplications(list);
+      if (topicId && list[0]?.topic?.title) setTopicFilterTitle(list[0].topic.title);
     } catch (error) {
       toast.error(t("toast.loadApplicationsFailed"));
     } finally {
@@ -48,8 +56,21 @@ export default function CompanyApplicationsPage() {
   };
 
   useEffect(() => {
-    fetchApplications();
+    const tid =
+      typeof window !== "undefined"
+        ? new URLSearchParams(window.location.search).get("topicId")
+        : null;
+    setTopicFilterId(tid);
+    fetchApplications(tid);
   }, []);
+
+  const clearTopicFilter = () => {
+    setTopicFilterId(null);
+    setTopicFilterTitle(null);
+    window.history.replaceState({}, "", "/company/applications");
+    setIsLoading(true);
+    fetchApplications(null);
+  };
 
   const handleAction = async (id: string, status: "ACCEPTED" | "REJECTED") => {
     setIsProcessing(id);
@@ -62,7 +83,7 @@ export default function CompanyApplicationsPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to update");
       toast.success(data.message);
-      fetchApplications();
+      fetchApplications(topicFilterId);
     } catch (error: any) {
       toast.error(error.message || t("toast.actionFailed"));
     } finally {
@@ -78,6 +99,21 @@ export default function CompanyApplicationsPage() {
           <p className="text-[13px] text-gray-500 dark:text-gray-400 mt-0.5">{t("topics.pendingApproval")}</p>
         </div>
       </div>
+
+      {topicFilterId && (
+        <div className="flex items-center justify-between gap-3 rounded-lg border border-indigo-200 dark:border-indigo-900/40 bg-indigo-50/60 dark:bg-indigo-900/15 px-4 py-2.5">
+          <p className="text-[12px] text-indigo-700 dark:text-indigo-300">
+            <span className="font-semibold">{t("company.msg.appsFilteredBy")}:</span>{" "}
+            {topicFilterTitle ?? "…"}
+          </p>
+          <button
+            onClick={clearTopicFilter}
+            className="text-[12px] font-semibold text-indigo-600 dark:text-indigo-400 hover:underline whitespace-nowrap"
+          >
+            {t("company.msg.appsShowAll")}
+          </button>
+        </div>
+      )}
 
       <div className="admin-table-container">
         <table className="admin-table stacked-table">

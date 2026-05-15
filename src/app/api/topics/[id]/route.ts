@@ -408,6 +408,12 @@ export async function DELETE(
           error: "Cannot remove a topic that has already been validated. Contact the admin.",
         }, { status: 400 });
       }
+    } else if (session.user.role === "COMPANY") {
+      // A company may withdraw (archive) its OWN proposed topic, as long as
+      // it isn't taken yet (the TAKEN guard above already blocks that).
+      if (topic.proposedById !== session.user.id) {
+        return NextResponse.json({ error: "You can only remove your own proposed topics" }, { status: 403 });
+      }
     } else {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }

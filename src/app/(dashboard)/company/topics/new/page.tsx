@@ -85,41 +85,41 @@ export default function NewTopicPage() {
       <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-md overflow-hidden shadow-sm">
         <form onSubmit={handleSubmit(onSubmit)} className="p-8 space-y-6">
           <Input
-            label="Topic Title"
-            placeholder="e.g. Design of an AI-powered detection system"
+            label={t("company.topicNew.title")}
+            placeholder={t("company.topicNew.titlePh")}
             {...register("title")}
             error={errors.title?.message as string}
             required
           />
 
           <div className="w-full">
-            <label className="admin-form-label dark:text-gray-300">Full Description <span className="text-red-500">*</span></label>
+            <label className="admin-form-label dark:text-gray-300">{t("company.topicNew.fullDescription")} <span className="text-red-500">*</span></label>
             <textarea
               {...register("description")}
               rows={6}
               className={`admin-input h-auto py-3 ${errors.description ? "border-red-500" : ""}`}
-              placeholder="Describe the objectives, context, and expected outcome of the internship..."
+              placeholder={t("company.topicNew.fullDescriptionPh")}
             />
             {errors.description && <p className="admin-error">{errors.description.message as string}</p>}
           </div>
 
           <div className="w-full">
-            <label className="admin-form-label">Required Skills & Technologies</label>
+            <label className="admin-form-label">{t("company.topicNew.requiredSkills")}</label>
             <textarea
               {...register("requiredSkills")}
               rows={2}
               className="admin-input h-auto py-2"
-              placeholder="e.g. React, Python, Machine Learning basics..."
+              placeholder={t("company.topicNew.requiredSkillsPh")}
             />
           </div>
 
           <div className="w-full">
-            <label className="admin-form-label dark:text-gray-300">Target Department (Filière) <span className="text-red-500">*</span></label>
+            <label className="admin-form-label dark:text-gray-300">{t("company.topicNew.targetDepartment")} <span className="text-red-500">*</span></label>
             <select 
               {...register("filiereId")} 
               className={`admin-input dark:bg-slate-800 dark:border-slate-700 dark:text-white ${errors.filiereId ? "border-red-500" : ""}`}
             >
-              <option value="">Select a department...</option>
+              <option value="">{t("company.topicNew.selectDepartment")}</option>
               {filieres.map(f => (
                 <option key={f.id} value={f.id}>{f.name}{f.code ? ` (${f.code})` : ""}</option>
               ))}
@@ -129,19 +129,19 @@ export default function NewTopicPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="w-full">
-              <label className="admin-form-label dark:text-gray-300">Internship Type <span className="text-red-500">*</span></label>
+              <label className="admin-form-label dark:text-gray-300">{t("company.topicNew.internshipType")} <span className="text-red-500">*</span></label>
               <select 
                 {...register("internshipType")} 
                 className={`admin-input dark:bg-slate-800 dark:border-slate-700 dark:text-white ${errors.internshipType ? "border-red-500" : ""}`}
               >
-                <option value="PFE">PFE (Final Year Project)</option>
-                <option value="NORMAL">Normal / Immersion</option>
+                <option value="PFE">{t("company.topicNew.pfeOption")}</option>
+                <option value="NORMAL">{t("company.topicNew.normalOption")}</option>
               </select>
               {errors.internshipType && <p className="admin-error">{errors.internshipType.message as string}</p>}
             </div>
 
             <div className="w-full">
-              <label className="admin-form-label dark:text-gray-300">Maximum Students</label>
+              <label className="admin-form-label dark:text-gray-300">{t("company.topicNew.maxStudents")}</label>
               <Input
                 type="number"
                 min={1}
@@ -153,23 +153,23 @@ export default function NewTopicPage() {
             </div>
             
             <div className="w-full">
-              <label className="admin-form-label dark:text-gray-300">Academic Year</label>
+              <label className="admin-form-label dark:text-gray-300">{t("company.topicNew.academicYear")}</label>
               <input 
                 type="text" 
                 {...register("academicYear")} 
                 readOnly 
                 className="admin-input bg-gray-50 dark:bg-slate-800 text-gray-500 dark:text-gray-400 cursor-not-allowed border-gray-200 dark:border-slate-700" 
               />
-              <p className="text-[11px] text-gray-400 mt-1">Set automatically by system.</p>
+              <p className="text-[11px] text-gray-400 mt-1">{t("company.topicNew.autoSet")}</p>
             </div>
           </div>
 
           <div className="pt-6 border-t border-gray-100 dark:border-slate-800 flex justify-end">
             <Button type="button" variant="outline" className="mr-3 dark:border-slate-700 dark:text-gray-300" onClick={() => router.back()}>
-              Cancel
+              {t("common.cancel")}
             </Button>
             <Button type="submit" isLoading={isLoading} className="bg-indigo-600 hover:bg-indigo-700">
-              Submit Proposal
+              {t("company.topicNew.submitProposal")}
             </Button>
           </div>
         </form>

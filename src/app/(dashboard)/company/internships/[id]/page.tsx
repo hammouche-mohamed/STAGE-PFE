@@ -23,6 +23,7 @@ import { useTranslation } from "@/lib/i18n/LanguageContext";
 import { Input } from "@/components/ui/Input";
 import { DocumentList } from "@/components/documents/DocumentList";
 import { InternshipDocument } from "@/types/document";
+import SetBreadcrumb from "@/components/layout/SetBreadcrumb";
 
 interface Internship {
   id: string;
@@ -147,6 +148,7 @@ export default function CompanyInternshipDetailPage() {
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
+      <SetBreadcrumb segment={String(id)} label={internship.topic.title} />
       <div className="flex items-center justify-between">
         <Link
           href="/company/internships"
@@ -179,48 +181,48 @@ export default function CompanyInternshipDetailPage() {
         <div className="bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800/30 rounded-md p-6 shadow-sm">
           <h2 className="text-[15px] font-bold text-indigo-900 dark:text-indigo-300 mb-2 flex items-center">
             <CheckCircle2 className="h-5 w-5 mr-2 text-indigo-600" />
-            Confirm Internship Dates &amp; Supervisor
+            {t("company.detail.confirmDatesTitle")}
           </h2>
 
           {internship.internshipType === "PFE" ? (
             <div className="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800/30 rounded-md p-4 mb-4">
-              <p className="text-[13px] text-purple-800 dark:text-purple-300 font-semibold mb-1">📌 PFE Internship — End Date Managed by Administration</p>
+              <p className="text-[13px] text-purple-800 dark:text-purple-300 font-semibold mb-1">{t("company.detail.pfeNoteTitle")}</p>
               <p className="text-[12px] text-purple-700 dark:text-purple-200/80">
-                For PFE internships, the end date is automatically set by the administration's final report deadline.
+                {t("company.detail.pfeNoteDesc")}
                 {internship.finalDeadline
-                  ? ` The current end date is: ${format(new Date(internship.finalDeadline), "PPP")}.`
-                  : " The administration has not yet set a final deadline. You can still provide the start date and supervisor info now."}
+                  ? t("company.detail.pfeNoteEnd", { date: format(new Date(internship.finalDeadline), "PPP") })
+                  : t("company.detail.pfeNoteNoDeadline")}
               </p>
             </div>
           ) : (
             <p className="text-[12px] text-indigo-700 dark:text-indigo-300 mb-6">
-              The administration has sent the convention. Please confirm the actual start/end dates and provide the contact info for the technical supervisor.
+              {t("company.detail.conventionSent")}
             </p>
           )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
             <Input
-              label="Start Date"
+              label={t("company.detail.startDate")}
               type="date"
               value={activationData.startDate}
               onChange={(e) => setActivationData({ ...activationData, startDate: e.target.value })}
             />
             {internship.internshipType !== "PFE" && (
               <Input
-                label="End Date"
+                label={t("company.detail.endDate")}
                 type="date"
                 value={activationData.endDate}
                 onChange={(e) => setActivationData({ ...activationData, endDate: e.target.value })}
               />
             )}
             <Input
-              label="Technical Supervisor Name"
+              label={t("company.detail.supervisorName")}
               placeholder="e.g. Jean Dupont"
               value={activationData.supervisorName}
               onChange={(e) => setActivationData({ ...activationData, supervisorName: e.target.value })}
             />
             <Input
-              label="Technical Supervisor Email"
+              label={t("company.detail.supervisorEmail")}
               type="email"
               placeholder="supervisor@company.com"
               value={activationData.supervisorEmail}
@@ -232,7 +234,7 @@ export default function CompanyInternshipDetailPage() {
             onClick={handleActivate}
             isLoading={isSubmitting}
           >
-            Confirm &amp; Activate
+            {t("company.detail.confirmActivate")}
           </Button>
         </div>
       )}
@@ -264,12 +266,12 @@ export default function CompanyInternshipDetailPage() {
             {t("dashboard.supervisor")} — {t("status.COMPLETED")}
           </h2>
           <p className="text-[12px] text-gray-500 dark:text-gray-400 mb-6 leading-relaxed">
-            Please submit the final score for the students you hosted. This score will contribute to their final academic grade.
+            {t("company.detail.finalScoreDesc")}
           </p>
 
           <div className="space-y-4">
             <div>
-              <label className="text-[12px] font-bold text-gray-700 dark:text-gray-300 block mb-2">Technical Evaluation Score (0-20)</label>
+              <label className="text-[12px] font-bold text-gray-700 dark:text-gray-300 block mb-2">{t("company.detail.techScore")}</label>
               <input
                 type="number"
                 min="0"
@@ -277,7 +279,7 @@ export default function CompanyInternshipDetailPage() {
                 className="admin-input"
                 value={evaluationScore}
                 onChange={(e) => setEvaluationScore(parseFloat(e.target.value))}
-                placeholder="Enter score..."
+                placeholder={t("company.detail.scorePh")}
               />
             </div>
             <Button
@@ -302,10 +304,10 @@ export default function CompanyInternshipDetailPage() {
         <h2 className="text-[15px] font-bold text-gray-900 dark:text-white mb-6 flex items-center justify-between">
            <div className="flex items-center">
               <FileText className="h-4 w-4 mr-2 text-indigo-500" />
-              Internship Documents
+              {t("company.detail.documents")}
            </div>
            <span className="text-[11px] font-medium text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-slate-800 border border-transparent dark:border-slate-700 px-2 py-1 rounded">
-              {documents.length} Files
+              {documents.length} {t("company.detail.files")}
            </span>
         </h2>
         <DocumentList 

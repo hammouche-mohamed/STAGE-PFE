@@ -5,6 +5,7 @@ import { BookOpen, Users, Eye, GraduationCap, Layers } from "lucide-react";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { toast } from "sonner";
 import { useSession } from "next-auth/react";
 import { useTranslation } from "@/lib/i18n/LanguageContext";
@@ -39,6 +40,10 @@ export default function TeacherTopicsPage() {
   const [activeTab, setActiveTab] = useState<Tab>("SUPERVISING");
   const [isApplying, setIsApplying] = useState<string | null>(null);
   const [viewTopic, setViewTopic] = useState<Topic | null>(null);
+  const [confirmAction, setConfirmAction] = useState<{
+    type: "apply" | "cancel";
+    topic: Topic;
+  } | null>(null);
 
   const fetchTopics = async () => {
     try {
@@ -100,6 +105,32 @@ export default function TeacherTopicsPage() {
     }
   };
 
+  const handleCancelRequest = async (topicId: string) => {
+    setIsApplying(topicId);
+    try {
+      const res = await fetch(`/api/topics/${topicId}/apply-supervision`, {
+        method: "DELETE",
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || t("teacherTopics.cancelFailed"));
+      toast.success(t("teacherTopics.requestCancelled"));
+      setViewTopic(null);
+      fetchTopics();
+    } catch (error: any) {
+      toast.error(error.message);
+    } finally {
+      setIsApplying(null);
+    }
+  };
+
+  const runConfirm = () => {
+    if (!confirmAction) return;
+    const { type, topic } = confirmAction;
+    setConfirmAction(null);
+    if (type === "apply") handleApply(topic.id);
+    else handleCancelRequest(topic.id);
+  };
+
   const TABS: { id: Tab; label: string }[] = [
     { id: "SUPERVISING", label: `${t("teacherTopics.tabSupervising")} (${supervising.length})` },
     { id: "REQUESTED", label: `${t("teacherTopics.tabRequested")} (${requested.length})` },
@@ -111,6 +142,12 @@ export default function TeacherTopicsPage() {
     !viewTopic.assignedTeacherId &&
     (viewTopic.teacherApplications?.length ?? 0) === 0 &&
     (viewTopic.status === "APPROVED" || viewTopic.status === "OPEN_FOR_SELECTION");
+
+  // Teacher has a still-pending request the admin hasn't acted on yet.
+  const canCancelRequest =
+    !!viewTopic &&
+    !viewTopic.assignedTeacherId &&
+    (viewTopic.teacherApplications ?? []).some((a) => a.status === "PENDING");
 
   return (
     <div className="space-y-6">
@@ -313,10 +350,21 @@ export default function TeacherTopicsPage() {
               <Button variant="outline" size="sm" onClick={() => setViewTopic(null)}>
                 {t("common.close")}
               </Button>
+              {canCancelRequest && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20 border-red-200 dark:border-red-900/30"
+                  onClick={() => setConfirmAction({ type: "cancel", topic: viewTopic })}
+                  isLoading={isApplying === viewTopic.id}
+                >
+                  {t("teacherTopics.cancelRequest")}
+                </Button>
+              )}
               {canApply && (
                 <Button
                   size="sm"
-                  onClick={() => handleApply(viewTopic.id)}
+                  onClick={() => setConfirmAction({ type: "apply", topic: viewTopic })}
                   isLoading={isApplying === viewTopic.id}
                 >
                   {t("teacherTopics.apply")}
@@ -326,6 +374,29 @@ export default function TeacherTopicsPage() {
           </div>
         )}
       </Modal>
+
+      <ConfirmDialog
+        isOpen={!!confirmAction}
+        onClose={() => setConfirmAction(null)}
+        onConfirm={runConfirm}
+        title={
+          confirmAction?.type === "cancel"
+            ? t("teacherTopics.cancelConfirmTitle")
+            : t("teacherTopics.applyConfirmTitle")
+        }
+        description={
+          confirmAction?.type === "cancel"
+            ? t("teacherTopics.cancelConfirmDesc")
+            : t("teacherTopics.applyConfirmDesc")
+        }
+        confirmLabel={
+          confirmAction?.type === "cancel"
+            ? t("teacherTopics.cancelRequest")
+            : t("teacherTopics.apply")
+        }
+        cancelLabel={t("common.cancel")}
+        variant={confirmAction?.type === "cancel" ? "danger" : "warning"}
+      />
     </div>
   );
 }

@@ -15,22 +15,24 @@ async function main() {
   };
 
   console.log("Cleaning database...");
-  const models = [
-    "auditLog", "messageRead", "message", "document", "internshipStudent", "internship",
-    "studentApplication", "teacherApplication", "validation", "topic", "binomeInvitation",
-    "teamInvitation", "teamMember", "studentTeam", "notification", "passwordResetToken",
-    "registrationRequest", "deadline", "studentProfile", "teacherProfile", "companyProfile",
-    "adminProfile", "user", "filiere", "loginAttempt", "systemSettings"
-  ];
+  // Robust, order-independent reset: disable FK checks, TRUNCATE every base
+  // table in the current schema, then re-enable. This always fully clears the
+  // DB (no fragile delete-order / FK-block issues) so the reseed below never
+  // hits stale rows or unique-constraint conflicts. Excludes Prisma's own
+  // migrations table.
+  const tableRows = await prisma.$queryRawUnsafe<{ t: string }[]>(
+    "SELECT table_name AS t FROM information_schema.tables WHERE table_schema = DATABASE() AND table_type = 'BASE TABLE'",
+  );
+  const tables = tableRows
+    .map((r: any) => r.t ?? r.T ?? r.table_name)
+    .filter((n: string) => n && n !== "_prisma_migrations");
 
-  for (const model of models) {
-    try {
-      // @ts-ignore
-      await prisma[model].deleteMany();
-    } catch (e) {
-      console.log(`Skipping deletion for ${model}`);
-    }
+  await prisma.$executeRawUnsafe("SET FOREIGN_KEY_CHECKS = 0");
+  for (const tbl of tables) {
+    await prisma.$executeRawUnsafe(`TRUNCATE TABLE \`${tbl}\``);
   }
+  await prisma.$executeRawUnsafe("SET FOREIGN_KEY_CHECKS = 1");
+  console.log(`  cleared ${tables.length} tables`);
 
   console.log("Setting system configurations...");
   await (prisma.systemSettings as any).createMany({
@@ -573,7 +575,7 @@ async function main() {
       data: {
         teacherId: supervisors[1].id,
         topicId: archiveTakenTopic.id,
-        status: "APPROVED",
+        status: "ACCEPTED",
         message: "Application from last year — accepted.",
       }
     });
@@ -769,6 +771,84 @@ async function main() {
       }
     ]
   });
+
+  // ── Company applicants ──────────────────────────────────────────────────
+  // A few student teams applying to company-proposed OPEN topics so the
+  // Company role's "Applicants" view has data to test (solo + binôme, a mix
+  // of PENDING and one ACCEPTED). Runs against the data seeded above.
+  console.log("Seeding company applicants...");
+  {
+    const openCoTopics = await prisma.topic.findMany({
+      where: { status: "OPEN_FOR_SELECTION", proposedBy: { role: "COMPANY" } },
+      select: { id: true, title: true, filiereId: true, academicYear: true },
+      take: 5,
+    });
+    const freeStudents = await prisma.user.findMany({
+      where: {
+        role: "STUDENT",
+        teammember: { none: {} },
+        internshipstudent: { none: {} },
+      },
+      select: { id: true, name: true, studentprofile: { select: { filiereId: true } } },
+    });
+
+    const usedStu = new Set<string>();
+    const pickStudents = (filiereId: string | null, n: number) => {
+      const same = freeStudents.filter(
+        (s) => !usedStu.has(s.id) && s.studentprofile?.filiereId === filiereId,
+      );
+      const any = freeStudents.filter((s) => !usedStu.has(s.id));
+      const pool = same.length >= n ? same : any;
+      const chosen = pool.slice(0, n);
+      chosen.forEach((s) => usedStu.add(s.id));
+      return chosen;
+    };
+
+    const appStatuses = ["PENDING", "PENDING", "ACCEPTED", "PENDING", "PENDING"];
+    let madeApps = 0;
+    for (let i = 0; i < openCoTopics.length; i++) {
+      const tp = openCoTopics[i];
+      const wantBinome = i % 2 === 1;
+      const members = pickStudents(tp.filiereId, wantBinome ? 2 : 1);
+      if (members.length === 0) continue;
+      const lead = members[0];
+      const partner = members[1];
+
+      const team = await prisma.studentTeam.create({
+        data: {
+          leaderId: lead.id,
+          filiereId: tp.filiereId,
+          academicYear: tp.academicYear,
+          reason: "Motivated team interested in this industry project.",
+          updatedAt: new Date(),
+          teammember: {
+            create: [
+              { studentId: lead.id, isLeader: true },
+              ...(partner ? [{ studentId: partner.id, isLeader: false }] : []),
+            ],
+          },
+        } as any,
+      });
+
+      const status = appStatuses[i % appStatuses.length];
+      await prisma.studentApplication.create({
+        data: {
+          topicId: tp.id,
+          teamId: team.id,
+          leaderId: lead.id,
+          partnerId: partner?.id ?? null,
+          isBinome: !!partner,
+          status: status as any,
+          message:
+            "We're very interested in this topic and believe our skills are a strong match.",
+          appliedAt: new Date(),
+          ...(status === "ACCEPTED" ? { reviewedAt: new Date() } : {}),
+        } as any,
+      });
+      madeApps++;
+    }
+    console.log(`  + ${madeApps} company application(s) seeded`);
+  }
 
   console.log("Seeding completed successfully!");
 }
