@@ -6,7 +6,7 @@ import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { toast } from "sonner";
-import { Settings, Lock, Unlock, Calendar, Palette, FileText, Trash2 } from "lucide-react";
+import { Settings, Lock, Unlock, Calendar, Palette, FileText, Trash2, Users } from "lucide-react";
 import { useTranslation } from "@/lib/i18n/LanguageContext";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 
@@ -34,8 +34,12 @@ export default function AdminSettingsPage() {
   const [showLogoDeleteConfirm, setShowLogoDeleteConfirm] = useState(false);
   const [showTemplateDeleteConfirm, setShowTemplateDeleteConfirm] = useState(false);
   const [showAcademicYearDeleteConfirm, setShowAcademicYearDeleteConfirm] = useState(false);
+  const [archiveOldYear, setArchiveOldYear] = useState<string | null>(null);
+  const [evictionYear, setEvictionYear] = useState<string | null>(null);
+  const [isArchivingYear, setIsArchivingYear] = useState(false);
   const [yearStart, setYearStart] = useState<string>("");
   const [yearEnd, setYearEnd] = useState<string>("");
+  const [pfeTeamSize, setPfeTeamSize] = useState<string>("2");
 
   const fetchSettings = async () => {
     try {
@@ -47,6 +51,7 @@ export default function AdminSettingsPage() {
           return acc;
         }, {});
         setSettings(prev => ({ ...prev, ...settingMap }));
+        setPfeTeamSize(String(settingMap.MAX_TEAM_SIZE ?? "2"));
         if (settingMap.currentAcademicYear && settingMap.currentAcademicYear.includes("-")) {
           const [start, end] = settingMap.currentAcademicYear.split("-");
           setYearStart(start || "");
@@ -69,15 +74,15 @@ export default function AdminSettingsPage() {
       
       if (start && (startNum < 2000 || startNum > 2099)) {
         toast.error("Start year must be between 2000 and 2099");
-        return;
+        return false;
       }
       if (end && (endNum < 2000 || endNum > 2099)) {
         toast.error("End year must be between 2000 and 2099");
-        return;
+        return false;
       }
       if (start && end && startNum >= endNum) {
         toast.error("End year must be after start year");
-        return;
+        return false;
       }
     }
 
@@ -97,12 +102,15 @@ export default function AdminSettingsPage() {
       
       toast.success(`${key} updated successfully`);
       await fetchSettings();
+      return true;
     } catch (error: any) {
       console.error("Update error:", error);
       toast.error(error.message || "Failed to update setting");
+      return false;
     } finally {
       setLoadingKey(null);
     }
+    return false;
   };
 
   const handleDeleteTemplate = async () => {
@@ -121,6 +129,64 @@ export default function AdminSettingsPage() {
     setYearStart("");
     setYearEnd("");
     setShowAcademicYearDeleteConfirm(false);
+  };
+
+  // Changing the academic year is the trigger for archiving. After the new
+  // year is saved, prompt the Super Admin to archive the previous year's
+  // topics + internships (the only path to the Archives view).
+  const handleAcademicYearUpdate = async () => {
+    const prevYear = settings.currentAcademicYear;
+    const newYear = `${yearStart}-${yearEnd}`;
+    const ok = await handleUpdate("currentAcademicYear", newYear);
+    if (
+      ok &&
+      prevYear &&
+      prevYear !== "N/A" &&
+      /^\d{4}-\d{4}$/.test(prevYear) &&
+      prevYear !== newYear
+    ) {
+      // Ask the server which (if any) older year would be pushed into the
+      // 3-day permanent-deletion countdown, so we can warn before archiving.
+      try {
+        const r = await fetch(
+          `/api/admin/archives/status?preview=${encodeURIComponent(prevYear)}`,
+        );
+        const d = await r.json();
+        setEvictionYear(r.ok ? (d?.preview?.evictedYear ?? null) : null);
+      } catch {
+        setEvictionYear(null);
+      }
+      setArchiveOldYear(prevYear);
+    }
+  };
+
+  const confirmArchiveYear = async () => {
+    if (!archiveOldYear) return;
+    setIsArchivingYear(true);
+    try {
+      const res = await fetch("/api/admin/archives/year", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ year: archiveOldYear }),
+      });
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error || "Archive failed");
+      toast.success(result.message || `Archived ${archiveOldYear}.`);
+      if (result.evictedYear && result.scheduledDeleteAt) {
+        toast.warning(
+          `${result.evictedYear} will be PERMANENTLY DELETED on ` +
+            `${new Date(result.scheduledDeleteAt).toLocaleDateString()}. ` +
+            `Download it now from Archives.`,
+          { duration: 10000 },
+        );
+      }
+    } catch (error: any) {
+      toast.error(error.message || "Failed to archive the previous year.");
+    } finally {
+      setIsArchivingYear(false);
+      setArchiveOldYear(null);
+      setEvictionYear(null);
+    }
   };
 
   // NFR-S2: client-side role guard — redirect non-admins immediately
@@ -259,7 +325,7 @@ export default function AdminSettingsPage() {
             <Button 
               size="sm" 
               isLoading={loadingKey === "currentAcademicYear"}
-              onClick={() => handleUpdate("currentAcademicYear", `${yearStart}-${yearEnd}`)}
+              onClick={handleAcademicYearUpdate}
             >
               {t("common.update")}
             </Button>
@@ -340,6 +406,49 @@ export default function AdminSettingsPage() {
           icon={<Calendar className="h-5 w-5" />}
           colorClass="bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400"
         />
+
+        {/* PFE Max Team Size */}
+        <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-md p-6 shadow-sm">
+          <div className="flex items-center space-x-4 mb-6">
+            <div className="p-3 bg-indigo-50 dark:bg-indigo-900/30 rounded-md text-indigo-600 dark:text-indigo-400">
+              <Users className="h-5 w-5" />
+            </div>
+            <div>
+              <h3 className="text-[14px] font-semibold text-gray-900 dark:text-white">
+                PFE max team size
+              </h3>
+              <p className="text-[12px] text-gray-500 dark:text-gray-400">
+                Hard ceiling for PFE internships. If a company set a larger
+                team size, the smaller of the two applies. Student-proposed
+                normal internships are unlimited.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <input
+              type="number"
+              min="1"
+              max="10"
+              className="w-24 admin-input text-center"
+              value={pfeTeamSize}
+              onChange={(e) => setPfeTeamSize(e.target.value)}
+            />
+            <Button
+              size="sm"
+              isLoading={loadingKey === "MAX_TEAM_SIZE"}
+              onClick={() => {
+                const n = parseInt(pfeTeamSize, 10);
+                if (!Number.isFinite(n) || n < 1 || n > 10) {
+                  toast.error("Team size must be between 1 and 10");
+                  return;
+                }
+                handleUpdate("MAX_TEAM_SIZE", String(n));
+              }}
+            >
+              {t("common.update")}
+            </Button>
+          </div>
+        </div>
 
         {/* Branding & Assets */}
         <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-md p-6 shadow-sm">
@@ -480,6 +589,31 @@ export default function AdminSettingsPage() {
         description="Are you sure you want to clear the current academic year? The system will use the default cycle calculation until a new one is set."
         confirmLabel="Yes, Clear"
         isLoading={loadingKey === "currentAcademicYear"}
+      />
+
+      <ConfirmDialog
+        isOpen={!!archiveOldYear}
+        onClose={() => {
+          setArchiveOldYear(null);
+          setEvictionYear(null);
+        }}
+        onConfirm={confirmArchiveYear}
+        title="Archive Previous Year?"
+        description={
+          `Archive all topics and internships from ${archiveOldYear}? ` +
+          `They move to the Archives view (read-only) and leave the active lists.` +
+          (evictionYear
+            ? `
+
+⚠ The archives keep only the 3 most recent years. Doing this ` +
+              `pushes ${evictionYear} out: ALL of its data will be PERMANENTLY ` +
+              `DELETED in 3 days. Download ${evictionYear} from Archives → Export ` +
+              `BEFORE you confirm — this cannot be undone.`
+            : ``)
+        }
+        confirmLabel={`Archive ${archiveOldYear ?? ""}`}
+        variant={evictionYear ? "danger" : "warning"}
+        isLoading={isArchivingYear}
       />
     </div>
   );

@@ -15,8 +15,7 @@ import {
   Layers,
   FileText,
   AlertCircle,
-  Users,
-  Trash2
+  Users
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { StatusBadge } from "@/components/ui/StatusBadge";
@@ -75,8 +74,7 @@ export default function AdminTopicDetailPage() {
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isApproveDialogOpen, setIsApproveDialogOpen] = useState(false);
   
   const [editData, setEditData] = useState({
     title: "",
@@ -169,6 +167,12 @@ export default function AdminTopicDetailPage() {
   };
 
   const handleApprove = () => {
+    // Require explicit confirmation before approving a topic.
+    setIsApproveDialogOpen(true);
+  };
+
+  const confirmApprove = () => {
+    setIsApproveDialogOpen(false);
     handleUpdate({ ...editData, status: "OPEN_FOR_SELECTION" });
   };
 
@@ -189,29 +193,18 @@ export default function AdminTopicDetailPage() {
 
   const studyLevels = ["L1", "L2", "L3", "M1", "M2"];
 
-  const handleDelete = async () => {
-    setIsDeleting(true);
-    try {
-      const res = await fetch(`/api/topics/${id}`, {
-        method: "DELETE",
-      });
-
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || "Delete failed");
-      }
-      
-      toast.success("Topic deleted successfully");
-      router.push("/admin/topics");
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to delete topic");
-    } finally {
-      setIsDeleting(false);
-    }
-  };
 
   if (isLoading) return <div className="p-8 text-center text-gray-400">Loading topic details...</div>;
   if (!topic) return <div className="p-8 text-center text-gray-400">Topic not found.</div>;
+
+  // Teachers who applied to supervise THIS topic (still pending). Surfaced in
+  // the supervisor picker so the admin knows who volunteered before choosing.
+  const supervisionApplicants: { id: string; name: string }[] = (
+    topic.teacherApplications || []
+  )
+    .filter((a: any) => a?.status === "PENDING" && a?.user?.id)
+    .map((a: any) => ({ id: a.user.id, name: a.user.name }));
+  const applicantIds = new Set(supervisionApplicants.map((a) => a.id));
 
   return (
     <div className="space-y-6 max-w-5xl">
@@ -226,15 +219,6 @@ export default function AdminTopicDetailPage() {
 
         {session?.user?.role === "ADMIN" && !session?.user?.isSuperAdmin && (
           <div className="flex items-center gap-3">
-            <Button 
-              variant="outline" 
-              onClick={() => setIsDeleteDialogOpen(true)}
-              size="sm"
-              className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20 border-red-100 dark:border-red-900/30 transition-colors"
-            >
-              <Trash2 className="h-4 w-4 mr-2" />
-              {t("common.delete")}
-            </Button>
             <Button 
               onClick={() => handleUpdate()} 
               isLoading={isUpdating}
@@ -342,9 +326,21 @@ export default function AdminTopicDetailPage() {
                     >
                       <option value="">No Supervisor Assigned</option>
                       {teachers.map(t => (
-                        <option key={t.id} value={t.id}>{t.name}</option>
+                        <option key={t.id} value={t.id}>
+                          {t.name}
+                          {applicantIds.has(t.id) ? "  — wants to supervise" : ""}
+                        </option>
                       ))}
                     </select>
+                    {supervisionApplicants.length > 0 && (
+                      <p className="text-[11px] text-indigo-600 dark:text-indigo-400 mt-1.5">
+                        {supervisionApplicants.length === 1
+                          ? `${supervisionApplicants[0].name} applied to supervise this topic.`
+                          : `${supervisionApplicants.length} teachers applied to supervise: ${supervisionApplicants
+                              .map((x) => x.name)
+                              .join(", ")}. Pick one.`}
+                      </p>
+                    )}
                   </div>
 
                   <div className="space-y-1.5">
@@ -530,14 +526,14 @@ export default function AdminTopicDetailPage() {
       </div>
 
       <ConfirmDialog
-        isOpen={isDeleteDialogOpen}
-        onClose={() => setIsDeleteDialogOpen(false)}
-        onConfirm={handleDelete}
-        title={t("common.delete")}
-        description={`${t("common.delete")} "${topic.title}"?`}
-        confirmLabel={t("common.delete")}
-        variant="danger"
-        isLoading={isDeleting}
+        isOpen={isApproveDialogOpen}
+        onClose={() => setIsApproveDialogOpen(false)}
+        onConfirm={confirmApprove}
+        title="Approve Topic"
+        description={`Approve "${topic.title}"? It will become open for student selection.`}
+        confirmLabel="Approve Topic"
+        variant="warning"
+        isLoading={isUpdating}
       />
 
       <ConfirmDialog

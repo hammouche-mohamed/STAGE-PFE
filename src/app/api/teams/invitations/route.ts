@@ -26,14 +26,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Only the team leader can send invitations" }, { status: 403 });
     }
 
-    // Check system settings for max team size
-    const maxTeamSizeSetting = await prisma.systemSettings.findUnique({ where: { key: "MAX_TEAM_SIZE" } });
-    const maxTeamSize = maxTeamSizeSetting ? parseInt(maxTeamSizeSetting.value) : 2;
-
-    const currentTotalSize = team.teammember.length + team.teaminvitation.length;
-    if (currentTotalSize >= maxTeamSize) {
-      return NextResponse.json({ error: `You cannot invite more students. Max team size is ${maxTeamSize}.` }, { status: 400 });
-    }
+    // Team building is uncapped. The real size limit is enforced when the
+    // team APPLIES to a topic / the internship is created, based on the
+    // topic's type (see teamSize.service.ts).
 
     // Check if student is already in a team
     const isAlreadyInTeam = await prisma.teamMember.findFirst({

@@ -280,6 +280,42 @@ export async function PATCH(
       });
     }
 
+    // Resolve any "apply to supervise" requests now that a supervisor is
+    // chosen: the picked teacher's request (if any) is ACCEPTED, every other
+    // pending request for this topic is REJECTED — no more orphaned records.
+    if (teacherId && teacherId !== topic.assignedTeacherId) {
+      try {
+        await prisma.teacherApplication.updateMany({
+          where: { topicId: id, teacherId, status: "PENDING" },
+          data: { status: "ACCEPTED" },
+        });
+        const rejected = await prisma.teacherApplication.findMany({
+          where: { topicId: id, status: "PENDING", NOT: { teacherId } },
+          select: { teacherId: true },
+        });
+        if (rejected.length > 0) {
+          await prisma.teacherApplication.updateMany({
+            where: { topicId: id, status: "PENDING", NOT: { teacherId } },
+            data: { status: "REJECTED" },
+          });
+          await Promise.all(
+            rejected.map((r) =>
+              NotificationService.trigger({
+                userId: r.teacherId,
+                type: "TEACHER_REJECTED",
+                title: "Supervision Request Closed",
+                message: `Another supervisor was chosen for "${topic.title}". Your supervision request was not selected.`,
+                relatedId: topic.id,
+                relatedType: "Topic",
+              }).catch(() => null),
+            ),
+          );
+        }
+      } catch (e) {
+        console.error("Failed to resolve supervision applications:", e);
+      }
+    }
+
     // Notify Super Admins if a Department Admin took action
     if (!session.user.isSuperAdmin) {
       const superAdmins = await prisma.user.findMany({
@@ -334,11 +370,26 @@ export async function DELETE(
 
     if (!topic) return NextResponse.json({ error: "Topic not found" }, { status: 404 });
 
+    // Topics are NEVER hard-deleted from the DB. "Delete" archives the topic
+    // (sets archivedAt) so it leaves the active lists but stays on record and
+    // shows up in the Archives view.
+    if ((topic as any).archivedAt) {
+      return NextResponse.json({ error: "Topic is already archived." }, { status: 400 });
+    }
+
+    // A TAKEN topic has a live internship — it auto-archives once that
+    // internship is COMPLETED/CANCELLED, so it can't be archived manually.
+    if (topic.status === "TAKEN") {
+      return NextResponse.json({
+        error: "Cannot archive a taken topic. It will move to archives automatically once its internship ends.",
+      }, { status: 400 });
+    }
+
     if (session.user.role === "ADMIN") {
       // Super Admin is read-only
       if (session.user.isSuperAdmin) {
-        return NextResponse.json({ 
-          error: "Forbidden: Super Administrators have read-only access to topic moderation." 
+        return NextResponse.json({
+          error: "Forbidden: Super Administrators have read-only access to topic moderation."
         }, { status: 403 });
       }
 
@@ -346,32 +397,35 @@ export async function DELETE(
       if (!session.user.isSuperAdmin && session.user.filiereId && topic.filiereId && topic.filiereId !== session.user.filiereId) {
         return NextResponse.json({ error: "Forbidden: Topic belongs to another department" }, { status: 403 });
       }
-      // Admin can always delete if scoped correctly
+      // Admin can archive any non-TAKEN topic in their scope (incl. APPROVED / REJECTED)
     } else if (session.user.role === "STUDENT") {
-      // Student can only delete their own PENDING_ADMIN student-proposed topics
+      // Student can only archive their own PENDING_ADMIN student-proposed topics
       if (topic.directAssigneeId !== session.user.id || !topic.proposedByStudent) {
-        return NextResponse.json({ error: "You can only delete your own proposed topics" }, { status: 403 });
+        return NextResponse.json({ error: "You can only remove your own proposed topics" }, { status: 403 });
       }
       if (topic.status !== "PENDING_ADMIN") {
         return NextResponse.json({
-          error: "Cannot delete a topic that has already been validated. Contact the admin.",
+          error: "Cannot remove a topic that has already been validated. Contact the admin.",
         }, { status: 400 });
       }
     } else {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    await prisma.topic.delete({ where: { id } });
+    await prisma.topic.update({
+      where: { id },
+      data: { archivedAt: new Date() } as any,
+    });
 
     await AuditService.log({
       userId: session.user.id,
-      action: "TOPIC_DELETED",
+      action: "TOPIC_ARCHIVED",
       targetType: "Topic",
       targetId: topic.title,
-      details: { title: topic.title },
+      details: { title: topic.title, status: topic.status },
     });
 
-    return NextResponse.json({ message: "Topic deleted successfully." });
+    return NextResponse.json({ message: "Topic archived successfully." });
   } catch (error) {
     console.error("Topic delete error:", error);
     return NextResponse.json({ error: "Failed to delete topic." }, { status: 500 });

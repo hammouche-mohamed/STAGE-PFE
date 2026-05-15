@@ -81,6 +81,14 @@ export async function PATCH(req: NextRequest) {
       return response;
     }
 
+    if (body.id) {
+      await prisma.notification.updateMany({
+        where: { id: body.id, userId: session.user.id },
+        data: { isRead: true },
+      });
+      return NextResponse.json({ success: true });
+    }
+
     return NextResponse.json({ error: "Unsupported action" }, { status: 400 });
   } catch (error) {
     console.error("Notifications PATCH error:", error);

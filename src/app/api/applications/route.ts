@@ -3,6 +3,7 @@ import prisma from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { randomUUID } from "crypto";
 import { AuditService } from "@/lib/services/audit.service";
+import { resolveTeamCap } from "@/lib/services/teamSize.service";
 
 export async function GET(req: NextRequest) {
   const session = await auth();
@@ -159,6 +160,23 @@ export async function POST(req: NextRequest) {
     const topic = await prisma.topic.findUnique({ where: { id: topicId } });
     if (!topic || topic.status !== "OPEN_FOR_SELECTION") {
       return NextResponse.json({ error: "This topic is no longer available." }, { status: 409 });
+    }
+
+    // ── GUARD: team size must fit the topic's type ──────────────────────────
+    // Teams are built freely; the real cap applies here, against THIS topic.
+    const cap = await resolveTeamCap(topic as any);
+    if (cap !== null) {
+      const teamSize = await prisma.teamMember.count({ where: { teamId } });
+      if (teamSize > cap) {
+        const kind =
+          topic.type === "COMPANY_PROPOSED" ? "the company" : "the PFE policy";
+        return NextResponse.json(
+          {
+            error: `This topic allows at most ${cap} student(s) per team (set by ${kind}). Your team has ${teamSize}. Remove members before applying.`,
+          },
+          { status: 409 },
+        );
+      }
     }
 
     const application = await prisma.studentApplication.create({

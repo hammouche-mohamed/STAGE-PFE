@@ -7,6 +7,7 @@ import { TeacherLoadService } from '@/lib/services/teacherLoad.service';
 import { NotificationService } from '@/lib/services/notification.service';
 import { SettingsService } from '@/lib/services/settings.service';
 import { assertNoActiveInternship } from '@/lib/services/internshipGuard.service';
+import { resolveTeamCap } from '@/lib/services/teamSize.service';
 import { randomUUID } from 'crypto';
 
 export async function GET(req: NextRequest) {
@@ -213,10 +214,6 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    if (studentIds.length > 2) {
-      return NextResponse.json({ error: 'Maximum 2 students per internship.' }, { status: 409 });
-    }
-
     // Enforce teacher capacity before creating
     const teacherProfile = await prisma.teacherProfile.findUnique({
       where: { userId: teacherId },
@@ -229,11 +226,62 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Fetch topic to inherit internship type
+    // Fetch topic to inherit internship type + validate completeness
     const topic = await prisma.topic.findUnique({
       where: { id: topicId },
-      select: { internshipType: true, title: true },
+      select: {
+        internshipType: true,
+        type: true,
+        maxStudents: true,
+        title: true,
+        description: true,
+        requiredSkills: true,
+        filiereId: true,
+        targetLevels: true,
+        assignedTeacherId: true,
+        proposedByStudent: true,
+      },
     });
+
+    if (!topic) {
+      return NextResponse.json({ error: 'Topic not found.' }, { status: 404 });
+    }
+
+    // An internship cannot start until the topic is fully specified and a
+    // supervisor is assigned. Block here with a clear list of what's missing.
+    const missing: string[] = [];
+    if (!topic.title?.trim()) missing.push('title');
+    if (!topic.description?.trim()) missing.push('description');
+    if (!topic.requiredSkills?.trim()) missing.push('required skills');
+    if (!topic.filiereId) missing.push('department');
+    // Student-proposed topics don't carry target levels (the student is the
+    // target), so only require it for the others.
+    if (!topic.proposedByStudent && !topic.targetLevels?.trim())
+      missing.push('target level(s)');
+    const hasSupervisor = !!teacherId || !!topic.assignedTeacherId;
+    if (!hasSupervisor) missing.push('supervisor (assigned teacher)');
+
+    if (missing.length > 0) {
+      return NextResponse.json(
+        {
+          error: `Cannot start the internship — this topic is incomplete. Missing: ${missing.join(', ')}. Complete the topic and assign a supervisor first.`,
+        },
+        { status: 400 },
+      );
+    }
+
+    // Team-size cap by topic type: company-set max, PFE Super-Admin limit
+    // (the smaller wins), or unlimited for student-proposed NORMAL.
+    const teamCap = await resolveTeamCap(topic as any);
+    if (teamCap !== null && studentIds.length > teamCap) {
+      const kind = topic.type === 'COMPANY_PROPOSED' ? 'the company' : 'the PFE policy';
+      return NextResponse.json(
+        {
+          error: `This topic allows at most ${teamCap} student(s) (set by ${kind}). You selected ${studentIds.length}.`,
+        },
+        { status: 409 },
+      );
+    }
 
     // NFR-RDI1: wrap multi-table writes in a transaction
     const internship = await prisma.$transaction(async (tx) => {

@@ -3,9 +3,10 @@
 import React, { useEffect, useState } from "react";
 import { format } from "date-fns";
 import { 
-  Archive, 
-  Download, 
-  Filter, 
+  Archive,
+  Download,
+  AlertCircle,
+  Filter,
   Users, 
   UserCheck, 
   Building2, 
@@ -36,6 +37,10 @@ export default function AdminArchivesPage() {
   const [isExporting, setIsExporting] = useState(false);
   // Topic-only: filter by internship type (PFE / NORMAL)
   const [topicTypeFilter, setTopicTypeFilter] = useState<"ALL" | "PFE" | "NORMAL">("ALL");
+  // Years in the 3-day permanent-deletion countdown (pushed out by retention).
+  const [pendingDeletions, setPendingDeletions] = useState<
+    { year: string; scheduledDeleteAt: string }[]
+  >([]);
 
   // Department filter only makes sense for entities scoped to a filière.
   const DEPT_FILTERABLE: TabType[] = ["internships", "students", "teachers", "topics"];
@@ -46,17 +51,21 @@ export default function AdminArchivesPage() {
   const now = new Date();
   const currentMonth = now.getMonth();
   const startYear = currentMonth >= 8 ? now.getFullYear() : now.getFullYear() - 1;
-  const years = Array.from({ length: 4 }, (_, i) => {
+  const allYears = Array.from({ length: 4 }, (_, i) => {
     const y = startYear - i;
     return `${y}-${y + 1}`;
   });
+  // Years pushed into the deletion countdown are "moved out of the interface":
+  // hidden from the dropdown, but still downloadable from the banner below.
+  const pendingYears = pendingDeletions.map((p) => p.year);
+  const years = allYears.filter((y) => !pendingYears.includes(y));
 
-  // Default to current year if not set
+  // Default to the most recent still-visible year if not set.
   useEffect(() => {
-    if (!selectedYear && years.length > 0) {
+    if ((!selectedYear || pendingYears.includes(selectedYear)) && years.length > 0) {
       setSelectedYear(years[0]);
     }
-  }, [years]);
+  }, [years.join(",")]);
 
   useEffect(() => {
     if (session?.user?.isSuperAdmin) {
@@ -64,7 +73,29 @@ export default function AdminArchivesPage() {
         .then(res => res.json())
         .then(data => setFilieres(data.data || []));
     }
+    // Load retention status (pending deletions) for the banner + dropdown.
+    fetch("/api/admin/archives/status")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((d) => d && setPendingDeletions(d.pendingDeletions || []))
+      .catch(() => {});
   }, [session]);
+
+  const downloadYear = async (year: string) => {
+    try {
+      const res = await fetch(`/api/admin/export?type=all&year=${encodeURIComponent(year)}`);
+      if (!res.ok) throw new Error("Export failed");
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `archive_${year}_all_${new Date().toISOString().split("T")[0]}.csv`;
+      a.click();
+      window.URL.revokeObjectURL(url);
+      toast.success(`Downloaded ${year} — save this before it is deleted`);
+    } catch {
+      toast.error(`Failed to download ${year}`);
+    }
+  };
 
   const fetchData = async (signal?: AbortSignal) => {
     if (!selectedYear) return;
@@ -390,6 +421,61 @@ export default function AdminArchivesPage() {
 
   return (
     <div className="space-y-6">
+      {pendingDeletions.length > 0 && (
+        <div className="rounded-xl border border-red-300 bg-red-50 dark:border-red-900/50 dark:bg-red-900/20 p-4">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+            <div className="flex-1 min-w-0">
+              <p className="text-[13px] font-bold text-red-700 dark:text-red-300">
+                Scheduled for permanent deletion
+              </p>
+              <p className="text-[12px] text-red-600 dark:text-red-400 mt-0.5">
+                These years were pushed out of the archive (only the 3 most
+                recent are kept). Their data is deleted forever once the
+                countdown ends — download it now.
+              </p>
+              <div className="mt-3 space-y-2">
+                {pendingDeletions.map((p) => {
+                  const due = new Date(p.scheduledDeleteAt);
+                  const daysLeft = Math.max(
+                    0,
+                    Math.ceil((due.getTime() - Date.now()) / 86_400_000),
+                  );
+                  return (
+                    <div
+                      key={p.year}
+                      className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-white dark:bg-slate-900 border border-red-200 dark:border-red-900/40 px-3 py-2"
+                    >
+                      <div className="text-[12px]">
+                        <span className="font-bold text-gray-900 dark:text-white">
+                          {p.year}
+                        </span>
+                        <span className="mx-2 text-gray-300 dark:text-slate-600">
+                          •
+                        </span>
+                        <span className="text-red-600 dark:text-red-400 font-medium">
+                          {daysLeft === 0
+                            ? "deletes today"
+                            : `${daysLeft} day(s) left — deletes ${due.toLocaleDateString()}`}
+                        </span>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => downloadYear(p.year)}
+                        className="border-red-300 text-red-700 hover:bg-red-100 dark:border-red-900/50 dark:text-red-300 dark:hover:bg-red-900/30"
+                      >
+                        <Download className="h-3.5 w-3.5 mr-1.5" />
+                        Download {p.year}
+                      </Button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <h1 className="text-[17px] font-semibold text-gray-900 dark:text-white flex items-center gap-2">

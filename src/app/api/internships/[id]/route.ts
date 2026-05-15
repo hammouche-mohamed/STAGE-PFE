@@ -143,6 +143,21 @@ export async function PATCH(
     const deadline = new Date(finalDeadline);
     const isPFE = internship.internshipType === 'PFE';
 
+    // NORMAL / company internships: the company sets the end date. The final
+    // report deadline must fall on or before that date — the admin cannot
+    // set a report deadline after the company's agreed end of internship.
+    if (!isPFE && internship.endDate && deadline > internship.endDate) {
+      return NextResponse.json(
+        {
+          error:
+            `The report deadline cannot be after the company's internship end date ` +
+            `(${new Date(internship.endDate).toLocaleDateString()}). ` +
+            `Set it on or before that date.`,
+        },
+        { status: 400 },
+      );
+    }
+
     // For PFE: endDate = finalDeadline, recalculate midterm
     const newEndDate = isPFE ? deadline : internship.endDate;
     const durationDays = newEndDate ? differenceInDays(newEndDate, internship.startDate) : 0;

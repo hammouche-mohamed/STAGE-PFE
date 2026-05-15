@@ -31,13 +31,8 @@ export async function PATCH(
     }
 
     if (accept) {
-      // Check system settings for max team size
-      const maxTeamSizeSetting = await prisma.systemSettings.findUnique({ where: { key: "MAX_TEAM_SIZE" } });
-      const maxTeamSize = maxTeamSizeSetting ? parseInt(maxTeamSizeSetting.value) : 2;
-
-      if (invitation.studentteam.teammember.length >= maxTeamSize) {
-        return NextResponse.json({ error: "Team is already full" }, { status: 400 });
-      }
+      // Team building is uncapped — the size limit is enforced at apply /
+      // internship-creation time based on the chosen topic's type.
 
       // Check if student is already in a team (they might have accepted another invite)
       const existingTeam = await prisma.teamMember.findFirst({

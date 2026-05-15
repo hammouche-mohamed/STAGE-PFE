@@ -1,12 +1,20 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Bell, CheckCircle, Circle, X, Trash2, CheckCheck, ArrowLeft, ArrowRight } from "lucide-react";
-import Link from "next/link";
-import { formatDateTime } from "@/lib/utils/formatDate";
-import { toast } from "sonner";
+import {
+  Bell,
+  X,
+  MessageSquare,
+  BookOpen,
+  Briefcase,
+  FileText,
+  AlertTriangle,
+  Shield,
+  UserCheck,
+  CheckCheck,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/Button";
+import { toast } from "sonner";
 import { useTranslation } from "@/lib/i18n/LanguageContext";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 
@@ -16,16 +24,68 @@ interface Notification {
   message: string;
   isRead: boolean;
   createdAt: string | Date;
+  type?: string | null;
   relatedType?: string | null;
   relatedId?: string | null;
   link?: string | null;
 }
 
+// ── relative time, Instagram-style ("now", "5m", "3h", "2d", "4w") ──────────
+function timeAgo(date: string | Date): string {
+  const d = new Date(date).getTime();
+  const s = Math.max(0, Math.floor((Date.now() - d) / 1000));
+  if (s < 45) return "now";
+  if (s < 3600) return `${Math.floor(s / 60)}m`;
+  if (s < 86400) return `${Math.floor(s / 3600)}h`;
+  if (s < 604800) return `${Math.floor(s / 86400)}d`;
+  if (s < 2629800) return `${Math.floor(s / 604800)}w`;
+  return new Date(date).toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+  });
+}
+
+// ── type → avatar icon + colour ─────────────────────────────────────────────
+function visual(n: Notification): { Icon: any; ring: string; fg: string } {
+  const t = (n.type || "").toUpperCase();
+  const rt = (n.relatedType || "").toUpperCase();
+  if (t.includes("MESSAGE"))
+    return { Icon: MessageSquare, ring: "from-sky-400 to-blue-500", fg: "text-white" };
+  if (t.includes("TOPIC") || rt === "TOPIC")
+    return t.includes("REJECT")
+      ? { Icon: BookOpen, ring: "from-rose-400 to-red-500", fg: "text-white" }
+      : { Icon: BookOpen, ring: "from-indigo-400 to-violet-500", fg: "text-white" };
+  if (t.includes("TEACHER") || t.includes("APPLICATION") || t.includes("APPLIED") || t.includes("BINOME"))
+    return t.includes("REJECT")
+      ? { Icon: UserCheck, ring: "from-rose-400 to-red-500", fg: "text-white" }
+      : { Icon: UserCheck, ring: "from-fuchsia-400 to-purple-500", fg: "text-white" };
+  if (t.includes("INTERNSHIP"))
+    return { Icon: Briefcase, ring: "from-emerald-400 to-teal-500", fg: "text-white" };
+  if (t.includes("DOCUMENT") || t.includes("REPORT"))
+    return { Icon: FileText, ring: "from-cyan-400 to-sky-500", fg: "text-white" };
+  if (t.includes("DEADLINE") || t === "SECURITY" || t.includes("OVERDUE"))
+    return { Icon: AlertTriangle, ring: "from-amber-400 to-orange-500", fg: "text-white" };
+  if (t.includes("PASSWORD") || t.includes("ACCOUNT"))
+    return { Icon: Shield, ring: "from-slate-400 to-slate-600", fg: "text-white" };
+  return { Icon: Bell, ring: "from-gray-300 to-gray-400", fg: "text-white" };
+}
+
+function sectionOf(n: Notification): "New" | "Today" | "This week" | "Earlier" {
+  if (!n.isRead) return "New";
+  const d = new Date(n.createdAt).getTime();
+  const diff = Date.now() - d;
+  if (diff < 86400000) return "Today";
+  if (diff < 604800000) return "This week";
+  return "Earlier";
+}
+
+const ORDER = ["New", "Today", "This week", "Earlier"] as const;
+
 export function NotificationsClient() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isClearAllDialogOpen, setIsClearAllDialogOpen] = useState(false);
-  const { t, isRTL } = useTranslation();
+  const { t } = useTranslation();
   const router = useRouter();
 
   const fetchNotifications = async () => {
@@ -54,178 +114,179 @@ export function NotificationsClient() {
         body: JSON.stringify({ markAll: true }),
       });
       if (res.ok) {
-        setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+        setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
         window.dispatchEvent(new Event("notificationsUpdated"));
-        toast.success("All notifications marked as read");
       }
-    } catch (error) {
+    } catch {
       toast.error("Failed to mark all as read");
     }
   };
 
   const clearAll = async () => {
     try {
-      const res = await fetch("/api/notifications?all=true", {
-        method: "DELETE",
-      });
+      const res = await fetch("/api/notifications?all=true", { method: "DELETE" });
       if (res.ok) {
         setNotifications([]);
         window.dispatchEvent(new Event("notificationsUpdated"));
-        toast.success("All notifications cleared");
         setIsClearAllDialogOpen(false);
       }
-    } catch (error) {
+    } catch {
       toast.error("Failed to clear notifications");
       setIsClearAllDialogOpen(false);
     }
   };
 
   const deleteOne = async (id: string) => {
+    setNotifications((prev) => prev.filter((n) => n.id !== id));
+    window.dispatchEvent(new Event("notificationsUpdated"));
     try {
-      const res = await fetch(`/api/notifications?id=${id}`, {
-        method: "DELETE",
-      });
-      if (res.ok) {
-        setNotifications(prev => prev.filter(n => n.id !== id));
-        window.dispatchEvent(new Event("notificationsUpdated"));
-        toast.success("Notification removed");
-      }
-    } catch (error) {
-      toast.error("Failed to remove notification");
+      await fetch(`/api/notifications?id=${id}`, { method: "DELETE" });
+    } catch {
+      /* optimistic — already removed from UI */
     }
   };
 
+  const openNotification = async (n: Notification) => {
+    if (!n.isRead) {
+      setNotifications((prev) =>
+        prev.map((x) => (x.id === n.id ? { ...x, isRead: true } : x)),
+      );
+      window.dispatchEvent(new Event("notificationsUpdated"));
+      fetch("/api/notifications", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: n.id }),
+      }).catch(() => {});
+    }
+    if (n.link) router.push(n.link);
+  };
+
+  const unreadCount = notifications.filter((n) => !n.isRead).length;
+
+  // group into ordered sections
+  const groups = ORDER.map((label) => ({
+    label,
+    items: notifications.filter((n) => sectionOf(n) === label),
+  })).filter((g) => g.items.length > 0);
+
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+      <div className="flex items-center justify-center py-24">
+        <div className="animate-spin rounded-full h-7 w-7 border-b-2 border-indigo-600" />
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${isRTL ? "sm:flex-row-reverse text-right" : ""}`}>
-        <div className={`flex flex-col gap-4 ${isRTL ? "items-end" : "items-start"}`}>
-          <button 
-            onClick={() => router.back()}
-            className={`flex items-center gap-2 text-xs font-medium text-gray-500 hover:text-indigo-600 dark:text-gray-400 dark:hover:text-indigo-400 transition-colors group ${isRTL ? "flex-row-reverse" : ""}`}
-          >
-            {isRTL ? <ArrowRight className="h-3.5 w-3.5 group-hover:translate-x-1 transition-transform" /> : <ArrowLeft className="h-3.5 w-3.5 group-hover:-translate-x-1 transition-transform" />}
-            {t("common.back")}
-          </button>
-          <div>
-            <h1 className="text-[20px] font-bold text-gray-900 dark:text-white">{t("nav.notifications" as any)}</h1>
-            <p className="text-[13px] text-gray-500 dark:text-gray-400 mt-1">Manage your platform alerts and updates.</p>
-          </div>
-        </div>
-        <div className={`flex items-center gap-2 ${isRTL ? "flex-row-reverse" : ""}`}>
+    <div className="mx-auto max-w-2xl">
+      {/* Header */}
+      <div className="flex items-center justify-between px-1 pb-3">
+        <h1 className="text-[22px] font-bold text-gray-900 dark:text-white">
+          {t("nav.notifications" as any)}
+          {unreadCount > 0 && (
+            <span className="ml-2 align-middle inline-flex items-center justify-center text-[11px] font-bold text-white bg-rose-500 rounded-full px-2 py-0.5">
+              {unreadCount}
+            </span>
+          )}
+        </h1>
+        <div className="flex items-center gap-4">
+          {unreadCount > 0 && (
+            <button
+              onClick={markAllRead}
+              className="flex items-center gap-1 text-[12px] font-semibold text-indigo-600 dark:text-indigo-400 hover:underline"
+            >
+              <CheckCheck className="h-3.5 w-3.5" />
+              Mark all read
+            </button>
+          )}
           {notifications.length > 0 && (
-            <>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={markAllRead}
-                className="text-[11px] h-8"
-              >
-                <CheckCheck className="h-3.5 w-3.5 mr-1.5" />
-                Mark All Read
-              </Button>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={() => setIsClearAllDialogOpen(true)}
-                className="text-[11px] h-8 text-red-600 hover:text-red-700 hover:bg-red-50"
-              >
-                <Trash2 className="h-3.5 w-3.5 mr-1.5" />
-                Clear All
-              </Button>
-            </>
+            <button
+              onClick={() => setIsClearAllDialogOpen(true)}
+              className="text-[12px] font-semibold text-gray-400 hover:text-red-500 transition-colors"
+            >
+              Clear all
+            </button>
           )}
         </div>
       </div>
 
-      <div className="grid gap-4">
-        {notifications.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-12 text-center">
-            <div className="h-12 w-12 bg-gray-50 dark:bg-slate-800 text-gray-400 dark:text-gray-500 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Bell className="h-6 w-6" />
-            </div>
-            <p className="text-sm text-gray-500 dark:text-gray-400">No notifications yet.</p>
+      {notifications.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-24 text-center">
+          <div className="h-16 w-16 rounded-full border-2 border-gray-200 dark:border-slate-700 flex items-center justify-center mb-4">
+            <Bell className="h-7 w-7 text-gray-300 dark:text-slate-600" />
           </div>
-        ) : (
-          notifications.map((item) => (
-            <div
-              key={item.id}
-              className={`group relative rounded-xl border px-5 py-4 transition-all duration-200
-                ${item.isRead 
-                  ? "bg-white dark:bg-slate-900 border-gray-100 dark:border-slate-800 opacity-80" 
-                  : "bg-white dark:bg-slate-900 border-indigo-200 dark:border-indigo-800/50 shadow-sm shadow-indigo-50 dark:shadow-indigo-900/10"
-                }`}
-            >
-              <div className={`flex items-start gap-4 ${isRTL ? "flex-row-reverse" : ""}`}>
-                <div className={`mt-1 ${item.isRead ? "text-gray-300 dark:text-gray-600" : "text-indigo-600 dark:text-indigo-400"}`}>
-                  {item.isRead ? <Circle className="h-4 w-4" /> : <CheckCircle className="h-4 w-4" />}
-                </div>
-                
-                <div className="flex-1 min-w-0">
-                  <div className={`flex items-center justify-between gap-4 mb-1 ${isRTL ? "flex-row-reverse" : ""}`}>
-                    <h2 className={`text-sm font-bold ${item.isRead ? "text-gray-600 dark:text-gray-300" : "text-gray-900 dark:text-white"}`}>
-                      {item.title}
-                    </h2>
-                    <span className="text-[10px] uppercase tracking-wider text-gray-400 dark:text-gray-500 font-medium">
-                      {formatDateTime(item.createdAt)}
-                    </span>
-                  </div>
-                  
-                  <p className={`text-[13px] leading-relaxed ${item.isRead ? "text-gray-500 dark:text-gray-400" : "text-gray-700 dark:text-gray-300"}`}>
-                    {item.message}
-                  </p>
-                  
-                  {item.link && (
-                    <div className={`mt-3 flex items-center gap-3 ${isRTL ? "flex-row-reverse" : ""}`}>
-                      <Link 
-                        href={item.link}
-                        className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 bg-indigo-50 dark:bg-indigo-900/40 px-3 py-1 rounded transition-colors"
+          <p className="text-[15px] font-semibold text-gray-900 dark:text-white">
+            Activity On Your Account
+          </p>
+          <p className="text-[13px] text-gray-500 dark:text-gray-400 mt-1">
+            When something happens, you&apos;ll see it here.
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-5">
+          {groups.map((group) => (
+            <div key={group.label}>
+              <h2 className="px-2 mb-1 text-[14px] font-bold text-gray-900 dark:text-white">
+                {group.label}
+              </h2>
+              <div>
+                {group.items.map((n) => {
+                  const { Icon, ring, fg } = visual(n);
+                  return (
+                    <div
+                      key={n.id}
+                      onClick={() => openNotification(n)}
+                      className={`group flex items-center gap-3 px-2 py-2.5 rounded-xl cursor-pointer transition-colors
+                        ${
+                          n.isRead
+                            ? "hover:bg-gray-50 dark:hover:bg-slate-800/50"
+                            : "bg-indigo-50/60 dark:bg-indigo-900/15 hover:bg-indigo-50 dark:hover:bg-indigo-900/25"
+                        }`}
+                    >
+                      {/* avatar */}
+                      <div
+                        className={`relative flex-shrink-0 h-11 w-11 rounded-full bg-gradient-to-br ${ring} flex items-center justify-center shadow-sm`}
                       >
-                        View Details
-                      </Link>
-                      {item.relatedType && (
-                        <span className="px-2 py-0.5 bg-gray-100 dark:bg-slate-800 text-gray-500 dark:text-gray-400 text-[10px] rounded uppercase font-bold tracking-tight border border-gray-200 dark:border-slate-700">
-                          {item.relatedType}
-                        </span>
-                      )}
-                    </div>
-                  )}
-                  
-                  {!item.link && item.relatedType && (
-                    <div className={`mt-3 flex items-center gap-2 ${isRTL ? "flex-row-reverse" : ""}`}>
-                      <span className="px-2 py-0.5 bg-gray-100 dark:bg-slate-800 text-gray-500 dark:text-gray-400 text-[10px] rounded uppercase font-bold tracking-tight border border-gray-200 dark:border-slate-700">
-                        {item.relatedType}
-                      </span>
-                    </div>
-                  )}
-                </div>
+                        <Icon className={`h-5 w-5 ${fg}`} />
+                      </div>
 
-                <button
-                  onClick={() => deleteOne(item.id)}
-                  className={`p-1.5 rounded-lg text-gray-300 hover:text-red-500 hover:bg-red-50 transition-all
-                    ${isRTL ? "mr-2" : "ml-2"}`}
-                  title="Remove"
-                >
-                  <X className="h-4 w-4" />
-                </button>
+                      {/* text */}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[13px] leading-snug text-gray-900 dark:text-gray-100">
+                          <span className="font-semibold">{n.title}</span>{" "}
+                          <span className="text-gray-600 dark:text-gray-400">
+                            {n.message}
+                          </span>
+                        </p>
+                        <span className="text-[11px] text-gray-400 dark:text-gray-500">
+                          {timeAgo(n.createdAt)}
+                        </span>
+                      </div>
+
+                      {/* unread dot / delete */}
+                      <div className="flex-shrink-0 flex items-center gap-1">
+                        {!n.isRead && (
+                          <span className="h-2.5 w-2.5 rounded-full bg-indigo-500 group-hover:hidden" />
+                        )}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            deleteOne(n.id);
+                          }}
+                          className="p-1.5 rounded-full text-gray-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 opacity-0 group-hover:opacity-100 transition-opacity"
+                          title="Remove"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
-              
-              {!item.isRead && (
-                <div className={`absolute top-0 bottom-0 w-1 bg-indigo-600 rounded-full
-                  ${isRTL ? "right-0" : "left-0"}`} 
-                />
-              )}
             </div>
-          ))
-        )}
-      </div>
+          ))}
+        </div>
+      )}
 
       <ConfirmDialog
         isOpen={isClearAllDialogOpen}

@@ -18,6 +18,7 @@ import {
   FileText
 } from "lucide-react";
 import { StatusBadge } from "@/components/ui/StatusBadge";
+import { InternshipTypeBadge } from "@/components/ui/InternshipTypeBadge";
 import { format } from "date-fns";
 import { useTranslation } from "@/lib/i18n/LanguageContext";
 
@@ -34,6 +35,7 @@ interface Internship {
   topic: {
     title: string;
     type: string;
+    internshipType?: string | null;
     targetLevels?: string | null;
     filiere?: { id: string; name: string; code?: string } | null;
   };
@@ -43,6 +45,7 @@ interface Internship {
     student: { name: string; email: string; level?: string | null };
   }[];
   status: string;
+  internshipType?: string | null;
   academicYear: string;
   startDate?: string;
   endDate?: string;
@@ -52,12 +55,38 @@ interface Internship {
 
 const INTERNSHIP_LEVELS = ["L1", "L2", "L3", "M1", "M2"] as const;
 
+// Statuses where an internship is genuinely under way (started, not finished
+// or cancelled). Only these are flagged for missing end date / final report —
+// REQUESTED/DOCUMENT_SENT/CANCELLED/COMPLETED are excluded to avoid noise.
+const ACTIVE_STATUSES = [
+  "IN_PROGRESS",
+  "NEEDS_REVISION",
+  "APPROVED",
+  "FINAL_REPORT_SUBMITTED",
+  "PENDING_ADMIN_CONFIRMATION",
+];
+// Statuses that imply the final report has been submitted.
+const REPORT_SUBMITTED_STATUSES = [
+  "FINAL_REPORT_SUBMITTED",
+  "PENDING_ADMIN_CONFIRMATION",
+  "COMPLETED",
+];
+
+function internshipAttention(i: { status: string; endDate?: string }) {
+  const active = ACTIVE_STATUSES.includes(i.status);
+  const noEndDate = active && !i.endDate;
+  const noReport = active && !REPORT_SUBMITTED_STATUSES.includes(i.status);
+  return { noEndDate, noReport, flagged: noEndDate || noReport };
+}
+
 export default function AdminInternshipsPage() {
   const { t, isRTL } = useTranslation();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [filiereFilter, setFiliereFilter] = useState("ALL");
   const [levelFilter, setLevelFilter] = useState("ALL");
+  const [typeFilter, setTypeFilter] = useState("ALL");
+  const [attentionFilter, setAttentionFilter] = useState("ALL");
   const [filieres, setFilieres] = useState<any[]>([]);
 
   const fetchFilieres = async () => {
@@ -75,8 +104,9 @@ export default function AdminInternshipsPage() {
     if (statusFilter !== "ALL") params.append("status", statusFilter);
     if (filiereFilter !== "ALL") params.append("filiereId", filiereFilter);
     if (levelFilter !== "ALL") params.append("level", levelFilter);
+    if (typeFilter !== "ALL") params.append("internshipType", typeFilter);
     return `/api/internships?${params.toString()}`;
-  }, [statusFilter, filiereFilter, levelFilter]);
+  }, [statusFilter, filiereFilter, levelFilter, typeFilter]);
 
   const { data: internshipsResp, isLoading } = useApi<{ data: Internship[] }>(
     internshipsKey,
@@ -92,7 +122,9 @@ export default function AdminInternshipsPage() {
     const matchesSearch = i.topic.title.toLowerCase().includes(search.toLowerCase()) || 
                          i.students.some(s => s.student.name.toLowerCase().includes(search.toLowerCase()));
     const matchesStatus = statusFilter === "ALL" || i.status === statusFilter;
-    return matchesSearch && matchesStatus;
+    const matchesAttention =
+      attentionFilter === "ALL" || internshipAttention(i).flagged;
+    return matchesSearch && matchesStatus && matchesAttention;
   });
 
   return (
@@ -141,6 +173,25 @@ export default function AdminInternshipsPage() {
             <option value="PENDING_ADMIN_CONFIRMATION">{t("status.PENDING_ADMIN_CONFIRMATION")}</option>
             <option value="COMPLETED">{t("status.COMPLETED")}</option>
             <option value="CANCELLED">{t("status.CANCELLED")}</option>
+          </select>
+          <select
+            className="admin-input min-w-0 sm:min-w-[140px] w-full sm:w-auto"
+            value={typeFilter}
+            onChange={(e) => setTypeFilter(e.target.value)}
+            title="Filter by internship type"
+          >
+            <option value="ALL">Type: All</option>
+            <option value="PFE">PFE</option>
+            <option value="NORMAL">Normal</option>
+          </select>
+          <select
+            className="admin-input min-w-0 sm:min-w-[170px] w-full sm:w-auto"
+            value={attentionFilter}
+            onChange={(e) => setAttentionFilter(e.target.value)}
+            title="Flag internships missing an end date or final report"
+          >
+            <option value="ALL">Attention: All</option>
+            <option value="ATTENTION">Needs attention</option>
           </select>
           <select
             className="admin-input min-w-0 sm:min-w-[120px] w-full sm:w-auto"
@@ -205,8 +256,13 @@ export default function AdminInternshipsPage() {
                           ({internship.students.length === 1 ? "Solo" : `${internship.students.length}-person team`})
                         </span>
                       </div>
-                      <span className="text-[12px] text-indigo-600 dark:text-indigo-400 font-medium line-clamp-2 text-left">
-                        {internship.topic.title}
+                      <span className="flex items-center gap-2 flex-wrap">
+                        <span className="text-[12px] text-indigo-600 dark:text-indigo-400 font-medium line-clamp-2 text-left">
+                          {internship.topic.title}
+                        </span>
+                        <InternshipTypeBadge
+                          type={internship.internshipType ?? internship.topic.internshipType}
+                        />
                       </span>
                       <div className="flex items-center gap-2 mt-1 text-[10px] text-gray-400 dark:text-gray-500">
                         {internship.topic.filiere?.name && (
@@ -251,7 +307,26 @@ export default function AdminInternshipsPage() {
                     </div>
                   </td>
                   <td data-label="Status">
-                    <StatusBadge status={internship.status} />
+                    <div className="flex flex-col items-start gap-1">
+                      <StatusBadge status={internship.status} />
+                      {(() => {
+                        const a = internshipAttention(internship);
+                        if (!a.flagged) return null;
+                        const parts = [
+                          a.noEndDate ? "no end date" : null,
+                          a.noReport ? "no final report" : null,
+                        ].filter(Boolean);
+                        return (
+                          <span
+                            className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 px-1.5 py-0.5 rounded"
+                            title={`This active internship has ${parts.join(" & ")}.`}
+                          >
+                            <XCircle className="h-3 w-3" />
+                            {parts.join(" · ")}
+                          </span>
+                        );
+                      })()}
+                    </div>
                   </td>
                   <td data-label="View" className="text-right">
                     <Link href={`/admin/internships/${internship.id}`} className="inline-flex p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition-colors">

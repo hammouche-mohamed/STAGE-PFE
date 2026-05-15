@@ -33,6 +33,12 @@ export async function GET(req: NextRequest) {
     ? (paramFiliereId && paramFiliereId !== 'all' ? paramFiliereId : null)
     : session.user.filiereId;
 
+  // A non-super admin must be scoped to a department. If they somehow have
+  // none, return nothing rather than leaking every department's archive.
+  if (!session.user.isSuperAdmin && !filiereId) {
+    return NextResponse.json({ data: [] });
+  }
+
   // Only these internship statuses are considered "finished" / archivable
   const FINISHED_STATUSES = ['COMPLETED', 'CANCELLED'];
 
@@ -135,12 +141,14 @@ export async function GET(req: NextRequest) {
         break;
 
       // ── TOPICS ──────────────────────────────────────────────────────────────
-      // Two cohorts qualify as "finished" for archive purposes:
-      //   • TAKEN topics whose linked internship is COMPLETED or CANCELLED
-      //   • REJECTED topics (refused by the admin / teacher / company)
-      // Pending, approved-unclaimed, open-for-selection, or in-progress
-      // topics are NOT archived — they stay live in the main tables so the
-      // app keeps working into the next academic year.
+      // A topic shows in Archives when either:
+      //   • it was manually archived by an admin (archivedAt set) — this
+      //     covers APPROVED and REJECTED topics the admin chose to retire, OR
+      //   • it is TAKEN and its linked internship is COMPLETED or CANCELLED
+      //     (auto-archived once the internship ends).
+      // Pending / approved-unclaimed / open / rejected-but-not-archived
+      // topics stay live in the main tables so the app keeps working into
+      // the next academic year.
       case 'topics':
         data = await prisma.topic.findMany({
           where: {
@@ -150,8 +158,8 @@ export async function GET(req: NextRequest) {
               ? { internshipType: internshipTypeFilter as any }
               : {}),
             OR: [
+              { archivedAt: { not: null } },
               { status: 'TAKEN', internship: { status: { in: FINISHED_STATUSES } } },
-              { status: 'REJECTED' },
             ],
           } as any,
           include: {
@@ -193,7 +201,21 @@ export async function GET(req: NextRequest) {
         data = await prisma.auditLog.findMany({
           where: {
             createdAt: { gte: startDate, lte: endDate },
-          },
+            // Department scoping: a dept admin only sees audit entries whose
+            // acting user belongs to their filière (via their profile).
+            // Super admin (filiereId === null) sees everything.
+            ...(filiereId
+              ? {
+                  user: {
+                    OR: [
+                      { studentprofile: { filiereId } },
+                      { teacherprofile: { filiereId } },
+                      { adminprofile: { filiereId } },
+                    ],
+                  },
+                }
+              : {}),
+          } as any,
           include: {
             user: { select: { name: true, email: true } },
           },
@@ -209,8 +231,13 @@ export async function GET(req: NextRequest) {
         data = await prisma.internship.findMany({
           where: {
             academicYear: year,
-            status: { in: FINISHED_STATUSES },
             ...(filiereId && { topic: { filiereId } }),
+            // Finished internships, OR any internship swept up when the
+            // Super Admin archived the whole year.
+            OR: [
+              { status: { in: FINISHED_STATUSES } },
+              { archivedAt: { not: null } },
+            ],
           } as any,
           include: {
             topic: { select: { title: true, internshipType: true } },

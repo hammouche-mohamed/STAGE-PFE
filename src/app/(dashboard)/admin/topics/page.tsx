@@ -14,14 +14,11 @@ import {
   Users,
   ChevronRight,
   User,
-  GraduationCap,
-  Trash2
+  GraduationCap
 } from "lucide-react";
 import { StatusBadge } from "@/components/ui/StatusBadge";
-import { toast } from "sonner";
 import { format } from "date-fns";
 import Link from "next/link";
-import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Button } from "@/components/ui/Button";
 import { useTranslation } from "@/lib/i18n/LanguageContext";
 import { useSession } from "next-auth/react";
@@ -46,8 +43,6 @@ export default function AdminTopicsPage() {
   const { data: session } = useSession();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
-  const [topicToDelete, setTopicToDelete] = useState<Topic | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
   const [filiereFilter, setFiliereFilter] = useState("ALL");
   const [assignmentFilter, setAssignmentFilter] = useState("ALL");
   const [filieres, setFilieres] = useState<any[]>([]);
@@ -86,38 +81,6 @@ export default function AdminTopicsPage() {
     ? topicsError.message || "Network error"
     : null;
 
-  const handleDelete = async () => {
-    if (!topicToDelete) return;
-
-    const deletedId = topicToDelete.id;
-    setTopicToDelete(null);
-    setIsDeleting(true);
-
-    // ── OPTIMISTIC UPDATE ────────────────────────────────────────────────────
-    // Drop the row from the cache immediately, don't revalidate yet.
-    mutateTopics(
-      (prev) =>
-        prev
-          ? { ...prev, data: prev.data.filter((tp) => tp.id !== deletedId) }
-          : prev,
-      { revalidate: false },
-    );
-
-    try {
-      const res = await fetch(`/api/topics/${deletedId}`, { method: "DELETE" });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to delete topic");
-
-      toast.success("Topic deleted successfully");
-      mutateTopics(); // confirm with server
-    } catch (error: any) {
-      // Rollback: revalidate to restore the real list.
-      mutateTopics();
-      toast.error(error.message || "Could not delete topic");
-    } finally {
-      setIsDeleting(false);
-    }
-  };
 
   useEffect(() => {
     fetchFilieres();
@@ -153,6 +116,7 @@ export default function AdminTopicsPage() {
           { id: "MODIFICATIONS", label: "Modifications" },
           { id: "APPROVED", label: t("status.APPROVED") },
           { id: "OPEN_FOR_SELECTION", label: t("status.OPEN_FOR_SELECTION") },
+          { id: "REJECTED", label: t("status.REJECTED") },
         ].map((tab) => (
           <button
             key={tab.id}
@@ -265,19 +229,6 @@ export default function AdminTopicsPage() {
                 </div>
                 <div className="flex flex-col items-end gap-3 self-center">
                   <div className="flex items-center gap-2">
-                    {!session?.user?.isSuperAdmin && (
-                      <button 
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          setTopicToDelete(topic);
-                        }}
-                        className="p-2 text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition-colors"
-                        title="Delete topic"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    )}
                     <ChevronRight className={`h-5 w-5 text-gray-300 dark:text-slate-600 group-hover:text-indigo-500 transition-all ${
                       isRTL ? "rotate-180 group-hover:-translate-x-1" : "group-hover:translate-x-1"
                     }`} />
@@ -288,17 +239,6 @@ export default function AdminTopicsPage() {
           ))
         )}
       </div>
-
-      <ConfirmDialog
-        isOpen={!!topicToDelete}
-        onClose={() => setTopicToDelete(null)}
-        onConfirm={handleDelete}
-        title="Delete Topic"
-        description={`Are you sure you want to delete "${topicToDelete?.title}"? This action cannot be undone.`}
-        confirmLabel="Delete Topic"
-        variant="danger"
-        isLoading={isDeleting}
-      />
     </div>
   );
 }

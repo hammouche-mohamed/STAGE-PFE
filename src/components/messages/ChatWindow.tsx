@@ -71,6 +71,25 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
     return () => clearInterval(interval);
   }, [internshipId]);
 
+  // Presence heartbeat: while this chat is open the server knows not to push
+  // "New Message" notifications for it. Ping on open + every 20s, clear on close.
+  useEffect(() => {
+    const ping = (id: string | null) =>
+      fetch("/api/messages/presence", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ internshipId: id }),
+        keepalive: true,
+      }).catch(() => {});
+
+    ping(internshipId);
+    const beat = setInterval(() => ping(internshipId), 20000);
+    return () => {
+      clearInterval(beat);
+      ping(null);
+    };
+  }, [internshipId]);
+
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;

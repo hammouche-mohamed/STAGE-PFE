@@ -77,10 +77,25 @@ export async function POST(req: NextRequest) {
     if (recipients.length > 0) {
       const recipientUsers = await prisma.user.findMany({
         where: { id: { in: recipients } },
-        select: { id: true, role: true }
+        select: {
+          id: true,
+          role: true,
+          activeChatInternshipId: true,
+          activeChatPingAt: true,
+        } as any,
       });
 
-      for (const r of recipientUsers) {
+      // Don't notify someone who is actively looking at THIS chat right now
+      // (heartbeat seen within the last 45s — ChatWindow pings every 20s).
+      const presenceCutoff = Date.now() - 45_000;
+
+      for (const r of recipientUsers as any[]) {
+        const inThisChat =
+          r.activeChatInternshipId === internshipId &&
+          r.activeChatPingAt &&
+          new Date(r.activeChatPingAt).getTime() >= presenceCutoff;
+        if (inThisChat) continue;
+
         const link = r.role === "TEACHER" ? "/teacher/messages" : "/student/messages";
         await NotificationService.trigger({
           userId: r.id,

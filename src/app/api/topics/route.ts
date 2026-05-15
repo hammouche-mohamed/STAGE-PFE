@@ -197,6 +197,9 @@ export async function GET(req: NextRequest) {
 
   const where: Record<string, any> = {};
 
+  // Manually-archived topics never appear in the active lists — only in Archives.
+  where.archivedAt = null;
+
   try {
     // Get IDs of topics that are linked to COMPLETED or CANCELLED internships
     try {
