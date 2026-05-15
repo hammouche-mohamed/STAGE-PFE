@@ -154,7 +154,10 @@ export const Topbar: React.FC = () => {
       <ConfirmDialog
         isOpen={isLogoutDialogOpen}
         onClose={() => setIsLogoutDialogOpen(false)}
-        onConfirm={() => signOut({ callbackUrl: "/" })}
+        onConfirm={() => {
+          window.dispatchEvent(new Event("esst:logout"));
+          signOut({ callbackUrl: "/" });
+        }}
         title={t("logoutConfirm.title")}
         description={t("logoutConfirm.description")}
         confirmLabel={t("common.logout")}

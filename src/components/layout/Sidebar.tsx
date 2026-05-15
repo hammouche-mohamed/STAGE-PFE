@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import Image from "next/image";
 import { useSidebar } from "@/lib/contexts/SidebarContext";
+import { useApi } from "@/lib/swr/useApi";
 import { 
   LayoutDashboard, 
   Briefcase, 
@@ -47,25 +48,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ role: initialRole, logoUrl }) 
     .join("")
     .toUpperCase();
 
-  const [counts, setCounts] = useState<Record<string, number>>({});
-
-  React.useEffect(() => {
-    const fetchCounts = async () => {
-      try {
-        const res = await fetch("/api/sidebar/counts");
-        if (res.ok) {
-          const data = await res.json();
-          setCounts(data);
-        }
-      } catch (e) {
-        // Silently catch fetch errors (e.g. during server restarts) to prevent Next.js dev overlays
-      }
-    };
-    fetchCounts();
-    // Refresh counts every 30 seconds
-    const interval = setInterval(fetchCounts, 30000);
-    return () => clearInterval(interval);
-  }, [session]);
+  // Cached + persisted across reloads; still self-refreshes every 30 s so the
+  // badges stay live without the user staring at empty counts on every load.
+  const { data: counts = {} } = useApi<Record<string, number>>(
+    session ? "/api/sidebar/counts" : null,
+    { refreshInterval: 30_000, revalidateOnFocus: true },
+  );
 
   const navItems = React.useMemo(() => {
     const items = (() => {
@@ -234,7 +222,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ role: initialRole, logoUrl }) 
       <ConfirmDialog
         isOpen={isLogoutDialogOpen}
         onClose={() => setIsLogoutDialogOpen(false)}
-        onConfirm={() => signOut({ callbackUrl: "/" })}
+        onConfirm={() => {
+          window.dispatchEvent(new Event("esst:logout"));
+          signOut({ callbackUrl: "/" });
+        }}
         title={t("logoutConfirm.title")}
         description={t("logoutConfirm.description")}
         confirmLabel={t("common.logout")}

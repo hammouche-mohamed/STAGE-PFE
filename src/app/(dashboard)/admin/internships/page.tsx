@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
+import { useApi } from "@/lib/swr/useApi";
 import Link from "next/link";
 import {
   Briefcase,
@@ -17,7 +18,6 @@ import {
   FileText
 } from "lucide-react";
 import { StatusBadge } from "@/components/ui/StatusBadge";
-import { toast } from "sonner";
 import { format } from "date-fns";
 import { useTranslation } from "@/lib/i18n/LanguageContext";
 
@@ -54,8 +54,6 @@ const INTERNSHIP_LEVELS = ["L1", "L2", "L3", "M1", "M2"] as const;
 
 export default function AdminInternshipsPage() {
   const { t, isRTL } = useTranslation();
-  const [internships, setInternships] = useState<Internship[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [filiereFilter, setFiliereFilter] = useState("ALL");
@@ -72,27 +70,23 @@ export default function AdminInternshipsPage() {
     }
   };
 
-  const fetchInternships = async () => {
-    try {
-      const params = new URLSearchParams();
-      if (statusFilter !== "ALL") params.append("status", statusFilter);
-      if (filiereFilter !== "ALL") params.append("filiereId", filiereFilter);
-      if (levelFilter !== "ALL") params.append("level", levelFilter);
+  const internshipsKey = useMemo(() => {
+    const params = new URLSearchParams();
+    if (statusFilter !== "ALL") params.append("status", statusFilter);
+    if (filiereFilter !== "ALL") params.append("filiereId", filiereFilter);
+    if (levelFilter !== "ALL") params.append("level", levelFilter);
+    return `/api/internships?${params.toString()}`;
+  }, [statusFilter, filiereFilter, levelFilter]);
 
-      const res = await fetch(`/api/internships?${params.toString()}`);
-      const data = await res.json();
-      setInternships(data.data || []);
-    } catch (error) {
-      toast.error("Failed to load internships");
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const { data: internshipsResp, isLoading } = useApi<{ data: Internship[] }>(
+    internshipsKey,
+    { domains: "internships" },
+  );
+  const internships: Internship[] = internshipsResp?.data || [];
 
   useEffect(() => {
-    fetchInternships();
     fetchFilieres();
-  }, [statusFilter, filiereFilter, levelFilter]);
+  }, []);
 
   const filteredInternships = internships.filter(i => {
     const matchesSearch = i.topic.title.toLowerCase().includes(search.toLowerCase()) || 

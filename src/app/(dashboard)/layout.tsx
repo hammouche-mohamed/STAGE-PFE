@@ -3,6 +3,7 @@ import { Topbar } from "@/components/layout/Topbar";
 import { BreadcrumbProvider } from "@/lib/contexts/BreadcrumbContext";
 import { SidebarProvider } from "@/lib/contexts/SidebarContext";
 import { PollingProvider } from "@/lib/contexts/PollingContext";
+import { SWRProvider } from "@/lib/swr/SWRProvider";
 import { auth } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { unstable_cache } from "next/cache";
@@ -36,6 +37,7 @@ export default async function DashboardLayout({
 
   return (
     <PollingProvider>
+      <SWRProvider>
       <SidebarProvider>
         <BreadcrumbProvider>
           <div className="h-screen bg-gray-50 dark:bg-slate-950 flex overflow-hidden relative">
@@ -55,6 +57,7 @@ export default async function DashboardLayout({
           </div>
         </BreadcrumbProvider>
       </SidebarProvider>
+      </SWRProvider>
     </PollingProvider>
   );
 }

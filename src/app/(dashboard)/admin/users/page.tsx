@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   Users,
   Search,
@@ -37,7 +37,7 @@ import { Modal } from "@/components/ui/Modal";
 import { Input } from "@/components/ui/Input";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { useTranslation } from "@/lib/i18n/LanguageContext";
-import { usePollingRefresh } from "@/lib/contexts/PollingContext";
+import { useApi } from "@/lib/swr/useApi";
 
 interface User {
   id: string;
@@ -68,8 +68,6 @@ export default function AdminUsersPage() {
   const { t, isRTL } = useTranslation();
   const { data: session } = useSession();
   const currentUserId = session?.user?.id;
-  const [users, setUsers] = useState<User[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("ALL");
   const [userToDeactivate, setUserToDeactivate] = useState<User | null>(null);
@@ -99,24 +97,25 @@ export default function AdminUsersPage() {
 
   const [settings, setSettings] = useState<any>({});
 
-  const fetchUsers = async () => {
-    try {
-      const params = new URLSearchParams();
-      if (roleFilter !== "ALL") params.append("role", roleFilter);
-      if (filiereFilter !== "ALL") params.append("filiereId", filiereFilter);
-      if (statusFilter !== "ALL") params.append("status", statusFilter.toLowerCase());
-      if (levelFilter !== "ALL") params.append("level", levelFilter);
-      if (search.trim()) params.append("search", search.trim());
-      
-      const res = await fetch(`/api/users?${params.toString()}`);
-      const data = await res.json();
-      setUsers(data.data || []);
-    } catch (error) {
-      toast.error(t("toast.loadUsersFailed"));
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  // Build the request URL from the active filters. SWR keys off this string,
+  // so changing a filter swaps to that filter's cached result instantly (and
+  // revalidates in the background); revisiting a combination is instant.
+  const usersKey = useMemo(() => {
+    const params = new URLSearchParams();
+    if (roleFilter !== "ALL") params.append("role", roleFilter);
+    if (filiereFilter !== "ALL") params.append("filiereId", filiereFilter);
+    if (statusFilter !== "ALL") params.append("status", statusFilter.toLowerCase());
+    if (levelFilter !== "ALL") params.append("level", levelFilter);
+    if (search.trim()) params.append("search", search.trim());
+    return `/api/users?${params.toString()}`;
+  }, [roleFilter, filiereFilter, statusFilter, levelFilter, search]);
+
+  const {
+    data: usersResp,
+    isLoading,
+    refresh: fetchUsers,
+  } = useApi<{ data: User[] }>(usersKey, { domains: "users" });
+  const users: User[] = usersResp?.data || [];
 
   const fetchPublicSettings = async () => {
     try {
@@ -165,7 +164,7 @@ export default function AdminUsersPage() {
   };
 
   useEffect(() => {
-    fetchUsers();
+    // `users` is handled by useApi (cached); these are secondary / tab data.
     fetchBlocklist();
     fetchFilieres();
     fetchTeams();
@@ -207,12 +206,9 @@ export default function AdminUsersPage() {
   // Cleanup on unmount.
   useEffect(() => () => cancelMenuClose(), []);
 
-  useEffect(() => {
-    fetchUsers();
-  }, [roleFilter, filiereFilter, statusFilter, levelFilter, search]);
-
-  // Auto-refresh user list when another admin modifies a user
-  usePollingRefresh("users", fetchUsers);
+  // Filter changes and cross-admin updates are handled by useApi:
+  // the SWR key (usersKey) changes with filters, and `domains: "users"`
+  // wires it into the existing 30 s polling for live refresh.
 
   const handleUnblock = (item: any) => {
     setEmailToUnblock(item);

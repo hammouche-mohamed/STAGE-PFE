@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useMemo } from "react";
+import { useApi } from "@/lib/swr/useApi";
 import {
   BookOpen,
   Search,
@@ -43,8 +44,6 @@ interface Topic {
 export default function AdminTopicsPage() {
   const { t, isRTL } = useTranslation();
   const { data: session } = useSession();
-  const [topics, setTopics] = useState<Topic[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [topicToDelete, setTopicToDelete] = useState<Topic | null>(null);
@@ -52,7 +51,6 @@ export default function AdminTopicsPage() {
   const [filiereFilter, setFiliereFilter] = useState("ALL");
   const [assignmentFilter, setAssignmentFilter] = useState("ALL");
   const [filieres, setFilieres] = useState<any[]>([]);
-  const [apiError, setApiError] = useState<string | null>(null);
 
   const fetchFilieres = async () => {
     try {
@@ -64,56 +62,57 @@ export default function AdminTopicsPage() {
     }
   };
 
-  const fetchTopics = useCallback(async (silent = false) => {
-    if (!silent) setIsLoading(true);
-    setApiError(null);
-    try {
-      const params = new URLSearchParams();
-      // Admins manage topics across all years — don't lock to current system year
-      params.append("academicYear", "all");
-      if (filiereFilter !== "ALL") params.append("filiereId", filiereFilter);
-      if (assignmentFilter !== "ALL") params.append("assigned", assignmentFilter === "ASSIGNED" ? "true" : "false");
-      
-      const res = await fetch(`/api/topics?${params.toString()}`);
-      const data = await res.json();
-      if (!res.ok) {
-        setApiError(data.error || `API Error ${res.status}`);
-        setTopics([]);
-      } else {
-        setTopics(data.data || []);
-      }
-    } catch (error: any) {
-      const msg = error?.message || "Network error";
-      setApiError(msg);
-      if (!silent) toast.error(t("toast.loadFailed"));
-    } finally {
-      if (!silent) setIsLoading(false);
-    }
-  }, [t, filiereFilter, assignmentFilter]);
+  const topicsKey = useMemo(() => {
+    const params = new URLSearchParams();
+    // Admins manage topics across all years — don't lock to current system year
+    params.append("academicYear", "all");
+    if (filiereFilter !== "ALL") params.append("filiereId", filiereFilter);
+    if (assignmentFilter !== "ALL")
+      params.append("assigned", assignmentFilter === "ASSIGNED" ? "true" : "false");
+    return `/api/topics?${params.toString()}`;
+  }, [filiereFilter, assignmentFilter]);
+
+  const {
+    data: topicsResp,
+    isLoading,
+    error: topicsError,
+    mutate: mutateTopics,
+  } = useApi<{ data: Topic[] }>(topicsKey, {
+    domains: "topics",
+    refreshInterval: 30_000, // preserve the old 30 s live-refresh
+  });
+  const topics: Topic[] = topicsResp?.data || [];
+  const apiError = topicsError
+    ? topicsError.message || "Network error"
+    : null;
 
   const handleDelete = async () => {
     if (!topicToDelete) return;
-    
-    // ── OPTIMISTIC UPDATE ────────────────────────────────────────────────────
-    const previousTopics = [...topics];
+
     const deletedId = topicToDelete.id;
-    
-    setTopics(prev => prev.filter(t => t.id !== deletedId));
     setTopicToDelete(null);
-    
     setIsDeleting(true);
+
+    // ── OPTIMISTIC UPDATE ────────────────────────────────────────────────────
+    // Drop the row from the cache immediately, don't revalidate yet.
+    mutateTopics(
+      (prev) =>
+        prev
+          ? { ...prev, data: prev.data.filter((tp) => tp.id !== deletedId) }
+          : prev,
+      { revalidate: false },
+    );
+
     try {
-      const res = await fetch(`/api/topics/${deletedId}`, {
-        method: "DELETE",
-      });
+      const res = await fetch(`/api/topics/${deletedId}`, { method: "DELETE" });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to delete topic");
-      
+
       toast.success("Topic deleted successfully");
-      fetchTopics(true); // Silent sync
+      mutateTopics(); // confirm with server
     } catch (error: any) {
-      // Rollback on error
-      setTopics(previousTopics);
+      // Rollback: revalidate to restore the real list.
+      mutateTopics();
       toast.error(error.message || "Could not delete topic");
     } finally {
       setIsDeleting(false);
@@ -121,13 +120,8 @@ export default function AdminTopicsPage() {
   };
 
   useEffect(() => {
-    fetchTopics();
     fetchFilieres();
-
-    // Auto-poll every 30 seconds for real-time updates
-    const pollId = setInterval(() => fetchTopics(true), 30000);
-    return () => clearInterval(pollId);
-  }, [fetchTopics]);
+  }, []);
 
   const filteredTopics = topics.filter(t => {
     const proposedByName = t.proposedBy?.name || '';
@@ -220,7 +214,7 @@ export default function AdminTopicsPage() {
           <div className="text-center py-12 bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800 rounded-md">
             <p className="text-[13px] font-semibold text-red-600 dark:text-red-400">API Error</p>
             <p className="text-[12px] text-red-500 dark:text-red-300 mt-1">{apiError}</p>
-            <button onClick={() => fetchTopics()} className="mt-3 text-[12px] text-indigo-600 hover:underline">Retry</button>
+            <button onClick={() => mutateTopics()} className="mt-3 text-[12px] text-indigo-600 hover:underline">Retry</button>
           </div>
         ) : filteredTopics.length === 0 ? (
           <EmptyState 

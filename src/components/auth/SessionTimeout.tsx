@@ -20,6 +20,9 @@ export default function SessionTimeout() {
       // redirect — it does a soft SPA nav which keeps stale JS state and lets
       // the browser put the authenticated page into bfcache (so pressing
       // "Back" later visually restores it).
+      // Drop the per-tab SWR cache so the next account starts clean.
+      window.dispatchEvent(new Event("esst:logout"));
+
       await signOut({ redirect: false });
 
       // Hard navigation via location.replace:
