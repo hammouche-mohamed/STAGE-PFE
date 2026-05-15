@@ -36,11 +36,24 @@ export const authConfig = {
         token.mustChangePassword = user.mustChangePassword;
         token.level = user.level ?? null;
 
-        // Fetch role-specific fields (isSuperAdmin for Admin, filiereId for Admin/Teacher)
-        // Only fetch on sign-in or if fields are missing to avoid hammering the DB
-        const shouldFetch = trigger === "signIn" || 
+        // The credentials authorize() now carries these, so on normal sign-in
+        // we set them directly — no extra DB round-trip on the login path.
+        if ((user as any).isSuperAdmin !== undefined) {
+          token.isSuperAdmin = (user as any).isSuperAdmin;
+        }
+        if ((user as any).filiereId !== undefined) {
+          token.filiereId = (user as any).filiereId;
+        }
+
+        // Fallback fetch only if the fields weren't carried (e.g. a future
+        // OAuth provider) or are still missing.
+        const carried =
+          (user as any).isSuperAdmin !== undefined ||
+          (user as any).filiereId !== undefined;
+        const shouldFetch = !carried &&
+                           (trigger === "signIn" ||
                            (user.role === "ADMIN" && token.isSuperAdmin === undefined) ||
-                           (user.role === "TEACHER" && token.filiereId === undefined);
+                           (user.role === "TEACHER" && token.filiereId === undefined));
 
         if (shouldFetch && (user.role === "ADMIN" || user.role === "TEACHER")) {
           try {

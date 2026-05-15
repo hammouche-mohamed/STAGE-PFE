@@ -69,18 +69,13 @@ function LoginForm() {
       }
 
       toast.success(t("auth.login"));
-      
-      // Use a small delay to allow toast to be seen, then hard redirect to ensure session is fully synced
-      setTimeout(async () => {
-        const sessionResult = await fetch('/api/auth/session').then(res => res.json());
-        const role = sessionResult?.user?.role?.toLowerCase();
-        
-        if (role) {
-          window.location.replace(`/${role}`);
-        } else {
-          window.location.replace("/");
-        }
-      }, 500);
+
+      // Redirect immediately. signIn(redirect:false) has already set the
+      // session cookie, so go straight to the role landing — no artificial
+      // delay, no extra /api/auth/session round-trip.
+      const role = (result as any)?.role
+        || (await fetch('/api/auth/session').then(r => r.json()).catch(() => null))?.user?.role;
+      window.location.replace(role ? `/${String(role).toLowerCase()}` : "/");
     } catch (e) {
       toast.error(t("errors.serverError"));
     } finally {

@@ -39,19 +39,24 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         // Dynamically import prisma to prevent it from loading in the Edge/Middleware runtime
         const { default: prisma } = await import('./prisma');
 
-        // 1. Brute-force protection: Check for lockout
-        const loginAttempt = await (prisma as any).loginAttempt.findUnique({
-          where: { email_ip: { email: normalizedEmail, ip: "global" } } // Simplified to email-based global for now
-        });
+        // Lockout check + user fetch are independent — run them in parallel
+        // (one DB round-trip instead of two against the remote DB). The user
+        // query also pulls the admin/teacher profile so the JWT callback
+        // doesn't need a separate round-trip on sign-in.
+        const [loginAttempt, user] = await Promise.all([
+          (prisma as any).loginAttempt.findUnique({
+            where: { email_ip: { email: normalizedEmail, ip: "global" } },
+          }),
+          prisma.user.findUnique({
+            where: { email: normalizedEmail },
+            include: { adminprofile: true, teacherprofile: true } as any,
+          }) as any,
+        ]);
 
         if (loginAttempt?.lockoutUntil && loginAttempt.lockoutUntil > new Date()) {
           const waitTime = Math.ceil((loginAttempt.lockoutUntil.getTime() - Date.now()) / 60000);
           throw new Error(`TOO_MANY_ATTEMPTS:${waitTime}`);
         }
-
-        const user = await prisma.user.findUnique({
-          where: { email: normalizedEmail },
-        });
 
         if (!user) {
           await handleFailedAttempt(normalizedEmail, prisma);
@@ -72,25 +77,23 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           return null;
         }
 
-        // 2. Success: Reset failed attempts
-        await (prisma as any).loginAttempt.deleteMany({
-          where: { email: normalizedEmail }
-        });
+        // Success. The attempt-reset and audit write are NOT on the critical
+        // path — fire them off without blocking the login response.
+        void (prisma as any).loginAttempt
+          .deleteMany({ where: { email: normalizedEmail } })
+          .catch(() => {});
 
-        // 3. Record the login as an audit event (lazy-imported so this file
-        //    stays edge-runtime-safe). Errors are swallowed inside the service.
-        try {
-          const { AuditService } = await import('./services/audit.service');
-          await AuditService.log({
-            userId: user.id,
-            action: 'USER_LOGIN',
-            targetType: 'User',
-            targetId: user.id,
-            details: { email: normalizedEmail, role: user.role },
-          });
-        } catch {
-          // never fail a login just because the audit write didn't go through
-        }
+        void import('./services/audit.service')
+          .then(({ AuditService }) =>
+            AuditService.log({
+              userId: user.id,
+              action: 'USER_LOGIN',
+              targetType: 'User',
+              targetId: user.id,
+              details: { email: normalizedEmail, role: user.role },
+            }),
+          )
+          .catch(() => {});
 
         return {
           id: user.id,
@@ -101,7 +104,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           isActive: user.isActive,
           mustChangePassword: user.mustChangePassword,
           level: (user.level as StudentLevel | null) ?? null,
-        };
+          // Carried so the JWT callback skips its extra profile round-trip.
+          isSuperAdmin: user.adminprofile?.isSuperAdmin ?? false,
+          filiereId:
+            user.adminprofile?.filiereId ??
+            user.teacherprofile?.filiereId ??
+            null,
+        } as any;
       },
     }),
   ],
