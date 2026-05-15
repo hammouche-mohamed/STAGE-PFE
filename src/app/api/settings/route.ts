@@ -3,6 +3,7 @@ import prisma from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { AuditService } from "@/lib/services/audit.service";
 import { randomUUID } from "crypto";
+import { revalidateTag } from "next/cache";
 
 export async function GET(req: NextRequest) {
   const session = await auth();
@@ -49,6 +50,11 @@ export async function POST(req: NextRequest) {
         updatedAt: now
       }
     });
+
+    // The public settings endpoint serves `getCachedSettings()` (tagged
+    // 'settings'). Bust it now so a toggled flag like `registrationOpen`
+    // takes effect immediately instead of lagging behind the live DB.
+    revalidateTag("settings");
 
     try {
       await AuditService.log({

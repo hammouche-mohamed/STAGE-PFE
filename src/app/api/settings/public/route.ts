@@ -20,11 +20,12 @@ export async function GET() {
     result.filieres = filieres;
 
     const response = NextResponse.json({ data: result });
-    // Public, infrequently-changing config — cache aggressively at the edge.
-    response.headers.set(
-      "Cache-Control",
-      "public, max-age=300, stale-while-revalidate=600",
-    );
+    // Must NOT be edge-cached: this gates `registrationOpen`, which the
+    // super admin can flip at any time and must take effect immediately.
+    // Freshness comes from `getCachedSettings` (tag 'settings', busted on
+    // every settings change); a stale CDN copy would let the register page
+    // disagree with the live POST /api/registrations enforcement.
+    response.headers.set("Cache-Control", "no-store");
     return response;
   } catch {
     return NextResponse.json({ data: { filieres: [] } });
