@@ -1,6 +1,7 @@
 import prisma from "@/lib/prisma";
 import LandingClient from "./_components/LandingClient";
-import { cache } from "react";
+import InactivityNotice from "./_components/InactivityNotice";
+import { cache, Suspense } from "react";
 
 const getSystemSettings = cache(async () => {
   const [logo, year, regOpen] = await Promise.all([
@@ -29,5 +30,12 @@ export default async function Home() {
     // DB unavailable — render with defaults
   }
 
-  return <LandingClient logoUrl={logoUrl} academicYear={academicYear} registrationOpen={registrationOpen} />;
+  return (
+    <>
+      <Suspense fallback={null}>
+        <InactivityNotice />
+      </Suspense>
+      <LandingClient logoUrl={logoUrl} academicYear={academicYear} registrationOpen={registrationOpen} />
+    </>
+  );
 }
