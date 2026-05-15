@@ -266,37 +266,42 @@ export function AdminDashboardClient({
                   {((stats as any).studentsAtRisk?.length) || 0} {t("common.users")}
                 </span>
               </div>
-              <div className={`divide-y divide-gray-100 dark:divide-gray-800 ${session?.user?.isSuperAdmin ? "grid grid-cols-1 md:grid-cols-2" : "max-h-[300px] overflow-y-auto"}`}>
+              <div className={`divide-y divide-gray-100 dark:divide-gray-800 ${session?.user?.isSuperAdmin ? "grid grid-cols-1 md:grid-cols-2 md:[&>*:nth-child(odd)]:border-r md:[&>*:nth-child(odd)]:border-gray-100 dark:md:[&>*:nth-child(odd)]:border-gray-800" : "max-h-[300px] overflow-y-auto"}`}>
                 {!((stats as any).studentsAtRisk) || (stats as any).studentsAtRisk.length === 0 ? (
                   <div className={`p-6 text-center text-[12px] text-gray-400 dark:text-gray-500 ${session?.user?.isSuperAdmin ? "md:col-span-2" : ""}`}>
                     {t("dashboard.allPlaced")}
                   </div>
                 ) : (
                   (stats as any).studentsAtRisk.map((student: any) => (
-                    <div key={student.id} className={`p-3 flex items-center justify-between border-b border-gray-100 dark:border-slate-800 last:border-0 hover:bg-gray-50/50 dark:hover:bg-slate-800/50 transition-colors`}>
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div className="h-8 w-8 rounded-full bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center flex-shrink-0">
-                          <Users className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
-                        </div>
-                        <div className="flex flex-col min-w-0">
-                          <div className="flex items-center gap-2">
-                            <span className="text-[13px] font-bold text-gray-900 dark:text-white truncate">{student.name}</span>
-                            {student.studentprofile?.level && (
-                              <span className="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 text-[9px] font-bold rounded border border-gray-200 dark:border-gray-700">
-                                {student.studentprofile.level}
-                              </span>
-                            )}
-                          </div>
-                          <span className="text-[11px] text-gray-500 dark:text-gray-400 truncate">{student.email}</span>
-                        </div>
+                    <div key={student.id} className={`p-3 flex items-center gap-3 last:border-0 hover:bg-gray-50/50 dark:hover:bg-slate-800/50 transition-colors`}>
+                      <div className="h-8 w-8 rounded-full bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center flex-shrink-0">
+                        <Users className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
                       </div>
-                      <div className={`flex flex-col items-end flex-shrink-0 ${isRTL ? "items-start" : "items-end"}`}>
-                        {session?.user?.isSuperAdmin && student.studentprofile?.filiere?.name && (
-                          <span className="text-[10px] font-medium text-gray-500 dark:text-gray-400 max-w-[120px] truncate" title={student.studentprofile.filiere.name}>
-                            {student.studentprofile.filiere.name}
+
+                      {/* Name + level — takes only what it needs */}
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <span className="text-[13px] font-bold text-gray-900 dark:text-white whitespace-nowrap">{student.name}</span>
+                        {student.studentprofile?.level && (
+                          <span className="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 text-[9px] font-bold rounded border border-gray-200 dark:border-gray-700">
+                            {student.studentprofile.level}
                           </span>
                         )}
                       </div>
+
+                      {/* Email — fills the empty middle space instead of being cramped */}
+                      <span className="flex-1 min-w-0 text-[11px] text-gray-500 dark:text-gray-400 truncate" title={student.email}>
+                        {student.email}
+                      </span>
+
+                      {/* Department — separated by its own divider */}
+                      {session?.user?.isSuperAdmin && student.studentprofile?.filiere?.name && (
+                        <span
+                          className={`flex-shrink-0 text-[10px] font-semibold text-gray-600 dark:text-gray-300 max-w-[130px] truncate ${isRTL ? "pr-3 mr-1 border-r" : "pl-3 ml-1 border-l"} border-gray-200 dark:border-gray-700`}
+                          title={student.studentprofile.filiere.name}
+                        >
+                          {student.studentprofile.filiere.name}
+                        </span>
+                      )}
                     </div>
                   ))
                 )}
