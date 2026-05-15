@@ -172,6 +172,40 @@ export default function AdminUsersPage() {
     fetchPublicSettings();
   }, []);
 
+  // Dept admins can never see Companies or other Admins — if the
+  // selected role filter ever points there (stale state, etc.), reset it.
+  useEffect(() => {
+    if (
+      !session?.user?.isSuperAdmin &&
+      (roleFilter === "COMPANY" || roleFilter === "ADMIN")
+    ) {
+      setRoleFilter("ALL");
+    }
+  }, [session?.user?.isSuperAdmin, roleFilter]);
+
+  // Level filter only makes sense for Students — clear it when the
+  // role filter moves away.
+  useEffect(() => {
+    if (roleFilter !== "STUDENT" && levelFilter !== "ALL") {
+      setLevelFilter("ALL");
+    }
+  }, [roleFilter, levelFilter]);
+
+  // Close the row-action dropdown when the user clicks outside any of
+  // them. (Table cells create their own stacking contexts, so the old
+  // inline overlay couldn't reliably catch outside clicks.)
+  useEffect(() => {
+    if (!activeMenuId) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest("[data-user-action-menu]")) {
+        setActiveMenuId(null);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [activeMenuId]);
+
   useEffect(() => {
     fetchUsers();
   }, [roleFilter, filiereFilter, statusFilter, levelFilter, search]);
@@ -480,7 +514,7 @@ export default function AdminUsersPage() {
               ))}
             </select>
           )}
-          <select 
+          <select
             className="admin-input min-w-0 sm:min-w-[140px] w-full sm:w-auto"
             value={roleFilter}
             onChange={(e) => setRoleFilter(e.target.value)}
@@ -488,8 +522,14 @@ export default function AdminUsersPage() {
             <option value="ALL">{t("common.role")}: {t("common.all")}</option>
             <option value="STUDENT">{t("roles.STUDENT")}</option>
             <option value="TEACHER">{t("roles.TEACHER")}</option>
-            <option value="COMPANY">{t("roles.COMPANY")}</option>
-            <option value="ADMIN">{t("roles.ADMIN")}</option>
+            {/* Companies and Admins are not scoped to a department,
+                so dept admins can't see/manage them. */}
+            {session?.user?.isSuperAdmin && (
+              <>
+                <option value="COMPANY">{t("roles.COMPANY")}</option>
+                <option value="ADMIN">{t("roles.ADMIN")}</option>
+              </>
+            )}
           </select>
           <select
             className="admin-input min-w-0 sm:min-w-[140px] w-full sm:w-auto"
@@ -622,8 +662,8 @@ export default function AdminUsersPage() {
                           {user.isActive ? <UserX className="h-4 w-4" /> : <UserCheck className="h-4 w-4" />}
                         </button>
                       )}
-                      <div className="relative">
-                        <button 
+                      <div className="relative" data-user-action-menu>
+                        <button
                           onClick={() => setActiveMenuId(activeMenuId === user.id ? null : user.id)}
                           className={`p-1.5 rounded transition-colors ${activeMenuId === user.id ? "bg-gray-100 dark:bg-slate-800 text-indigo-600 dark:text-indigo-400" : "text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"}`}
                         >
@@ -631,11 +671,6 @@ export default function AdminUsersPage() {
                         </button>
 
                         {activeMenuId === user.id && (
-                          <>
-                            <div 
-                              className="fixed inset-0 z-10" 
-                              onClick={() => setActiveMenuId(null)}
-                            />
                             <div className={`absolute right-0 ${ (index > filteredUsers.length - 3 && filteredUsers.length > 3) ? 'bottom-full mb-1' : 'mt-1'} w-44 bg-white dark:bg-slate-800 border border-gray-100 dark:border-slate-700 rounded-lg shadow-xl z-[100] py-1 overflow-hidden animate-in fade-in zoom-in-95 duration-100`}>
                               <button 
                                 onClick={() => handleFetchDetail(user.id, 'edit')}
@@ -668,7 +703,6 @@ export default function AdminUsersPage() {
                                 </>
                               )}
                             </div>
-                          </>
                         )}
                       </div>
                     </div>
@@ -750,20 +784,28 @@ export default function AdminUsersPage() {
               {userToView.role === "STUDENT" && userToView.studentProfile && (
                 <>
                   <div>
-                    <label className="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest block mb-1">Speciality</label>
-                    <p className="text-[14px] font-medium text-gray-900 dark:text-white">{userToView.studentProfile.speciality}</p>
+                    <label className="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest block mb-1">Department</label>
+                    <p className="text-[14px] font-medium text-gray-900 dark:text-white">{userToView.studentProfile.filiere?.name || "—"}</p>
                   </div>
                   <div>
-                    <label className="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest block mb-1">Promotion</label>
-                    <p className="text-[14px] text-gray-900 dark:text-white">{userToView.studentProfile.promotion || "—"}</p>
+                    <label className="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest block mb-1">Speciality</label>
+                    <p className="text-[14px] font-medium text-gray-900 dark:text-white">{userToView.studentProfile.speciality || "—"}</p>
                   </div>
                   <div>
                     <label className="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest block mb-1">{t("topics.list.level") || "Level"}</label>
                     <p className="text-[14px] font-medium text-gray-900 dark:text-white">{userToView.studentProfile.level || "—"}</p>
                   </div>
                   <div>
+                    <label className="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest block mb-1">Promotion</label>
+                    <p className="text-[14px] text-gray-900 dark:text-white">{userToView.studentProfile.promotion || "—"}</p>
+                  </div>
+                  <div>
                     <label className="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest block mb-1">Student ID</label>
                     <p className="text-[14px] text-gray-900 dark:text-white">{userToView.studentProfile.studentId || "—"}</p>
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest block mb-1">Academic Year</label>
+                    <p className="text-[14px] text-gray-900 dark:text-white">{userToView.studentProfile.academicYear || "—"}</p>
                   </div>
                 </>
               )}
@@ -771,23 +813,73 @@ export default function AdminUsersPage() {
               {userToView.role === "TEACHER" && userToView.teacherProfile && (
                 <>
                   <div>
-                    <label className="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest block mb-1">Grade</label>
-                    <p className="text-[14px] font-medium text-gray-900 dark:text-white">{userToView.teacherProfile.grade}</p>
+                    <label className="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest block mb-1">Department</label>
+                    <p className="text-[14px] font-medium text-gray-900 dark:text-white">{userToView.teacherProfile.filiere?.name || "—"}</p>
                   </div>
                   <div>
-                    <label className="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest block mb-1">Max Students</label>
-                    <p className="text-[14px] text-gray-900 dark:text-white">{userToView.teacherProfile.maxStudents} Teams</p>
+                    <label className="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest block mb-1">Speciality</label>
+                    <p className="text-[14px] font-medium text-gray-900 dark:text-white">{userToView.teacherProfile.speciality || "—"}</p>
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest block mb-1">Grade</label>
+                    <p className="text-[14px] font-medium text-gray-900 dark:text-white">{userToView.teacherProfile.grade || "—"}</p>
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest block mb-1">Supervision Capacity</label>
+                    <p className="text-[14px] text-gray-900 dark:text-white">
+                      {userToView.teacherProfile.currentLoad ?? 0} / {userToView.teacherProfile.maxStudents ?? "—"} teams
+                    </p>
+                  </div>
+                </>
+              )}
+
+              {userToView.role === "ADMIN" && userToView.adminProfile && (
+                <>
+                  <div>
+                    <label className="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest block mb-1">Admin Type</label>
+                    <p className="text-[14px] font-medium text-gray-900 dark:text-white">
+                      {userToView.adminProfile.isSuperAdmin ? t("roles.SUPER_ADMIN") : t("roles.ADMIN")}
+                    </p>
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest block mb-1">Department</label>
+                    <p className="text-[14px] font-medium text-gray-900 dark:text-white">
+                      {userToView.adminProfile.isSuperAdmin
+                        ? "Global (all departments)"
+                        : (userToView.adminProfile.filiere?.name || "—")}
+                    </p>
                   </div>
                 </>
               )}
 
               {userToView.role === "COMPANY" && userToView.companyProfile && (
                 <>
-                  <div className="col-span-2">
-                    <label className="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest block mb-1">Company Detail</label>
-                    <p className="text-[14px] font-medium text-gray-900 dark:text-white">{userToView.companyProfile.companyName} - {userToView.companyProfile.sector}</p>
-                    <p className="text-[13px] text-gray-500 dark:text-gray-400 mt-1">{userToView.companyProfile.address}, {userToView.companyProfile.wilaya}</p>
+                  <div>
+                    <label className="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest block mb-1">Company Name</label>
+                    <p className="text-[14px] font-medium text-gray-900 dark:text-white">{userToView.companyProfile.companyName || "—"}</p>
                   </div>
+                  <div>
+                    <label className="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest block mb-1">Sector</label>
+                    <p className="text-[14px] text-gray-900 dark:text-white">{userToView.companyProfile.sector || "—"}</p>
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest block mb-1">Wilaya</label>
+                    <p className="text-[14px] text-gray-900 dark:text-white">{userToView.companyProfile.wilaya || "—"}</p>
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest block mb-1">Contact Phone</label>
+                    <p className="text-[14px] text-gray-900 dark:text-white">{userToView.companyProfile.contactPhone || "—"}</p>
+                  </div>
+                  <div className="col-span-2">
+                    <label className="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest block mb-1">Address</label>
+                    <p className="text-[14px] text-gray-900 dark:text-white">{userToView.companyProfile.address || "—"}</p>
+                  </div>
+                  {userToView.companyProfile.supervisorTitle && (
+                    <div className="col-span-2">
+                      <label className="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest block mb-1">Supervisor Title</label>
+                      <p className="text-[14px] text-gray-900 dark:text-white">{userToView.companyProfile.supervisorTitle}</p>
+                    </div>
+                  )}
                 </>
               )}
             </div>
