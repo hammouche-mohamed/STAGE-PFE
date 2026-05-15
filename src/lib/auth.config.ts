@@ -67,7 +67,10 @@ export const authConfig = {
         }
       }
       if (trigger === "update" && session?.user) {
-        if (session.user.image) token.image = session.user.image;
+        // Use `!== undefined` (not truthiness) so removing the avatar —
+        // which sends `image: null` — actually clears it in the token.
+        // Otherwise the sidebar keeps showing the old picture.
+        if (session.user.image !== undefined) token.image = session.user.image;
         if (session.user.name) token.name = session.user.name;
         if (session.user.email) token.email = session.user.email;
         if (typeof session.user.mustChangePassword === 'boolean') {

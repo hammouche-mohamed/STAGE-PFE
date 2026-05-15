@@ -110,10 +110,11 @@ export async function GET(req: NextRequest) {
           },
           internshipstudent: { none: {} },
         } as any,
-        select: { 
-          id: true, 
-          name: true, 
+        select: {
+          id: true,
+          name: true,
           email: true,
+          avatarUrl: true,
           studentprofile: { select: { level: true, filiere: { select: { name: true } }, academicYear: true } }
         } as any,
         take: 20,

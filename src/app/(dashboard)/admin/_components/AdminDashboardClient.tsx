@@ -7,6 +7,7 @@ import {
   ShieldCheck, Clock, Bell, CheckCircle2, AlertCircle
 } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 import { format } from "date-fns";
 import { useTranslation } from "@/lib/i18n/LanguageContext";
 import { useSession } from "next-auth/react";
@@ -274,24 +275,35 @@ export function AdminDashboardClient({
                 ) : (
                   (stats as any).studentsAtRisk.map((student: any) => (
                     <div key={student.id} className={`p-3 flex items-center gap-3 last:border-0 hover:bg-gray-50/50 dark:hover:bg-slate-800/50 transition-colors`}>
-                      <div className="h-8 w-8 rounded-full bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center flex-shrink-0">
-                        <Users className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
-                      </div>
-
-                      {/* Name + level — takes only what it needs */}
-                      <div className="flex items-center gap-2 flex-shrink-0">
-                        <span className="text-[13px] font-bold text-gray-900 dark:text-white whitespace-nowrap">{student.name}</span>
-                        {student.studentprofile?.level && (
-                          <span className="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 text-[9px] font-bold rounded border border-gray-200 dark:border-gray-700">
-                            {student.studentprofile.level}
-                          </span>
+                      <div className="h-8 w-8 rounded-full bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                        {student.avatarUrl ? (
+                          <Image
+                            src={student.avatarUrl}
+                            alt={student.name}
+                            width={32}
+                            height={32}
+                            className="h-full w-full object-cover"
+                            unoptimized
+                          />
+                        ) : (
+                          <Users className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
                         )}
                       </div>
+
+                      {/* Name — takes only what it needs */}
+                      <span className="text-[13px] font-bold text-gray-900 dark:text-white whitespace-nowrap flex-shrink-0">{student.name}</span>
 
                       {/* Email — fills the empty middle space instead of being cramped */}
                       <span className="flex-1 min-w-0 text-[11px] text-gray-500 dark:text-gray-400 truncate" title={student.email}>
                         {student.email}
                       </span>
+
+                      {/* Level */}
+                      {student.studentprofile?.level && (
+                        <span className="flex-shrink-0 px-1.5 py-0.5 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 text-[9px] font-bold rounded border border-gray-200 dark:border-gray-700">
+                          {student.studentprofile.level}
+                        </span>
+                      )}
 
                       {/* Department — separated by its own divider */}
                       {session?.user?.isSuperAdmin && student.studentprofile?.filiere?.name && (
