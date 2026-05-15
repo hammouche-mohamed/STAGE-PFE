@@ -500,7 +500,7 @@ export default function AdminUsersPage() {
             <option value="ACTIVE">{t("admin.users.active")}</option>
             <option value="INACTIVE">{t("admin.users.inactive")}</option>
           </select>
-          {(roleFilter === "STUDENT" || roleFilter === "ALL") && (
+          {roleFilter === "STUDENT" && (
             <select
               className="admin-input min-w-0 sm:min-w-[120px] w-full sm:w-auto"
               value={levelFilter}
@@ -523,6 +523,8 @@ export default function AdminUsersPage() {
             <tr className={isRTL ? "text-right" : "text-left"}>
               <th className={isRTL ? "text-right" : "text-left"}>{t("admin.users.user")}</th>
               <th className={isRTL ? "text-right" : "text-left"}>{t("common.role")}</th>
+              <th className={isRTL ? "text-right" : "text-left"}>{t("admin.users.assignedFiliere") || "Department"}</th>
+              <th className={isRTL ? "text-right" : "text-left"}>{t("topics.list.level") || "Level"}</th>
               <th className={isRTL ? "text-right" : "text-left"}>{t("common.status")}</th>
               <th className={isRTL ? "text-right" : "text-left"}>{t("admin.users.createdAt")}</th>
               <th className={isRTL ? "text-left" : "text-right"}>{t("common.actions")}</th>
@@ -531,11 +533,11 @@ export default function AdminUsersPage() {
           <tbody>
             {isLoading ? (
               <tr className="empty-row">
-                <td colSpan={5} className="text-center py-12 text-gray-400">{t("common.loading")}</td>
+                <td colSpan={7} className="text-center py-12 text-gray-400">{t("common.loading")}</td>
               </tr>
             ) : filteredUsers.length === 0 ? (
               <tr className="empty-row">
-                <td colSpan={5} className="text-center py-12 text-gray-400">{t("common.noData")}</td>
+                <td colSpan={7} className="text-center py-12 text-gray-400">{t("common.noData")}</td>
               </tr>
             ) : (
               filteredUsers.map((user, index) => (
@@ -572,19 +574,29 @@ export default function AdminUsersPage() {
                         <span className="flex-shrink-0 hidden sm:block">{roleIcons[user.role]}</span>
                         <span className="text-[10px] sm:text-[12px] font-bold text-gray-600 dark:text-gray-300 uppercase tracking-tight whitespace-nowrap">{t(`roles.${user.role}`)}</span>
                       </div>
-                      {user.role === "ADMIN" && (
+                      {user.role === "ADMIN" && user.adminProfile?.isSuperAdmin && (
                         <span className="text-[10px] text-gray-400 dark:text-gray-500 px-1.5 py-0.5 font-semibold bg-gray-50 dark:bg-slate-800 rounded border border-gray-100 dark:border-slate-700 uppercase tracking-tight whitespace-nowrap">
-                          {user.adminProfile?.isSuperAdmin 
-                            ? t("roles.SUPER_ADMIN") 
-                            : `${t("roles.ADMIN")} (${user.adminProfile?.filiere?.name || "Global"})`}
-                        </span>
-                      )}
-                      {user.role === "TEACHER" && (
-                        <span className="text-[10px] text-gray-400 dark:text-gray-500 px-1.5 py-0.5 font-semibold bg-gray-50 dark:bg-slate-800 rounded border border-gray-100 dark:border-slate-700 uppercase tracking-tight">
-                          {user.teacherProfile?.filiere?.name || "No Dept"}
+                          {t("roles.SUPER_ADMIN")}
                         </span>
                       )}
                     </div>
+                  </td>
+                  <td data-label="Department">
+                    <span className="text-[12px] text-gray-700 dark:text-gray-300">
+                      {(() => {
+                        if (user.role === "STUDENT") return user.studentProfile?.filiere?.name || "—";
+                        if (user.role === "TEACHER") return user.teacherProfile?.filiere?.name || "—";
+                        if (user.role === "ADMIN")   return user.adminProfile?.isSuperAdmin
+                          ? "Global"
+                          : (user.adminProfile?.filiere?.name || "—");
+                        return "—";
+                      })()}
+                    </span>
+                  </td>
+                  <td data-label="Level">
+                    <span className="text-[12px] text-gray-700 dark:text-gray-300">
+                      {user.role === "STUDENT" ? (user.studentProfile?.level || "—") : "—"}
+                    </span>
                   </td>
                   <td data-label={t("common.status")}>
                     <div className="flex items-center gap-1.5">
