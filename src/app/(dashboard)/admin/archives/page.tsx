@@ -34,6 +34,13 @@ export default function AdminArchivesPage() {
   const [filiereFilter, setFiliereFilter] = useState<string>("all");
   const [filieres, setFilieres] = useState<any[]>([]);
   const [isExporting, setIsExporting] = useState(false);
+  // Topic-only: filter by internship type (PFE / NORMAL)
+  const [topicTypeFilter, setTopicTypeFilter] = useState<"ALL" | "PFE" | "NORMAL">("ALL");
+
+  // Department filter only makes sense for entities scoped to a filière.
+  const DEPT_FILTERABLE: TabType[] = ["internships", "students", "teachers", "topics"];
+  const showDeptFilter = DEPT_FILTERABLE.includes(activeTab);
+  const showTopicTypeFilter = activeTab === "topics";
 
   // Accurate Year Generation
   const now = new Date();
@@ -67,7 +74,8 @@ export default function AdminArchivesPage() {
         year: selectedYear,
         type: activeTab,
       });
-      if (filiereFilter !== "all") params.set("filiereId", filiereFilter);
+      if (showDeptFilter && filiereFilter !== "all") params.set("filiereId", filiereFilter);
+      if (showTopicTypeFilter && topicTypeFilter !== "ALL") params.set("internshipType", topicTypeFilter);
       
       const res = await fetch(`/api/admin/archives/data?${params}`, { signal });
       if (!res.ok) {
@@ -89,7 +97,13 @@ export default function AdminArchivesPage() {
     const controller = new AbortController();
     fetchData(controller.signal);
     return () => controller.abort(); // cancel on unmount or filter change
-  }, [selectedYear, filiereFilter, activeTab]);
+  }, [selectedYear, filiereFilter, activeTab, topicTypeFilter]);
+
+  // Reset tab-specific filters when leaving their tab so they don't bleed.
+  useEffect(() => {
+    if (!showDeptFilter && filiereFilter !== "all") setFiliereFilter("all");
+    if (!showTopicTypeFilter && topicTypeFilter !== "ALL") setTopicTypeFilter("ALL");
+  }, [activeTab]);
 
   const handleExport = async (mode: "current" | "all" = "current") => {
     setIsExporting(true);
@@ -261,6 +275,7 @@ export default function AdminArchivesPage() {
       <thead className="admin-table-header">
         <tr>
           <th>Topic Title</th>
+          <th>Department</th>
           <th>Type</th>
           <th>Proposed By</th>
           <th className="text-center">Applications</th>
@@ -272,6 +287,9 @@ export default function AdminArchivesPage() {
           <tr key={tp.id} className="admin-table-row">
             <td>
               <p className="font-medium text-[13px] truncate max-w-[300px]">{tp.title}</p>
+            </td>
+            <td className="text-[12px] text-gray-700 dark:text-gray-300">
+              {tp.filiere?.name || "—"}
             </td>
             <td>
               {tp.internshipType ? (
@@ -437,31 +455,50 @@ export default function AdminArchivesPage() {
       </div>
 
       {/* Filters Bar */}
-      <div className="flex items-center justify-between p-4 bg-gray-50/50 dark:bg-slate-800/30 rounded-xl border border-gray-100 dark:border-slate-800">
-        <div className="flex items-center gap-6">
-          <div className="flex items-center gap-2">
-            <Filter className="h-4 w-4 text-gray-400" />
-            <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Department Filter</span>
+      {(showDeptFilter || showTopicTypeFilter) && (
+        <div className="flex items-center justify-between p-4 bg-gray-50/50 dark:bg-slate-800/30 rounded-xl border border-gray-100 dark:border-slate-800">
+          <div className="flex flex-wrap items-center gap-4">
+            <div className="flex items-center gap-2">
+              <Filter className="h-4 w-4 text-gray-400" />
+              <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Filters</span>
+            </div>
+            {showDeptFilter && session?.user?.isSuperAdmin && (
+              <select
+                className="admin-input h-8 py-0 text-[12px] min-w-[200px]"
+                value={filiereFilter}
+                onChange={(e) => {
+                  setArchiveData([]);
+                  setIsLoading(true);
+                  setFiliereFilter(e.target.value);
+                }}
+              >
+                <option value="all">All Departments</option>
+                {filieres.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
+              </select>
+            )}
+            {showTopicTypeFilter && (
+              <select
+                className="admin-input h-8 py-0 text-[12px] min-w-[140px]"
+                value={topicTypeFilter}
+                onChange={(e) => {
+                  setArchiveData([]);
+                  setIsLoading(true);
+                  setTopicTypeFilter(e.target.value as "ALL" | "PFE" | "NORMAL");
+                }}
+              >
+                <option value="ALL">Type: All</option>
+                <option value="PFE">PFE</option>
+                <option value="NORMAL">NORMAL</option>
+              </select>
+            )}
           </div>
-          <select
-            className="admin-input h-8 py-0 text-[12px] min-w-[200px]"
-            value={filiereFilter}
-            onChange={(e) => {
-              setArchiveData([]);
-              setIsLoading(true);
-              setFiliereFilter(e.target.value);
-            }}
-          >
-            <option value="all">All Departments</option>
-            {filieres.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
-          </select>
+
+          <div className="flex items-center gap-2 text-[11px] text-gray-400">
+            <Info className="h-3.5 w-3.5" />
+            Records are read-only for historical reference.
+          </div>
         </div>
-        
-        <div className="flex items-center gap-2 text-[11px] text-gray-400">
-          <Info className="h-3.5 w-3.5" />
-          Records are read-only for historical reference.
-        </div>
-      </div>
+      )}
 
       {/* Main Content Table */}
       <div className="admin-table-container">

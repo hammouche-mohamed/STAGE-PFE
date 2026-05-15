@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { randomUUID } from "crypto";
+import { AuditService } from "@/lib/services/audit.service";
 
 export async function GET(req: NextRequest) {
   const session = await auth();
@@ -216,6 +217,14 @@ export async function POST(req: NextRequest) {
         }))
       });
     }
+
+    await AuditService.log({
+      userId: session.user.id,
+      action: "APPLICATION_SUBMITTED",
+      targetType: "StudentApplication",
+      targetId: application.id,
+      details: { topicId, topicTitle: topic.title, teamId },
+    });
 
     return NextResponse.json({ data: application }, { status: 201 });
   } catch (error) {

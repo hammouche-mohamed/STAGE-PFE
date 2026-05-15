@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Users,
   Search,
@@ -191,20 +191,21 @@ export default function AdminUsersPage() {
     }
   }, [roleFilter, levelFilter]);
 
-  // Close the row-action dropdown when the user clicks outside any of
-  // them. (Table cells create their own stacking contexts, so the old
-  // inline overlay couldn't reliably catch outside clicks.)
-  useEffect(() => {
-    if (!activeMenuId) return;
-    const handleClickOutside = (e: MouseEvent) => {
-      const target = e.target as HTMLElement;
-      if (!target.closest("[data-user-action-menu]")) {
-        setActiveMenuId(null);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [activeMenuId]);
+  // Auto-close the row-action dropdown 1 s after the cursor leaves it.
+  // (Hover-based close — no click needed.) Re-entering cancels the timer.
+  const menuCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const scheduleMenuClose = () => {
+    if (menuCloseTimerRef.current) clearTimeout(menuCloseTimerRef.current);
+    menuCloseTimerRef.current = setTimeout(() => setActiveMenuId(null), 1000);
+  };
+  const cancelMenuClose = () => {
+    if (menuCloseTimerRef.current) {
+      clearTimeout(menuCloseTimerRef.current);
+      menuCloseTimerRef.current = null;
+    }
+  };
+  // Cleanup on unmount.
+  useEffect(() => () => cancelMenuClose(), []);
 
   useEffect(() => {
     fetchUsers();
@@ -662,7 +663,12 @@ export default function AdminUsersPage() {
                           {user.isActive ? <UserX className="h-4 w-4" /> : <UserCheck className="h-4 w-4" />}
                         </button>
                       )}
-                      <div className="relative" data-user-action-menu>
+                      <div
+                        className="relative"
+                        data-user-action-menu
+                        onMouseLeave={scheduleMenuClose}
+                        onMouseEnter={cancelMenuClose}
+                      >
                         <button
                           onClick={() => setActiveMenuId(activeMenuId === user.id ? null : user.id)}
                           className={`p-1.5 rounded transition-colors ${activeMenuId === user.id ? "bg-gray-100 dark:bg-slate-800 text-indigo-600 dark:text-indigo-400" : "text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"}`}

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { NotificationService } from "@/lib/services/notification.service";
+import { AuditService } from "@/lib/services/audit.service";
 
 export async function PATCH(
   req: NextRequest,
@@ -80,6 +81,14 @@ export async function PATCH(
         link: "/student/team",
       });
 
+      await AuditService.log({
+        userId: session.user.id,
+        action: "TEAM_INVITATION_ACCEPTED",
+        targetType: "TeamInvitation",
+        targetId: id,
+        details: { teamId: invitation.teamId },
+      });
+
       return NextResponse.json({ message: "Welcome to the team!" });
     } else {
       // Rejected
@@ -115,6 +124,14 @@ export async function PATCH(
           link: "/admin/users?tab=teams",
         });
       }
+
+      await AuditService.log({
+        userId: session.user.id,
+        action: "TEAM_INVITATION_DECLINED",
+        targetType: "TeamInvitation",
+        targetId: id,
+        details: { teamId: invitation.teamId, reason: comment || null },
+      });
 
       return NextResponse.json({ message: "Invitation declined" });
     }

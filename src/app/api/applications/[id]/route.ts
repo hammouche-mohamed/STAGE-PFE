@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { NotificationService } from "@/lib/services/notification.service";
+import { AuditService } from "@/lib/services/audit.service";
 
 export async function PATCH(
   req: NextRequest,
@@ -84,6 +85,14 @@ export async function PATCH(
         });
       }
     }
+
+    await AuditService.log({
+      userId: session.user.id,
+      action: status === "ACCEPTED" ? "APPLICATION_ACCEPTED" : "APPLICATION_REJECTED",
+      targetType: "StudentApplication",
+      targetId: id,
+      details: { topicId: application.topicId, topicTitle: application.topic.title },
+    });
 
     return NextResponse.json({ data: updatedApplication, message: `Application marked as ${status}` });
   } catch (error) {

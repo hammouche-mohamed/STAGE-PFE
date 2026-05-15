@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { auth } from "@/lib/auth";
+import { AuditService } from "@/lib/services/audit.service";
 
 export async function POST(req: NextRequest) {
   const session = await auth();
@@ -83,6 +84,17 @@ export async function POST(req: NextRequest) {
       }
 
       return team;
+    });
+
+    await AuditService.log({
+      userId: session.user.id,
+      action: "TEAM_CREATED",
+      targetType: "StudentTeam",
+      targetId: result.id,
+      details: {
+        invitedCount: invitedStudentIds?.length ?? 0,
+        reason: reason || null,
+      },
     });
 
     return NextResponse.json({ data: result, message: "Team created successfully" }, { status: 201 });

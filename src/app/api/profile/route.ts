@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { auth } from "@/lib/auth";
 import prisma from "@/lib/prisma";
+import { AuditService } from "@/lib/services/audit.service";
 
 export async function GET(req: NextRequest) {
   const session = await auth();
@@ -119,6 +120,23 @@ export async function PUT(req: NextRequest) {
     where: { id: session.user.id },
     data,
   });
+
+  // Track what actually changed so the audit row is informative.
+  const changed: string[] = [];
+  if (name !== undefined && name !== user.name) changed.push("name");
+  if (email !== undefined && email !== user.email) changed.push("email");
+  if (newPassword) changed.push("password");
+  if (Object.prototype.hasOwnProperty.call(body, "avatarUrl")) changed.push("avatar");
+
+  if (changed.length > 0) {
+    await AuditService.log({
+      userId: session.user.id,
+      action: changed.includes("password") ? "USER_PASSWORD_CHANGED" : "USER_PROFILE_UPDATED",
+      targetType: "User",
+      targetId: session.user.id,
+      details: { fields: changed },
+    });
+  }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { password, ...safeUser } = updatedUser;

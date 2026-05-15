@@ -22,21 +22,44 @@ export async function GET(
             title: true,
             description: true,
             companyName: true,
-            proposedBy: { select: { name: true } }
+            type: true,
+            internshipType: true,
+            targetLevels: true,
+            requiredSkills: true,
+            filiereId: true,
+            filiere: { select: { id: true, name: true, code: true } },
+            proposedBy: { select: { name: true, email: true, role: true } },
           }
         },
         user: {
           select: {
+            id: true,
             name: true,
-            email: true
+            email: true,
+            teacherprofile: {
+              select: {
+                grade: true,
+                speciality: true,
+                filiere: { select: { name: true } },
+              },
+            },
           }
         },
         internshipstudent: {
           include: {
             user: {
               select: {
+                id: true,
                 name: true,
                 email: true,
+                studentprofile: {
+                  select: {
+                    level: true,
+                    studentId: true,
+                    promotion: true,
+                    filiere: { select: { name: true } },
+                  },
+                },
               }
             }
           }
@@ -49,12 +72,26 @@ export async function GET(
     }
 
     // Map schema field names back to friendly names expected by the client
+    const teacherUser = (internship as any).user;
     const mapped = {
       ...internship,
-      teacher: (internship as any).user,
+      teacher: teacherUser
+        ? {
+            ...teacherUser,
+            grade: teacherUser.teacherprofile?.grade ?? null,
+            speciality: teacherUser.teacherprofile?.speciality ?? null,
+            filiereName: teacherUser.teacherprofile?.filiere?.name ?? null,
+          }
+        : null,
       students: ((internship as any).internshipstudent || []).map((s: any) => ({
         ...s,
-        student: s.user,
+        student: {
+          ...s.user,
+          level: s.user?.studentprofile?.level ?? null,
+          studentNumber: s.user?.studentprofile?.studentId ?? null,
+          promotion: s.user?.studentprofile?.promotion ?? null,
+          filiereName: s.user?.studentprofile?.filiere?.name ?? null,
+        },
       })),
     };
 

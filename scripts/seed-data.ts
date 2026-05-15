@@ -690,6 +690,44 @@ async function main() {
     }
   });
 
+  // ── TOPICS WITH PENDING MODIFICATION REQUESTS ──────────────────────────────
+  // Pick a couple of already-created topics and stamp them with a
+  // `pendingEditData` snapshot, so the admin's Topics > "Modifications" tab
+  // has rows to review.
+  console.log("Generating topics with pending edit requests...");
+
+  const topicToEdit1 = await (prisma.topic as any).findFirst({
+    where: { title: "Open Supervision Topic 1" },
+  });
+  if (topicToEdit1) {
+    await (prisma.topic as any).update({
+      where: { id: topicToEdit1.id },
+      data: {
+        pendingEditData: JSON.stringify({
+          title: "Open Supervision Topic 1 (revised)",
+          description: "Scope clarified after a discussion with the company supervisor.",
+        }),
+        pendingEditRequestedAt: new Date(),
+      },
+    });
+  }
+
+  const topicToEdit2 = await (prisma.topic as any).findFirst({
+    where: { title: "Available Project 2" },
+  });
+  if (topicToEdit2) {
+    await (prisma.topic as any).update({
+      where: { id: topicToEdit2.id },
+      data: {
+        pendingEditData: JSON.stringify({
+          description: "Updated description: now uses Next.js 15 instead of Next.js 14.",
+          requiredSkills: "TypeScript, React, Prisma, PostgreSQL",
+        }),
+        pendingEditRequestedAt: new Date(),
+      },
+    });
+  }
+
   // ── AUDIT LOGS ──────────────────────────────────────────────────────────────
   console.log("Creating Audit Logs...");
   // Logs for archive year

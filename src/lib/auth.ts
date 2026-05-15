@@ -6,6 +6,23 @@ import type { StudentLevel } from '@/types/internship';
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
+  events: {
+    async signOut(message: any) {
+      try {
+        const userId = message?.token?.id || message?.session?.user?.id;
+        if (!userId) return;
+        const { AuditService } = await import('./services/audit.service');
+        await AuditService.log({
+          userId,
+          action: 'USER_LOGOUT',
+          targetType: 'User',
+          targetId: userId,
+        });
+      } catch {
+        // never block a logout on an audit failure
+      }
+    },
+  },
   providers: [
     Credentials({
       credentials: {
@@ -59,6 +76,21 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         await (prisma as any).loginAttempt.deleteMany({
           where: { email: normalizedEmail }
         });
+
+        // 3. Record the login as an audit event (lazy-imported so this file
+        //    stays edge-runtime-safe). Errors are swallowed inside the service.
+        try {
+          const { AuditService } = await import('./services/audit.service');
+          await AuditService.log({
+            userId: user.id,
+            action: 'USER_LOGIN',
+            targetType: 'User',
+            targetId: user.id,
+            details: { email: normalizedEmail, role: user.role },
+          });
+        } catch {
+          // never fail a login just because the audit write didn't go through
+        }
 
         return {
           id: user.id,

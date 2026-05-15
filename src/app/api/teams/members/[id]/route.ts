@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { NotificationService } from "@/lib/services/notification.service";
+import { AuditService } from "@/lib/services/audit.service";
 
 export async function DELETE(
   req: NextRequest,
@@ -97,6 +98,14 @@ export async function DELETE(
         });
       }
     }
+
+    await AuditService.log({
+      userId: session.user.id,
+      action: "TEAM_LEFT",
+      targetType: "StudentTeam",
+      targetId: teamId,
+      details: { reason: comment, wasLeader: member.isLeader },
+    });
 
     return NextResponse.json({ message: "You have left the team." });
   } catch (error) {

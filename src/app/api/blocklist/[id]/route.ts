@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { auth } from "@/lib/auth";
+import { AuditService } from "@/lib/services/audit.service";
 
 export async function DELETE(
   req: NextRequest,
@@ -13,8 +14,17 @@ export async function DELETE(
 
   try {
     const { id } = await params;
+    const row = await (prisma as any).blockedEmail.findUnique({ where: { id } });
     await (prisma as any).blockedEmail.delete({
       where: { id },
+    });
+
+    await AuditService.log({
+      userId: session.user.id,
+      action: "EMAIL_UNBLOCKED",
+      targetType: "BlockedEmail",
+      targetId: id,
+      details: { email: row?.email ?? null },
     });
 
     return NextResponse.json({ message: "Email unblocked successfully" });

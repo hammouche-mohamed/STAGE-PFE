@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import bcrypt from "bcryptjs";
+import { AuditService } from "@/lib/services/audit.service";
 
 export async function POST(req: Request) {
   try {
@@ -44,6 +45,14 @@ export async function POST(req: Request) {
         where: { userId: token.userId },
       }),
     ]);
+
+    await AuditService.log({
+      userId: token.userId,
+      action: "PASSWORD_RESET_COMPLETED",
+      targetType: "User",
+      targetId: token.userId,
+      details: { email },
+    });
 
     return NextResponse.json({ message: "Password reset successful" });
   } catch (error) {

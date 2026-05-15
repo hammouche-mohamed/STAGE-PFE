@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { NotificationService } from "@/lib/services/notification.service";
+import { AuditService } from "@/lib/services/audit.service";
 
 export async function POST(req: NextRequest) {
   const session = await auth();
@@ -85,6 +86,14 @@ export async function POST(req: NextRequest) {
         link: "/admin/internships",
       });
     }
+
+    await AuditService.log({
+      userId: session.user.id,
+      action: "TEAM_INVITATION_SENT",
+      targetType: "TeamInvitation",
+      targetId: invitation.id,
+      details: { teamId, invitedStudentId: studentId },
+    });
 
     return NextResponse.json({ data: invitation, message: "Invitation sent successfully" });
   } catch (error) {

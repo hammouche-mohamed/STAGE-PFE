@@ -30,10 +30,32 @@ interface Internship {
       title: string;
       description: string;
       companyName?: string;
-      proposedBy: { name: string }
+      type?: string;
+      internshipType?: string | null;
+      targetLevels?: string | null;
+      requiredSkills?: string | null;
+      filiere?: { id: string; name: string; code?: string } | null;
+      proposedBy: { name: string; email?: string; role?: string }
    };
-   teacher: { name: string; email: string };
-   students: { student: { name: string; email: string; studentId: string } }[];
+   teacher: {
+      name: string;
+      email: string;
+      grade?: string | null;
+      speciality?: string | null;
+      filiereName?: string | null;
+   };
+   students: {
+      isLeader?: boolean;
+      student: {
+         name: string;
+         email: string;
+         studentId?: string;
+         level?: string | null;
+         studentNumber?: string | null;
+         promotion?: string | null;
+         filiereName?: string | null;
+      }
+   }[];
    status: string;
    academicYear: string;
    internshipType?: string | null;
@@ -226,7 +248,14 @@ export default function AdminInternshipDetailPage() {
                            <div className="h-8 w-8 rounded-full bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-400 flex items-center justify-center font-bold text-[11px]">
                               {internship.teacher.name.charAt(0)}
                            </div>
-                           <span className="text-[13px] font-medium text-gray-900 dark:text-white">{internship.teacher.name}</span>
+                           <div className="flex flex-col">
+                              <span className="text-[13px] font-medium text-gray-900 dark:text-white">{internship.teacher.name}</span>
+                              {(internship.teacher.grade || internship.teacher.filiereName) && (
+                                <span className="text-[11px] text-gray-500 dark:text-gray-400">
+                                   {[internship.teacher.grade, internship.teacher.filiereName].filter(Boolean).join(" · ")}
+                                </span>
+                              )}
+                           </div>
                         </div>
                      </div>
                      <div>
@@ -235,6 +264,78 @@ export default function AdminInternshipDetailPage() {
                            <Building2 className="h-4 w-4 text-gray-400" />
                            <span className="text-[13px] font-medium text-gray-900 dark:text-white">{internship.topic.companyName || "N/A"}</span>
                         </div>
+                     </div>
+                  </div>
+               </div>
+
+               {/* Team & topic targeting */}
+               <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-md p-6 shadow-sm">
+                  <h2 className="text-[14px] font-bold text-gray-900 dark:text-white mb-4 flex items-center justify-between">
+                     <div className="flex items-center">
+                        <User className="h-4 w-4 mr-2 text-indigo-500" />
+                        Team & Topic Targeting
+                     </div>
+                     <span className="text-[11px] font-medium text-gray-400 bg-gray-50 dark:bg-slate-800 px-2 py-1 rounded">
+                        {internship.students.length === 1 ? "Solo" : `${internship.students.length}-person team`}
+                     </span>
+                  </h2>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                     <div>
+                        <label className="text-[11px] font-bold text-gray-400 uppercase tracking-widest block mb-2">Members</label>
+                        <ul className="space-y-2">
+                           {internship.students.map((s) => (
+                              <li key={s.student.email} className="flex items-center gap-2 text-[13px]">
+                                 <div className="h-7 w-7 rounded-full bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-gray-200 flex items-center justify-center font-bold text-[11px]">
+                                    {s.student.name.charAt(0)}
+                                 </div>
+                                 <div className="flex flex-col">
+                                    <span className="text-gray-900 dark:text-white font-medium">
+                                       {s.student.name}
+                                       {s.isLeader && (
+                                          <span className="ml-2 text-[9px] font-bold text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 px-1 py-0.5 rounded uppercase">
+                                             Leader
+                                          </span>
+                                       )}
+                                    </span>
+                                    <span className="text-[11px] text-gray-500 dark:text-gray-400">
+                                       {[
+                                          s.student.studentNumber && `#${s.student.studentNumber}`,
+                                          s.student.level,
+                                          s.student.filiereName,
+                                       ].filter(Boolean).join(" · ")}
+                                    </span>
+                                 </div>
+                              </li>
+                           ))}
+                        </ul>
+                     </div>
+                     <div className="space-y-3">
+                        <div>
+                           <label className="text-[11px] font-bold text-gray-400 uppercase tracking-widest block mb-1">Department (Filière)</label>
+                           <p className="text-[13px] text-gray-900 dark:text-white">
+                              {internship.topic.filiere?.name || "—"}
+                           </p>
+                        </div>
+                        <div>
+                           <label className="text-[11px] font-bold text-gray-400 uppercase tracking-widest block mb-1">Target Levels</label>
+                           <div className="flex flex-wrap gap-1">
+                              {(internship.topic.targetLevels?.split(",").map((s) => s.trim()).filter(Boolean) || []).map((lvl) => (
+                                 <span key={lvl} className="text-[10px] font-bold text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-900/30 px-2 py-0.5 rounded">
+                                    {lvl}
+                                 </span>
+                              ))}
+                              {!internship.topic.targetLevels && (
+                                 <span className="text-[12px] text-gray-400">—</span>
+                              )}
+                           </div>
+                        </div>
+                        {internship.topic.requiredSkills && (
+                           <div>
+                              <label className="text-[11px] font-bold text-gray-400 uppercase tracking-widest block mb-1">Required Skills</label>
+                              <p className="text-[12px] text-gray-700 dark:text-gray-300">{internship.topic.requiredSkills}</p>
+                           </div>
+                        )}
                      </div>
                   </div>
                </div>

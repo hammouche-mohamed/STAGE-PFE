@@ -23,6 +23,7 @@ export async function GET(req: NextRequest) {
   const year = searchParams.get('year');
   const type = searchParams.get('type') || 'internships';
   const paramFiliereId = searchParams.get('filiereId');
+  const internshipTypeFilter = searchParams.get('internshipType'); // PFE | NORMAL
 
   if (!year || year === 'all') {
     return NextResponse.json({ error: 'Specific academic year required for detailed archives' }, { status: 400 });
@@ -145,6 +146,9 @@ export async function GET(req: NextRequest) {
           where: {
             academicYear: year,
             ...(filiereId && { filiereId }),
+            ...(internshipTypeFilter && internshipTypeFilter !== 'ALL'
+              ? { internshipType: internshipTypeFilter as any }
+              : {}),
             OR: [
               { status: 'TAKEN', internship: { status: { in: FINISHED_STATUSES } } },
               { status: 'REJECTED' },

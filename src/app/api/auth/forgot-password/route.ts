@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { MailService } from "@/lib/services/mail.service";
+import { AuditService } from "@/lib/services/audit.service";
 import crypto from "crypto";
 
 export async function POST(req: Request) {
@@ -44,6 +45,14 @@ export async function POST(req: Request) {
 
     // Send Email
     await MailService.sendPasswordResetCode(email, code, user.name);
+
+    await AuditService.log({
+      userId: user.id,
+      action: "PASSWORD_RESET_REQUESTED",
+      targetType: "User",
+      targetId: user.id,
+      details: { email: user.email },
+    });
 
     return NextResponse.json({ message: "Verification code sent to your email." });
   } catch (error) {

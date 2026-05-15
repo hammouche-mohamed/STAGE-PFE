@@ -18,6 +18,8 @@ export async function GET(req: NextRequest) {
   const academicYear = searchParams.get('academicYear') || defaultYear;
   const internshipType = searchParams.get('internshipType');
   const statusFilter = searchParams.get('status');
+  const filiereIdFilter = searchParams.get('filiereId');
+  const levelFilter = searchParams.get('level');
   const archivedOnly = searchParams.get('archived') === 'true';
   const showAll = searchParams.get('all') === 'true';
   const role = session.user.role;
@@ -28,39 +30,66 @@ export async function GET(req: NextRequest) {
   const skip = (page - 1) * limit;
 
   try {
+    // If the caller explicitly asks for a finished status, drop the
+    // "academicYear OR not-finished" default — otherwise the OR clause
+    // contradicts the explicit filter and yields zero rows.
+    const explicitFinishedFilter =
+      statusFilter === 'COMPLETED' || statusFilter === 'CANCELLED';
+
     const where: Record<string, any> = archivedOnly
       ? { archivedAt: { not: null } }
-      : {
-          OR: [
-            { academicYear },
-            { NOT: { status: { in: ['COMPLETED', 'CANCELLED'] } } }
-          ]
-        };
+      : explicitFinishedFilter
+        ? { academicYear }
+        : {
+            OR: [
+              { academicYear },
+              { NOT: { status: { in: ['COMPLETED', 'CANCELLED'] } } }
+            ]
+          };
+
+    // Helper to merge topic-side filters without overwriting role scoping.
+    const topicWhere: Record<string, any> = {};
 
     if (role === 'STUDENT') {
       where.internshipstudent = { some: { studentId: session.user.id } };
     } else if (role === 'TEACHER') {
       where.teacherId = session.user.id;
     } else if (role === 'COMPANY') {
-      where.topic = { proposedById: session.user.id };
+      topicWhere.proposedById = session.user.id;
     } else if (role === 'ADMIN') {
       if (showAll && session.user.isSuperAdmin) {
-        // Remove the default OR filter to show everything
         delete (where as any).OR;
       }
       if (!session.user.isSuperAdmin) {
         if (session.user.filiereId) {
-          where.topic = { filiereId: session.user.filiereId };
+          topicWhere.filiereId = session.user.filiereId;
         } else {
-          // If a normal admin is not assigned to a department, they see nothing.
           where.id = "UNASSIGNED_ADMIN_BLOCK";
         }
+      } else if (filiereIdFilter && filiereIdFilter !== 'ALL') {
+        // Super-admin filtering by department.
+        topicWhere.filiereId = filiereIdFilter;
       }
     }
-    // ADMIN sees all
+
+    if (Object.keys(topicWhere).length > 0) {
+      where.topic = topicWhere;
+    }
 
     if (internshipType) where.internshipType = internshipType;
     if (statusFilter) where.status = statusFilter;
+
+    // Level filter — match internships that include at least one student
+    // at the given level (L1..M2). Filtering on the student-profile relation.
+    if (levelFilter && levelFilter !== 'ALL') {
+      where.internshipstudent = {
+        ...(where.internshipstudent || {}),
+        some: {
+          ...(where.internshipstudent?.some || {}),
+          user: { studentprofile: { is: { level: levelFilter } } },
+        },
+      };
+    }
 
     // NFR-P2: explicit field selection — use schema field names (Vercel regenerates Prisma Client from schema)
     // Schema: user (not teacher), internshipstudent (not students), document/message (not documents/messages)
@@ -83,9 +112,29 @@ export async function GET(req: NextRequest) {
           teacherValidatedFinalReport: true,
           companyValidatedFinalReport: true,
           createdAt: true,
-          topic: { select: { title: true, type: true, internshipType: true, companyName: true, description: true } },
+          topic: {
+            select: {
+              title: true, type: true, internshipType: true,
+              companyName: true, description: true,
+              targetLevels: true,
+              filiereId: true,
+              filiere: { select: { id: true, name: true, code: true } },
+            },
+          },
           user: { select: { id: true, name: true, email: true } },
-          internshipstudent: { select: { id: true, studentId: true, isLeader: true, user: { select: { id: true, name: true, email: true } } } },
+          internshipstudent: {
+            select: {
+              id: true,
+              studentId: true,
+              isLeader: true,
+              user: {
+                select: {
+                  id: true, name: true, email: true,
+                  studentprofile: { select: { level: true, studentId: true } },
+                },
+              },
+            },
+          },
           _count: { select: { document: true, message: true } },
         } as any,
         orderBy: { createdAt: 'desc' },
@@ -101,7 +150,11 @@ export async function GET(req: NextRequest) {
       teacher: i.user || { id: '', name: 'Unknown', email: '' },
       students: (i.internshipstudent || []).map((s: any) => ({
         ...s,
-        student: s.user,
+        student: {
+          ...s.user,
+          level: s.user?.studentprofile?.level ?? null,
+          studentNumber: s.user?.studentprofile?.studentId ?? null,
+        },
       })),
       _count: {
         documents: i._count?.document ?? 0,

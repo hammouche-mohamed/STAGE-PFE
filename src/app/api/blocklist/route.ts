@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { auth } from "@/lib/auth";
+import { AuditService } from "@/lib/services/audit.service";
 
 export async function GET(req: NextRequest) {
   const session = await auth();
@@ -43,6 +44,14 @@ export async function POST(req: NextRequest) {
 
     const blocked = await (prisma as any).blockedEmail.create({
       data: { email, reason },
+    });
+
+    await AuditService.log({
+      userId: session.user.id,
+      action: "EMAIL_BLOCKED",
+      targetType: "BlockedEmail",
+      targetId: blocked.id,
+      details: { email, reason: reason || null },
     });
 
     return NextResponse.json({ message: "Email blocked successfully", data: blocked });
