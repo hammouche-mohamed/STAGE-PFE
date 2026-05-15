@@ -3,14 +3,18 @@ import prisma from '@/lib/prisma';
 import { auth } from '@/lib/auth';
 
 /**
- * Archive Rules:
- * - Internships: only COMPLETED or CANCELLED
- * - Topics: only TAKEN topics whose linked internship is COMPLETED or CANCELLED
- * - Students: all enrolled that year (read-only reference — never moved/deleted)
- * - Teachers: all who supervised at least one internship that year (read-only reference)
- * - Companies: all who proposed at least one topic that year (read-only reference)
- * - Documents: only those belonging to a COMPLETED or CANCELLED internship
- * - Audit: time-boxed to the academic year (Sept → Aug)
+ * Archive Rules (read-only historical view of a given academic year):
+ * - Internships: ALL of that year — finished AND ongoing. Ongoing ones are
+ *   shown/"mentioned" (via their status) and are NEVER deleted; they carry
+ *   over into the new year.
+ * - Topics: the year's REJECTED topics + TAKEN topics whose internship
+ *   finished (and any manually-archived). Pending/approved/open carry over.
+ * - Students: every student enrolled that year (reference — never deleted).
+ * - Teachers: every teacher who supervised ANY internship or held topics
+ *   that year (not only finished).
+ * - Companies: every company that proposed ANY topic that year.
+ * - Documents: documents of finished internships that year.
+ * - Audit: time-boxed to the academic year (Sept → Aug).
  */
 
 export async function GET(req: NextRequest) {
@@ -60,9 +64,9 @@ export async function GET(req: NextRequest) {
           } as any,
           include: {
             studentprofile: { include: { filiere: true } },
-            // Only show internship assignments that are finished
+            // Show the student's internship that year — finished or ongoing.
             internshipstudent: {
-              where: { internship: { academicYear: year, status: { in: FINISHED_STATUSES } } },
+              where: { internship: { academicYear: year } },
               include: { internship: { include: { topic: { select: { title: true } } } } },
             },
           },
@@ -76,30 +80,33 @@ export async function GET(req: NextRequest) {
         data = await prisma.user.findMany({
           where: {
             role: 'TEACHER',
-            internship: {
-              some: {
-                academicYear: year,
-                status: { in: FINISHED_STATUSES },
-                ...(filiereId && { topic: { filiereId } }),
+            // Any teacher who supervised an internship OR was assigned a
+            // topic that year — not gated on the internship being finished.
+            OR: [
+              {
+                internship: {
+                  some: {
+                    academicYear: year,
+                    ...(filiereId && { topic: { filiereId } }),
+                  },
+                },
               },
-            },
+              {
+                assignedTopics: {
+                  some: {
+                    academicYear: year,
+                    ...(filiereId && { filiereId }),
+                  },
+                },
+              },
+            ],
           } as any,
           include: {
             teacherprofile: { include: { filiere: true } },
             _count: {
               select: {
-                internship: {
-                  where: {
-                    academicYear: year,
-                    status: { in: FINISHED_STATUSES },
-                  },
-                },
-                proposedTopics: {
-                  where: {
-                    academicYear: year,
-                    status: 'TAKEN',
-                  }
-                }
+                internship: { where: { academicYear: year } },
+                proposedTopics: { where: { academicYear: year } },
               },
             },
           },
@@ -113,11 +120,11 @@ export async function GET(req: NextRequest) {
         data = await prisma.user.findMany({
           where: {
             role: 'COMPANY',
+            // Any company that proposed a topic that year (regardless of
+            // whether it was taken / finished).
             proposedTopics: {
               some: {
                 academicYear: year,
-                status: 'TAKEN',
-                internship: { status: { in: FINISHED_STATUSES } },
                 ...(filiereId && { filiereId }),
               },
             },
@@ -126,13 +133,7 @@ export async function GET(req: NextRequest) {
             companyprofile: true,
             _count: {
               select: {
-                proposedTopics: {
-                  where: {
-                    academicYear: year,
-                    status: 'TAKEN',
-                    internship: { status: { in: FINISHED_STATUSES } },
-                  },
-                },
+                proposedTopics: { where: { academicYear: year } },
               },
             },
           },
@@ -157,9 +158,12 @@ export async function GET(req: NextRequest) {
             ...(internshipTypeFilter && internshipTypeFilter !== 'ALL'
               ? { internshipType: internshipTypeFilter as any }
               : {}),
+            // The year's finished + rejected topics (and any manually
+            // archived). Pending/approved/open carry over → not shown here.
             OR: [
-              { archivedAt: { not: null } },
+              { status: 'REJECTED' },
               { status: 'TAKEN', internship: { status: { in: FINISHED_STATUSES } } },
+              { archivedAt: { not: null } },
             ],
           } as any,
           include: {
@@ -225,19 +229,15 @@ export async function GET(req: NextRequest) {
       }
 
       // ── INTERNSHIPS ─────────────────────────────────────────────────────────
-      // Only COMPLETED or CANCELLED internships.
+      // ALL internships of the year — finished AND ongoing. Ongoing ones are
+      // shown (their status "mentions" them) and are never deleted; they
+      // carry over. The page distinguishes them via the STATUS column.
       case 'internships':
       default:
         data = await prisma.internship.findMany({
           where: {
             academicYear: year,
             ...(filiereId && { topic: { filiereId } }),
-            // Finished internships, OR any internship swept up when the
-            // Super Admin archived the whole year.
-            OR: [
-              { status: { in: FINISHED_STATUSES } },
-              { archivedAt: { not: null } },
-            ],
           } as any,
           include: {
             topic: { select: { title: true, internshipType: true } },

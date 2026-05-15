@@ -223,6 +223,19 @@ export async function GET(req: NextRequest) {
       if (currentYear && currentYear !== 'N/A') where.academicYear = currentYear;
     }
 
+    // A REJECTED topic from a PAST year is closed business — it lives ONLY in
+    // the Archives, never on the active site (dashboard / topic lists). Only
+    // the *current* year's rejected topics stay visible (Rejected filter) so
+    // the admin can still manage them. Completed topics are already excluded
+    // above via the COMPLETED/CANCELLED-internship id filter.
+    const systemYear =
+      cachedYear && cachedYear.expiry > Date.now()
+        ? cachedYear.year
+        : await SettingsService.getCurrentAcademicYear();
+    if (systemYear && systemYear !== 'N/A') {
+      where.NOT = { status: 'REJECTED', academicYear: { not: systemYear } };
+    }
+
     // ── ROLE-BASED VISIBILITY & FILTERS ────────────────────────────────────
     if (session.user.role === 'ADMIN') {
       // Admins see topics in their department (or all if super admin or unassigned)

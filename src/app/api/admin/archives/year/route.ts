@@ -44,15 +44,28 @@ export async function POST(req: NextRequest) {
     }
 
     const now = new Date();
+    const FINISHED = ['COMPLETED', 'CANCELLED'];
 
-    // Archive every still-active topic and internship from that year.
+    // Archive ONLY what is truly done — never ongoing work, which carries
+    // over into the new year untouched:
+    //  • Topics: only REJECTED ones and TAKEN ones whose internship finished.
+    //    Pending / approved / open topics stay live (carried over).
+    //  • Internships: only finished (COMPLETED / CANCELLED). Ongoing
+    //    internships are NEVER archived/deleted — they keep running.
     const [topicsRes, internshipsRes] = await prisma.$transaction([
       (prisma as any).topic.updateMany({
-        where: { academicYear: year, archivedAt: null },
+        where: {
+          academicYear: year,
+          archivedAt: null,
+          OR: [
+            { status: 'REJECTED' },
+            { status: 'TAKEN', internship: { status: { in: FINISHED } } },
+          ],
+        },
         data: { archivedAt: now },
       }),
       (prisma as any).internship.updateMany({
-        where: { academicYear: year, archivedAt: null },
+        where: { academicYear: year, archivedAt: null, status: { in: FINISHED } },
         data: { archivedAt: now },
       }),
     ]);

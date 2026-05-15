@@ -187,6 +187,9 @@ async function main() {
         proposedById: companies[0].id,
         filiereId: createdDepts[0].id,
         maxStudents: 1,
+        // Past year is already closed → completed topic is archived-out:
+        // gone from the live site, still visible in Archives.
+        archivedAt: new Date(`${archiveYear.split('-')[1]}-08-31`),
         updatedAt: new Date(),
       }
     });
@@ -538,6 +541,13 @@ async function main() {
           filiereId: createdDepts[i % createdDepts.length].id,
           maxStudents: 1,
           rejectionReason: "Out of scope for the filière",
+          // Past (already-archived) year → its rejected topics are
+          // archived-out (off the live site, still in Archives). The
+          // current year's rejected topics stay live until its year is
+          // archived (then the year-archive action moves them out).
+          ...(yearLabel === archiveYear
+            ? { archivedAt: new Date(`${yearLabel.split('-')[1]}-08-31`) }
+            : {}),
           updatedAt: new Date(),
         }
       });
