@@ -16,7 +16,6 @@ export async function GET(
     const { id: rawId } = await params;
     const id = rawId.trim();
     
-    console.log(`[TOPIC_DETAIL] Fetching ID: "${id}" | User: ${session.user.email}`);
 
     const topic = await prisma.topic.findFirst({
       where: { 

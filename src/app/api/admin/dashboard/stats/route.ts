@@ -21,7 +21,6 @@ export async function GET(req: NextRequest) {
   // If not super admin, they can only see their own filiere
   const targetFiliereId = session.user.isSuperAdmin ? (filiereId === "all" ? null : filiereId) : (session.user.filiereId || null);
 
-  console.log(`[DASHBOARD_STATS] Filter: filiereId=${filiereId}, targetFiliereId=${targetFiliereId}, year=${currentAcademicYear}`);
 
   try {
     const [

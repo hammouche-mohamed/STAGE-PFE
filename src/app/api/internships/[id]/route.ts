@@ -136,12 +136,26 @@ export async function PATCH(
     });
 
     if (!internship) return NextResponse.json({ error: 'Internship not found' }, { status: 404 });
-    if (!internship.startDate) {
-      return NextResponse.json({ error: 'Cannot set deadline before internship has a start date.' }, { status: 400 });
-    }
 
     const deadline = new Date(finalDeadline);
     const isPFE = internship.internshipType === 'PFE';
+
+    // PFE is a deliberate exception: the admin's final-report deadline IS the
+    // PFE end date, and the company can only activate a PFE internship AFTER
+    // that deadline exists — so the admin must be able to set it BEFORE a
+    // start date exists (the midterm is (re)computed later, at activation).
+    // For NORMAL the company sets the dates first, so a start date is required.
+    if (!isPFE && !internship.startDate) {
+      return NextResponse.json(
+        {
+          error:
+            'Cannot set the report deadline yet — the company has not started ' +
+            'this internship (no start date). The company confirms the start ' +
+            'date when it activates the internship.',
+        },
+        { status: 400 },
+      );
+    }
 
     // NORMAL / company internships: the company sets the end date. The final
     // report deadline must fall on or before that date — the admin cannot
@@ -158,12 +172,17 @@ export async function PATCH(
       );
     }
 
-    // For PFE: endDate = finalDeadline, recalculate midterm
+    // For PFE: endDate = finalDeadline. The midterm is only (re)computable
+    // once a start date exists — if the deadline is set before activation,
+    // leave the midterm; activation recalculates the deadlines anyway.
     const newEndDate = isPFE ? deadline : internship.endDate;
-    const durationDays = newEndDate ? differenceInDays(newEndDate, internship.startDate) : 0;
-    const newMidterm = isPFE && newEndDate
-      ? addDays(internship.startDate, Math.floor(durationDays / 2))
-      : internship.midtermDeadline;
+    const newMidterm =
+      isPFE && newEndDate && internship.startDate
+        ? addDays(
+            internship.startDate,
+            Math.floor(differenceInDays(newEndDate, internship.startDate) / 2),
+          )
+        : internship.midtermDeadline;
 
     const updated = await prisma.internship.update({
       where: { id },

@@ -27,7 +27,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
     }
 
-    console.log(`Uploading file: ${file.name}, type: ${file.type}, size: ${file.size}`);
 
     if (!file.type.startsWith("image/") && file.type !== "") {
       console.error(`Upload error: Invalid mime type: ${file.type}`);
@@ -63,7 +62,6 @@ export async function POST(req: NextRequest) {
         },
       });
 
-      console.log(`User ${session.user.id} avatar updated to: ${publicUrl} (stored in DB)`);
       return NextResponse.json({ url: publicUrl });
     } catch (err: any) {
       console.error("Upload error: Database storage failed", err);

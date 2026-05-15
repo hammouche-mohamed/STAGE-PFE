@@ -33,7 +33,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
     }
 
-    console.log(`[UPLOAD_DOC] Uploading: ${file.name} (${file.type}), Size: ${file.size} bytes`);
 
     if (file.size > MAX_SIZE) {
       console.error(`[UPLOAD_DOC] File too large: ${file.size} > ${MAX_SIZE}`);
@@ -50,7 +49,6 @@ export async function POST(req: NextRequest) {
     const uploadDir = join(process.cwd(), "public", "uploads", "supporting-docs");
 
     try {
-      console.log(`[UPLOAD_DOC] Ensuring directory exists: ${uploadDir}`);
       await mkdir(uploadDir, { recursive: true });
     } catch (err: any) {
       console.error("[UPLOAD_DOC] Directory creation failed:", err);
@@ -61,7 +59,6 @@ export async function POST(req: NextRequest) {
       const bytes = await file.arrayBuffer();
       const buffer = Buffer.from(bytes);
       const filePath = join(uploadDir, fileName);
-      console.log(`[UPLOAD_DOC] Writing file to: ${filePath}`);
       await writeFile(filePath, buffer);
     } catch (err: any) {
       console.error("[UPLOAD_DOC] File write failed:", err);
@@ -69,7 +66,6 @@ export async function POST(req: NextRequest) {
     }
 
     const url = `/uploads/supporting-docs/${fileName}`;
-    console.log(`[UPLOAD_DOC] Successfully uploaded: ${url}`);
     return NextResponse.json({ url });
   } catch (error: any) {
     console.error("[UPLOAD_DOC] Catch block error:", error);
