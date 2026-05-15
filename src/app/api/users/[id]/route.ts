@@ -19,23 +19,41 @@ export async function GET(
 
     if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
-    // Manually fetch profiles since relations are missing in schema
-    const [studentProfile, teacherProfile, companyProfile, adminProfile] = await Promise.all([
-      prisma.studentProfile.findUnique({ where: { userId: id } }),
-      prisma.teacherProfile.findUnique({ where: { userId: id } }),
-      prisma.companyProfile.findUnique({ where: { userId: id } }),
-      prisma.adminProfile.findUnique({ where: { userId: id } }),
-    ]);
+    // Manually fetch profiles since relations are missing in schema.
+    // For teachers also count the internships they're CURRENTLY supervising
+    // (anything not finished/cancelled) — the stored `currentLoad` counter
+    // can be stale (e.g. seeded data), so we report the live number instead.
+    const [studentProfile, teacherProfile, companyProfile, adminProfile, supervisingCount] =
+      await Promise.all([
+        prisma.studentProfile.findUnique({ where: { userId: id } }),
+        prisma.teacherProfile.findUnique({ where: { userId: id } }),
+        prisma.companyProfile.findUnique({ where: { userId: id } }),
+        prisma.adminProfile.findUnique({ where: { userId: id } }),
+        user.role === "TEACHER"
+          ? prisma.internship.count({
+              where: {
+                teacherId: id,
+                status: { notIn: ["COMPLETED", "CANCELLED"] },
+              },
+            })
+          : Promise.resolve(0),
+      ]);
+
+    // Override the (possibly stale) stored counter with the real count.
+    const liveTeacherProfile =
+      teacherProfile && user.role === "TEACHER"
+        ? { ...teacherProfile, currentLoad: supervisingCount }
+        : teacherProfile;
 
     const { password, ...safeUser } = user;
     return NextResponse.json({ 
       data: {
         ...safeUser,
         studentProfile,
-        teacherProfile,
+        teacherProfile: liveTeacherProfile,
         companyProfile,
         adminProfile
-      } 
+      }
     });
   } catch (error) {
     console.error("Fetch user error:", error);

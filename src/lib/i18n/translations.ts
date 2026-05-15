@@ -566,6 +566,7 @@ export const translations = {
     },
     auth: {
       login: "Sign In",
+      idleLogout: "You were signed out after 5 minutes of inactivity. Please sign in again.",
       register: "Create Account",
       forgotPassword: "Forgot Password?",
       resetPassword: "Reset Password",
@@ -1284,6 +1285,7 @@ export const translations = {
     },
     auth: {
       login: "Connexion",
+      idleLogout: "Vous avez été déconnecté après 5 minutes d'inactivité. Veuillez vous reconnecter.",
       register: "Créer un compte",
       forgotPassword: "Mot de passe oublié ?",
       resetPassword: "Réinitialiser le mot de passe",
@@ -1990,6 +1992,7 @@ export const translations = {
     },
     auth: {
       login: "تسجيل الدخول",
+      idleLogout: "تم تسجيل خروجك بعد 5 دقائق من عدم النشاط. يُرجى تسجيل الدخول مرة أخرى.",
       register: "إنشاء حساب",
       forgotPassword: "نسيت كلمة المرور؟",
       resetPassword: "إعادة تعيين كلمة المرور",

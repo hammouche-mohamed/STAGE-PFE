@@ -5,7 +5,7 @@ import { formatShortDate } from "@/lib/utils/formatDate";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
-import { FileIcon, Eye, Check, X, MessageSquare, Trash2, Download } from "lucide-react";
+import { FileIcon, Eye, Check, X, MessageSquare, Trash2, Download, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { InternshipDocument } from "@/types/document";
 import { useTranslation } from "@/lib/i18n/LanguageContext";
@@ -27,6 +27,7 @@ export const DocumentList: React.FC<DocumentListProps> = ({ documents, onReview,
     title: string;
     description: string;
     comment: string;
+    acknowledged: boolean;
   }>({
     isOpen: false,
     docId: "",
@@ -34,6 +35,7 @@ export const DocumentList: React.FC<DocumentListProps> = ({ documents, onReview,
     title: "",
     description: "",
     comment: "",
+    acknowledged: false,
   });
 
   const handleOpenReview = (docId: string, status: "APPROVED" | "REJECTED") => {
@@ -42,16 +44,21 @@ export const DocumentList: React.FC<DocumentListProps> = ({ documents, onReview,
       docId,
       status,
       title: status === "APPROVED" ? "Approve Document" : "Reject Document",
-      description: status === "APPROVED" 
-        ? "Add an optional comment for the approval." 
-        : "Please provide a reason for rejecting this document.",
+      description: status === "APPROVED"
+        ? "You are about to APPROVE this document. Add an optional comment."
+        : "You are about to REJECT this document. Please provide a clear reason.",
       comment: "",
+      acknowledged: false,
     });
   };
 
   const handleSubmitReview = () => {
     if (reviewModal.status === "REJECTED" && !reviewModal.comment.trim()) {
       toast.error("A reason is required for rejection.");
+      return;
+    }
+    if (!reviewModal.acknowledged) {
+      toast.error("Please confirm you understand this decision is final.");
       return;
     }
     onReview?.(reviewModal.docId, reviewModal.status, reviewModal.comment);
@@ -186,11 +193,15 @@ export const DocumentList: React.FC<DocumentListProps> = ({ documents, onReview,
             >
               {t("common.cancel", { defaultValue: "Cancel" })}
             </Button>
-            <Button 
+            <Button
               variant={reviewModal.status === "APPROVED" ? "primary" : "danger"}
               onClick={handleSubmitReview}
+              disabled={
+                !reviewModal.acknowledged ||
+                (reviewModal.status === "REJECTED" && !reviewModal.comment.trim())
+              }
             >
-              {t("common.confirm", { defaultValue: "Confirm" })}
+              {reviewModal.status === "APPROVED" ? "Approve — Final" : "Reject — Final"}
             </Button>
           </>
         }
@@ -199,6 +210,24 @@ export const DocumentList: React.FC<DocumentListProps> = ({ documents, onReview,
           <p className="text-[13px] text-gray-500 dark:text-gray-400">
             {reviewModal.description}
           </p>
+          <div className="flex items-start gap-2 rounded-md border border-amber-200 dark:border-amber-800/50 bg-amber-50 dark:bg-amber-900/20 px-3 py-2.5">
+            <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+            <p className="text-[12px] text-amber-800 dark:text-amber-300">
+              This decision is <strong>final</strong>. Once submitted the
+              document status cannot be changed back.
+            </p>
+          </div>
+          <label className="flex items-center gap-2 text-[12px] font-medium text-gray-700 dark:text-gray-300 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+              checked={reviewModal.acknowledged}
+              onChange={(e) =>
+                setReviewModal(prev => ({ ...prev, acknowledged: e.target.checked }))
+              }
+            />
+            I understand this {reviewModal.status === "APPROVED" ? "approval" : "rejection"} is final.
+          </label>
           <div>
             <textarea
               className="w-full min-h-[100px] text-[13px] p-3 border border-gray-200 dark:border-slate-700 rounded-md bg-white dark:bg-slate-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50 resize-y"

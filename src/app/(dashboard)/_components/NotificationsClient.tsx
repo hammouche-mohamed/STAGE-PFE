@@ -146,18 +146,12 @@ export function NotificationsClient() {
     }
   };
 
-  const openNotification = async (n: Notification) => {
-    if (!n.isRead) {
-      setNotifications((prev) =>
-        prev.map((x) => (x.id === n.id ? { ...x, isRead: true } : x)),
-      );
-      window.dispatchEvent(new Event("notificationsUpdated"));
-      fetch("/api/notifications", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: n.id }),
-      }).catch(() => {});
-    }
+  // Phone-style: tapping a notification dismisses it (marked read + removed
+  // from the list) and then opens its target.
+  const openNotification = (n: Notification) => {
+    setNotifications((prev) => prev.filter((x) => x.id !== n.id));
+    window.dispatchEvent(new Event("notificationsUpdated"));
+    fetch(`/api/notifications?id=${n.id}`, { method: "DELETE" }).catch(() => {});
     if (n.link) router.push(n.link);
   };
 

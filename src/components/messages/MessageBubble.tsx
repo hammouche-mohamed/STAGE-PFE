@@ -45,8 +45,6 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
   return (
     <div
       className={`flex flex-col mb-4 ${isMe ? "items-end" : "items-start"}`}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
     >
       <div className={`flex items-center mb-1 ${isMe ? "flex-row-reverse" : ""}`}>
         <span className="text-[11px] font-semibold text-gray-900 dark:text-white mx-1">{message.sender?.name}</span>

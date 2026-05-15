@@ -45,6 +45,26 @@ export async function POST(
       return NextResponse.json({ error: "You can only supervise topics in your department" }, { status: 403 });
     }
 
+    // Capacity guard: a teacher already at their max supervision load cannot
+    // request more topics. Count live (non-finished) supervised internships
+    // rather than the stored counter, which can be stale.
+    if (teacherProfile) {
+      const activeSupervisions = await prisma.internship.count({
+        where: {
+          teacherId: session.user.id,
+          status: { notIn: ["COMPLETED", "CANCELLED"] },
+        },
+      });
+      if (activeSupervisions >= teacherProfile.maxStudents) {
+        return NextResponse.json(
+          {
+            error: `You have reached your maximum supervision capacity (${teacherProfile.maxStudents}). Finish or release a current internship before requesting new topics.`,
+          },
+          { status: 409 },
+        );
+      }
+    }
+
     // Check if teacher already applied
     const existingApp = await prisma.teacherApplication.findUnique({
       where: {

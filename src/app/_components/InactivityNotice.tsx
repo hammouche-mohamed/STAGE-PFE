@@ -21,15 +21,29 @@ export default function InactivityNotice() {
     if (reason !== "idle" && reason !== "expired") return;
     shown.current = true;
 
+    // The app's t() returns the raw key path when a key is missing and has
+    // no defaultValue support — so guard against ever showing "auth.idleLogout".
+    const resolve = (key: string, fallback: string) => {
+      const val = t(key as any);
+      return !val || val === key ? fallback : val;
+    };
+
     const message =
       reason === "idle"
-        ? t("auth.idleLogout", {
-            defaultValue:
-              "You were logged out due to inactivity. Please sign in again.",
-          } as any)
-        : t("errors.sessionExpired");
+        ? resolve(
+            "auth.idleLogout",
+            "You were signed out after 5 minutes of inactivity. Please sign in again.",
+          )
+        : resolve(
+            "errors.sessionExpired",
+            "Your session has expired. Please sign in again to continue.",
+          );
 
-    toast.warning(message, { duration: 6000 });
+    toast.warning(message, {
+      duration: 7000,
+      dismissible: true,
+      id: "inactivity-logout",
+    });
 
     // Strip the param so refresh/back doesn't show it again.
     const url = new URL(window.location.href);

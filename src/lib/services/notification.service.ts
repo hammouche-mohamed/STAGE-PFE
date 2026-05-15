@@ -55,7 +55,7 @@ export class NotificationService {
             to: user.email,
             subject: `${title} — ESST Portal`,
             html,
-            text: `${title}\n\nHello ${user.name},\n\n${message}${link ? `\n\nOpen the portal: ${process.env.NEXT_PUBLIC_APP_URL || ""}${link}` : ""}`,
+            text: `${title}\n\nHello ${user.name},\n\n${message}${link ? `\n\nOpen the portal: ${NotificationService.absoluteUrl(link)}` : ""}`,
           });
 
           // Mark email as delivered
@@ -108,7 +108,7 @@ export class NotificationService {
           to: n.user.email,
           subject: `${n.title} — ESST Portal`,
           html,
-          text: `${n.title}\n\nHello ${n.user.name},\n\n${n.message}${n.link ? `\n\nOpen the portal: ${process.env.NEXT_PUBLIC_APP_URL || ""}${n.link}` : ""}`,
+          text: `${n.title}\n\nHello ${n.user.name},\n\n${n.message}${n.link ? `\n\nOpen the portal: ${NotificationService.absoluteUrl(n.link)}` : ""}`,
         });
         await prisma.notification.update({ where: { id: n.id }, data: { emailSent: true } });
         retried++;
@@ -182,6 +182,23 @@ export class NotificationService {
    * branded layout (header/footer), so we only render the inner block here.
    * All user-controlled values are HTML-escaped to prevent stored XSS.
    */
+  /**
+   * Always returns an ABSOLUTE url for emails. A relative path is a dead
+   * link in mail clients (no base URL), so fall back through every known
+   * source and finally the production domain — never emit a relative href.
+   */
+  static absoluteUrl(link?: string): string {
+    if (!link) return "";
+    if (/^https?:\/\//i.test(link)) return link; // already absolute
+    const base = (
+      process.env.NEXT_PUBLIC_APP_URL ||
+      process.env.NEXTAUTH_URL ||
+      (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "") ||
+      "https://esst-internship.vercel.app"
+    ).replace(/\/+$/, "");
+    return `${base}/${String(link).replace(/^\/+/, "")}`;
+  }
+
   private static _buildEmailHtml(
     title: string,
     message: string,
@@ -193,20 +210,29 @@ export class NotificationService {
     const safeName = MailService.escape(userName);
     const safeMessage = MailService.escapeAndBr(message);
     const cta = MailService.escape(NotificationService._ctaLabelForType(type));
-    const safeLink = link ? `${process.env.NEXT_PUBLIC_APP_URL || ""}${link}` : "";
+    const url = NotificationService.absoluteUrl(link);
+    const safeUrl = MailService.escape(url);
 
     return `
-      <h2 style="color:#1e293b;margin:0 0 16px;font-size:22px;font-weight:600;">${safeTitle}</h2>
-      <p style="color:#475569;font-size:15px;margin:0 0 16px;">Hello ${safeName},</p>
-      <p style="color:#475569;font-size:15px;line-height:1.6;margin:0 0 28px;">${safeMessage}</p>
+      <h2 style="color:#0f172a;margin:0 0 16px;font-size:22px;font-weight:700;">${safeTitle}</h2>
+      <p style="color:#475569;font-size:15px;margin:0 0 14px;">Hello ${safeName},</p>
+      <p style="color:#334155;font-size:15px;line-height:1.65;margin:0 0 28px;">${safeMessage}</p>
       ${
-        safeLink
-          ? `<div style="text-align:left;">
-              <a href="${MailService.escape(safeLink)}"
-                 style="display:inline-block;background:#4f46e5;color:#ffffff;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:600;font-size:14px;">
-                ${cta}
-              </a>
-             </div>`
+        url
+          ? `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 22px;">
+              <tr>
+                <td style="border-radius:10px;background:linear-gradient(135deg,#4f46e5,#7c3aed);">
+                  <a href="${safeUrl}"
+                     style="display:inline-block;padding:13px 30px;color:#ffffff;text-decoration:none;font-weight:700;font-size:14px;letter-spacing:.3px;border-radius:10px;">
+                    ${cta} &rarr;
+                  </a>
+                </td>
+              </tr>
+            </table>
+            <p style="color:#94a3b8;font-size:12px;margin:0;line-height:1.5;">
+              Button not working? Copy and paste this link:<br/>
+              <a href="${safeUrl}" style="color:#6366f1;word-break:break-all;">${safeUrl}</a>
+            </p>`
           : ""
       }
     `;
