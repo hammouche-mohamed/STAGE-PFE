@@ -52,10 +52,19 @@ export default async function TeacherDashboardPage() {
         orderBy: { updatedAt: "desc" }
       }),
       prisma.message.findMany({
-        where: { internship: { teacherId: teacher.id } },
+        where: {
+          internship: {
+            teacherId: teacher.id,
+            // Only conversations the teacher can actually open in chat:
+            // not finished, not cancelled, not archived. Keeps Recent
+            // Activity consistent with the chat thread list.
+            status: { notIn: ["COMPLETED", "CANCELLED", "REQUESTED"] },
+            archivedAt: null,
+          },
+        } as any,
         include: {
           user: { select: { name: true } },
-          internship: { select: { topic: { select: { title: true } } } }
+          internship: { select: { id: true, topic: { select: { title: true } } } }
         } as any,
         take: 4,
         orderBy: { sentAt: "desc" }
@@ -88,6 +97,7 @@ export default async function TeacherDashboardPage() {
       }))}
       recentMessages={recentMessages.map((m: any) => ({
         id: m.id,
+        internshipId: m.internship?.id ?? "",
         userName: m.user?.name ?? "",
         topicTitle: m.internship?.topic?.title ?? "",
         sentAt: new Date(m.sentAt).toISOString(),

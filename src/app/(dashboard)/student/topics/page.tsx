@@ -347,6 +347,14 @@ export default function StudentTopicsPage() {
                       {topic.maxStudents} {topic.maxStudents !== 1 ? t("topics.list.students") : t("topics.list.student")}
                     </div>
                   </div>
+
+                  {topic.assignedTeacher && (
+                    <div className="flex items-center gap-1.5 text-[12px] text-gray-600 dark:text-gray-300 pt-1">
+                      <GraduationCap className="h-3.5 w-3.5 text-indigo-500 dark:text-indigo-400" />
+                      <span className="text-gray-400 dark:text-gray-500">{t("topics.list.supervisor")}:</span>
+                      <span className="font-medium">{topic.assignedTeacher.name}</span>
+                    </div>
+                  )}
                 </div>
 
                 <div className="mt-5 pt-4 border-t border-gray-100 dark:border-slate-800 flex items-center justify-end" onClick={(e: React.MouseEvent) => e.stopPropagation()}>

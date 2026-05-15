@@ -28,14 +28,14 @@ export default function StudentTeamPage() {
       const res = await fetch("/api/teams");
       const json = await res.json();
       if (!res.ok) {
-        toast.error(json.error || "Failed to load team info");
+        toast.error(json.error || t("studentTeam.toastLoadFailed"));
         setTeam(null);
         return;
       }
       setTeam(json.data || null);
     } catch (err) {
       console.error("fetchTeam error:", err);
-      toast.error("Network error while loading team");
+      toast.error(t("studentTeam.toastNetwork"));
     } finally {
       setIsLoading(false);
     }
@@ -65,11 +65,11 @@ export default function StudentTeamPage() {
         body: JSON.stringify({ reason: createReason })
       });
       if (!res.ok) throw new Error((await res.json()).error);
-      toast.success("Team created successfully");
+      toast.success(t("studentTeam.toastCreated"));
       fetchTeam();
       setShowCreateTeam(false);
     } catch (e: any) {
-      toast.error(e.message || "Failed to create team");
+      toast.error(e.message || t("studentTeam.toastCreateFailed"));
     } finally {
       setIsActionLoading(false);
     }
@@ -84,10 +84,10 @@ export default function StudentTeamPage() {
         body: JSON.stringify({ studentId, teamId: team.id })
       });
       if (!res.ok) throw new Error((await res.json()).error);
-      toast.success("Invitation sent");
+      toast.success(t("studentTeam.toastInvited"));
       fetchTeam();
     } catch (e: any) {
-      toast.error(e.message || "Failed to invite student");
+      toast.error(e.message || t("studentTeam.toastInviteFailed"));
     } finally {
       setIsActionLoading(false);
     }
@@ -100,11 +100,11 @@ export default function StudentTeamPage() {
         method: "DELETE"
       });
       if (!res.ok) throw new Error((await res.json()).error);
-      toast.success("You have left the team");
+      toast.success(t("studentTeam.toastLeft"));
       setTeam(null);
       setLeaveConfirmOpen(false);
     } catch (e: any) {
-      toast.error(e.message || "Failed to leave team");
+      toast.error(e.message || t("studentTeam.toastLeaveFailed"));
     } finally {
       setIsActionLoading(false);
     }
@@ -113,7 +113,7 @@ export default function StudentTeamPage() {
   const isLeader = team?.leaderId === session?.user?.id;
 
   if (isLoading) {
-    return <div className="py-12 text-center text-gray-500">Loading...</div>;
+    return <div className="py-12 text-center text-gray-500">{t("studentTeam.loading")}</div>;
   }
 
   if (!team) {
@@ -122,10 +122,10 @@ export default function StudentTeamPage() {
         <div>
           <h1 className="text-[17px] font-semibold text-gray-900 dark:text-white flex items-center gap-2">
             <Users className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
-            My Team
+            {t("studentTeam.title")}
           </h1>
           <p className="text-[13px] text-gray-500 dark:text-gray-400 mt-1">
-            You are not part of any team yet.
+            {t("studentTeam.notInTeam")}
           </p>
         </div>
 
@@ -134,31 +134,31 @@ export default function StudentTeamPage() {
             <div className="h-16 w-16 bg-indigo-50 dark:bg-indigo-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
               <Users className="h-8 w-8 text-indigo-500 dark:text-indigo-400" />
             </div>
-            <h2 className="text-[15px] font-bold text-gray-900 dark:text-white mb-2">Create a New Team</h2>
+            <h2 className="text-[15px] font-bold text-gray-900 dark:text-white mb-2">{t("studentTeam.createTitle")}</h2>
             <p className="text-[13px] text-gray-500 dark:text-gray-400 mb-6">
-              Form a team to start working on your PFE. You will be the leader and can invite other students.
+              {t("studentTeam.createDesc")}
             </p>
             <Button onClick={() => setShowCreateTeam(true)} className="px-8 bg-indigo-600 hover:bg-indigo-700 text-white">
               <UserPlus className="h-4 w-4 mr-2" />
-              Start a Team
+              {t("studentTeam.startTeam")}
             </Button>
           </div>
         ) : (
           <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl p-6 shadow-sm">
-            <h2 className="text-[14px] font-bold text-gray-900 dark:text-white mb-4">Team Details</h2>
+            <h2 className="text-[14px] font-bold text-gray-900 dark:text-white mb-4">{t("studentTeam.teamDetails")}</h2>
             <div className="space-y-4">
               <div>
-                <label className="admin-form-label">Motivation / Reason for team (Optional)</label>
+                <label className="admin-form-label">{t("studentTeam.reasonLabel")}</label>
                 <textarea 
                   className="admin-input h-24 py-2" 
-                  placeholder="E.g., We want to work on AI projects together..."
+                  placeholder={t("studentTeam.reasonPlaceholder")}
                   value={createReason}
                   onChange={(e) => setCreateReason(e.target.value)}
                 />
               </div>
               <div className="flex gap-3 justify-end pt-2">
-                <Button variant="outline" onClick={() => setShowCreateTeam(false)}>Cancel</Button>
-                <Button onClick={handleCreateTeam} isLoading={isActionLoading}>Create Team</Button>
+                <Button variant="outline" onClick={() => setShowCreateTeam(false)}>{t("common.cancel")}</Button>
+                <Button onClick={handleCreateTeam} isLoading={isActionLoading}>{t("studentTeam.createTeam")}</Button>
               </div>
             </div>
           </div>
@@ -172,10 +172,10 @@ export default function StudentTeamPage() {
       <div>
         <h1 className="text-[17px] font-semibold text-gray-900 dark:text-white flex items-center gap-2">
           <Users className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
-          My Team
+          {t("studentTeam.title")}
         </h1>
         <p className="text-[13px] text-gray-500 dark:text-gray-400 mt-1">
-          Manage your team members and invitations.
+          {t("studentTeam.manageDesc")}
         </p>
       </div>
 
@@ -185,7 +185,7 @@ export default function StudentTeamPage() {
           <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm">
             <div className="px-6 py-4 border-b border-gray-100 dark:border-slate-800 bg-gray-50/50 dark:bg-slate-800/50 flex items-center justify-between">
               <h2 className="text-[14px] font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                Team Members
+                {t("studentTeam.teamMembers")}
                 <span className="px-2 py-0.5 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 text-[10px] rounded-full">
                   {team.members.length}
                 </span>
@@ -206,11 +206,11 @@ export default function StudentTeamPage() {
                         {m.student.name}
                         {m.isLeader && (
                           <span className="text-[10px] px-1.5 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 rounded-sm font-bold uppercase tracking-wider">
-                            Leader
+                            {t("studentTeam.leader")}
                           </span>
                         )}
                         {m.studentId === session?.user?.id && (
-                          <span className="text-[10px] px-1.5 py-0.5 bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-gray-400 rounded-sm">You</span>
+                          <span className="text-[10px] px-1.5 py-0.5 bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-gray-400 rounded-sm">{t("studentTeam.you")}</span>
                         )}
                       </p>
                       <p className="text-[12px] text-gray-500 dark:text-gray-400">{m.student.email}</p>
@@ -225,7 +225,7 @@ export default function StudentTeamPage() {
           {team.invitations.length > 0 && (
             <div className="bg-white dark:bg-slate-900 border border-amber-200 dark:border-amber-900/30 rounded-xl overflow-hidden shadow-sm">
               <div className="px-6 py-3 border-b border-amber-100 dark:border-amber-900/20 bg-amber-50/30 dark:bg-amber-900/10">
-                <h2 className="text-[13px] font-bold text-amber-900 dark:text-amber-400">Pending Invitations</h2>
+                <h2 className="text-[13px] font-bold text-amber-900 dark:text-amber-400">{t("studentTeam.pendingInvitations")}</h2>
               </div>
               <div className="divide-y divide-amber-50 dark:divide-amber-900/20">
                 {team.invitations.map((inv: any) => (
@@ -235,7 +235,7 @@ export default function StudentTeamPage() {
                       <p className="text-[11px] text-gray-500 dark:text-gray-400">{inv.invitedStudent.email}</p>
                     </div>
                     <span className="text-[10px] px-2 py-1 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 rounded-full font-semibold">
-                      Awaiting Reply
+                      {t("studentTeam.awaitingReply")}
                     </span>
                   </div>
                 ))}
@@ -247,21 +247,21 @@ export default function StudentTeamPage() {
         {/* Sidebar Actions */}
         <div className="space-y-6">
           <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl p-5 shadow-sm">
-            <h3 className="text-[13px] font-bold text-gray-900 dark:text-white mb-4">Actions</h3>
+            <h3 className="text-[13px] font-bold text-gray-900 dark:text-white mb-4">{t("studentTeam.actions")}</h3>
             <Button 
               variant="outline" 
               className="w-full justify-start text-red-600 hover:text-red-700 dark:hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 border-red-200 dark:border-red-900/30"
               onClick={() => setLeaveConfirmOpen(true)}
             >
               <LogOut className="h-4 w-4 mr-2" />
-              Leave Team
+              {t("studentTeam.leaveTeam")}
             </Button>
           </div>
 
           {isLeader && availableStudents.length > 0 && (
             <div className="bg-white dark:bg-slate-900 border border-indigo-200 dark:border-indigo-900/30 rounded-xl overflow-hidden shadow-sm">
               <div className="px-5 py-3 border-b border-indigo-100 dark:border-indigo-900/20 bg-indigo-50/50 dark:bg-indigo-900/10">
-                <h3 className="text-[13px] font-bold text-indigo-900 dark:text-indigo-400">Invite Students</h3>
+                <h3 className="text-[13px] font-bold text-indigo-900 dark:text-indigo-400">{t("studentTeam.inviteStudents")}</h3>
               </div>
               <div className="p-2 max-h-[300px] overflow-y-auto divide-y divide-gray-50 dark:divide-slate-800">
                 {availableStudents.map((s) => (
@@ -276,7 +276,7 @@ export default function StudentTeamPage() {
                       onClick={() => handleInvite(s.userId)}
                       isLoading={isActionLoading}
                     >
-                      <Mail className="h-3 w-3 mr-1.5" /> Invite
+                      <Mail className="h-3 w-3 mr-1.5" /> {t("studentTeam.invite")}
                     </Button>
                   </div>
                 ))}
@@ -290,18 +290,18 @@ export default function StudentTeamPage() {
         isOpen={leaveConfirmOpen}
         onClose={() => setLeaveConfirmOpen(false)}
         onConfirm={handleLeaveTeam}
-        title="Leave Team"
-        description="Are you sure you want to leave this team? If you are the leader, leadership will be automatically transferred. If no members are left, the team will be deleted."
-        confirmLabel="Leave Team"
-        cancelLabel="Cancel"
+        title={t("studentTeam.leaveTeam")}
+        description={t("studentTeam.leaveConfirmDesc")}
+        confirmLabel={t("studentTeam.leaveTeam")}
+        cancelLabel={t("common.cancel")}
         variant="danger"
       >
         <div className="mt-4">
-          <label className="text-[12px] font-semibold text-gray-700 mb-1 block">Reason for leaving (Required)</label>
+          <label className="text-[12px] font-semibold text-gray-700 mb-1 block">{t("studentTeam.leaveReasonLabel")}</label>
           <textarea
             className="w-full border border-gray-300 rounded-md p-2 text-[13px]"
             rows={3}
-            placeholder="Explain why you are leaving..."
+            placeholder={t("studentTeam.leaveReasonPlaceholder")}
             value={leaveReason}
             onChange={(e) => setLeaveReason(e.target.value)}
           />

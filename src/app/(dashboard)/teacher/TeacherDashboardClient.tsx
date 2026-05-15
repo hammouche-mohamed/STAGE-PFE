@@ -22,6 +22,7 @@ interface ActiveInternship {
 }
 interface RecentMessage {
   id: string;
+  internshipId: string;
   userName: string;
   topicTitle: string;
   sentAt: string;
@@ -172,9 +173,10 @@ export default function TeacherDashboardClient({
                 </p>
               ) : (
                 recentMessages.map((m) => (
-                  <div
+                  <Link
                     key={m.id}
-                    className="p-3 border-b border-gray-50 dark:border-slate-800 last:border-0"
+                    href={`/teacher/messages?internshipId=${m.internshipId}`}
+                    className="block p-3 border-b border-gray-50 dark:border-slate-800 last:border-0 hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-colors"
                   >
                     <div className="flex justify-between items-start gap-2">
                       <p className="text-[12px] font-bold text-gray-900 dark:text-white truncate">
@@ -196,7 +198,7 @@ export default function TeacherDashboardClient({
                     <p className="text-[12px] text-gray-600 dark:text-gray-300 line-clamp-1 mt-1 italic">
                       &quot;{m.content.replace(/^↩ .*?\n\n/, "").slice(0, 50)}...&quot;
                     </p>
-                  </div>
+                  </Link>
                 ))
               )}
               <Link
