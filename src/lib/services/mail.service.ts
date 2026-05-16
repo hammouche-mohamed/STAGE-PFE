@@ -75,6 +75,7 @@ export class MailService {
       <p style="color: ${TEXT_GRAY}; line-height: 1.6; font-size: 16px; margin: 0 0 12px;">${greeting}</p>
       <p style="color: ${TEXT_GRAY}; line-height: 1.6; font-size: 15px; margin: 0 0 28px;">
         We received a request to reset the password on your ESST Portal account.
+        <strong>Your password is about to be changed.</strong>
         Use the verification code below to continue. This code expires in <strong>5 minutes</strong>.
       </p>
       <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 24px; text-align: center; margin-bottom: 28px;">
@@ -92,7 +93,7 @@ export class MailService {
       // Security: do NOT put the code in the subject — it's visible in inbox previews and server logs.
       subject: "ESST Portal — Password reset code",
       html,
-      text: `Your ESST Portal password reset code is: ${code}\nThis code is valid for 5 minutes.\nIf you did not request this, you can ignore this email.`,
+      text: `Your password is about to be changed.\nYour ESST Portal password reset code is: ${code}\nThis code is valid for 5 minutes.\nIf you did not request this, you can ignore this email — your password will not change.`,
     });
   }
 
