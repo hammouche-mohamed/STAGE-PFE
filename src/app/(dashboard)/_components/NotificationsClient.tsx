@@ -12,6 +12,7 @@ import {
   Shield,
   UserCheck,
   CheckCheck,
+  ArrowLeft,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -173,6 +174,15 @@ export function NotificationsClient() {
 
   return (
     <div className="mx-auto max-w-2xl">
+      {/* Back */}
+      <button
+        onClick={() => router.back()}
+        className="inline-flex items-center gap-2 px-1 pb-3 text-[13px] text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 transition-colors"
+      >
+        <ArrowLeft className="h-4 w-4" />
+        {t("common.back" as any)}
+      </button>
+
       {/* Header */}
       <div className="flex items-center justify-between px-1 pb-3">
         <h1 className="text-[22px] font-bold text-gray-900 dark:text-white">

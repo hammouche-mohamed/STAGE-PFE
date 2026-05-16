@@ -24,8 +24,13 @@ export async function GET(req: NextRequest) {
     const where: any = {};
 
     if (search) {
+      // Actions are stored with underscores (e.g. USER_LOGIN) but shown to
+      // the user with spaces (USER LOGIN). Let either form match. MySQL's
+      // default collation is case-insensitive, so no mode flag is needed.
+      const actionTerm = search.trim().replace(/\s+/g, "_");
       where.OR = [
         { action: { contains: search } },
+        { action: { contains: actionTerm } },
         { targetId: { contains: search } },
         { targetType: { contains: search } },
         { user: { name: { contains: search } } },

@@ -260,9 +260,14 @@ export default function AuditLogsPage() {
                     </span>
                   </td>
                   <td className="text-right px-6">
-                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-lg" onClick={() => setSelectedLog(log)}>
-                      <Eye className="h-4 w-4 text-indigo-500 dark:text-indigo-400" />
-                    </Button>
+                    <button
+                      onClick={() => setSelectedLog(log)}
+                      className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-indigo-600 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-200 dark:border-indigo-700/50 px-3 py-1.5 rounded-md hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors"
+                      title={t("common.audit.viewDetails" as any)}
+                    >
+                      <Eye className="h-4 w-4" />
+                      {t("common.audit.view" as any)}
+                    </button>
                   </td>
                 </tr>
               ))

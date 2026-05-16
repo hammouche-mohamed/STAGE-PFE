@@ -282,8 +282,10 @@ export const translations = {
         loading: "Loading logs...",
         exportSuccess: "Logs exported to CSV",
         maintenanceTitle: "System Maintenance",
-        maintenanceDesc: "Automatic log rotation is enabled. Logs older than 365 days are automatically pruned.",
+        maintenanceDesc: "Audit logs are compliance records and are retained indefinitely — they are never deleted.",
         closeDetails: "Close Details",
+        view: "View",
+        viewDetails: "View details",
         from: "From Date",
         to: "To Date"
       }
@@ -1207,8 +1209,10 @@ export const translations = {
         loading: "Chargement des journaux...",
         exportSuccess: "Journaux exportés en CSV",
         maintenanceTitle: "Maintenance du Système",
-        maintenanceDesc: "La rotation automatique des journaux est activée. Les journaux de plus de 365 jours sont supprimés automatiquement.",
+        maintenanceDesc: "Les journaux d'audit sont des enregistrements de conformité conservés indéfiniment — ils ne sont jamais supprimés.",
         closeDetails: "Fermer les détails",
+        view: "Voir",
+        viewDetails: "Voir les détails",
         from: "Date de début",
         to: "Date de fin"
       }
@@ -2113,8 +2117,10 @@ export const translations = {
         loading: "جارٍ تحميل السجلات...",
         exportSuccess: "تم تصدير السجلات إلى CSV",
         maintenanceTitle: "صيانة النظام",
-        maintenanceDesc: "تم تمكين تدوير السجلات تلقائيًا. يتم حذف السجلات التي مضى عليها أكثر من 365 يومًا تلقائيًا.",
+        maintenanceDesc: "سجلات التدقيق هي سجلات امتثال يتم الاحتفاظ بها إلى أجل غير مسمى — ولا يتم حذفها أبدًا.",
         closeDetails: "إغلاق التفاصيل",
+        view: "عرض",
+        viewDetails: "عرض التفاصيل",
         from: "من تاريخ",
         to: "إلى تاريخ"
       }
