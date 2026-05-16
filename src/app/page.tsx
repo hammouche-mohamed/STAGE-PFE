@@ -27,7 +27,6 @@ export default async function Home() {
     academicYear = yearSetting?.value || "N/A";
     registrationOpen = regSetting?.value || "false";
   } catch {
-    // DB unavailable — render with defaults
   }
 
   return (

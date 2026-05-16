@@ -35,13 +35,13 @@ export default function InactivityNotice() {
     const message =
       reason === "idle"
         ? resolve(
-            "auth.idleLogout",
-            "You were signed out after 5 minutes of inactivity. Please sign in again.",
-          )
+          "auth.idleLogout",
+          "You were signed out after 5 minutes of inactivity. Please sign in again.",
+        )
         : resolve(
-            "errors.sessionExpired",
-            "Your session has expired. Please sign in again to continue.",
-          );
+          "errors.sessionExpired",
+          "Your session has expired. Please sign in again to continue.",
+        );
 
     const TOAST_ID = "inactivity-logout";
     toast.warning(message, { duration: 8000, dismissible: true, id: TOAST_ID });

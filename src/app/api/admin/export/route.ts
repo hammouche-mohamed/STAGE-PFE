@@ -2,8 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { auth } from '@/lib/auth';
 
-// GET /api/admin/export?year=2024-2025&type=internships|messages|documents|all
-// Streams a CSV file the admin can download
 export async function GET(req: NextRequest) {
   const session = await auth();
   if (!session || session.user.role !== 'ADMIN') {
@@ -15,10 +13,9 @@ export async function GET(req: NextRequest) {
   const type = searchParams.get('type') || 'all';
   const paramFiliereId = searchParams.get('filiereId');
 
-  // If super admin, they can see everything or filter by param
-  // If department admin, they only see their department
-  const filiereId = session.user.isSuperAdmin 
-    ? (paramFiliereId || null) 
+
+  const filiereId = session.user.isSuperAdmin
+    ? (paramFiliereId || null)
     : session.user.filiereId;
 
   const yearFilter = year ? { academicYear: year } : {};
@@ -137,9 +134,9 @@ export async function GET(req: NextRequest) {
 
     if (type === 'students' || type === 'all') {
       const rawStudents = await prisma.user.findMany({
-        where: { 
-          role: 'STUDENT', 
-          studentprofile: { academicYear: year || undefined, ...(filiereId && { filiereId }) } 
+        where: {
+          role: 'STUDENT',
+          studentprofile: { academicYear: year || undefined, ...(filiereId && { filiereId }) }
         },
         include: { studentprofile: { include: { filiere: true } } }
       } as any);
@@ -164,7 +161,7 @@ export async function GET(req: NextRequest) {
 
     if (type === 'teachers' || type === 'all') {
       const rawTeachers = await prisma.user.findMany({
-        where: { 
+        where: {
           role: 'TEACHER',
           OR: [
             { proposedTopics: { some: { academicYear: year || undefined, ...(filiereId && { filiereId }) } } },
@@ -244,14 +241,12 @@ export async function GET(req: NextRequest) {
     }
 
     if (type === 'audit' || type === 'all') {
-      // Audit logs filtered by academic year window if provided. The year
-      // string is "YYYY-YYYY" (academic year), so derive Sept→Aug bounds.
       const yearWhere: Record<string, any> = {};
       if (year && /^\d{4}-\d{4}$/.test(year)) {
         const [start] = year.split('-').map((s) => parseInt(s, 10));
         yearWhere.createdAt = {
-          gte: new Date(start, 8, 1), // Sept 1
-          lt: new Date(start + 1, 8, 1), // Sept 1 next year
+          gte: new Date(start, 8, 1),
+          lt: new Date(start + 1, 8, 1),
         };
       }
       const logs = await prisma.auditLog.findMany({

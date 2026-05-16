@@ -9,18 +9,7 @@ import {
   DELETION_GRACE_DAYS,
 } from "@/lib/services/archiveRetention.service";
 
-/**
- * Bulk-archive a whole academic year.
- *
- * This is the ONLY way topics/internships get archived. It is triggered
- * from Settings when the Super Admin changes the academic year and confirms
- * the archive prompt. Per-topic manual archiving was removed by design.
- *
- * "Archive" = set archivedAt (soft). Nothing is ever deleted: rows stay in
- * the main tables and the Archives view reads them back filtered by year.
- *
- * Super Admin only (system-wide operation).
- */
+
 export async function POST(req: NextRequest) {
   const session = await auth();
   if (!session || session.user.role !== "ADMIN") {
@@ -46,12 +35,7 @@ export async function POST(req: NextRequest) {
     const now = new Date();
     const FINISHED = ['COMPLETED', 'CANCELLED'];
 
-    // Archive ONLY what is truly done — never ongoing work, which carries
-    // over into the new year untouched:
-    //  • Topics: only REJECTED ones and TAKEN ones whose internship finished.
-    //    Pending / approved / open topics stay live (carried over).
-    //  • Internships: only finished (COMPLETED / CANCELLED). Ongoing
-    //    internships are NEVER archived/deleted — they keep running.
+
     const [topicsRes, internshipsRes] = await prisma.$transaction([
       (prisma as any).topic.updateMany({
         where: {
@@ -85,8 +69,7 @@ export async function POST(req: NextRequest) {
       details: { year, archivedTopics, archivedInternships, evictedYear },
     });
 
-    // Day-0 warning: tell the Super Admin(s) immediately that the evicted
-    // year is now on a countdown and must be downloaded before it's purged.
+
     if (evictedYear && scheduledDeleteAt) {
       const when = new Date(scheduledDeleteAt);
       const superAdmins = await getSuperAdminIds();

@@ -10,12 +10,11 @@ export async function POST(req: Request) {
     if (!email || !code || !newPassword) {
       return NextResponse.json({ error: "All fields are required" }, { status: 400 });
     }
-    
+
     if (newPassword.length < 12 || !/[0-9]/.test(newPassword)) {
       return NextResponse.json({ error: "Password must be at least 12 characters and include at least one number." }, { status: 400 });
     }
 
-    // Double check token again for security
     const token = await prisma.passwordResetToken.findFirst({
       where: {
         email,
@@ -29,16 +28,14 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Invalid or expired session" }, { status: 400 });
     }
 
-    // Hash new password
     const hashedPassword = await bcrypt.hash(newPassword, 12);
 
-    // Update user password and delete used token
     await prisma.$transaction([
       prisma.user.update({
         where: { id: token.userId },
-        data: { 
+        data: {
           password: hashedPassword,
-          mustChangePassword: false // Assuming they changed it now
+          mustChangePassword: false
         },
       }),
       prisma.passwordResetToken.deleteMany({

@@ -69,10 +69,6 @@ function LoginForm() {
       }
 
       toast.success(t("auth.login"));
-
-      // Redirect immediately. signIn(redirect:false) has already set the
-      // session cookie, so go straight to the role landing — no artificial
-      // delay, no extra /api/auth/session round-trip.
       const role = (result as any)?.role
         || (await fetch('/api/auth/session').then(r => r.json()).catch(() => null))?.user?.role;
       window.location.replace(role ? `/${String(role).toLowerCase()}` : "/");
@@ -84,7 +80,6 @@ function LoginForm() {
   };
   return (
     <div className={"min-h-screen w-full flex relative " + (isRTL ? "rtl" : "ltr")}>
-      {/* Background Image - Fixed on mobile, Left side on desktop */}
       <div className="fixed inset-0 lg:relative lg:w-1/2 bg-gray-900 z-0">
         <div className="absolute inset-0 bg-indigo-950/80 z-10" />
         <Image
@@ -146,8 +141,8 @@ function LoginForm() {
                 {error === "SessionTimeout"
                   ? "You were signed out after 5 minutes of inactivity. Please sign in again."
                   : error === "SessionExpired" || error === "SessionRequired" || error === "OAuthSignin"
-                  ? t("errors.sessionExpired")
-                  : `${t("errors.serverError")}: ${error}`}
+                    ? t("errors.sessionExpired")
+                    : `${t("errors.serverError")}: ${error}`}
               </div>
             )}
 

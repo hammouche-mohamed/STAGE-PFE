@@ -7,8 +7,7 @@ export async function GET(req: NextRequest) {
   if (!session || session.user.role !== "ADMIN") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-  // FR-A7: audit log viewer is restricted to SuperAdmin (the audit-logs UI
-  // already enforces this client-side; keep the API in sync).
+
   if (!session.user.isSuperAdmin) {
     return NextResponse.json({ error: "Forbidden: SuperAdmin only" }, { status: 403 });
   }
@@ -40,7 +39,7 @@ export async function GET(req: NextRequest) {
         where.createdAt.gte = new Date(startDate);
       }
       if (endDate) {
-        // Set to end of day for the end date
+
         const end = new Date(endDate);
         end.setHours(23, 59, 59, 999);
         where.createdAt.lte = end;
@@ -60,7 +59,7 @@ export async function GET(req: NextRequest) {
       prisma.auditLog.count({ where })
     ]);
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       data: logs,
       pagination: {
         total,

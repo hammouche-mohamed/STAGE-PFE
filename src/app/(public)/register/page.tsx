@@ -129,7 +129,6 @@ export default function RegisterPage() {
 
   return (
     <div className={"min-h-screen w-full flex relative " + (isRTL ? "rtl" : "ltr")}>
-      {/* Background Image - Fixed/Sticky on desktop to prevent zoom from long form */}
       <div className="fixed inset-0 lg:sticky lg:top-0 lg:h-screen lg:w-1/2 bg-gray-900 z-0 overflow-hidden">
         <div className="absolute inset-0 bg-indigo-950/80 z-10" />
         <Image
@@ -184,12 +183,12 @@ export default function RegisterPage() {
 
             <form onSubmit={handleSubmit(onSubmit)} className="p-6 lg:p-8 space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <Input 
-                  label={selectedRole === "COMPANY" ? "Director's Full Name" : t("common.fullName")} 
-                  placeholder={selectedRole === "COMPANY" ? "e.g. John Doe (Director)" : "e.g. Salim Amghar"} 
-                  {...register("name")} 
-                  error={errors.name?.message} 
-                  required 
+                <Input
+                  label={selectedRole === "COMPANY" ? "Director's Full Name" : t("common.fullName")}
+                  placeholder={selectedRole === "COMPANY" ? "e.g. John Doe (Director)" : "e.g. Salim Amghar"}
+                  {...register("name")}
+                  error={errors.name?.message}
+                  required
                 />
 
                 <div className="w-full">
@@ -241,8 +240,8 @@ export default function RegisterPage() {
                   <>
                     <div className="w-full">
                       <label className="admin-form-label">Academic Level <span className="text-red-500">*</span></label>
-                      <select 
-                        {...register("level")} 
+                      <select
+                        {...register("level")}
                         className="admin-input cursor-pointer"
                         onChange={(e) => {
                           register("level").onChange(e);

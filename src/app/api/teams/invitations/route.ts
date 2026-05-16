@@ -13,7 +13,6 @@ export async function POST(req: NextRequest) {
   try {
     const { studentId, teamId, message } = await req.json();
 
-    // Verify team
     const team = await prisma.studentTeam.findUnique({
       where: { id: teamId },
       include: { teammember: true, teaminvitation: { where: { status: "PENDING" } } }
@@ -21,16 +20,10 @@ export async function POST(req: NextRequest) {
 
     if (!team) return NextResponse.json({ error: "Team not found" }, { status: 404 });
 
-    // Verify caller is leader
     if (team.leaderId !== session.user.id) {
       return NextResponse.json({ error: "Only the team leader can send invitations" }, { status: 403 });
     }
 
-    // Team building is uncapped. The real size limit is enforced when the
-    // team APPLIES to a topic / the internship is created, based on the
-    // topic's type (see teamSize.service.ts).
-
-    // Check if student is already in a team
     const isAlreadyInTeam = await prisma.teamMember.findFirst({
       where: { studentId }
     });
@@ -39,7 +32,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "This student is already in a team." }, { status: 400 });
     }
 
-    // Check if already invited
     const existingInvite = await prisma.teamInvitation.findFirst({
       where: { teamId, invitedStudentId: studentId, status: "PENDING" }
     });
@@ -57,7 +49,6 @@ export async function POST(req: NextRequest) {
       }
     });
 
-    // Notify the student
     await NotificationService.trigger({
       userId: studentId,
       type: "BINOME_INVITATION",
@@ -68,7 +59,6 @@ export async function POST(req: NextRequest) {
       link: "/student/invitations",
     });
 
-    // Point 1: Notify all admins about the new invitation
     const admins = await prisma.user.findMany({ where: { role: "ADMIN" } });
     for (const admin of admins) {
       await NotificationService.trigger({

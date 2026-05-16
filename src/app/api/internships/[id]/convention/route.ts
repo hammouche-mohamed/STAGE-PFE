@@ -3,13 +3,7 @@ import { auth } from "@/lib/auth";
 import { ConventionService } from "@/lib/services/convention.service";
 import { AuditService } from "@/lib/services/audit.service";
 
-/**
- * GET /api/internships/[id]/convention
- *
- * FR-A4: Generate the official internship convention as a PDF.
- * Restricted to admins (any role) — students/teachers/companies receive
- * a copy only after the admin has signed and dispatched it.
- */
+
 export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
@@ -27,7 +21,6 @@ export async function GET(
   try {
     const pdf = await ConventionService.generate(id);
 
-    // Best-effort audit — never block the download on logging failure.
     AuditService.log({
       userId: session.user.id,
       action: "CONVENTION_GENERATED",

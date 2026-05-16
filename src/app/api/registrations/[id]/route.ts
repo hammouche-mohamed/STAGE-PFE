@@ -71,15 +71,12 @@ export async function PATCH(
         console.error('Rejection mail failed:', e);
       }
 
-      // Clear original submission notifications
       await NotificationService.clearRelated(id, 'REGISTRATION_REQUEST');
 
       return NextResponse.json({ message: 'Request rejected successfully' });
     }
 
-    // ── APPROVED ──────────────────────────────────────────────────────────────
     const result = await prisma.$transaction(async (tx) => {
-      // 1. Check if user already exists in User table
       const existingUser = await tx.user.findUnique({
         where: { email: request.email }
       });
@@ -88,7 +85,6 @@ export async function PATCH(
         throw new Error(`USER_EXISTS:${request.email}`);
       }
 
-      // 1.5 Check if student ID already exists
       if (request.role === 'STUDENT' && request.studentId) {
         const existingStudent = await tx.studentProfile.findUnique({
           where: { studentId: request.studentId }
@@ -98,7 +94,6 @@ export async function PATCH(
         }
       }
 
-      // 1.7 Find the filiere by name if speciality is provided
       let filiereId = null;
       let filiereObj = null;
       if (request.speciality) {
@@ -110,7 +105,6 @@ export async function PATCH(
         }
       }
 
-      // 2. Create User — include level only for students
       const user = await tx.user.create({
         data: {
           id: randomUUID(),
@@ -118,7 +112,6 @@ export async function PATCH(
           email: request.email,
           password: request.password || '',
           role: request.role as any,
-          // Level is only relevant for students
           level: request.role === 'STUDENT' ? (request.level as any || null) : null,
           department: filiereObj ? filiereObj.name : null,
           isActive: true,
@@ -127,7 +120,6 @@ export async function PATCH(
         },
       });
 
-      // 3. Create role-specific profile
       if (request.role === 'STUDENT') {
         await tx.studentProfile.create({
           data: {
@@ -138,7 +130,6 @@ export async function PATCH(
             speciality: request.speciality || 'N/A',
             academicYear: request.academicYear || 'N/A',
             filiereId: filiereId,
-            // Denormalize level on StudentProfile for fast eligibility queries
             level: (request.level as any) ?? null,
           },
         });
@@ -164,7 +155,6 @@ export async function PATCH(
         });
       }
 
-      // 4. Link and mark request as APPROVED
       await tx.registrationRequest.update({
         where: { id },
         data: { status: 'APPROVED', userId: user.id, reviewedAt: new Date() },
@@ -173,7 +163,6 @@ export async function PATCH(
       return user;
     });
 
-    // 5. Welcome in-app notification (email is handled by sendStatusUpdate below — skip here)
     await NotificationService.trigger({
       userId: result.id,
       type: 'REGISTRATION_APPROVED',
@@ -181,7 +170,7 @@ export async function PATCH(
       message:
         'Your account has been approved! You can now log in using your email and the password you set during registration.',
       link: '/login',
-      skipEmail: true, // The detailed sendStatusUpdate email covers this communication
+      skipEmail: true,
     });
 
     await AuditService.log({
@@ -191,11 +180,9 @@ export async function PATCH(
       targetId: result.name,
     });
 
-    // 6. Send Approval Email with any modifications (Fire and forget for speed)
     MailService.sendStatusUpdate(request.email, request.name, 'APPROVED', adminComment, updatedData, { ...request, role: request.role })
       .catch(e => console.error('Approval mail failed:', e));
 
-    // 6. Clear original submission notifications for all admins
     await NotificationService.clearRelated(id, 'REGISTRATION_REQUEST');
 
     return NextResponse.json({
@@ -203,8 +190,7 @@ export async function PATCH(
     });
   } catch (error: any) {
     console.error('Registration review failed:', error);
-    
-    // NFR-SEC1: Hide raw prisma/system errors from user
+
     if (error.message?.startsWith('USER_EXISTS:')) {
       return NextResponse.json({ error: `A user with email ${error.message.split(':')[1]} already exists in the system.` }, { status: 409 });
     }
@@ -212,9 +198,8 @@ export async function PATCH(
       return NextResponse.json({ error: `A student with ID ${error.message.split(':')[1]} already exists in the system.` }, { status: 409 });
     }
 
-    // Generic friendly error for everything else
-    return NextResponse.json({ 
-      error: 'An unexpected error occurred while processing this registration. Please try again or contact support.' 
+    return NextResponse.json({
+      error: 'An unexpected error occurred while processing this registration. Please try again or contact support.'
     }, { status: 500 });
   }
 }
@@ -224,7 +209,6 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const session = await auth();
-  // SuperAdmin-only — registration management is a SuperAdmin responsibility.
   if (!session || session.user.role !== 'ADMIN' || !session.user.isSuperAdmin) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }

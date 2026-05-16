@@ -2,12 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { InternshipService } from '@/lib/services/internship.service';
 
-// POST /api/internships/[id]/validate-final-report
-// Teacher or Company validates the student's final report.
-// - TEACHER: calls teacherValidateFinalReport
-// - COMPANY: calls companyValidateFinalReport
-// Both validations are independent. Once both are done, the status becomes
-// PENDING_ADMIN_CONFIRMATION automatically.
+
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
@@ -35,7 +30,6 @@ export async function POST(
       });
     }
 
-    // COMPANY
     await InternshipService.companyValidateFinalReport(internshipId, actorId);
     return NextResponse.json({
       message:

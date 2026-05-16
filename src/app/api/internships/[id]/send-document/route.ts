@@ -3,8 +3,6 @@ import prisma from '@/lib/prisma';
 import { auth } from '@/lib/auth';
 import { InternshipService } from '@/lib/services/internship.service';
 
-// POST /api/internships/[id]/send-document
-// Admin marks the convention as sent to the company
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
@@ -12,7 +10,6 @@ export async function POST(
   const session = await auth();
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  // Only admin can mark document as sent
   if (session.user.role !== 'ADMIN') {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
@@ -20,7 +17,6 @@ export async function POST(
   try {
     const { id } = await params;
 
-    // Dept Admin Scoping Check
     if (!session.user.isSuperAdmin && session.user.filiereId) {
       const internship = await prisma.internship.findUnique({
         where: { id },

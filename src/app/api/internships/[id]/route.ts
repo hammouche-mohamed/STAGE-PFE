@@ -77,11 +77,11 @@ export async function GET(
       ...internship,
       teacher: teacherUser
         ? {
-            ...teacherUser,
-            grade: teacherUser.teacherprofile?.grade ?? null,
-            speciality: teacherUser.teacherprofile?.speciality ?? null,
-            filiereName: teacherUser.teacherprofile?.filiere?.name ?? null,
-          }
+          ...teacherUser,
+          grade: teacherUser.teacherprofile?.grade ?? null,
+          speciality: teacherUser.teacherprofile?.speciality ?? null,
+          filiereName: teacherUser.teacherprofile?.filiere?.name ?? null,
+        }
         : null,
       students: ((internship as any).internshipstudent || []).map((s: any) => ({
         ...s,
@@ -102,13 +102,7 @@ export async function GET(
   }
 }
 
-/**
- * PATCH /api/internships/[id]
- * Admin sets the finalDeadline.
- * - For PFE: endDate is auto-synced to finalDeadline, midtermDeadline is recalculated.
- * - For NORMAL: only finalDeadline is updated (company already set endDate).
- * Notifies students and company.
- */
+
 export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -140,11 +134,6 @@ export async function PATCH(
     const deadline = new Date(finalDeadline);
     const isPFE = internship.internshipType === 'PFE';
 
-    // PFE is a deliberate exception: the admin's final-report deadline IS the
-    // PFE end date, and the company can only activate a PFE internship AFTER
-    // that deadline exists — so the admin must be able to set it BEFORE a
-    // start date exists (the midterm is (re)computed later, at activation).
-    // For NORMAL the company sets the dates first, so a start date is required.
     if (!isPFE && !internship.startDate) {
       return NextResponse.json(
         {
@@ -157,9 +146,6 @@ export async function PATCH(
       );
     }
 
-    // NORMAL / company internships: the company sets the end date. The final
-    // report deadline must fall on or before that date — the admin cannot
-    // set a report deadline after the company's agreed end of internship.
     if (!isPFE && internship.endDate && deadline > internship.endDate) {
       return NextResponse.json(
         {
@@ -172,16 +158,13 @@ export async function PATCH(
       );
     }
 
-    // For PFE: endDate = finalDeadline. The midterm is only (re)computable
-    // once a start date exists — if the deadline is set before activation,
-    // leave the midterm; activation recalculates the deadlines anyway.
     const newEndDate = isPFE ? deadline : internship.endDate;
     const newMidterm =
       isPFE && newEndDate && internship.startDate
         ? addDays(
-            internship.startDate,
-            Math.floor(differenceInDays(newEndDate, internship.startDate) / 2),
-          )
+          internship.startDate,
+          Math.floor(differenceInDays(newEndDate, internship.startDate) / 2),
+        )
         : internship.midtermDeadline;
 
     const updated = await prisma.internship.update({
@@ -201,7 +184,6 @@ export async function PATCH(
       details: { finalDeadline, isPFE, newEndDate, newMidterm },
     });
 
-    // Notify students
     for (const { studentId } of (internship as any).internshipstudent || []) {
       await NotificationService.trigger({
         userId: studentId,
@@ -216,7 +198,6 @@ export async function PATCH(
       });
     }
 
-    // Notify company
     if ((internship as any).topic.proposedById) {
       await NotificationService.trigger({
         userId: (internship as any).topic.proposedById,

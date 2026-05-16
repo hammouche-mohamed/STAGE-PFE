@@ -27,16 +27,11 @@ export async function POST(req: NextRequest) {
         createdById: session.user.id,
       }
     });
-
-    // Notify relevant users
     if (isGlobal) {
-      // In a real app, we'd fire a broad notification or a background job
-      // For now, we'll log it. Notifications could be sent to all active students/teachers.
     } else if (internshipId) {
-      // Notify internship participants
       const students = await prisma.internshipStudent.findMany({ where: { internshipId } });
       const internship = await prisma.internship.findUnique({ where: { id: internshipId } });
-      
+
       const recipients = [...students.map(s => s.studentId)];
       if (internship?.teacherId) recipients.push(internship.teacherId);
 

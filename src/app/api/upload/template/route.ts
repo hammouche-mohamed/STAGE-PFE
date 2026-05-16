@@ -24,10 +24,9 @@ export async function POST(req: NextRequest) {
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
-    // Store in DB
     const { default: prisma } = await import("@/lib/prisma");
     const fileId = (await import("crypto")).randomUUID();
-    
+
     await prisma.$executeRawUnsafe(
       "INSERT INTO upload (id, fileName, fileType, content) VALUES (?, ?, ?, ?)",
       fileId,
@@ -38,7 +37,6 @@ export async function POST(req: NextRequest) {
 
     const url = `/api/files/${fileId}`;
 
-    // Update SystemSettings
     const settingsId = (await import("crypto")).randomUUID();
     await prisma.systemSettings.upsert({
       where: { key: "proposalFormTemplateUrl" },

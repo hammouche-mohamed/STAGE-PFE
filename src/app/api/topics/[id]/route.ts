@@ -15,16 +15,16 @@ export async function GET(
   try {
     const { id: rawId } = await params;
     const id = rawId.trim();
-    
+
 
     const topic = await prisma.topic.findFirst({
-      where: { 
-        id: { 
+      where: {
+        id: {
           equals: id,
-        } 
+        }
       },
       include: {
-        proposedBy: { 
+        proposedBy: {
           include: {
             companyprofile: true
           }
@@ -56,12 +56,11 @@ export async function GET(
 
     if (!topic) {
       console.warn(`[TOPIC_DETAIL] Not found: "${id}"`);
-      return NextResponse.json({ 
-        error: `TOPIC_NOT_FOUND: The requested ID "${id}" does not exist in the database.` 
+      return NextResponse.json({
+        error: `TOPIC_NOT_FOUND: The requested ID "${id}" does not exist in the database.`
       }, { status: 404 });
     }
 
-    // Merge company info if missing on the topic record but available on the profile
     const enrichedTopic = {
       ...topic,
       teacherApplications: (topic as any).teacherapplication || [],
@@ -76,8 +75,8 @@ export async function GET(
     return NextResponse.json({ data: enrichedTopic });
   } catch (error: any) {
     console.error("[TOPIC_DETAIL] CRASH:", error);
-    return NextResponse.json({ 
-      error: `SERVER_CRASH: ${error.message || "Unknown database error"}` 
+    return NextResponse.json({
+      error: `SERVER_CRASH: ${error.message || "Unknown database error"}`
     }, { status: 500 });
   }
 }
@@ -99,7 +98,6 @@ export async function PATCH(
     });
     if (!topic) return NextResponse.json({ error: "Topic not found" }, { status: 404 });
 
-    // ── COMPANY: request a pending edit ────────────────────────────────────
     if (session.user.role === "COMPANY") {
       if (topic.proposedById !== session.user.id) {
         return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -126,7 +124,7 @@ export async function PATCH(
       });
 
       const admins = await prisma.user.findMany({
-        where: { 
+        where: {
           role: 'ADMIN',
           ...(topic.filiereId ? {
             OR: [
@@ -143,7 +141,7 @@ export async function PATCH(
           data: admins.map(admin => ({
             id: randomUUID(),
             userId: admin.id,
-            type: 'TOPIC_SUBMITTED', // Re-using type for edit requests
+            type: 'TOPIC_SUBMITTED',
             title: 'Topic Edit Request',
             message: `${session.user.name} has requested an edit for the topic: "${topic.title}". Please review it.`,
             relatedId: id,
@@ -156,14 +154,10 @@ export async function PATCH(
       return NextResponse.json({ message: "Edit request submitted. Awaiting admin approval." });
     }
 
-    // ── ADMIN: direct edit or approve/reject pending company edit ──────────
     if (session.user.role !== "ADMIN") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    // Super Admin has full access. Dept Admin is scoped.
-
-    // Dept Admin Scoping Check
     if (!session.user.isSuperAdmin && session.user.filiereId && topic.filiereId && topic.filiereId !== session.user.filiereId) {
       return NextResponse.json({ error: "Forbidden: Topic belongs to another department" }, { status: 403 });
     }
@@ -175,7 +169,6 @@ export async function PATCH(
       approvePendingEdit, rejectPendingEdit,
     } = body;
 
-    // Approve the company's pending edit
     if (approvePendingEdit && topic.pendingEditData) {
       const pendingChanges = JSON.parse(topic.pendingEditData);
       const updated = await prisma.topic.update({
@@ -193,7 +186,6 @@ export async function PATCH(
       return NextResponse.json({ data: updated });
     }
 
-    // Reject the company's pending edit
     if (rejectPendingEdit) {
       const updated = await prisma.topic.update({
         where: { id },
@@ -210,7 +202,6 @@ export async function PATCH(
       return NextResponse.json({ data: updated });
     }
 
-    // Check teacher load before assigning
     if (teacherId && teacherId !== topic.assignedTeacherId) {
       const teacherProfile = await prisma.teacherProfile.findUnique({ where: { userId: teacherId } });
       if (teacherProfile && teacherProfile.currentLoad >= teacherProfile.maxStudents) {
@@ -221,7 +212,6 @@ export async function PATCH(
       }
     }
 
-    // General admin update
     const updated = await prisma.topic.update({
       where: { id },
       data: {
@@ -243,19 +233,18 @@ export async function PATCH(
       },
     });
 
-    // Notify proposer on status change
     if (status && ["OPEN_FOR_SELECTION", "REJECTED", "PENDING_TEACHER"].includes(status)) {
       const notifType = status === "REJECTED" ? "TOPIC_REJECTED" : "TOPIC_APPROVED";
       const notifTitle =
         status === "OPEN_FOR_SELECTION" ? "Topic Approved — Now Open for Selection"
-        : status === "REJECTED" ? "Topic Rejected"
-        : "Topic Updated";
+          : status === "REJECTED" ? "Topic Rejected"
+            : "Topic Updated";
       const notifMessage =
         status === "OPEN_FOR_SELECTION"
           ? `Your topic "${topic.title}" has been approved and is now open for student selection.`
           : status === "REJECTED"
-          ? `Your topic "${topic.title}" was rejected. ${rejectionReason ? `Reason: ${rejectionReason}` : ""}`
-          : `Your topic "${topic.title}" has been updated.`;
+            ? `Your topic "${topic.title}" was rejected. ${rejectionReason ? `Reason: ${rejectionReason}` : ""}`
+            : `Your topic "${topic.title}" has been updated.`;
 
       await NotificationService.trigger({
         userId: topic.proposedById,
@@ -267,7 +256,6 @@ export async function PATCH(
       });
     }
 
-    // Notify teacher if newly assigned
     if (teacherId && teacherId !== topic.assignedTeacherId) {
       await NotificationService.trigger({
         userId: teacherId,
@@ -279,9 +267,6 @@ export async function PATCH(
       });
     }
 
-    // Resolve any "apply to supervise" requests now that a supervisor is
-    // chosen: the picked teacher's request (if any) is ACCEPTED, every other
-    // pending request for this topic is REJECTED — no more orphaned records.
     if (teacherId && teacherId !== topic.assignedTeacherId) {
       try {
         await prisma.teacherApplication.updateMany({
@@ -315,7 +300,6 @@ export async function PATCH(
       }
     }
 
-    // Notify Super Admins if a Department Admin took action
     if (!session.user.isSuperAdmin) {
       const superAdmins = await prisma.user.findMany({
         where: { adminprofile: { isSuperAdmin: true } } as any,
@@ -346,7 +330,6 @@ export async function PATCH(
       details: { status, teacherId, filiereId, targetLevels },
     });
 
-    // Clear related notifications for all admins
     await NotificationService.clearRelated(id, 'Topic');
 
     return NextResponse.json({ data: updated });
@@ -369,15 +352,9 @@ export async function DELETE(
 
     if (!topic) return NextResponse.json({ error: "Topic not found" }, { status: 404 });
 
-    // Topics are NEVER hard-deleted from the DB. "Delete" archives the topic
-    // (sets archivedAt) so it leaves the active lists but stays on record and
-    // shows up in the Archives view.
     if ((topic as any).archivedAt) {
       return NextResponse.json({ error: "Topic is already archived." }, { status: 400 });
     }
-
-    // A TAKEN topic has a live internship — it auto-archives once that
-    // internship is COMPLETED/CANCELLED, so it can't be archived manually.
     if (topic.status === "TAKEN") {
       return NextResponse.json({
         error: "Cannot archive a taken topic. It will move to archives automatically once its internship ends.",
@@ -385,20 +362,17 @@ export async function DELETE(
     }
 
     if (session.user.role === "ADMIN") {
-      // Super Admin is read-only
       if (session.user.isSuperAdmin) {
         return NextResponse.json({
           error: "Forbidden: Super Administrators have read-only access to topic moderation."
         }, { status: 403 });
       }
 
-      // Dept Admin Scoping Check
       if (!session.user.isSuperAdmin && session.user.filiereId && topic.filiereId && topic.filiereId !== session.user.filiereId) {
         return NextResponse.json({ error: "Forbidden: Topic belongs to another department" }, { status: 403 });
       }
-      // Admin can archive any non-TAKEN topic in their scope (incl. APPROVED / REJECTED)
     } else if (session.user.role === "STUDENT") {
-      // Student can only archive their own PENDING_ADMIN student-proposed topics
+
       if (topic.directAssigneeId !== session.user.id || !topic.proposedByStudent) {
         return NextResponse.json({ error: "You can only remove your own proposed topics" }, { status: 403 });
       }
@@ -408,8 +382,6 @@ export async function DELETE(
         }, { status: 400 });
       }
     } else if (session.user.role === "COMPANY") {
-      // A company may withdraw (archive) its OWN proposed topic, as long as
-      // it isn't taken yet (the TAKEN guard above already blocks that).
       if (topic.proposedById !== session.user.id) {
         return NextResponse.json({ error: "You can only remove your own proposed topics" }, { status: 403 });
       }

@@ -13,14 +13,6 @@ const scheduleSchema = z.object({
   documentDeadline: z.string().datetime(),
 });
 
-/**
- * GET /api/mini-presentations
- *
- * Lists scheduled mini-presentations.
- * - Admins see every session in their filière (or all if SuperAdmin).
- * - Teachers see only sessions tied to their internships.
- * - Students see only sessions tied to internships they are part of.
- */
 export async function GET() {
   const session = await auth();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -61,11 +53,6 @@ export async function GET() {
   }
 }
 
-/**
- * POST /api/mini-presentations  (admin only)
- *
- * FR-A5: Schedule a new mini-presentation session.
- */
 export async function POST(req: NextRequest) {
   const session = await auth();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

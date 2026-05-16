@@ -25,15 +25,11 @@ export async function GET(req: NextRequest) {
   const showAll = searchParams.get('all') === 'true';
   const role = session.user.role;
 
-  // NFR-SC2: pagination — max 20 records per page by default
   const page = Math.max(1, parseInt(searchParams.get('page') ?? '1', 10));
   const limit = Math.min(20, Math.max(1, parseInt(searchParams.get('limit') ?? '20', 10)));
   const skip = (page - 1) * limit;
 
   try {
-    // If the caller explicitly asks for a finished status, drop the
-    // "academicYear OR not-finished" default — otherwise the OR clause
-    // contradicts the explicit filter and yields zero rows.
     const explicitFinishedFilter =
       statusFilter === 'COMPLETED' || statusFilter === 'CANCELLED';
 
@@ -42,13 +38,12 @@ export async function GET(req: NextRequest) {
       : explicitFinishedFilter
         ? { academicYear }
         : {
-            OR: [
-              { academicYear },
-              { NOT: { status: { in: ['COMPLETED', 'CANCELLED'] } } }
-            ]
-          };
+          OR: [
+            { academicYear },
+            { NOT: { status: { in: ['COMPLETED', 'CANCELLED'] } } }
+          ]
+        };
 
-    // Helper to merge topic-side filters without overwriting role scoping.
     const topicWhere: Record<string, any> = {};
 
     if (role === 'STUDENT') {
@@ -68,7 +63,7 @@ export async function GET(req: NextRequest) {
           where.id = "UNASSIGNED_ADMIN_BLOCK";
         }
       } else if (filiereIdFilter && filiereIdFilter !== 'ALL') {
-        // Super-admin filtering by department.
+
         topicWhere.filiereId = filiereIdFilter;
       }
     }
@@ -80,8 +75,6 @@ export async function GET(req: NextRequest) {
     if (internshipType) where.internshipType = internshipType;
     if (statusFilter) where.status = statusFilter;
 
-    // Level filter — match internships that include at least one student
-    // at the given level (L1..M2). Filtering on the student-profile relation.
     if (levelFilter && levelFilter !== 'ALL') {
       where.internshipstudent = {
         ...(where.internshipstudent || {}),
@@ -92,8 +85,6 @@ export async function GET(req: NextRequest) {
       };
     }
 
-    // NFR-P2: explicit field selection — use schema field names (Vercel regenerates Prisma Client from schema)
-    // Schema: user (not teacher), internshipstudent (not students), document/message (not documents/messages)
     const [internships, total] = await Promise.all([
       prisma.internship.findMany({
         where,
@@ -145,7 +136,6 @@ export async function GET(req: NextRequest) {
       prisma.internship.count({ where }),
     ]);
 
-    // Map schema field names back to friendly names expected by the client
     const mappedInternships = (internships as any[]).map(i => ({
       ...i,
       teacher: i.user || { id: '', name: 'Unknown', email: '' },
@@ -161,12 +151,10 @@ export async function GET(req: NextRequest) {
         documents: i._count?.document ?? 0,
         messages: i._count?.message ?? 0,
       },
-      // Clean up raw schema fields
       user: undefined,
       internshipstudent: undefined,
     }));
 
-    // Stitch in teacher departments manually to bypass missing schema relations
     const teacherIds = [...new Set(mappedInternships.filter(i => i.teacher?.id).map(i => i.teacher.id))];
     const [teacherProfiles, allFilieres] = await Promise.all([
       teacherIds.length > 0 ? prisma.teacherProfile.findMany({ where: { userId: { in: teacherIds } } }) : Promise.resolve([]),
@@ -206,7 +194,6 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { topicId, teacherId, academicYear, studentIds } = internshipSchema.parse(body);
 
-    // Dept Admin Scoping Check
     if (!session.user.isSuperAdmin && session.user.filiereId) {
       const topic = await prisma.topic.findUnique({ where: { id: topicId }, select: { filiereId: true } });
       if (topic && topic.filiereId && topic.filiereId !== session.user.filiereId) {
@@ -214,7 +201,6 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Enforce teacher capacity before creating
     const teacherProfile = await prisma.teacherProfile.findUnique({
       where: { userId: teacherId },
       select: { currentLoad: true, maxStudents: true },
@@ -226,7 +212,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Fetch topic to inherit internship type + validate completeness
     const topic = await prisma.topic.findUnique({
       where: { id: topicId },
       select: {
@@ -247,15 +232,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Topic not found.' }, { status: 404 });
     }
 
-    // An internship cannot start until the topic is fully specified and a
-    // supervisor is assigned. Block here with a clear list of what's missing.
     const missing: string[] = [];
     if (!topic.title?.trim()) missing.push('title');
     if (!topic.description?.trim()) missing.push('description');
     if (!topic.requiredSkills?.trim()) missing.push('required skills');
     if (!topic.filiereId) missing.push('department');
-    // Student-proposed topics don't carry target levels (the student is the
-    // target), so only require it for the others.
     if (!topic.proposedByStudent && !topic.targetLevels?.trim())
       missing.push('target level(s)');
     const hasSupervisor = !!teacherId || !!topic.assignedTeacherId;
@@ -270,8 +251,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Team-size cap by topic type: company-set max, PFE Super-Admin limit
-    // (the smaller wins), or unlimited for student-proposed NORMAL.
     const teamCap = await resolveTeamCap(topic as any);
     if (teamCap !== null && studentIds.length > teamCap) {
       const kind = topic.type === 'COMPANY_PROPOSED' ? 'the company' : 'the PFE policy';
@@ -283,10 +262,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // NFR-RDI1: wrap multi-table writes in a transaction
     const internship = await prisma.$transaction(async (tx) => {
-      // NFR-RDI3: prevent the same student from holding two active
-      // internships in the same academic year.
       await assertNoActiveInternship(tx, studentIds, academicYear);
 
       const created = await tx.internship.create({
@@ -319,13 +295,10 @@ export async function POST(req: NextRequest) {
       return created;
     });
 
-    // Increment teacher load after successful transaction
     await TeacherLoadService.increment(teacherId);
 
-    // Notify all parties
     const students = (internship as any).internshipstudent.map((s: { studentId: string }) => s.studentId);
-    
-    // Notify students
+
     if (students.length > 0) {
       await (prisma as any).notification.createMany({
         data: students.map((uid: string) => ({
@@ -341,7 +314,6 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // Notify teacher
     await NotificationService.trigger({
       userId: teacherId,
       type: 'INTERNSHIP_STARTED',
@@ -352,7 +324,6 @@ export async function POST(req: NextRequest) {
       link: `/teacher/internships/${internship.id}`,
     });
 
-    // Notify Super Admins if a Department Admin created the internship
     if (!session.user.isSuperAdmin) {
       const superAdmins = await prisma.user.findMany({
         where: { adminprofile: { isSuperAdmin: true } },
@@ -391,7 +362,6 @@ export async function POST(req: NextRequest) {
         { status: 400 },
       );
     }
-    // NFR-RDI3 conflict: surface the friendly message from assertNoActiveInternship.
     const message = error instanceof Error ? error.message : '';
     if (message.includes('one active internship per academic year')) {
       return NextResponse.json({ error: message }, { status: 409 });

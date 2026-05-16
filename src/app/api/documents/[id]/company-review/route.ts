@@ -10,8 +10,7 @@ const reviewSchema = z.object({
   comment: z.string().max(1000).optional(),
 });
 
-// PATCH /api/documents/[id]/company-review
-// Company marks the student's final report as reviewed (advisory — admin has final say)
+
 export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
@@ -41,12 +40,9 @@ export async function PATCH(
 
     if (!document) return NextResponse.json({ error: 'Document not found' }, { status: 404 });
 
-    // Verify this company owns the internship's topic
     if ((document as any).internship.topic.proposedById !== session.user.id) {
       return NextResponse.json({ error: 'Forbidden — not your internship' }, { status: 403 });
     }
-
-    // Only FINAL_REPORT documents can be reviewed by the company
     if (document.type !== 'FINAL_REPORT') {
       return NextResponse.json(
         { error: 'Company review is only available for the final report' },
@@ -71,7 +67,6 @@ export async function PATCH(
       details: { approved, comment },
     });
 
-    // Notify the admin that the company has reviewed the document
     const admins = await prisma.user.findMany({
       where: { role: 'ADMIN', isActive: true },
       select: { id: true },

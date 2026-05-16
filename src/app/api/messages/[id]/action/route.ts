@@ -38,10 +38,9 @@ export async function PATCH(
       }
     });
 
-    // If it was a DOCUMENT_APPROVAL for an agreement
+
     if (message.actionType === "DOCUMENT_APPROVAL" && status === "APPROVED") {
-      // Potentially advance some validation step
-      // For now, log it
+
     }
 
     await AuditService.log({

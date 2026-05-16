@@ -8,8 +8,6 @@ import { join } from "path";
 
 const VALID_REVIEW_STATUSES = new Set(["APPROVED", "REJECTED", "NEEDS_REVISION"]);
 
-// PATCH /api/documents/[id]  — Approve / Reject a document
-// Accessible by: teacher (supervisor), company (topic proposer), or ADMIN
 export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -43,7 +41,6 @@ export async function PATCH(
 
     if (!document) return NextResponse.json({ error: "Document not found" }, { status: 404 });
 
-    // Authorization: teacher, company (topic proposer), or admin can review
     const isTeacher = document.internship.teacherId === session.user.id;
     const isCompany = document.internship.topic?.proposedById === session.user.id;
     const isAdmin = session.user.role === "ADMIN";
@@ -61,7 +58,6 @@ export async function PATCH(
       }
     });
 
-    // Notify uploader
     await NotificationService.trigger({
       userId: document.uploadedById,
       type: status === "APPROVED" ? "DOCUMENT_APPROVED" : "DOCUMENT_REJECTED",
@@ -102,18 +98,15 @@ export async function DELETE(
 
     if (!document) return NextResponse.json({ error: "Document not found" }, { status: 404 });
 
-    // Authorization: Only uploader or Admin can delete
     const isOwner = document.uploadedById === session.user.id;
     const isAdmin = session.user.role === "ADMIN";
 
     if (!isOwner && !isAdmin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-    // Delete the physical file from disk
     try {
       const filePath = join(process.cwd(), "public", document.fileUrl);
       await unlink(filePath);
     } catch {
-      // Non-fatal: log but don't fail the DB deletion
       console.warn(`[documents] Could not delete file from disk: ${document.fileUrl}`);
     }
 

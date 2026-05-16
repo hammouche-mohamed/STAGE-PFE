@@ -15,8 +15,7 @@ export async function DELETE(
 
   try {
     const { id: teamId } = await params;
-    
-    // Get comment from query
+
     const url = new URL(req.url);
     const comment = url.searchParams.get("comment") || "No reason provided.";
 
@@ -32,7 +31,6 @@ export async function DELETE(
       return NextResponse.json({ error: "You are not in this team" }, { status: 403 });
     }
 
-    // Check if team is in an active internship
     const activeInternship = await prisma.internshipStudent.findFirst({
       where: { studentId: session.user.id, internship: { status: { notIn: ["CANCELLED"] } } }
     });
@@ -45,7 +43,6 @@ export async function DELETE(
       await tx.teamMember.delete({ where: { id: member.id } });
 
       if (member.isLeader) {
-        // Find next member to be leader
         const nextMember = team.teammember.find(m => m.id !== member.id);
         if (nextMember) {
           await tx.studentTeam.update({
@@ -57,7 +54,6 @@ export async function DELETE(
             data: { isLeader: true }
           });
         } else {
-          // If no members left, delete the team and all invitations
           await tx.teamInvitation.deleteMany({ where: { teamId } });
           await tx.studentApplication.deleteMany({ where: { teamId } });
           await tx.studentTeam.delete({ where: { id: teamId } });
@@ -65,14 +61,13 @@ export async function DELETE(
       }
     });
 
-    // Send notifications if the team still exists
     if (team.teammember.length > 1) {
       const remainingMembers = team.teammember.filter(m => m.id !== member.id);
-      
+
       for (const m of remainingMembers) {
         await NotificationService.trigger({
           userId: m.studentId,
-          type: "BINOME_DECLINED", // reusing type
+          type: "BINOME_DECLINED",
           title: "Team Member Left",
           message: `${session.user.name} has left the team. Reason: ${comment}`,
           relatedId: teamId,
@@ -81,7 +76,6 @@ export async function DELETE(
         });
       }
 
-      // Notify Admin
       const adminUsers = await prisma.user.findMany({
         where: { role: "ADMIN", adminprofile: { filiereId: team.filiereId } }
       } as any);

@@ -8,8 +8,6 @@ const inviteSchema = z.object({
   message: z.string().max(500).optional(),
 });
 
-// POST /api/applications/[id]/invite
-// Student A invites Student B to form a binôme for their application
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },

@@ -3,7 +3,6 @@ import { auth } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { randomUUID } from "crypto";
 
-// NFR-S5: Allowlist of accepted MIME types
 const ALLOWED_MIME = new Set([
   "application/pdf",
   "application/msword",
@@ -26,7 +25,6 @@ export async function POST(req: NextRequest) {
     const type = formData.get("type") as string | null;
     const internshipId = formData.get("internshipId") as string | null;
 
-    // NFR-S5: Validate all required fields
     if (!file || !internshipId || !type) {
       return NextResponse.json(
         { error: "Missing required fields: file, internshipId, and type are all required." },
@@ -38,7 +36,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "File size must be under 16 MB." }, { status: 400 });
     }
 
-    // NFR-S5: Reject disallowed MIME types
     if (!ALLOWED_MIME.has(file.type)) {
       return NextResponse.json(
         { error: "File type not allowed. Accepted: PDF, Word, PNG, JPEG, ZIP, TXT." },
@@ -46,7 +43,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Verify the internship exists and the user belongs to it
     const internship = await prisma.internship.findUnique({
       where: { id: internshipId },
       include: { internshipstudent: { select: { studentId: true } } } as any,
@@ -58,7 +54,6 @@ export async function POST(req: NextRequest) {
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
-    // Save to database instead of filesystem (Vercel is read-only)
     const upload = await prisma.upload.create({
       data: {
         fileName: file.name,
@@ -77,7 +72,6 @@ export async function POST(req: NextRequest) {
     });
   } catch (error) {
     console.error("Document upload error:", error);
-    // NFR-U2: never expose internal error details to the client
     return NextResponse.json(
       { error: "Upload failed. Please try again." },
       { status: 500 },

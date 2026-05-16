@@ -24,7 +24,6 @@ export async function POST(req: NextRequest) {
   if (!session || session.user.role !== "ADMIN") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-  // FR-SA3: Only the SuperAdmin may modify system-wide settings.
   if (!session.user.isSuperAdmin) {
     return NextResponse.json({ error: "Forbidden: SuperAdmin only" }, { status: 403 });
   }
@@ -39,7 +38,7 @@ export async function POST(req: NextRequest) {
     const now = new Date();
     const setting = await prisma.systemSettings.upsert({
       where: { key },
-      update: { 
+      update: {
         value: String(value),
         updatedAt: now
       },
@@ -51,9 +50,6 @@ export async function POST(req: NextRequest) {
       }
     });
 
-    // The public settings endpoint serves `getCachedSettings()` (tagged
-    // 'settings'). Bust it now so a toggled flag like `registrationOpen`
-    // takes effect immediately instead of lagging behind the live DB.
     revalidateTag("settings");
 
     try {
@@ -71,9 +67,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ data: setting });
   } catch (error: any) {
     console.error("Settings update error:", error);
-    return NextResponse.json({ 
-      error: "Internal server error", 
-      message: error.message || "Unknown error" 
+    return NextResponse.json({
+      error: "Internal server error",
+      message: error.message || "Unknown error"
     }, { status: 500 });
   }
 }

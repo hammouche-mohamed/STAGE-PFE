@@ -2,8 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { auth } from '@/lib/auth';
 
-// GET /api/admin/messages?year=2024-2025
-// Returns all internship message threads (grouped by internship) for admin oversight
 export async function GET(req: NextRequest) {
   const session = await auth();
   if (!session || session.user.role !== 'ADMIN') {
@@ -12,18 +10,14 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const year = searchParams.get('year');
   const paramFiliereId = searchParams.get('filiereId');
-
-  // If super admin, they can see everything or filter by param
-  // If department admin, they only see their department
-  const filiereId = session.user.isSuperAdmin 
-    ? (paramFiliereId || null) 
+  const filiereId = session.user.isSuperAdmin
+    ? (paramFiliereId || null)
     : session.user.filiereId;
 
   try {
     const rawInternships = await prisma.internship.findMany({
       where: {
         academicYear: (year && year !== 'all') ? year : undefined,
-        // Archives usually means finished, but for oversight we should see Active too
         status: { in: ['IN_PROGRESS', 'COMPLETED', 'CANCELLED'] },
         ...(filiereId && filiereId !== 'all' && { topic: { filiereId } })
       },

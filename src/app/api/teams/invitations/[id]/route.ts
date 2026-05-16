@@ -31,10 +31,7 @@ export async function PATCH(
     }
 
     if (accept) {
-      // Team building is uncapped — the size limit is enforced at apply /
-      // internship-creation time based on the chosen topic's type.
 
-      // Check if student is already in a team (they might have accepted another invite)
       const existingTeam = await prisma.teamMember.findFirst({
         where: { studentId: session.user.id }
       });
@@ -54,7 +51,6 @@ export async function PATCH(
             studentId: session.user.id
           }
         }),
-        // Reject all other pending invitations for this student
         prisma.teamInvitation.updateMany({
           where: {
             invitedStudentId: session.user.id,
@@ -65,7 +61,6 @@ export async function PATCH(
         })
       ]);
 
-      // Notify the leader
       await NotificationService.trigger({
         userId: invitation.studentteam.leaderId,
         type: "BINOME_ACCEPTED",
@@ -86,13 +81,11 @@ export async function PATCH(
 
       return NextResponse.json({ message: "Welcome to the team!" });
     } else {
-      // Rejected
       await prisma.teamInvitation.update({
         where: { id },
         data: { status: "REJECTED", responseComment: comment, respondedAt: new Date() }
       });
 
-      // Notify the leader
       await NotificationService.trigger({
         userId: invitation.studentteam.leaderId,
         type: "BINOME_DECLINED",
@@ -103,7 +96,6 @@ export async function PATCH(
         link: "/student/team",
       });
 
-      // Notify the Admin if requested by user feedback
       const adminUsers = await prisma.user.findMany({
         where: { role: "ADMIN", adminprofile: { filiereId: invitation.studentteam.filiereId } }
       } as any);

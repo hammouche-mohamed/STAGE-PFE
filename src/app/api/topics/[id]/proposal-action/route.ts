@@ -5,12 +5,10 @@ import { z } from 'zod';
 
 const actionSchema = z.object({
   action: z.enum(['APPROVE', 'REJECT']),
-  teacherId: z.string().optional(), // Required when action === 'APPROVE'
-  comment: z.string().optional(),   // Required when action === 'REJECT'
+  teacherId: z.string().optional(),
+  comment: z.string().optional(),
 });
 
-// PATCH /api/topics/[id]/proposal-action
-// Admin approves or rejects a student-submitted (PATH B) proposal
 export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },

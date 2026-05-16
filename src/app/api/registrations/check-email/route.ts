@@ -10,20 +10,18 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    // 1. Check if user already exists
     const existingUser = await prisma.user.findUnique({
       where: { email },
       select: { id: true, role: true }
     });
 
     if (existingUser) {
-      return NextResponse.json({ 
+      return NextResponse.json({
         status: "ACCOUNT_EXISTS",
         message: "This email is already registered."
       });
     }
 
-    // 2. Check if there is a pending registration request
     const pendingRequest = await prisma.registrationRequest.findUnique({
       where: { email },
       select: { status: true }
@@ -31,20 +29,20 @@ export async function GET(req: NextRequest) {
 
     if (pendingRequest) {
       if (pendingRequest.status === "PENDING") {
-        return NextResponse.json({ 
+        return NextResponse.json({
           status: "PENDING_REQUEST",
           message: "You already have a pending registration request. You will be accepted as soon as possible."
         });
       }
       if (pendingRequest.status === "REJECTED") {
-        return NextResponse.json({ 
+        return NextResponse.json({
           status: "REJECTED_REQUEST",
           message: "A previous request with this email was rejected. Please contact support or use a different email."
         });
       }
     }
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       status: "AVAILABLE",
       message: "Email is available"
     });

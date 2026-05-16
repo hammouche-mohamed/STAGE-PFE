@@ -12,7 +12,6 @@ export async function DELETE(
   }
   try {
     const { id } = await params;
-    // Soft-delete: set isActive = false
     await prisma.filiere.update({
       where: { id },
       data: { isActive: false },

@@ -20,7 +20,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "No account found with this email address" }, { status: 404 });
     }
 
-    // 1. Cleanup: Delete tokens older than 24 hours
+    //  Cleanup: Delete tokens older than 24 hours
     const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
     await prisma.passwordResetToken.deleteMany({
       where: {
@@ -28,11 +28,11 @@ export async function POST(req: Request) {
       },
     });
 
-    // 2. Generate 6-digit code
+
     const code = Math.floor(100000 + Math.random() * 900000).toString();
     const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
 
-    // 3. Save to DB
+
     await prisma.passwordResetToken.create({
       data: {
         id: crypto.randomUUID(),

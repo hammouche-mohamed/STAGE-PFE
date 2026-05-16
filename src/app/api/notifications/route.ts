@@ -33,7 +33,6 @@ export async function GET(req: NextRequest) {
     });
 
     if (session.user.mustChangePassword) {
-      // If unreadOnly is requested, and the security notice is "seen", don't include it
       if (unreadOnly && securitySeen) {
         // Skip
       } else {
@@ -71,11 +70,10 @@ export async function PATCH(req: NextRequest) {
         where: { userId: session.user.id, isRead: false },
         data: { isRead: true },
       });
-      
+
       const response = NextResponse.json({ success: true });
-      // Mark the virtual security notification as "seen" for the current session/day
-      response.cookies.set("security_notif_seen", "true", { 
-        maxAge: 60 * 60 * 24, // 24 hours
+      response.cookies.set("security_notif_seen", "true", {
+        maxAge: 60 * 60 * 24,
         path: '/',
       });
       return response;

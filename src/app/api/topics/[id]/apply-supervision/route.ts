@@ -16,8 +16,7 @@ export async function POST(
 
   try {
     const { id } = await params;
-    
-    // Fetch the topic and teacher profile to verify departments
+
     const [topic, teacherProfile] = await Promise.all([
       prisma.topic.findUnique({
         where: { id },
@@ -40,14 +39,10 @@ export async function POST(
       return NextResponse.json({ error: "Topic is not available for supervision" }, { status: 400 });
     }
 
-    // Verify department (Filière) alignment
     if (topic.filiereId && teacherProfile?.filiereId && topic.filiereId !== teacherProfile.filiereId) {
       return NextResponse.json({ error: "You can only supervise topics in your department" }, { status: 403 });
     }
 
-    // Capacity guard: a teacher already at their max supervision load cannot
-    // request more topics. Count live (non-finished) supervised internships
-    // rather than the stored counter, which can be stale.
     if (teacherProfile) {
       const activeSupervisions = await prisma.internship.count({
         where: {
@@ -65,7 +60,6 @@ export async function POST(
       }
     }
 
-    // Check if teacher already applied
     const existingApp = await prisma.teacherApplication.findUnique({
       where: {
         teacherId_topicId: {
@@ -79,7 +73,6 @@ export async function POST(
       return NextResponse.json({ error: "You have already applied to supervise this topic" }, { status: 400 });
     }
 
-    // Create the application
     const application = await prisma.teacherApplication.create({
       data: {
         id: randomUUID(),
@@ -89,11 +82,9 @@ export async function POST(
       }
     });
 
-    // Notify Admins
     const admins = await prisma.user.findMany({
-      where: { 
+      where: {
         role: "ADMIN",
-        // If it's a Dept Admin, only notify them if it's their department
         ...(topic.filiereId ? {
           OR: [
             { adminprofile: { isSuperAdmin: true } },
@@ -106,7 +97,7 @@ export async function POST(
     for (const admin of admins) {
       await NotificationService.trigger({
         userId: admin.id,
-        type: "TEACHER_ASSIGNED", // Reusing existing type for application
+        type: "TEACHER_ASSIGNED",
         title: "New Supervision Request",
         message: `Teacher ${session.user.name} has applied to supervise the topic: "${topic.title}".`,
         relatedId: topic.id,
@@ -122,9 +113,9 @@ export async function POST(
       targetId: topic.title,
     });
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       message: "Application submitted successfully",
-      data: application 
+      data: application
     });
   } catch (error: any) {
     console.error("Supervision application failed:", error);
@@ -132,9 +123,6 @@ export async function POST(
   }
 }
 
-// DELETE /api/topics/[id]/apply-supervision
-// A teacher withdraws their own PENDING supervision request, as long as the
-// admin has not yet acted on it (status still PENDING, topic not assigned).
 export async function DELETE(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }

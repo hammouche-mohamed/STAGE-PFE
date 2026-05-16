@@ -16,8 +16,6 @@ export async function GET(req: NextRequest) {
     if (role === "ADMIN") {
       const filiereId = session.user.isSuperAdmin ? null : session.user.filiereId;
 
-      // FR-A1: scope the registrations badge to the dept admin's filière.
-      // Match the same speciality-by-filière-name rule used by the API.
       let regWhere: Record<string, any> = { status: "PENDING" };
       if (!session.user.isSuperAdmin) {
         if (!filiereId) {
@@ -115,7 +113,6 @@ export async function GET(req: NextRequest) {
     }
 
     const response = NextResponse.json(counts);
-    // Short cache to prevent hammering DB on every page navigation
     response.headers.set("Cache-Control", "private, max-age=10, stale-while-revalidate=30");
     return response;
   } catch (error) {

@@ -3,12 +3,7 @@ import prisma from "@/lib/prisma";
 import { addDays } from "date-fns";
 import { TeacherLoadService } from "@/lib/services/teacherLoad.service";
 
-/**
- * Cron job: auto-archive internships past their finalDeadline.
- * Protected by CRON_SECRET header.
- * Call via: POST /api/cron/archive
- * With header: x-cron-secret: <CRON_SECRET env var>
- */
+
 export async function POST(req: NextRequest) {
   const secret = req.headers.get("x-cron-secret");
   if (!secret || secret !== process.env.CRON_SECRET) {
@@ -18,7 +13,7 @@ export async function POST(req: NextRequest) {
   const now = new Date();
 
   try {
-    // Find internships past finalDeadline that haven't been archived yet
+
     const toArchive = await prisma.internship.findMany({
       where: {
         finalDeadline: { lt: now },
@@ -32,7 +27,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ archived: 0, message: "Nothing to archive" });
     }
 
-    // Batch update: set archivedAt = now, chatArchivedAt = now + 3 days
+
     const chatArchiveDate = addDays(now, 3);
     await prisma.internship.updateMany({
       where: { id: { in: toArchive.map((i) => i.id) } },
@@ -43,8 +38,6 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // FR-T3: keep teacher currentLoad consistent. Recompute once per
-    // affected teacher rather than decrementing per-internship.
     const affectedTeacherIds = Array.from(new Set(toArchive.map((i) => i.teacherId)));
     for (const teacherId of affectedTeacherIds) {
       await TeacherLoadService.recompute(teacherId);
@@ -57,7 +50,6 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// Also allow GET for manual trigger check
 export async function GET(req: NextRequest) {
   return POST(req);
 }

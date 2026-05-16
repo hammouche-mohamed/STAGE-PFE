@@ -11,7 +11,6 @@ export async function GET(req: NextRequest) {
 
   const { searchParams } = new URL(req.url);
   const topicId = searchParams.get("topicId");
-  // NFR-SC2: paginate — max 20 records per page by default.
   const page = Math.max(1, parseInt(searchParams.get("page") ?? "1", 10));
   const limit = Math.min(100, Math.max(1, parseInt(searchParams.get("limit") ?? "20", 10)));
   const skip = (page - 1) * limit;
@@ -66,15 +65,14 @@ export async function GET(req: NextRequest) {
       prisma.studentApplication.count({ where }),
     ]);
 
-    // Backwards-compatible shape: surface a `team.members` alias.
     const mappedApplications = applications.map((app: any) => ({
       ...app,
       team: app.studentteam
         ? {
-            members: (app.studentteam.teammember ?? []).map((m: any) => ({
-              student: m.user,
-            })),
-          }
+          members: (app.studentteam.teammember ?? []).map((m: any) => ({
+            student: m.user,
+          })),
+        }
         : null,
     }));
 
@@ -100,7 +98,6 @@ export async function POST(req: NextRequest) {
     const { topicId, message } = await req.json();
     if (!topicId) return NextResponse.json({ error: "topicId is required" }, { status: 400 });
 
-    // ── GUARD: already in an active internship ──────────────────────────────
     const activeInternship = await prisma.internshipStudent.findFirst({
       where: {
         studentId: session.user.id,
@@ -119,13 +116,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // ── Get User's Team ───────────────────────────────────────────────────────
     let member = await prisma.teamMember.findFirst({
       where: { studentId: session.user.id },
       include: { studentteam: true }
     });
-
-    // If student has no team, auto-create a team of 1
     if (!member) {
       const studentProfile = await prisma.studentProfile.findUnique({
         where: { userId: session.user.id }
@@ -148,7 +142,6 @@ export async function POST(req: NextRequest) {
 
     const teamId = member.teamId;
 
-    // ── GUARD: already applied to this topic ────────────────────────────────
     const existingApp = await prisma.studentApplication.findFirst({
       where: { topicId, teamId, status: { not: "REJECTED" } },
     });
@@ -156,14 +149,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Your team already applied to this topic." }, { status: 409 });
     }
 
-    // ── GUARD: topic must be open ────────────────────────────────────────────
     const topic = await prisma.topic.findUnique({ where: { id: topicId } });
     if (!topic || topic.status !== "OPEN_FOR_SELECTION") {
       return NextResponse.json({ error: "This topic is no longer available." }, { status: 409 });
     }
-
-    // ── GUARD: team size must fit the topic's type ──────────────────────────
-    // Teams are built freely; the real cap applies here, against THIS topic.
     const cap = await resolveTeamCap(topic as any);
     if (cap !== null) {
       const teamSize = await prisma.teamMember.count({ where: { teamId } });
@@ -189,15 +178,12 @@ export async function POST(req: NextRequest) {
         status: "PENDING",
       },
     } as any);
-
-    // ── NOTIFICATIONS ────────────────────────────────────────────────────────
-    // 1. Notify Assigned Teacher (if any)
     if (topic.assignedTeacherId) {
       await prisma.notification.create({
         data: {
           id: randomUUID(),
           userId: topic.assignedTeacherId,
-          type: 'TOPIC_SUBMITTED', // Or a more specific type
+          type: 'TOPIC_SUBMITTED',
           title: 'New Student Application',
           message: `A new student team has applied for your topic: "${topic.title}".`,
           relatedId: topicId,

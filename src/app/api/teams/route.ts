@@ -12,7 +12,6 @@ export async function POST(req: NextRequest) {
   try {
     const { reason, invitedStudentIds } = await req.json();
 
-    // ── GUARD: Check if student is already in a valid team ─────────────────
     const existingMember = await prisma.teamMember.findFirst({
       where: { studentId: session.user.id },
       include: { studentteam: true } as any
@@ -20,7 +19,6 @@ export async function POST(req: NextRequest) {
 
     if (existingMember) {
       if (!(existingMember as any).studentteam) {
-        // Orphaned member record — team was deleted but member wasn't cleaned up
         await prisma.teamMember.delete({ where: { id: existingMember.id } });
       } else {
         return NextResponse.json(
@@ -30,9 +28,6 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Team building is uncapped. The effective size limit is applied when
-    // the team applies to a topic / the internship is created, based on the
-    // topic's type (see teamSize.service.ts).
 
     const studentProfile = await prisma.studentProfile.findUnique({
       where: { userId: session.user.id }
@@ -42,9 +37,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Profile not found" }, { status: 404 });
     }
 
-    // Use transaction to ensure everything is created together
     const result = await prisma.$transaction(async (tx) => {
-      // 1. Create the team
       const team = await tx.studentTeam.create({
         data: {
           leaderId: session.user.id,
@@ -54,7 +47,6 @@ export async function POST(req: NextRequest) {
         }
       });
 
-      // 2. Add the leader as a team member
       await tx.teamMember.create({
         data: {
           teamId: team.id,
@@ -63,7 +55,6 @@ export async function POST(req: NextRequest) {
         }
       });
 
-      // 3. Create invitations for the invited students
       if (invitedStudentIds && invitedStudentIds.length > 0) {
         for (const studentId of invitedStudentIds) {
           await tx.teamInvitation.create({
@@ -128,13 +119,11 @@ export async function GET(req: NextRequest) {
 
       const m = member as any;
 
-      // Clean up orphaned member record (team was deleted but member wasn't)
       if (!m.studentteam) {
         await prisma.teamMember.delete({ where: { id: member.id } });
         return NextResponse.json({ data: null });
       }
 
-      // Map to expected frontend structure
       const team = {
         ...m.studentteam,
         members: m.studentteam.teammember.map((tm: any) => ({
@@ -155,7 +144,7 @@ export async function GET(req: NextRequest) {
       if (!session.user.isSuperAdmin && session.user.filiereId) {
         whereClause.filiereId = session.user.filiereId;
       }
-      
+
       const teams = await prisma.studentTeam.findMany({
         where: whereClause,
         include: {

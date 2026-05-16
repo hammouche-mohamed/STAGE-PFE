@@ -6,14 +6,7 @@ import {
   previewEviction,
 } from "@/lib/services/archiveRetention.service";
 
-/**
- * Archive retention status.
- *
- * - GET                  → { archivedYears, pendingDeletions }
- * - GET ?preview=YYYY-YYYY → also { preview: { evictedYear } } telling the
- *   Settings dialog which year WOULD be scheduled for permanent deletion if
- *   the given year were archived now (so the Super Admin is warned first).
- */
+
 export async function GET(req: NextRequest) {
   const session = await auth();
   if (!session || session.user.role !== "ADMIN") {

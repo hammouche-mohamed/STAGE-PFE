@@ -10,7 +10,6 @@ const deadlineSchema = z.object({
   isActive: z.boolean().default(true),
 });
 
-// GET /api/system-deadlines — list all active system-wide deadlines
 export async function GET(req: NextRequest) {
   const session = await auth();
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -27,7 +26,6 @@ export async function GET(req: NextRequest) {
   }
 }
 
-// POST /api/system-deadlines — admin creates a system-wide deadline announcement
 export async function POST(req: NextRequest) {
   const session = await auth();
   if (!session || session.user.role !== 'ADMIN') {

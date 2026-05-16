@@ -4,10 +4,7 @@ import { isRateLimited, getClientIp } from '@/lib/utils/rateLimiter';
 
 export const GET = handlers.GET;
 
-/**
- * NFR-S4: Wrap the NextAuth POST handler with IP-based rate limiting.
- * Allows max 10 login attempts per IP per minute before returning 429.
- */
+
 export async function POST(req: NextRequest) {
   const ip = getClientIp(req);
   if (isRateLimited(`auth:login:${ip}`, 10, 60_000)) {

@@ -15,7 +15,7 @@ export async function PATCH(
 
   try {
     const { id } = await params;
-    const { action } = await req.json(); // "ACCEPT" or "REJECT"
+    const { action } = await req.json();
 
     const topic = await prisma.topic.findUnique({
       where: { id },
@@ -42,11 +42,10 @@ export async function PATCH(
     } else {
       await prisma.topic.update({
         where: { id },
-        data: { 
+        data: {
           status: "REJECTED",
           rejectionReason: "Teacher rejected assignment",
-          // Reset assigned teacher so admin can re-assign or student can pick another
-          assignedTeacherId: null, 
+          assignedTeacherId: null,
         },
       });
 
@@ -67,7 +66,6 @@ export async function PATCH(
       targetId: topic.title,
     });
 
-    // Clear supervision notifications for the teacher
     await NotificationService.clearRelated(id, 'Topic');
 
     return NextResponse.json({ message: `Topic ${action.toLowerCase()}ed successfully` });

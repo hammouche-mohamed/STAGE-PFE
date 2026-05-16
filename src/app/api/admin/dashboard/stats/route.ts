@@ -11,14 +11,13 @@ export async function GET(req: NextRequest) {
 
   const { searchParams } = new URL(req.url);
   const filiereId = searchParams.get("filiereId");
-  
+
   const currentAcademicYearResult = await prisma.systemSettings.findUnique({
     where: { key: "currentAcademicYear" }
   });
   const currentAcademicYear = currentAcademicYearResult?.value || "N/A";
   const yearFilter = currentAcademicYear && currentAcademicYear !== "N/A" ? { academicYear: currentAcademicYear } : {};
 
-  // If not super admin, they can only see their own filiere
   const targetFiliereId = session.user.isSuperAdmin ? (filiereId === "all" ? null : filiereId) : (session.user.filiereId || null);
 
 
@@ -45,49 +44,48 @@ export async function GET(req: NextRequest) {
           ...(targetFiliereId ? { studentprofile: { filiereId: targetFiliereId } } as any : {})
         }
       }),
-      // Teachers don't usually have academic year, but they have a filiere
-      prisma.user.count({ 
-        where: { 
-          role: "TEACHER", 
+      prisma.user.count({
+        where: {
+          role: "TEACHER",
           isActive: true,
           ...(targetFiliereId ? { teacherprofile: { filiereId: targetFiliereId } } : {} as any)
         } as any
       }),
       prisma.user.count({ where: { role: "COMPANY", isActive: true } }),
-      prisma.internship.count({ 
-        where: { 
-          status: "IN_PROGRESS", 
+      prisma.internship.count({
+        where: {
+          status: "IN_PROGRESS",
           ...yearFilter,
           ...(targetFiliereId ? { topic: { filiereId: targetFiliereId } } : {})
         } as any
       }),
-      prisma.internship.count({ 
-        where: { 
+      prisma.internship.count({
+        where: {
           status: "PENDING_ADMIN_CONFIRMATION",
           ...(targetFiliereId ? { topic: { filiereId: targetFiliereId } } : {})
         } as any
       }),
       // Pending topics are not year-locked
-      prisma.topic.count({ 
-        where: { 
+      prisma.topic.count({
+        where: {
           status: "PENDING_ADMIN",
           ...(targetFiliereId ? { filiereId: targetFiliereId } : {})
         } as any
       }),
-      prisma.topic.count({ 
-        where: { 
+      prisma.topic.count({
+        where: {
           status: "APPROVED",
           ...(targetFiliereId ? { filiereId: targetFiliereId } : {})
         } as any
       }),
-      prisma.topic.count({ 
-        where: { 
+      prisma.topic.count({
+        where: {
           status: "REJECTED",
           ...(targetFiliereId ? { filiereId: targetFiliereId } : {})
         } as any
       }),
-      prisma.internship.count({ 
-        where: { 
+      prisma.internship.count({
+        where: {
           status: "COMPLETED",
           ...yearFilter,
           ...(targetFiliereId ? { topic: { filiereId: targetFiliereId } } : {})

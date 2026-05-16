@@ -17,17 +17,11 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ data: [] });
     }
 
-    // Find students who are already in a team
     const unavailableMembers = await prisma.teamMember.findMany({
       select: { studentId: true }
     });
     const unavailableIds = unavailableMembers.map(m => m.studentId);
-    unavailableIds.push(session.user.id); // exclude self
-
-    // Team-invite rule: same department (filière) + same academic level.
-    // Cohort / academicYear is intentionally NOT part of the filter — two
-    // students at the same level in the same dept can form a team even if
-    // they enrolled in different academic years.
+    unavailableIds.push(session.user.id);
     const availableStudents = await prisma.studentProfile.findMany({
       where: {
         filiereId: studentProfile.filiereId,

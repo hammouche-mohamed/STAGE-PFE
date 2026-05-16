@@ -8,11 +8,9 @@ export async function GET() {
     const filieres = await prisma.filiere.findMany({
       where: { isActive: true },
       orderBy: { name: "asc" },
-      // Don't ship internal columns the UI never needs.
       select: { id: true, name: true, code: true, isActive: true },
     });
     const response = NextResponse.json({ data: filieres });
-    // Filières change rarely — let the browser/edge cache aggressively.
     response.headers.set(
       "Cache-Control",
       "public, max-age=300, stale-while-revalidate=600",

@@ -10,8 +10,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const deletedCount = await AuditService.cleanupOldLogs();
-    
-    // Log the cleanup action itself
+
     await AuditService.log({
       userId: session.user.id,
       action: "MANUAL_AUDIT_CLEANUP",

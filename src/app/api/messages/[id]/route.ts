@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 
-// ─── GET /api/messages/[id] ───────────────────────────────────────────────────
+
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -37,7 +37,6 @@ export async function GET(
       isAdminAuthorized ||
       internship?.teacherId === session.user.id;
 
-    // Company: allow if they own the topic
     let isCompanyAuthorized = false;
     if (!isAuthorized && session.user.role === "COMPANY" && internship) {
       const topic = await prisma.topic.findUnique({
@@ -51,7 +50,6 @@ export async function GET(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    // Automatically clear "MESSAGE_RECEIVED" notifications for this user and internship when they open the chat
     await prisma.notification.updateMany({
       where: {
         userId: session.user.id,
@@ -87,7 +85,6 @@ export async function GET(
   }
 }
 
-// ─── DELETE /api/messages/[id] ────────────────────────────────────────────────
 export async function DELETE(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }

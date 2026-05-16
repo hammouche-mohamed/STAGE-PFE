@@ -4,7 +4,6 @@ import { writeFile, mkdir } from "fs/promises";
 import path from "path";
 import { randomUUID } from "crypto";
 
-// NFR-S5: Allowlist of accepted MIME types (mirrors document upload)
 const ALLOWED_MIME = new Set([
   "application/pdf",
   "application/msword",
@@ -24,12 +23,10 @@ export async function POST(req: NextRequest) {
     const file = formData.get("file") as File | null;
     if (!file) return NextResponse.json({ error: "No file provided." }, { status: 400 });
 
-    // NFR-S5: Validate file size (10 MB limit for message attachments)
     if (file.size > 10 * 1024 * 1024) {
       return NextResponse.json({ error: "File size must be under 10 MB." }, { status: 400 });
     }
 
-    // NFR-S5: Reject disallowed MIME types
     if (!ALLOWED_MIME.has(file.type)) {
       return NextResponse.json(
         { error: "File type not allowed. Accepted: PDF, Word, PNG, JPEG, ZIP, TXT." },
@@ -54,7 +51,6 @@ export async function POST(req: NextRequest) {
     });
   } catch (error) {
     console.error("Message upload failed:", error);
-    // NFR-U2: never expose internal details to client
     return NextResponse.json({ error: "Upload failed. Please try again." }, { status: 500 });
   }
 }

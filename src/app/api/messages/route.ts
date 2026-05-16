@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
       internship.teacherId,
       ...(internship as any).internshipstudent.map((s: { studentId: string }) => s.studentId),
     ];
-    
+
     const isParticipant = memberIds.includes(session.user.id);
     const isAdmin = session.user.role === "ADMIN";
 
@@ -71,7 +71,6 @@ export async function POST(req: NextRequest) {
       } as any,
     });
 
-    // Notify other participants (except sender)
     const recipients = memberIds.filter((id) => id && id !== session.user.id) as string[];
 
     if (recipients.length > 0) {
@@ -85,8 +84,6 @@ export async function POST(req: NextRequest) {
         } as any,
       });
 
-      // Don't notify someone who is actively looking at THIS chat right now
-      // (heartbeat seen within the last 45s — ChatWindow pings every 20s).
       const presenceCutoff = Date.now() - 45_000;
 
       for (const r of recipientUsers as any[]) {

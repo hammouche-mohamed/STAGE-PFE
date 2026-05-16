@@ -19,10 +19,6 @@ export async function GET(
 
     if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
-    // Manually fetch profiles since relations are missing in schema.
-    // For teachers also count the internships they're CURRENTLY supervising
-    // (anything not finished/cancelled) — the stored `currentLoad` counter
-    // can be stale (e.g. seeded data), so we report the live number instead.
     const [studentProfile, teacherProfile, companyProfile, adminProfile, supervisingCount] =
       await Promise.all([
         prisma.studentProfile.findUnique({ where: { userId: id } }),
@@ -31,22 +27,21 @@ export async function GET(
         prisma.adminProfile.findUnique({ where: { userId: id } }),
         user.role === "TEACHER"
           ? prisma.internship.count({
-              where: {
-                teacherId: id,
-                status: { notIn: ["COMPLETED", "CANCELLED"] },
-              },
-            })
+            where: {
+              teacherId: id,
+              status: { notIn: ["COMPLETED", "CANCELLED"] },
+            },
+          })
           : Promise.resolve(0),
       ]);
 
-    // Override the (possibly stale) stored counter with the real count.
     const liveTeacherProfile =
       teacherProfile && user.role === "TEACHER"
         ? { ...teacherProfile, currentLoad: supervisingCount }
         : teacherProfile;
 
     const { password, ...safeUser } = user;
-    return NextResponse.json({ 
+    return NextResponse.json({
       data: {
         ...safeUser,
         studentProfile,
@@ -93,7 +88,6 @@ export async function PATCH(
       updateData.mustChangePassword = true;
     }
 
-    // Build the list of changed fields for notification and email
     const modifications: string[] = [];
     if (name && name !== existingUser.name) modifications.push(`• Name changed to: ${name}`);
     if (email && email !== existingUser.email) modifications.push(`• Email changed to: ${email}`);
@@ -102,17 +96,13 @@ export async function PATCH(
       modifications.push(`• Account status changed to: ${isActive ? "Active" : "Inactive"}`);
     }
 
-    // Perform updates in a transaction
     const updatedUser = await prisma.$transaction(async (tx) => {
-      // 1. Update the main user record
       const newUser = await tx.user.update({
         where: { id },
         data: updateData
       });
 
-      // Track profile changes if provided
       if (profileData) {
-        // We need the existing profile to compare
         const existingProfile = await (tx[`${newUser.role.toLowerCase()}Profile` as any] as any)?.findUnique({
           where: { userId: id }
         });
@@ -126,19 +116,16 @@ export async function PATCH(
         Object.keys(profileData).forEach(key => {
           const oldVal = existingProfile?.[key];
           if (profileData[key] !== undefined && profileData[key] !== oldVal && !['id', 'userId', 'createdAt', 'updatedAt', 'filiereId', 'isSuperAdmin'].includes(key)) {
-             const label = profileLabels[key] || key.replace(/([A-Z])/g, ' $1').trim();
-             modifications.push(`• ${label} updated to: ${profileData[key] || "—"}`);
+            const label = profileLabels[key] || key.replace(/([A-Z])/g, ' $1').trim();
+            modifications.push(`• ${label} updated to: ${profileData[key] || "—"}`);
           }
         });
 
-        // Sanitize profile data (remove internal fields and handle empty strings)
         const sanitizedData: any = {};
         Object.keys(profileData).forEach(key => {
           if (!['id', 'userId', 'createdAt', 'updatedAt'].includes(key)) {
-            // Strip isSuperAdmin for non-admin profiles to prevent schema errors
             if (key === 'isSuperAdmin' && newUser.role !== 'ADMIN') return;
-            
-            // Convert empty string to null for foreign keys
+
             sanitizedData[key] = profileData[key] === "" ? null : profileData[key];
           }
         });
@@ -173,7 +160,6 @@ export async function PATCH(
       return newUser;
     });
 
-    // Send in-app notification
     const { NotificationService } = await import("@/lib/services/notification.service");
     const modMessage = modifications.length > 0
       ? `The following changes were made to your account:\n\n${modifications.join("\n")}\n\nPlease review your profile and contact administration if you have concerns.`
@@ -187,18 +173,16 @@ export async function PATCH(
       relatedId: id,
       relatedType: "User",
       link: "/profile",
-      skipEmail: true, // Email is sent separately below with better formatting
+      skipEmail: true,
     });
 
-    // Always send a rich email to inform the user of what changed
     const isDeactivationOnly = typeof isActive === "boolean" && !isActive && modifications.length === 1;
     if (!isDeactivationOnly) {
       try {
         const { MailService } = await import("@/lib/services/mail.service");
-        // Use updated values for the email if provided, otherwise fallback to existing
         const recipientEmail = email || existingUser.email;
         const recipientName = name || existingUser.name;
-        
+
         await MailService.sendProfileModified(
           recipientEmail,
           recipientName,
@@ -215,12 +199,11 @@ export async function PATCH(
       action: "USER_UPDATED_BY_ADMIN",
       targetType: "User",
       targetId: updatedUser.name,
-      details: { 
-        fieldsChanged: Object.keys(body), 
+      details: {
+        fieldsChanged: Object.keys(body),
         modifications,
         prevStatus: existingUser.isActive,
         newStatus: updatedUser.isActive,
-        // Include snapshots for the 'Details' view in audit logs
         before: {
           name: existingUser.name,
           email: existingUser.email,
@@ -254,12 +237,10 @@ export async function DELETE(
 
   try {
     const { id } = await params;
-    
-    // Check if user exists
+
     const user = await prisma.user.findUnique({ where: { id } });
     if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
-    // Prevent deleting self
     if (user.id === session.user.id) {
       return NextResponse.json({ error: "Cannot delete your own account" }, { status: 400 });
     }

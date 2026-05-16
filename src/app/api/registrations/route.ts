@@ -9,15 +9,11 @@ import { MailService } from "@/lib/services/mail.service";
 
 export async function GET(req: NextRequest) {
   const session = await auth();
-  // Registrations (granting dashboard access) are a SuperAdmin
-  // responsibility. Department admins only manage users that have already
-  // been assigned to their filière.
   if (!session || session.user.role !== "ADMIN" || !session.user.isSuperAdmin) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   try {
-    // NFR-SC2: paginate – max 20 per page
     const { searchParams } = new URL(req.url);
     const page = Math.max(1, parseInt(searchParams.get("page") ?? "1", 10));
     const limit = Math.min(100, Math.max(1, parseInt(searchParams.get("limit") ?? "20", 10)));
@@ -44,7 +40,6 @@ export async function GET(req: NextRequest) {
         orderBy: { createdAt: "desc" },
         take: limit,
         skip,
-        // NFR-P2: explicit field selection — never over-fetch
         select: {
           id: true,
           name: true,
@@ -81,7 +76,6 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  // NFR-S4: Rate-limit registration submissions — max 5 per IP per minute
   const ip = getClientIp(req);
   if (isRateLimited(`register:${ip}`, 5, 60_000)) {
     return NextResponse.json(
@@ -91,8 +85,6 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    // FR-SA3: honor the SuperAdmin "registrationOpen" flag. When the flag is
-    // explicitly set to "false", reject new registrations.
     const registrationOpenSetting = await prisma.systemSettings.findUnique({
       where: { key: "registrationOpen" },
       select: { value: true },
@@ -107,7 +99,6 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const validatedData = registrationSchema.parse(body);
 
-    // Check if user already exists
     const existingUser = await prisma.user.findUnique({
       where: { email: validatedData.email },
     });
@@ -119,7 +110,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Check Blocklist
     const isBlocked = await (prisma as any).blockedEmail.findUnique({
       where: { email: validatedData.email },
     });
@@ -138,15 +128,14 @@ export async function POST(req: NextRequest) {
     if (existingRequest) {
       if (existingRequest.status === "PENDING") {
         return NextResponse.json(
-          { 
-            error: "You already have a pending registration request.", 
-            status: "PENDING_REQUEST" 
+          {
+            error: "You already have a pending registration request.",
+            status: "PENDING_REQUEST"
           },
           { status: 409 },
         );
       }
       if (existingRequest.status === "REJECTED") {
-        // Automatically delete the old rejected request to allow a fresh submission
         await prisma.registrationRequest.delete({
           where: { id: existingRequest.id }
         });
@@ -158,7 +147,6 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Check for duplicate Student ID
     if (validatedData.role === "STUDENT" && validatedData.studentId) {
       const existingIdInProfile = await prisma.studentProfile.findUnique({
         where: { studentId: validatedData.studentId },
@@ -172,7 +160,7 @@ export async function POST(req: NextRequest) {
       }
 
       const pendingRequestWithId = await prisma.registrationRequest.findFirst({
-        where: { 
+        where: {
           studentId: validatedData.studentId,
           status: "PENDING"
         },
@@ -180,16 +168,15 @@ export async function POST(req: NextRequest) {
 
       if (pendingRequestWithId) {
         return NextResponse.json(
-          { 
+          {
             error: "A registration request with this Student ID is already pending review.",
-            status: "PENDING_REQUEST" 
+            status: "PENDING_REQUEST"
           },
           { status: 409 },
         );
       }
     }
 
-    // NFR-S5: explicit password strength check before hashing
     if (!validatedData.password || validatedData.password.length < 12 || !/[0-9]/.test(validatedData.password)) {
       return NextResponse.json(
         { error: "Password must be at least 12 characters and include at least one number." },
@@ -197,7 +184,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // NFR-S1: Passwords hashed with bcrypt using minimum 12 salt rounds
     const hashedPassword = await bcrypt.hash(validatedData.password, 12);
 
     const request = await prisma.registrationRequest.create({
@@ -208,24 +194,18 @@ export async function POST(req: NextRequest) {
         role: validatedData.role as "STUDENT" | "COMPANY" | "TEACHER",
         password: hashedPassword,
         motivation: validatedData.motivation,
-        // Shared fields
         speciality: validatedData.speciality,
-        // Student specific
         studentId: validatedData.studentId,
         promotion: validatedData.promotion || (validatedData.role === "STUDENT" ? validatedData.level : null),
         academicYear: validatedData.academicYear,
-        // NFR-RDI3: persist academic level for eligibility enforcement at approval time
         level: (validatedData.level as any) ?? null,
-        // Company specific
         companyName: validatedData.companyName,
         sector: validatedData.sector,
         wilaya: validatedData.wilaya,
-        // Teacher specific
         grade: validatedData.grade,
       },
     });
 
-    // 1. Find matching department if speciality is provided
     let targetFiliereId = null;
     if (validatedData.speciality) {
       const filiere = await prisma.filiere.findFirst({
@@ -234,9 +214,8 @@ export async function POST(req: NextRequest) {
       if (filiere) targetFiliereId = filiere.id;
     }
 
-    // 2. Notify relevant admins
-    const admins = await prisma.user.findMany({ 
-      where: { 
+    const admins = await prisma.user.findMany({
+      where: {
         role: "ADMIN",
         ...(targetFiliereId ? {
           OR: [
@@ -245,7 +224,7 @@ export async function POST(req: NextRequest) {
           ]
         } : {} as any)
       },
-      select: { id: true } 
+      select: { id: true }
     });
 
     if (admins.length > 0) {
@@ -262,9 +241,7 @@ export async function POST(req: NextRequest) {
         }))
       });
     }
-    
-    // NFR-N1: Send confirmation email to the user
-    // We do this asynchronously to avoid blocking the response
+
     MailService.sendRegistrationReceived(validatedData.email, validatedData.name, validatedData.role).catch(err =>
       console.error("Delayed registration email failed:", err)
     );
@@ -281,7 +258,6 @@ export async function POST(req: NextRequest) {
       );
     }
     console.error("Registration submission failed:", error);
-    // NFR-U2: never expose internal error details to the client
     return NextResponse.json(
       { error: "Registration could not be processed. Please try again later." },
       { status: 500 },
@@ -291,7 +267,6 @@ export async function POST(req: NextRequest) {
 
 export async function DELETE(_req: NextRequest) {
   const session = await auth();
-  // SuperAdmin-only — registration management is a SuperAdmin responsibility.
   if (!session || session.user.role !== "ADMIN" || !session.user.isSuperAdmin) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }

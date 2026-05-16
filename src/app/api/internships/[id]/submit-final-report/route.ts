@@ -2,9 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { InternshipService } from '@/lib/services/internship.service';
 
-// POST /api/internships/[id]/submit-final-report
-// Student submits their final report → status becomes FINAL_REPORT_SUBMITTED
-// This signals to both the teacher and the company that validation is required.
+
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },

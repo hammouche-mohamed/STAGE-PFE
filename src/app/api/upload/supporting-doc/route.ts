@@ -8,12 +8,12 @@ import { randomUUID } from "crypto";
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
-const MAX_SIZE = 10 * 1024 * 1024; // Increased to 10 MB to be safe
+const MAX_SIZE = 10 * 1024 * 1024;
 const ALLOWED = [
-  "application/pdf", 
+  "application/pdf",
   "application/msword",
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-  "image/jpeg", 
+  "image/jpeg",
   "image/png"
 ];
 
@@ -69,9 +69,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ url });
   } catch (error: any) {
     console.error("[UPLOAD_DOC] Catch block error:", error);
-    return NextResponse.json({ 
-      error: "Upload failed", 
-      details: error.message 
+    return NextResponse.json({
+      error: "Upload failed",
+      details: error.message
     }, { status: 500 });
   }
 }

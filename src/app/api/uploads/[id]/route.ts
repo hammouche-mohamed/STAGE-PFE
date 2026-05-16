@@ -7,8 +7,7 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    
-    // 1. Try to find in Database (New Production Way for Vercel)
+
     const upload = await prisma.upload.findUnique({
       where: { id },
     });
@@ -22,15 +21,14 @@ export async function GET(
       });
     }
 
-    // 2. Fallback to Filesystem (Legacy way, works locally)
     try {
       const { readFile } = await import("fs/promises");
       const { join } = await import("path");
-      
+
       const uploadsDir = join(process.cwd(), "public", "uploads");
       const filePath = join(uploadsDir, id);
       const fileBuffer = await readFile(filePath);
-      
+
       const ext = id.split('.').pop()?.toLowerCase() || '';
       let contentType = "application/octet-stream";
       if (ext === "png") contentType = "image/png";
@@ -46,7 +44,6 @@ export async function GET(
         }
       });
     } catch (fsErr) {
-      // If neither DB nor FS works, return 404
       return new NextResponse("Not Found", { status: 404 });
     }
   } catch (error) {

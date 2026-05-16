@@ -5,10 +5,6 @@
       "schedule": "0 7 * * *"
     },
     {
-      "path": "/api/cron/archive",
-      "schedule": "0 3 1 9 *"
-    },
-    {
       "path": "/api/cron/purge-archives",
       "schedule": "0 6 * * *"
     }

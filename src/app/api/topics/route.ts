@@ -10,7 +10,6 @@ import { isEligibleForType } from '@/types/internship';
 import type { StudentLevel, InternshipType } from '@/types/internship';
 import { randomUUID } from 'crypto';
 
-// NFR-P2: cache academic year for 1 minute
 let cachedYear: { year: string; expiry: number } | null = null;
 const YEAR_CACHE_TTL = 60 * 1000;
 
@@ -20,9 +19,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  // Only Students and Companies can propose topics
   if (session.user.role === 'ADMIN' || session.user.role === 'TEACHER') {
-    const errorMsg = session.user.role === 'ADMIN' 
+    const errorMsg = session.user.role === 'ADMIN'
       ? 'Admins manage topics, they do not propose them'
       : 'Teachers are not authorized to propose topics';
     return NextResponse.json(
@@ -35,7 +33,6 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const validatedData = topicSchema.parse(body);
 
-    // Enforce internship type eligibility for students
     if (session.user.role === 'STUDENT' && validatedData.internshipType) {
       const studentLevel = (session.user as any).level as StudentLevel | undefined;
       if (!isEligibleForType(studentLevel, validatedData.internshipType as InternshipType)) {
@@ -47,10 +44,9 @@ export async function POST(req: NextRequest) {
     }
 
     const result = await prisma.$transaction(async (tx: any) => {
-      // 1. Create Topic
       const isStudent = session.user.role === 'STUDENT';
       const studentLevel = (session.user as any).level;
-      
+
       const topic = await tx.topic.create({
         data: {
           id: randomUUID(),
@@ -71,7 +67,6 @@ export async function POST(req: NextRequest) {
         },
       });
 
-      // 2. Handle Binôme if applicable
       if (validatedData.maxStudents === 2 && validatedData.partnerId) {
         const partner = await tx.studentProfile.findUnique({
           where: { studentId: validatedData.partnerId },
@@ -101,7 +96,6 @@ export async function POST(req: NextRequest) {
         });
       }
 
-      // 3. Create initial admin validation step
       await tx.validation.create({
         data: {
           id: randomUUID(),
@@ -124,7 +118,7 @@ export async function POST(req: NextRequest) {
     });
 
     const admins = await prisma.user.findMany({
-      where: { 
+      where: {
         role: 'ADMIN',
         ...(validatedData.filiereId ? {
           OR: [
@@ -185,21 +179,16 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  // NFR-SC2: pagination — max 20 records per page
   const page = Math.max(1, parseInt(searchParams.get('page') ?? '1', 10));
   const limit = Math.min(20, Math.max(1, parseInt(searchParams.get('limit') ?? '20', 10)));
   const skip = (page - 1) * limit;
-
-  // Determine which internship types this user can see
   let allowedInternshipTypes: string[] | undefined;
 
   const where: Record<string, any> = {};
 
-  // Manually-archived topics never appear in the active lists — only in Archives.
   where.archivedAt = null;
 
   try {
-    // Get IDs of topics that are linked to COMPLETED or CANCELLED internships
     try {
       const completedInternships = await prisma.internship.findMany({
         where: { status: { in: ['COMPLETED', 'CANCELLED'] } },
@@ -210,12 +199,7 @@ export async function GET(req: NextRequest) {
         where.id = { notIn: completedTopicIds };
       }
     } catch {
-      // Non-critical — show all topics if this fails
     }
-
-    // ── ACADEMIC YEAR FILTER ────────────────────────────────────────────────
-    // Admins see all years by default unless specified.
-    // Students/Teachers are locked to the current year by default.
     if (academicYear && academicYear !== 'all' && academicYear !== 'N/A') {
       where.academicYear = academicYear;
     } else if (session.user.role !== 'ADMIN') {
@@ -223,11 +207,6 @@ export async function GET(req: NextRequest) {
       if (currentYear && currentYear !== 'N/A') where.academicYear = currentYear;
     }
 
-    // A REJECTED topic from a PAST year is closed business — it lives ONLY in
-    // the Archives, never on the active site (dashboard / topic lists). Only
-    // the *current* year's rejected topics stay visible (Rejected filter) so
-    // the admin can still manage them. Completed topics are already excluded
-    // above via the COMPLETED/CANCELLED-internship id filter.
     const systemYear =
       cachedYear && cachedYear.expiry > Date.now()
         ? cachedYear.year
@@ -236,9 +215,7 @@ export async function GET(req: NextRequest) {
       where.NOT = { status: 'REJECTED', academicYear: { not: systemYear } };
     }
 
-    // ── ROLE-BASED VISIBILITY & FILTERS ────────────────────────────────────
     if (session.user.role === 'ADMIN') {
-      // Admins see topics in their department (or all if super admin or unassigned)
       if (session.user.isSuperAdmin) {
         if (filiereFilter && filiereFilter !== 'ALL') {
           where.filiereId = filiereFilter;
@@ -260,7 +237,6 @@ export async function GET(req: NextRequest) {
       if (assigned === 'false') where.assignedTeacherId = null;
 
     } else if (session.user.role === 'STUDENT') {
-      // Students see topics open for selection OR their own proposals (even if pending)
       where.OR = [
         { status: 'OPEN_FOR_SELECTION' },
         { proposedById: session.user.id }
@@ -277,7 +253,6 @@ export async function GET(req: NextRequest) {
       }
 
     } else if (session.user.role === 'TEACHER') {
-      // Teachers see assigned topics, their applications, or approved unassigned topics
       where.OR = [
         { assignedTeacherId: session.user.id },
         { teacherapplication: { some: { teacherId: session.user.id } } },
@@ -285,8 +260,6 @@ export async function GET(req: NextRequest) {
           AND: [
             { status: 'APPROVED' },
             { assignedTeacherId: null },
-            // Strictly scope the marketplace to the teacher's own department.
-            // No department → see nothing here (never every department's topics).
             { filiereId: session.user.filiereId ?? '__no_department__' },
           ]
         }
@@ -299,7 +272,6 @@ export async function GET(req: NextRequest) {
       where.proposedById = session.user.id;
     }
 
-    // Apply internship type restriction if applicable
     if (allowedInternshipTypes) {
       where.internshipType = { in: allowedInternshipTypes };
     } else if (internshipTypeFilter && internshipTypeFilter !== 'ALL') {
@@ -310,7 +282,6 @@ export async function GET(req: NextRequest) {
       where.type = typeFilter;
     }
 
-    // NFR-P2: explicit field selection
     const baseSelect = {
       id: true,
       title: true,
@@ -344,12 +315,12 @@ export async function GET(req: NextRequest) {
 
     const topicSelect = session.user.role === 'TEACHER'
       ? {
-          ...baseSelect,
-          teacherapplication: {
-            where: { teacherId: session.user.id },
-            select: { id: true, status: true },
-          },
-        }
+        ...baseSelect,
+        teacherapplication: {
+          where: { teacherId: session.user.id },
+          select: { id: true, status: true },
+        },
+      }
       : baseSelect;
 
     const [rawTopics, total] = await Promise.all([
@@ -363,7 +334,6 @@ export async function GET(req: NextRequest) {
       prisma.topic.count({ where }),
     ]);
 
-    // Format for client consumption
     const topics = rawTopics.map((t: any) => ({
       ...t,
       teacherApplications: t.teacherapplication || [],

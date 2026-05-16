@@ -19,8 +19,6 @@ const studentProposalSchema = z.object({
   supportingDocUrl: z.string().url().optional(),
 });
 
-// POST /api/topics/student-proposal
-// Students submit PATH B proposals (topic + company info)
 export async function POST(req: NextRequest) {
   const session = await auth();
 
@@ -28,7 +26,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  // Only students can submit proposals via this route
   if (session.user.role !== 'STUDENT') {
     return NextResponse.json(
       { error: 'Only students can submit topic proposals via this route' },

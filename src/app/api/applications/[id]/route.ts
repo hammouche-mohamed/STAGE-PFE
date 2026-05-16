@@ -23,7 +23,7 @@ export async function PATCH(
 
     const application = await prisma.studentApplication.findUnique({
       where: { id },
-      include: { 
+      include: {
         topic: true,
         studentteam: {
           include: {
@@ -62,7 +62,7 @@ export async function PATCH(
       });
     }
 
-    // If accepted, notify the super admins or department admins
+
     if (status === "ACCEPTED" && application.topic.filiereId) {
       const deptAdmins = await prisma.user.findMany({
         where: {
@@ -74,7 +74,7 @@ export async function PATCH(
         }
       } as any);
       for (const admin of deptAdmins) {
-         await NotificationService.trigger({
+        await NotificationService.trigger({
           userId: admin.id,
           type: "APPLICATION_STATUS_UPDATE",
           title: "Company Validation Complete",

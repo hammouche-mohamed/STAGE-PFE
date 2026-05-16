@@ -3,9 +3,7 @@ import prisma from '@/lib/prisma';
 import { auth } from '@/lib/auth';
 import { InternshipService } from '@/lib/services/internship.service';
 
-// POST /api/internships/[id]/complete
-// Admin confirms the final report after BOTH teacher and company have validated.
-// Status must be PENDING_ADMIN_CONFIRMATION — service enforces this guard.
+
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
@@ -23,7 +21,6 @@ export async function POST(
   try {
     const { id } = await params;
 
-    // Dept Admin Scoping Check
     if (!session.user.isSuperAdmin && session.user.filiereId) {
       const internship = await prisma.internship.findUnique({
         where: { id },

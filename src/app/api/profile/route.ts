@@ -12,7 +12,6 @@ export async function GET(req: NextRequest) {
 
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
-    // NFR-P2: explicit select — never return the password hash to the client
     select: {
       id: true, name: true, email: true, role: true, avatarUrl: true, department: true,
       isActive: true, mustChangePassword: true, createdAt: true, updatedAt: true,
@@ -23,25 +22,24 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Profile not found" }, { status: 404 });
   }
 
-  // Fetch the role-specific profile separately to bypass missing schema relations
   const extendedUser = { ...user } as any;
-  
+
   if (user.role === 'STUDENT') {
-    extendedUser.studentProfile = await prisma.studentProfile.findUnique({ 
+    extendedUser.studentProfile = await prisma.studentProfile.findUnique({
       where: { userId: user.id },
       include: { filiere: true }
     });
   } else if (user.role === 'TEACHER') {
-    extendedUser.teacherProfile = await prisma.teacherProfile.findUnique({ 
+    extendedUser.teacherProfile = await prisma.teacherProfile.findUnique({
       where: { userId: user.id },
       include: { filiere: true }
     });
   } else if (user.role === 'COMPANY') {
-    extendedUser.companyProfile = await prisma.companyProfile.findUnique({ 
-      where: { userId: user.id } 
+    extendedUser.companyProfile = await prisma.companyProfile.findUnique({
+      where: { userId: user.id }
     });
   } else if (user.role === 'ADMIN') {
-    extendedUser.adminProfile = await prisma.adminProfile.findUnique({ 
+    extendedUser.adminProfile = await prisma.adminProfile.findUnique({
       where: { userId: user.id },
       include: { filiere: true }
     });
@@ -68,7 +66,6 @@ export async function PUT(req: NextRequest) {
     return NextResponse.json({ error: "Profile not found" }, { status: 404 });
   }
 
-  // NFR-S5: server-side input validation
   if (name !== undefined && typeof name === 'string' && name.trim().length < 2) {
     return NextResponse.json({ error: "Name must be at least 2 characters." }, { status: 400 });
   }
@@ -111,7 +108,6 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: "New password cannot be the same as your current password." }, { status: 400 });
     }
 
-    // NFR-S1: minimum 12 bcrypt salt rounds on every password write
     data.password = await bcrypt.hash(newPassword, 12);
     data.mustChangePassword = false;
   }
@@ -121,7 +117,6 @@ export async function PUT(req: NextRequest) {
     data,
   });
 
-  // Track what actually changed so the audit row is informative.
   const changed: string[] = [];
   if (name !== undefined && name !== user.name) changed.push("name");
   if (email !== undefined && email !== user.email) changed.push("email");
@@ -138,7 +133,6 @@ export async function PUT(req: NextRequest) {
     });
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { password, ...safeUser } = updatedUser;
   return NextResponse.json({ data: safeUser });
 }

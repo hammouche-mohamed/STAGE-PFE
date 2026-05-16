@@ -17,12 +17,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
     }
 
-    // Validate it's an image
     if (!file.type.startsWith("image/")) {
       return NextResponse.json({ error: "Only image files are allowed" }, { status: 400 });
     }
 
-    // Validate file size (max 4MB)
     if (file.size > 4 * 1024 * 1024) {
       return NextResponse.json({ error: "File size must be under 4MB" }, { status: 400 });
     }
@@ -30,7 +28,6 @@ export async function POST(req: NextRequest) {
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
-    // Store in DB
     const fileId = randomUUID();
     await prisma.$executeRawUnsafe(
       "INSERT INTO upload (id, fileName, fileType, content) VALUES (?, ?, ?, ?)",
@@ -42,7 +39,6 @@ export async function POST(req: NextRequest) {
 
     const publicUrl = `/api/files/${fileId}`;
 
-    // Save to database
     await prisma.systemSettings.upsert({
       where: { key: "universityLogo" },
       update: { value: publicUrl, updatedAt: new Date() },

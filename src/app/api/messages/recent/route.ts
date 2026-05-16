@@ -2,10 +2,7 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 
-// GET /api/messages/recent
-// Returns the latest messages from every internship the current user is
-// involved in (as student / teacher / company-owner). Used by the student
-// dashboard's "Recent messages" widget.
+
 export async function GET() {
   const session = await auth();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -14,7 +11,6 @@ export async function GET() {
     const userId = session.user.id;
     const role = session.user.role;
 
-    // Resolve which internships this user is a participant of, based on role.
     let internshipIds: string[] = [];
 
     if (role === "STUDENT") {
@@ -36,8 +32,6 @@ export async function GET() {
       });
       internshipIds = owned.map((i) => i.id);
     } else if (role === "ADMIN") {
-      // For admin we don't surface a "recent messages" feed by default —
-      // they read messages inside a specific internship view.
       return NextResponse.json({ data: [] });
     }
 
