@@ -18,10 +18,8 @@ export class AuditService {
     ipAddress?: string | null;
   }) {
     try {
-      // Auto-cleanup trigger (1% chance to run on log creation)
-      if (Math.random() < 0.01) {
-        this.cleanupOldLogs();
-      }
+      // Audit logs are append-only compliance records — retained
+      // indefinitely and never auto-pruned.
 
       return await prisma.auditLog.create({
         data: {
@@ -40,22 +38,14 @@ export class AuditService {
   }
 
   /**
-   * Deletes logs older than 365 days to prevent database bloat
+   * Retained for API compatibility. Audit logs are compliance records and
+   * are NEVER deleted (never expire, kept in the archive indefinitely), so
+   * this is intentionally a no-op that purges nothing.
    */
   static async cleanupOldLogs() {
     try {
-      const oneYearAgo = new Date();
-      oneYearAgo.setDate(oneYearAgo.getDate() - 365);
-
-      const deleted = await prisma.auditLog.deleteMany({
-        where: {
-          createdAt: {
-            lt: oneYearAgo,
-          },
-        },
-      });
-      // silent cleanup — count returned to caller
-      return deleted.count;
+      // No-op: audit logs are kept forever by policy.
+      return 0;
     } catch (error) {
       console.error("Audit cleanup failed:", error);
       return 0;

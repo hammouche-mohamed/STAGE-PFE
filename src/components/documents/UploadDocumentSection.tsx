@@ -36,10 +36,6 @@ export const UploadDocumentSection: React.FC<UploadDocumentSectionProps> = ({
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files?.[0]) {
       const file = e.target.files[0];
-      if (file.size > 16 * 1024 * 1024) {
-        toast.error("File size exceeds 16MB limit");
-        return;
-      }
       setSelectedFile(file);
     }
   };
@@ -135,7 +131,6 @@ export const UploadDocumentSection: React.FC<UploadDocumentSectionProps> = ({
             ref={fileInputRef}
             onChange={handleFileSelect}
             className="hidden"
-            accept=".pdf,image/*,.doc,.docx"
           />
 
           {!selectedFile ? (

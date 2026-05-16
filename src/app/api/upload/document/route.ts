@@ -3,16 +3,6 @@ import { auth } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { randomUUID } from "crypto";
 
-const ALLOWED_MIME = new Set([
-  "application/pdf",
-  "application/msword",
-  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-  "image/png",
-  "image/jpeg",
-  "application/zip",
-  "text/plain",
-]);
-
 export async function POST(req: NextRequest) {
   try {
     const session = await auth();
@@ -29,17 +19,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         { error: "Missing required fields: file, internshipId, and type are all required." },
         { status: 400 },
-      );
-    }
-
-    if (file.size > 16 * 1024 * 1024) {
-      return NextResponse.json({ error: "File size must be under 16 MB." }, { status: 400 });
-    }
-
-    if (!ALLOWED_MIME.has(file.type)) {
-      return NextResponse.json(
-        { error: "File type not allowed. Accepted: PDF, Word, PNG, JPEG, ZIP, TXT." },
-        { status: 415 },
       );
     }
 

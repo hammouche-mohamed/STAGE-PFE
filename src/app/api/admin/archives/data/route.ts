@@ -124,11 +124,12 @@ export async function GET(req: NextRequest) {
             ...(internshipTypeFilter && internshipTypeFilter !== 'ALL'
               ? { internshipType: internshipTypeFilter as any }
               : {}),
-            OR: [
-              { status: 'REJECTED' },
-              { status: 'TAKEN', internship: { status: { in: FINISHED_STATUSES } } },
-              { archivedAt: { not: null } },
-            ],
+            // A topic belongs in Archives only once its year has actually been
+            // archived (the "Archive Year" action stamps archivedAt on the
+            // REJECTED and finished-TAKEN topics for that year). Matching on
+            // status alone would surface rejected/finished topics of a still
+            // active year here AND in the Topics > Rejected tab.
+            archivedAt: { not: null },
           } as any,
           include: {
             proposedBy: { select: { name: true, email: true } },

@@ -10,9 +10,10 @@ import { AuditService } from "./audit.service";
  * - Archiving a new year pushes the oldest (now 4th) into a 3-day deletion
  *   countdown. During those 3 days the Super Admin is warned daily (in-app
  *   + email) and can still download that year's data from Archives.
- * - After 3 days a cron purges EVERYTHING for that year (topics, internships
- *   and — via DB cascade — their applications, documents, messages,
- *   validations) plus that year's audit-log window. This is irreversible.
+ * - After 3 days a cron purges the year's topics, internships and — via DB
+ *   cascade — their applications, documents, messages and validations. This
+ *   is irreversible. Audit logs are compliance records and are deliberately
+ *   EXCLUDED from the purge: they are retained indefinitely.
  *
  * State is stored in SystemSettings JSON (no schema change):
  *   - "archivedYears"        : string[]  (most-recent-first, max 3 visible)
@@ -140,32 +141,30 @@ function daysBetween(from: Date, to: Date): number {
 }
 
 /**
- * Permanently purge EVERYTHING for one academic year. Irreversible.
+ * Permanently purge a year's operational data. Irreversible.
  *
  * Thanks to `onDelete: Cascade` on the schema, deleting the year's
  * internships and topics cascades to their InternshipStudent, Document,
  * Message, MiniPresentation, StudentApplication, TeacherApplication and
- * Validation rows. Audit logs are time-boxed to the academic-year window.
+ * Validation rows.
+ *
+ * Audit logs are intentionally NOT deleted — they are compliance records
+ * kept indefinitely so the full history remains in the archive.
  */
 export async function purgeYear(year: string): Promise<{
   topics: number;
   internships: number;
   auditLogs: number;
 }> {
-  const { start, end } = academicYearWindow(year);
-
-  const [internshipsRes, topicsRes, auditRes] = await prisma.$transaction([
+  const [internshipsRes, topicsRes] = await prisma.$transaction([
     (prisma as any).internship.deleteMany({ where: { academicYear: year } }),
     (prisma as any).topic.deleteMany({ where: { academicYear: year } }),
-    (prisma as any).auditLog.deleteMany({
-      where: { createdAt: { gte: start, lt: end } },
-    }),
   ]);
 
   return {
     internships: internshipsRes.count ?? 0,
     topics: topicsRes.count ?? 0,
-    auditLogs: auditRes.count ?? 0,
+    auditLogs: 0, // audit logs are retained forever, never purged
   };
 }
 

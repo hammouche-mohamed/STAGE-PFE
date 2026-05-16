@@ -141,7 +141,7 @@ export default function AdminTopicDetailPage() {
     setEditData(prev => ({ ...prev, targetLevels: selectedLevels.join(",") }));
   }, [selectedLevels]);
 
-  const handleUpdate = async (overrideData?: any) => {
+  const handleUpdate = async (overrideData?: any): Promise<boolean> => {
     setIsUpdating(true);
     try {
       const res = await fetch(`/api/topics/${id}`, {
@@ -151,16 +151,19 @@ export default function AdminTopicDetailPage() {
       });
 
       if (!res.ok) throw new Error("Update failed");
-      
+
       const result = await res.json();
       toast.success(overrideData ? "Action processed successfully" : "Topic updated successfully");
       setTopic(result.data);
-      
-      if (!overrideData && (editData.status === "REJECTED" || editData.status === "OPEN_FOR_SELECTION")) {
+
+      const finalStatus = (overrideData || editData).status;
+      if (finalStatus === "REJECTED" || finalStatus === "OPEN_FOR_SELECTION") {
          router.push("/admin/topics");
       }
+      return true;
     } catch (error) {
       toast.error("Failed to update topic");
+      return false;
     } finally {
       setIsUpdating(false);
     }
@@ -171,9 +174,12 @@ export default function AdminTopicDetailPage() {
     setIsApproveDialogOpen(true);
   };
 
-  const confirmApprove = () => {
+  const confirmApprove = async () => {
     setIsApproveDialogOpen(false);
-    handleUpdate({ ...editData, status: "OPEN_FOR_SELECTION" });
+    const ok = await handleUpdate({ ...editData, status: "OPEN_FOR_SELECTION" });
+    if (ok) {
+      router.push("/admin/topics");
+    }
   };
 
   const handleReject = () => {
@@ -219,8 +225,11 @@ export default function AdminTopicDetailPage() {
 
         {session?.user?.role === "ADMIN" && !session?.user?.isSuperAdmin && (
           <div className="flex items-center gap-3">
-            <Button 
-              onClick={() => handleUpdate()} 
+            <Button
+              onClick={async () => {
+                const ok = await handleUpdate();
+                if (ok) router.push("/admin/topics");
+              }}
               isLoading={isUpdating}
               size="sm"
               className="shadow-md"

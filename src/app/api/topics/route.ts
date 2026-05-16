@@ -207,11 +207,18 @@ export async function GET(req: NextRequest) {
       if (currentYear && currentYear !== 'N/A') where.academicYear = currentYear;
     }
 
+    // Hide stale rejected topics from past years to declutter student/teacher
+    // views. Admins manage topics across every year (the page requests
+    // academicYear=all), so this restriction must NOT apply to them — otherwise
+    // a rejected topic whose year differs from the configured system year would
+    // silently vanish from the admin "Rejected" tab.
+    const adminViewingAllYears =
+      session.user.role === 'ADMIN' && (!academicYear || academicYear === 'all');
     const systemYear =
       cachedYear && cachedYear.expiry > Date.now()
         ? cachedYear.year
         : await SettingsService.getCurrentAcademicYear();
-    if (systemYear && systemYear !== 'N/A') {
+    if (!adminViewingAllYears && systemYear && systemYear !== 'N/A') {
       where.NOT = { status: 'REJECTED', academicYear: { not: systemYear } };
     }
 
