@@ -36,6 +36,7 @@ export default function CompanyInternshipsPage() {
   const { t, isRTL } = useTranslation();
   const [internships, setInternships] = useState<Internship[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [filter, setFilter] = useState<"ALL" | "PENDING">("ALL");
 
   const fetchInternships = async () => {
     try {
@@ -53,24 +54,62 @@ export default function CompanyInternshipsPage() {
     fetchInternships();
   }, []);
 
+  const pendingCount = internships.filter((i) => (i.pendingDocuments ?? 0) > 0).length;
+  const visibleInternships =
+    filter === "PENDING"
+      ? internships.filter((i) => (i.pendingDocuments ?? 0) > 0)
+      : internships;
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-[17px] font-semibold text-gray-900 dark:text-white">{t("common.internships")}</h1>
           <p className="text-[13px] text-gray-500 dark:text-gray-400 mt-0.5">{t("dashboard.activeInternships")}</p>
+        </div>
+
+        {/* Filter: all vs. only those with documents awaiting validation */}
+        <div className="inline-flex rounded-md border border-gray-200 dark:border-slate-700 p-0.5 bg-gray-50 dark:bg-slate-800/50 self-start">
+          <button
+            onClick={() => setFilter("ALL")}
+            className={`px-3 py-1.5 text-[12px] font-semibold rounded transition-colors ${
+              filter === "ALL"
+                ? "bg-white dark:bg-slate-900 text-gray-900 dark:text-white shadow-sm"
+                : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+            }`}
+          >
+            {t("common.all", { defaultValue: "All" })}
+          </button>
+          <button
+            onClick={() => setFilter("PENDING")}
+            className={`px-3 py-1.5 text-[12px] font-semibold rounded transition-colors inline-flex items-center gap-1.5 ${
+              filter === "PENDING"
+                ? "bg-white dark:bg-slate-900 text-green-700 dark:text-green-400 shadow-sm"
+                : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+            }`}
+          >
+            <span className="h-2 w-2 rounded-full bg-green-500" />
+            {t("documents.needsValidation", { defaultValue: "Needs validation" })}
+            {pendingCount > 0 && (
+              <span className="ml-1 bg-green-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                {pendingCount}
+              </span>
+            )}
+          </button>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {isLoading ? (
           <div className="col-span-full text-center py-12 text-gray-400 dark:text-gray-500">{t("common.loading")}</div>
-        ) : internships.length === 0 ? (
+        ) : visibleInternships.length === 0 ? (
           <div className="col-span-full text-center py-12 text-gray-400 dark:text-gray-500 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-md">
-            {t("common.noData")}
+            {filter === "PENDING"
+              ? t("documents.noneToValidate", { defaultValue: "Nothing awaiting validation." })
+              : t("common.noData")}
           </div>
         ) : (
-          internships.map((internship) => (
+          visibleInternships.map((internship) => (
             <div key={internship.id} className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-md p-5 flex flex-col justify-between hover:border-indigo-400 dark:hover:border-indigo-900 transition-all shadow-sm group">
               <div className="space-y-3">
                 <div className="flex items-center gap-2 flex-wrap">

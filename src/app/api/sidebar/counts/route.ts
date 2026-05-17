@@ -71,7 +71,7 @@ export async function GET(req: NextRequest) {
       counts["/teacher/documents"] = docCount;
       counts["/teacher/messages"] = msgCount;
     } else if (role === "COMPANY") {
-      const [appCount, msgCount] = await Promise.all([
+      const [appCount, msgCount, docCount] = await Promise.all([
         prisma.studentApplication.count({
           where: { topic: { proposedById: userId }, status: "PENDING" },
         }),
@@ -84,10 +84,18 @@ export async function GET(req: NextRequest) {
             senderId: { not: userId },
             messageread: { none: { userId } },
           } as any,
-        })
+        }),
+        // Documents uploaded on this company's internships awaiting its review
+        prisma.document.count({
+          where: {
+            internship: { topic: { proposedById: userId } },
+            status: "UPLOADED",
+          },
+        }),
       ]);
       counts["/company/applications"] = appCount;
       counts["/company/messages"] = msgCount;
+      counts["/company/internships"] = docCount;
     } else if (role === "STUDENT") {
       const [invitCount, msgCount] = await Promise.all([
         prisma.binomeinvitation.count({
