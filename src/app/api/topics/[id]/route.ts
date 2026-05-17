@@ -212,6 +212,20 @@ export async function PATCH(
       }
     }
 
+    // The department admin must set target study level(s) before a topic is
+    // opened for selection. Company proposals never carry levels; student
+    // proposals inherit the proposer's level, so they're exempt.
+    if (status === "OPEN_FOR_SELECTION" && !topic.proposedByStudent) {
+      const effectiveLevels =
+        targetLevels !== undefined ? targetLevels : topic.targetLevels;
+      if (!effectiveLevels || !String(effectiveLevels).trim()) {
+        return NextResponse.json(
+          { error: "Select at least one target study level (L1–M2) before publishing this topic." },
+          { status: 400 },
+        );
+      }
+    }
+
     const updated = await prisma.topic.update({
       where: { id },
       data: {

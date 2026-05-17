@@ -96,16 +96,6 @@ export async function POST(req: NextRequest) {
         });
       }
 
-      await tx.validation.create({
-        data: {
-          id: randomUUID(),
-          topicId: topic.id,
-          validatorId: 'SYSTEM',
-          step: 'ADMIN',
-          status: 'PENDING',
-        },
-      });
-
       return topic;
     });
 

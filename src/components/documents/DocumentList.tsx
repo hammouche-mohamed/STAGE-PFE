@@ -15,9 +15,11 @@ interface DocumentListProps {
   onReview?: (id: string, status: "APPROVED" | "REJECTED", comment: string) => void;
   onDelete?: (id: string) => void;
   canReview?: boolean;
+  /** Who is reviewing — so each party only sees its OWN pending decision. */
+  viewerRole?: "TEACHER" | "COMPANY";
 }
 
-export const DocumentList: React.FC<DocumentListProps> = ({ documents, onReview, onDelete, canReview }) => {
+export const DocumentList: React.FC<DocumentListProps> = ({ documents, onReview, onDelete, canReview, viewerRole }) => {
   const { t } = useTranslation();
   
   const [reviewModal, setReviewModal] = useState<{
@@ -69,45 +71,110 @@ export const DocumentList: React.FC<DocumentListProps> = ({ documents, onReview,
     return t(`documents.types.${type}` as any) || type.replace(/_/g, " ");
   };
 
-  const renderActions = (doc: InternshipDocument) => (
-    <div className="flex items-center justify-end space-x-1">
-      <a
-        href={doc.fileUrl}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="p-1.5 text-gray-400 dark:text-gray-500 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-md transition-all"
-        title="View"
-      >
-        <Eye className="h-4 w-4" />
-      </a>
-      <a
-        href={doc.fileUrl}
-        download={doc.fileName}
-        className="p-1.5 text-gray-400 dark:text-gray-500 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-md transition-all"
-        title="Download"
-      >
-        <Download className="h-4 w-4" />
-      </a>
+  // Small "who has validated so far" chips, shown next to the status.
+  const renderApprovalChips = (doc: InternshipDocument) => {
+    if (!doc.approvedByTeacher && !doc.approvedByCompany) return null;
+    return (
+      <div className="flex flex-wrap items-center gap-1">
+        {doc.approvedByTeacher && (
+          <span className="inline-flex items-center gap-1 rounded-full bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800/40 px-1.5 py-0.5 text-[10px] font-semibold text-green-700 dark:text-green-400">
+            <Check className="h-2.5 w-2.5" />
+            {t("dashboard.supervisor", { defaultValue: "Supervisor" })}
+          </span>
+        )}
+        {doc.approvedByCompany && (
+          <span className="inline-flex items-center gap-1 rounded-full bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800/40 px-1.5 py-0.5 text-[10px] font-semibold text-green-700 dark:text-green-400">
+            <Check className="h-2.5 w-2.5" />
+            {t("documents.companyShort", { defaultValue: "Company" })}
+          </span>
+        )}
+      </div>
+    );
+  };
 
-      {canReview && doc.status === "UPLOADED" && (
+  // A missing/empty fileUrl would make the <a> navigate to the current page
+  // (the "blank page" symptom). Build explicit URLs and disable the buttons
+  // when there is no file.
+  const fileLinks = (doc: InternshipDocument) => {
+    if (!doc.fileUrl) return null;
+    const sep = doc.fileUrl.includes("?") ? "&" : "?";
+    return {
+      view: doc.fileUrl,
+      download: `${doc.fileUrl}${sep}download=1&name=${encodeURIComponent(doc.fileName)}`,
+    };
+  };
+
+  const renderActions = (doc: InternshipDocument) => {
+    const links = fileLinks(doc);
+    return (
+    <div className="flex items-center justify-end space-x-1">
+      {links ? (
         <>
-          <span className="mx-1 h-4 w-px bg-gray-200 dark:bg-slate-700" aria-hidden="true" />
-          <button
-            onClick={() => handleOpenReview(doc.id, "APPROVED")}
-            className="p-1.5 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-md transition-all"
-            title="Approve"
+          <a
+            href={links.view}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="p-1.5 text-gray-400 dark:text-gray-500 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-md transition-all"
+            title="View"
           >
-            <Check className="h-4 w-4" />
-          </button>
-          <button
-            onClick={() => handleOpenReview(doc.id, "REJECTED")}
-            className="p-1.5 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition-all"
-            title="Reject"
+            <Eye className="h-4 w-4" />
+          </a>
+          <a
+            href={links.download}
+            className="p-1.5 text-gray-400 dark:text-gray-500 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-md transition-all"
+            title="Download"
           >
-            <X className="h-4 w-4" />
-          </button>
+            <Download className="h-4 w-4" />
+          </a>
         </>
+      ) : (
+        <span
+          className="p-1.5 text-gray-300 dark:text-slate-700 cursor-not-allowed"
+          title={t("documents.fileUnavailable", { defaultValue: "File unavailable" })}
+        >
+          <Eye className="h-4 w-4" />
+        </span>
       )}
+
+      {canReview && doc.status === "UPLOADED" && (() => {
+        const alreadyReviewed =
+          (viewerRole === "TEACHER" && doc.approvedByTeacher) ||
+          (viewerRole === "COMPANY" && doc.approvedByCompany);
+
+        if (alreadyReviewed) {
+          return (
+            <>
+              <span className="mx-1 h-4 w-px bg-gray-200 dark:bg-slate-700" aria-hidden="true" />
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800/40 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 dark:text-emerald-400">
+                <Check className="h-3.5 w-3.5" />
+                {t("documents.youApprovedAwaiting", {
+                  defaultValue: "You approved — awaiting the other party",
+                })}
+              </span>
+            </>
+          );
+        }
+
+        return (
+          <>
+            <span className="mx-1 h-4 w-px bg-gray-200 dark:bg-slate-700" aria-hidden="true" />
+            <button
+              onClick={() => handleOpenReview(doc.id, "APPROVED")}
+              className="p-1.5 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-md transition-all"
+              title="Approve"
+            >
+              <Check className="h-4 w-4" />
+            </button>
+            <button
+              onClick={() => handleOpenReview(doc.id, "REJECTED")}
+              className="p-1.5 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition-all"
+              title="Reject"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </>
+        );
+      })()}
 
       {onDelete && (
         <button
@@ -131,7 +198,8 @@ export const DocumentList: React.FC<DocumentListProps> = ({ documents, onReview,
         </button>
       )}
     </div>
-  );
+    );
+  };
 
   return (
     <div className="space-y-4">
@@ -162,7 +230,10 @@ export const DocumentList: React.FC<DocumentListProps> = ({ documents, onReview,
                     </span>
                   </div>
                 </div>
-                <StatusBadge status={doc.status} />
+                <div className="flex flex-col items-end gap-1.5 shrink-0">
+                  <StatusBadge status={doc.status} />
+                  {renderApprovalChips(doc)}
+                </div>
               </div>
               <div className="flex items-center justify-between text-[11px] text-gray-500 dark:text-gray-400">
                 <span>
@@ -221,7 +292,10 @@ export const DocumentList: React.FC<DocumentListProps> = ({ documents, onReview,
                     </div>
                   </td>
                   <td>
-                    <StatusBadge status={doc.status} />
+                    <div className="flex flex-col items-start gap-1.5">
+                      <StatusBadge status={doc.status} />
+                      {renderApprovalChips(doc)}
+                    </div>
                   </td>
                   <td className="text-right">
                     {renderActions(doc)}

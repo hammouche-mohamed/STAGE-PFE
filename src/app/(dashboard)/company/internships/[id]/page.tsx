@@ -255,10 +255,11 @@ export default function CompanyInternshipDetailPage() {
              </span>
            </div>
         </h2>
-        <DocumentList 
+        <DocumentList
            documents={documents}
            canReview={true}
            onReview={handleDocumentReview}
+           viewerRole="COMPANY"
         />
       </div>
     </div>

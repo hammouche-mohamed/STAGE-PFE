@@ -79,17 +79,6 @@ export class StudentProposalService {
         },
       });
 
-      // Create admin validation step
-      await tx.validation.create({
-        data: {
-          id: randomUUID(),
-          topicId: created.id,
-          validatorId: 'SYSTEM',
-          step: 'ADMIN',
-          status: 'PENDING',
-        },
-      });
-
       return created;
     });
 

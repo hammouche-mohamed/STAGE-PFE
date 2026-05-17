@@ -3,6 +3,50 @@ import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
+/**
+ * Minimal but valid PDF (browsers / pdf.js render it fine). Used so seeded
+ * documents have a real, viewable/downloadable file instead of a dead
+ * external URL.
+ */
+function demoPdfBuffer(title: string): Buffer {
+  const text = title.replace(/[()\\]/g, "");
+  const pdf = `%PDF-1.1
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 320 200] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>
+endobj
+4 0 obj
+<< /Length 90 >>
+stream
+BT /F1 16 Tf 20 120 Td (${text}) Tj 0 -28 Td /F1 11 Tf (Seeded demo document.) Tj ET
+endstream
+endobj
+5 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+trailer
+<< /Root 1 0 R >>
+%%EOF`;
+  return Buffer.from(pdf, "latin1");
+}
+
+/** Create a real Upload row and return the in-app URL the UI links to. */
+async function createDemoUpload(fileName: string, title: string): Promise<string> {
+  const upload = await prisma.upload.create({
+    data: {
+      fileName,
+      fileType: "application/pdf",
+      content: demoPdfBuffer(title),
+    },
+  });
+  return `/api/uploads/${upload.id}`;
+}
+
 async function main() {
   const archiveYear = "2024-2025";
   const currentYear = "2025-2026";
@@ -214,7 +258,7 @@ async function main() {
         uploadedById: leader.id,
         type: "FINAL_REPORT",
         fileName: `Final_Report_v1.pdf`,
-        fileUrl: "https://example.com/file.pdf",
+        fileUrl: await createDemoUpload("Final_Report_v1.pdf", "Final Report v1"),
         fileSize: 1024 * 1024,
         status: "APPROVED",
         uploadedAt: new Date(`${archiveYear.split('-')[1]}-06-10`),
@@ -314,7 +358,10 @@ async function main() {
         uploadedById: reportStudent.id,
         type: "FINAL_REPORT",
         fileName: `Final_Report_${reportStudent.name.replace(/\s+/g, "_")}.pdf`,
-        fileUrl: "https://example.com/final-report.pdf",
+        fileUrl: await createDemoUpload(
+          `Final_Report_${reportStudent.name.replace(/\s+/g, "_")}.pdf`,
+          `Final Report — ${reportStudent.name}`,
+        ),
         fileSize: 2 * 1024 * 1024,
         // UPLOADED → company detail page renders the Approve / Reject buttons.
         status: "UPLOADED",

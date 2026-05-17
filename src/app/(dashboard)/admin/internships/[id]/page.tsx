@@ -13,9 +13,12 @@ import {
    Calendar,
    CheckCircle2,
    Clock,
-   Briefcase
+   Briefcase,
+   RotateCcw
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { Modal } from "@/components/ui/Modal";
 import { useSession } from "next-auth/react";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { toast } from "sonner";
@@ -65,6 +68,8 @@ interface Internship {
    finalDeadline?: string | null;
    technicalSupervisorName?: string;
    technicalSupervisorEmail?: string;
+   teacherValidatedFinalReport?: boolean;
+   companyValidatedFinalReport?: boolean;
    createdAt: string;
 }
 
@@ -76,6 +81,11 @@ export default function AdminInternshipDetailPage() {
    const [isLoading, setIsLoading] = useState(true);
    const [deadlineInput, setDeadlineInput] = useState("");
    const [isSettingDeadline, setIsSettingDeadline] = useState(false);
+   const [showCompleteConfirm, setShowCompleteConfirm] = useState(false);
+   const [isCompleting, setIsCompleting] = useState(false);
+   const [showRevisionModal, setShowRevisionModal] = useState(false);
+   const [revisionComment, setRevisionComment] = useState("");
+   const [isRequestingRevision, setIsRequestingRevision] = useState(false);
    const { setLabel } = useBreadcrumbs();
 
    const fetchData = async () => {
@@ -123,6 +133,47 @@ export default function AdminInternshipDetailPage() {
       } catch (error: any) {
          setInternship(previousInternship);
          toast.error(error.message);
+      }
+   };
+
+   const handleConfirmCompletion = async () => {
+      setIsCompleting(true);
+      try {
+         const res = await fetch(`/api/internships/${id}/complete`, { method: "POST" });
+         const data = await res.json();
+         if (!res.ok) throw new Error(data.error || "Failed to confirm completion");
+         toast.success(data.message || "Internship confirmed as completed");
+         setShowCompleteConfirm(false);
+         fetchData();
+      } catch (error: any) {
+         toast.error(error.message);
+      } finally {
+         setIsCompleting(false);
+      }
+   };
+
+   const handleRequestRevision = async () => {
+      if (revisionComment.trim().length < 10) {
+         toast.error("Please provide a meaningful revision comment (min 10 characters).");
+         return;
+      }
+      setIsRequestingRevision(true);
+      try {
+         const res = await fetch(`/api/internships/${id}/revision`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ comment: revisionComment.trim() }),
+         });
+         const data = await res.json();
+         if (!res.ok) throw new Error(data.error || "Failed to request revision");
+         toast.success(data.message || "Revision requested. The student has been notified.");
+         setShowRevisionModal(false);
+         setRevisionComment("");
+         fetchData();
+      } catch (error: any) {
+         toast.error(error.message);
+      } finally {
+         setIsRequestingRevision(false);
       }
    };
 
@@ -415,6 +466,50 @@ export default function AdminInternshipDetailPage() {
                      </div>
                   </div>
 
+                  {/* Final Confirmation Panel (Admin Action) — both teacher & company have validated */}
+                  {!session?.user?.isSuperAdmin && internship.status === "PENDING_ADMIN_CONFIRMATION" && (
+                     <div className="bg-white dark:bg-slate-900 border border-indigo-200 dark:border-indigo-900/40 rounded-md p-5 shadow-sm">
+                        <h3 className="text-[12px] font-bold text-indigo-800 dark:text-indigo-400 uppercase tracking-wide mb-1 flex items-center gap-1.5">
+                           <CheckCircle2 className="h-3.5 w-3.5" />
+                           Final Report — Awaiting Your Confirmation
+                        </h3>
+                        <p className="text-[11px] text-gray-500 dark:text-gray-400 mb-3">
+                           The supervisor and the company have both validated the final report.
+                           Confirm to officially complete and archive the internship, or send it
+                           back for revision.
+                        </p>
+                        <div className="space-y-2 mb-4">
+                           <div className="flex items-center gap-2 text-[12px] text-gray-700 dark:text-gray-300">
+                              <CheckCircle2 className="h-3.5 w-3.5 text-green-600 dark:text-green-400" />
+                              Supervisor validated
+                           </div>
+                           <div className="flex items-center gap-2 text-[12px] text-gray-700 dark:text-gray-300">
+                              <CheckCircle2 className="h-3.5 w-3.5 text-green-600 dark:text-green-400" />
+                              Company validated
+                           </div>
+                        </div>
+                        <div className="space-y-2">
+                           <Button
+                              size="sm"
+                              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white"
+                              onClick={() => setShowCompleteConfirm(true)}
+                           >
+                              <CheckCircle2 className="h-3.5 w-3.5 mr-1.5" />
+                              Confirm Completion
+                           </Button>
+                           <Button
+                              size="sm"
+                              variant="outline"
+                              className="w-full"
+                              onClick={() => setShowRevisionModal(true)}
+                           >
+                              <RotateCcw className="h-3.5 w-3.5 mr-1.5" />
+                              Request Revision
+                           </Button>
+                        </div>
+                     </div>
+                  )}
+
                   {/* Set Final Deadline Panel (Admin Action) */}
                   {!session?.user?.isSuperAdmin && internship.status !== 'COMPLETED' && internship.status !== 'CANCELLED' && (
                      <div className="bg-white dark:bg-slate-900 border border-amber-200 dark:border-amber-900/30 rounded-md p-5 shadow-sm">
@@ -472,6 +567,63 @@ export default function AdminInternshipDetailPage() {
                   </div>
                </div>
          </div>
+
+         <ConfirmDialog
+            isOpen={showCompleteConfirm}
+            onClose={() => setShowCompleteConfirm(false)}
+            onConfirm={handleConfirmCompletion}
+            title="Confirm Internship Completion"
+            description="This officially marks the internship as COMPLETED and archives it. All parties will be notified. This action cannot be undone."
+            confirmLabel="Confirm Completion"
+            variant="warning"
+            isLoading={isCompleting}
+         />
+
+         <Modal
+            isOpen={showRevisionModal}
+            onClose={() => {
+               if (!isRequestingRevision) {
+                  setShowRevisionModal(false);
+                  setRevisionComment("");
+               }
+            }}
+            title="Request Revision"
+            footer={
+               <>
+                  <Button
+                     variant="outline"
+                     onClick={() => {
+                        setShowRevisionModal(false);
+                        setRevisionComment("");
+                     }}
+                     disabled={isRequestingRevision}
+                  >
+                     Cancel
+                  </Button>
+                  <Button
+                     onClick={handleRequestRevision}
+                     isLoading={isRequestingRevision}
+                     disabled={revisionComment.trim().length < 10}
+                  >
+                     Send Back for Revision
+                  </Button>
+               </>
+            }
+         >
+            <div className="space-y-3">
+               <p className="text-[13px] text-gray-600 dark:text-gray-300">
+                  This resets both validation gates — the student must resubmit, and the
+                  supervisor and company must validate again. Explain what needs to change:
+               </p>
+               <textarea
+                  className="w-full min-h-[120px] text-[13px] p-3 border border-gray-200 dark:border-slate-700 rounded-md bg-white dark:bg-slate-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50 resize-y"
+                  placeholder="Reason for revision (min 10 characters)…"
+                  value={revisionComment}
+                  onChange={(e) => setRevisionComment(e.target.value)}
+                  autoFocus
+               />
+            </div>
+         </Modal>
       </div>
    );
 }

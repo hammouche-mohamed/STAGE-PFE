@@ -49,14 +49,154 @@ export async function PATCH(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
+    // The teacher (academic supervisor) and the company validate INDEPENDENTLY.
+    // A single shared `status` would make one party's decision silently apply
+    // to the other, so we track each side separately and only resolve the
+    // overall status from the combination.
+    //
+    // The final report needs BOTH the supervisor and the company. Every other
+    // document type is reviewed by the supervisor only (the company-review
+    // endpoint is likewise final-report-only), so it keeps the old behaviour.
+    const requiresBoth = document.type === "FINAL_REPORT";
+    const approving = status === "APPROVED";
+
+    const data: Record<string, unknown> = {};
+
+    if (isTeacher) {
+      data.approvedByTeacher = approving;
+      data.reviewComment = reviewComment;
+      data.reviewedById = session.user.id;
+    } else if (isCompany) {
+      data.approvedByCompany = approving;
+      data.reviewedByCompany = session.user.id;
+      data.companyComment = reviewComment;
+    } else {
+      // Admin override — acts globally, as before.
+      data.reviewComment = reviewComment;
+      data.reviewedById = session.user.id;
+    }
+
+    if (status === "REJECTED" || status === "NEEDS_REVISION") {
+      // A rejection / revision request from any reviewer is terminal.
+      data.status = status;
+    } else if (isAdmin && !isTeacher && !isCompany) {
+      data.status = status;
+    } else if (requiresBoth) {
+      const teacherApproved = isTeacher ? approving : document.approvedByTeacher;
+      const companyApproved = isCompany ? approving : document.approvedByCompany;
+      // Stays UPLOADED until BOTH have approved, so the other party still
+      // sees (and must take) their own decision.
+      data.status = teacherApproved && companyApproved ? "APPROVED" : "UPLOADED";
+    } else {
+      // Supervisor-only document.
+      data.status = approving ? "APPROVED" : "UPLOADED";
+    }
+
     const updated = await prisma.document.update({
       where: { id },
-      data: {
-        status,
-        reviewComment,
-        reviewedById: session.user.id,
-      }
+      data,
     });
+
+    // ── Final-report state machine ──────────────────────────────────────────
+    // Reviewing the FINAL REPORT drives the internship lifecycle:
+    //  • Teacher AND company must both validate. Once both have, the
+    //    internship moves to PENDING_ADMIN_CONFIRMATION so the admin can
+    //    perform the final validation.
+    //  • If EITHER the teacher or the company rejects (does not validate),
+    //    the report is rejected: the internship goes to NEEDS_REVISION, both
+    //    validation gates reset, and the student must submit a new version.
+    if (document.type === "FINAL_REPORT" && (isTeacher || isCompany)) {
+      const internship = await prisma.internship.findUnique({
+        where: { id: document.internshipId },
+        select: {
+          status: true,
+          teacherValidatedFinalReport: true,
+          companyValidatedFinalReport: true,
+          internshipstudent: { select: { studentId: true } },
+        } as any,
+      });
+
+      if (internship) {
+        const rejected = status === "REJECTED" || status === "NEEDS_REVISION";
+
+        if (rejected) {
+          await prisma.internship.update({
+            where: { id: document.internshipId },
+            data: {
+              status: "NEEDS_REVISION",
+              teacherValidatedFinalReport: false,
+              teacherValidatedAt: null,
+              companyValidatedFinalReport: false,
+              companyValidatedAt: null,
+              updatedAt: new Date(),
+            } as any,
+          });
+
+          for (const { studentId } of (internship as any).internshipstudent) {
+            await NotificationService.trigger({
+              userId: studentId,
+              type: "REVISION_REQUESTED",
+              title: "Final Report Rejected — Revision Required",
+              message: `${session.user.name} rejected the final report. Please submit a revised version.${reviewComment ? ` Comment: ${reviewComment}` : ""}`,
+              relatedId: document.internshipId,
+              relatedType: "Internship",
+              link: "/student/documents",
+            });
+          }
+        } else {
+          const teacherValidated = isTeacher
+            ? true
+            : !!(internship as any).teacherValidatedFinalReport;
+          const companyValidated = isCompany
+            ? true
+            : !!(internship as any).companyValidatedFinalReport;
+          const bothValidated = teacherValidated && companyValidated;
+
+          await prisma.internship.update({
+            where: { id: document.internshipId },
+            data: {
+              ...(isTeacher
+                ? { teacherValidatedFinalReport: true, teacherValidatedAt: new Date() }
+                : { companyValidatedFinalReport: true, companyValidatedAt: new Date() }),
+              // Hand off to the admin only once BOTH have validated.
+              ...(bothValidated ? { status: "PENDING_ADMIN_CONFIRMATION" } : {}),
+              updatedAt: new Date(),
+            } as any,
+          });
+
+          if (bothValidated) {
+            const admins = await prisma.user.findMany({
+              where: { role: "ADMIN", isActive: true },
+              select: { id: true },
+            });
+            for (const admin of admins) {
+              await NotificationService.trigger({
+                userId: admin.id,
+                type: "FINAL_REPORT_SUBMITTED",
+                title: "Final Report Awaiting Admin Validation",
+                message: "The supervisor and the company have both validated a final report. It now requires your final confirmation.",
+                relatedId: document.internshipId,
+                relatedType: "Internship",
+                link: `/admin/internships/${document.internshipId}`,
+                skipEmail: true,
+              });
+            }
+            for (const { studentId } of (internship as any).internshipstudent) {
+              await NotificationService.trigger({
+                userId: studentId,
+                type: "FINAL_REPORT_SUBMITTED",
+                title: "Final Report Fully Validated",
+                message: "Both your supervisor and the company validated your final report. It is now awaiting the administration's final confirmation.",
+                relatedId: document.internshipId,
+                relatedType: "Internship",
+                link: "/student/internship",
+                skipEmail: true,
+              });
+            }
+          }
+        }
+      }
+    }
 
     await NotificationService.trigger({
       userId: document.uploadedById,

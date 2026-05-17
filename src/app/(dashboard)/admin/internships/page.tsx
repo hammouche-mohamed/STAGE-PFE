@@ -20,6 +20,7 @@ import {
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { InternshipTypeBadge } from "@/components/ui/InternshipTypeBadge";
 import { format } from "date-fns";
+import { useSession } from "next-auth/react";
 import { useTranslation } from "@/lib/i18n/LanguageContext";
 
 const slugify = (value: string) =>
@@ -81,6 +82,11 @@ function internshipAttention(i: { status: string; endDate?: string }) {
 
 export default function AdminInternshipsPage() {
   const { t, isRTL } = useTranslation();
+  const { data: session } = useSession();
+  // Department admins are already scoped server-side to their own department
+  // (by the internship's topic filière), so the department filter is
+  // meaningless for them — only super admins choose a department.
+  const isSuperAdmin = !!session?.user?.isSuperAdmin;
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [filiereFilter, setFiliereFilter] = useState("ALL");
@@ -115,8 +121,8 @@ export default function AdminInternshipsPage() {
   const internships: Internship[] = internshipsResp?.data || [];
 
   useEffect(() => {
-    fetchFilieres();
-  }, []);
+    if (isSuperAdmin) fetchFilieres();
+  }, [isSuperAdmin]);
 
   const filteredInternships = internships.filter(i => {
     const matchesSearch = i.topic.title.toLowerCase().includes(search.toLowerCase()) || 
@@ -149,16 +155,18 @@ export default function AdminInternshipsPage() {
           />
         </div>
         <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-          <select 
-            className="admin-input min-w-0 sm:min-w-[180px] w-full sm:w-auto"
-            value={filiereFilter}
-            onChange={(e) => setFiliereFilter(e.target.value)}
-          >
-            <option value="ALL">All Departments</option>
-            {filieres.map(f => (
-              <option key={f.id} value={f.id}>{f.name}</option>
-            ))}
-          </select>
+          {isSuperAdmin && (
+            <select
+              className="admin-input min-w-0 sm:min-w-[180px] w-full sm:w-auto"
+              value={filiereFilter}
+              onChange={(e) => setFiliereFilter(e.target.value)}
+            >
+              <option value="ALL">All Departments</option>
+              {filieres.map(f => (
+                <option key={f.id} value={f.id}>{f.name}</option>
+              ))}
+            </select>
+          )}
           <select
             className="admin-input min-w-0 sm:min-w-[200px] w-full sm:w-auto"
             value={statusFilter}

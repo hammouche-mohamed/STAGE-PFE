@@ -170,6 +170,17 @@ export default function AdminTopicDetailPage() {
   };
 
   const handleApprove = () => {
+    // The company does not choose study levels — the department admin must
+    // set the target level(s) before the topic can be published.
+    if (!topic?.proposedByStudent && selectedLevels.length === 0) {
+      toast.error(
+        t("topics.selectLevelsBeforePublish", {
+          defaultValue:
+            "Select at least one target study level (L1–M2) before publishing this topic.",
+        }),
+      );
+      return;
+    }
     // Require explicit confirmation before approving a topic.
     setIsApproveDialogOpen(true);
   };
@@ -370,8 +381,21 @@ export default function AdminTopicDetailPage() {
 
                 <div className="pt-6 border-t border-gray-100">
                   <div className="flex items-center justify-between mb-2">
-                    <label className="text-[11px] font-bold text-gray-500 uppercase tracking-widest block">Target Study Levels</label>
+                    <label className="text-[11px] font-bold text-gray-500 uppercase tracking-widest block">
+                      Target Study Levels
+                      {!session?.user?.isSuperAdmin && !topic.proposedByStudent && (
+                        <span className="text-red-500"> *</span>
+                      )}
+                    </label>
                   </div>
+                  {!session?.user?.isSuperAdmin && !topic.proposedByStudent && selectedLevels.length === 0 && (
+                    <p className="text-[11px] text-amber-600 dark:text-amber-400 mb-2">
+                      {t("topics.selectLevelsBeforePublish", {
+                        defaultValue:
+                          "Select at least one target study level (L1–M2) before publishing this topic.",
+                      })}
+                    </p>
+                  )}
                   <div className="flex flex-wrap gap-2">
                     {studyLevels.map(level => (
                       <button
