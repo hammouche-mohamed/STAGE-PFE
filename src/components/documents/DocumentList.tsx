@@ -91,6 +91,7 @@ export const DocumentList: React.FC<DocumentListProps> = ({ documents, onReview,
 
       {canReview && doc.status === "UPLOADED" && (
         <>
+          <span className="mx-1 h-4 w-px bg-gray-200 dark:bg-slate-700" aria-hidden="true" />
           <button
             onClick={() => handleOpenReview(doc.id, "APPROVED")}
             className="p-1.5 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-md transition-all"

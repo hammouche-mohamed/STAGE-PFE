@@ -33,6 +33,7 @@ export async function POST(req: NextRequest) {
       where: { id: internshipId },
       select: {
         teacherId: true,
+        topic: { select: { proposedById: true } },
         internshipstudent: { select: { studentId: true } },
       } as any,
     });
@@ -48,8 +49,11 @@ export async function POST(req: NextRequest) {
 
     const isParticipant = memberIds.includes(session.user.id);
     const isAdmin = session.user.role === "ADMIN";
+    const isCompany =
+      session.user.role === "COMPANY" &&
+      (internship as any).topic?.proposedById === session.user.id;
 
-    if (!isParticipant && !isAdmin) {
+    if (!isParticipant && !isAdmin && !isCompany) {
       return NextResponse.json({ error: "You are not a participant in this internship." }, { status: 403 });
     }
 
@@ -71,7 +75,10 @@ export async function POST(req: NextRequest) {
       } as any,
     });
 
-    const recipients = memberIds.filter((id) => id && id !== session.user.id) as string[];
+    const companyId = (internship as any).topic?.proposedById;
+    const recipients = [...memberIds, companyId].filter(
+      (id, idx, arr) => id && id !== session.user.id && arr.indexOf(id) === idx,
+    ) as string[];
 
     if (recipients.length > 0) {
       const recipientUsers = await prisma.user.findMany({
@@ -93,7 +100,12 @@ export async function POST(req: NextRequest) {
           new Date(r.activeChatPingAt).getTime() >= presenceCutoff;
         if (inThisChat) continue;
 
-        const link = r.role === "TEACHER" ? "/teacher/messages" : "/student/messages";
+        const link =
+          r.role === "TEACHER"
+            ? "/teacher/messages"
+            : r.role === "COMPANY"
+              ? "/company/messages"
+              : "/student/messages";
         await NotificationService.trigger({
           userId: r.id,
           type: "MESSAGE_RECEIVED",

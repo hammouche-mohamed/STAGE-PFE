@@ -9,7 +9,6 @@ import {
   Users,
   CheckCircle2,
   Clock,
-  Star,
   FileText,
   AlertCircle,
   Calendar,
@@ -43,7 +42,6 @@ export default function CompanyInternshipDetailPage() {
   const [internship, setInternship] = useState<Internship | null>(null);
   const [documents, setDocuments] = useState<InternshipDocument[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [evaluationScore, setEvaluationScore] = useState<number>(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activationData, setActivationData] = useState({
     startDate: format(new Date(), "yyyy-MM-dd"),
@@ -71,27 +69,6 @@ export default function CompanyInternshipDetailPage() {
   useEffect(() => {
     fetchData();
   }, [id]);
-
-  const handleSubmitEvaluation = async () => {
-    if (evaluationScore < 0 || evaluationScore > 20) {
-      toast.error("Score must be between 0 and 20");
-      return;
-    }
-    setIsSubmitting(true);
-    try {
-      const res = await fetch(`/api/internships/${id}/evaluation`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ score: evaluationScore }),
-      });
-      if (!res.ok) throw new Error("Submission failed");
-      toast.success("Final evaluation score submitted successfully");
-    } catch (error) {
-      toast.error("Failed to submit evaluation");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
 
   const handleActivate = async () => {
     if (!activationData.supervisorName || !activationData.supervisorEmail) {
@@ -239,64 +216,23 @@ export default function CompanyInternshipDetailPage() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-md p-6 shadow-sm">
-          <h2 className="text-[15px] font-bold text-gray-900 dark:text-white mb-4 flex items-center">
-            <Users className="h-4 w-4 mr-2 text-indigo-500" />
-            {t("dashboard.team")}
-          </h2>
-          <div className="space-y-4">
-            {internship.students.map(s => (
-              <div key={s.student.email} className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-slate-800/50 rounded-md border border-transparent dark:border-slate-700/50">
-                <div className="h-8 w-8 rounded-full bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 flex items-center justify-center text-gray-400 dark:text-gray-500">
-                  <User className="h-4 w-4" />
-                </div>
-                <div>
-                  <p className="text-[13px] font-bold text-gray-900 dark:text-white">{s.student.name}</p>
-                  <p className="text-[11px] text-gray-500 dark:text-gray-400">{s.student.email}</p>
-                </div>
+      <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-md p-6 shadow-sm">
+        <h2 className="text-[15px] font-bold text-gray-900 dark:text-white mb-4 flex items-center">
+          <Users className="h-4 w-4 mr-2 text-indigo-500" />
+          {t("dashboard.team")}
+        </h2>
+        <div className="space-y-4">
+          {internship.students.map(s => (
+            <div key={s.student.email} className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-slate-800/50 rounded-md border border-transparent dark:border-slate-700/50">
+              <div className="h-8 w-8 rounded-full bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 flex items-center justify-center text-gray-400 dark:text-gray-500">
+                <User className="h-4 w-4" />
               </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-md p-6 shadow-sm">
-          <h2 className="text-[15px] font-bold text-gray-900 dark:text-white mb-4 flex items-center">
-            <Star className="h-4 w-4 mr-2 text-amber-500" />
-            {t("dashboard.supervisor")} — {t("status.COMPLETED")}
-          </h2>
-          <p className="text-[12px] text-gray-500 dark:text-gray-400 mb-6 leading-relaxed">
-            {t("company.detail.finalScoreDesc")}
-          </p>
-
-          <div className="space-y-4">
-            <div>
-              <label className="text-[12px] font-bold text-gray-700 dark:text-gray-300 block mb-2">{t("company.detail.techScore")}</label>
-              <input
-                type="number"
-                min="0"
-                max="20"
-                className="admin-input"
-                value={evaluationScore}
-                onChange={(e) => setEvaluationScore(parseFloat(e.target.value))}
-                placeholder={t("company.detail.scorePh")}
-              />
+              <div>
+                <p className="text-[13px] font-bold text-gray-900 dark:text-white">{s.student.name}</p>
+                <p className="text-[11px] text-gray-500 dark:text-gray-400">{s.student.email}</p>
+              </div>
             </div>
-            <Button
-              onClick={handleSubmitEvaluation}
-              isLoading={isSubmitting}
-              className="w-full"
-              disabled={internship.status === "COMPLETED"}
-            >
-              {t("common.confirm")}
-            </Button>
-            {internship.status === "COMPLETED" && (
-              <p className="text-[11px] text-green-600 flex items-center justify-center gap-1.5 mt-2">
-                <CheckCircle2 className="h-3.5 w-3.5" />
-                {t("status.COMPLETED")}
-              </p>
-            )}
-          </div>
+          ))}
         </div>
       </div>
 
