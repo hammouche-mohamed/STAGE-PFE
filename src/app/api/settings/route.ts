@@ -51,6 +51,9 @@ export async function POST(req: NextRequest) {
     });
 
     revalidateTag("settings");
+    // The dashboard layout caches the university logo under this tag; deleting
+    // / changing it here must invalidate that cache too.
+    revalidateTag("systemSettings");
 
     try {
       await AuditService.log({

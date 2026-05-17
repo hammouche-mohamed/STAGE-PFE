@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { randomUUID } from "crypto";
+import { revalidateTag } from "next/cache";
 
 export async function POST(req: NextRequest) {
   try {
@@ -49,6 +50,10 @@ export async function POST(req: NextRequest) {
         updatedAt: new Date(),
       },
     });
+
+    // The dashboard layout caches the logo lookup under this tag — invalidate
+    // it so the sidebar shows the new logo instead of the stale "E".
+    revalidateTag("systemSettings");
 
     return NextResponse.json({ url: publicUrl });
   } catch (error: any) {
