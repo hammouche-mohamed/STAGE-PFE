@@ -266,6 +266,64 @@ async function main() {
     });
   }
 
+  // ── FINAL REPORT AWAITING COMPANY 1 VALIDATION ─────────────────────────────
+  // A submitted final report sitting in Company 1's queue. Sign in as
+  // company1@gmail.com → Internships → open this one → the FINAL_REPORT
+  // document shows Approve / Reject (visible because doc.status = UPLOADED).
+  // The dashboard's "reports to validate" counter also shows 1.
+  console.log("Generating a final report pending Company 1 validation...");
+  {
+    const reportStudent = students[5];        // dept 0, otherwise unused
+    const reportSupervisor = supervisors[0];  // dept 0 supervisor
+
+    const reportTopic = await (prisma.topic as any).create({
+      data: {
+        title: `Final Report Validation Demo`,
+        description:
+          "Internship whose final report has been submitted and is awaiting the company's validation.",
+        type: "COMPANY_PROPOSED",
+        status: "TAKEN",
+        academicYear: currentYear,
+        proposedById: companies[0].id,
+        filiereId: createdDepts[0].id,
+        maxStudents: 1,
+        updatedAt: new Date(),
+      },
+    });
+
+    const reportInternship = await (prisma.internship as any).create({
+      data: {
+        topicId: reportTopic.id,
+        teacherId: reportSupervisor.id,
+        academicYear: currentYear,
+        status: "FINAL_REPORT_SUBMITTED",
+        internshipType: "PFE",
+        // Teacher already validated → once Company 1 validates, the
+        // internship advances to PENDING_ADMIN_CONFIRMATION.
+        teacherValidatedFinalReport: true,
+        teacherValidatedAt: new Date(),
+        companyValidatedFinalReport: false,
+        internshipstudent: { create: [{ studentId: reportStudent.id, isLeader: true }] },
+        updatedAt: new Date(),
+      },
+    });
+
+    await (prisma.document as any).create({
+      data: {
+        internshipId: reportInternship.id,
+        uploadedById: reportStudent.id,
+        type: "FINAL_REPORT",
+        fileName: `Final_Report_${reportStudent.name.replace(/\s+/g, "_")}.pdf`,
+        fileUrl: "https://example.com/final-report.pdf",
+        fileSize: 2 * 1024 * 1024,
+        // UPLOADED → company detail page renders the Approve / Reject buttons.
+        status: "UPLOADED",
+        approvedByTeacher: true,
+        uploadedAt: new Date(),
+      },
+    });
+  }
+
   // Some pending topics for current year
   for (let i = 0; i < 3; i++) {
     await (prisma.topic as any).create({

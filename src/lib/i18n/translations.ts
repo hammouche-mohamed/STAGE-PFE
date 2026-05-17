@@ -740,6 +740,7 @@ export const translations = {
     documents: {
       title: "Document Workspace",
       description: "Review student reports and upload academic resources.",
+      toValidate: "to validate",
       noDocuments: "No documents shared yet.",
       uploaded: "Uploaded",
       type: "Document Type",
@@ -1662,6 +1663,7 @@ export const translations = {
     documents: {
       title: "Espace Documents",
       description: "Consultez les rapports des étudiants et téléchargez des ressources académiques.",
+      toValidate: "à valider",
       noDocuments: "Aucun document partagé pour le moment.",
       uploaded: "Téléversé",
       type: "Type de document",
@@ -2572,6 +2574,7 @@ export const translations = {
     documents: {
       title: "مساحة المستندات",
       description: "مراجعة تقارير الطلاب ورفع الموارد الأكاديمية.",
+      toValidate: "للتحقق",
       noDocuments: "لم يتم رفع أي مستندات بعد.",
       uploaded: "تم الرفع",
       type: "نوع المستند",

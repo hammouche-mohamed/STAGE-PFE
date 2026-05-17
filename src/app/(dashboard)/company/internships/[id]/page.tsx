@@ -147,7 +147,7 @@ export default function CompanyInternshipDetailPage() {
   if (!internship) return <div className="p-8 text-center text-gray-400">{t("common.noData")}</div>;
 
   return (
-    <div className="space-y-6 max-w-4xl mx-auto">
+    <div className="space-y-6 max-w-6xl mx-auto w-full">
       <SetBreadcrumb segment={String(id)} label={internship.topic.title} />
       <div className="flex items-center justify-between">
         <Link
@@ -306,9 +306,18 @@ export default function CompanyInternshipDetailPage() {
               <FileText className="h-4 w-4 mr-2 text-indigo-500" />
               {t("company.detail.documents")}
            </div>
-           <span className="text-[11px] font-medium text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-slate-800 border border-transparent dark:border-slate-700 px-2 py-1 rounded">
-              {documents.length} {t("company.detail.files")}
-           </span>
+           <div className="flex items-center gap-2">
+             {documents.filter((d) => d.status === "UPLOADED").length > 0 && (
+               <span className="inline-flex items-center gap-1.5 rounded-full bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800/40 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-green-700 dark:text-green-400">
+                 <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+                 {documents.filter((d) => d.status === "UPLOADED").length}{" "}
+                 {t("documents.toValidate", { defaultValue: "to validate" })}
+               </span>
+             )}
+             <span className="text-[11px] font-medium text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-slate-800 border border-transparent dark:border-slate-700 px-2 py-1 rounded">
+                {documents.length} {t("company.detail.files")}
+             </span>
+           </div>
         </h2>
         <DocumentList 
            documents={documents}

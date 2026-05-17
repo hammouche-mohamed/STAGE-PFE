@@ -29,6 +29,7 @@ interface Internship {
   status: string;
   academicYear: string;
   createdAt: string;
+  pendingDocuments?: number;
 }
 
 export default function CompanyInternshipsPage() {
@@ -72,9 +73,15 @@ export default function CompanyInternshipsPage() {
           internships.map((internship) => (
             <div key={internship.id} className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-md p-5 flex flex-col justify-between hover:border-indigo-400 dark:hover:border-indigo-900 transition-all shadow-sm group">
               <div className="space-y-3">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                    <StatusBadge status={internship.status} />
                    <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">{internship.academicYear}</span>
+                   {(internship.pendingDocuments ?? 0) > 0 && (
+                     <span className="inline-flex items-center gap-1.5 rounded-full bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800/40 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-green-700 dark:text-green-400">
+                       <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+                       {internship.pendingDocuments} {t("documents.toValidate", { defaultValue: "to validate" })}
+                     </span>
+                   )}
                 </div>
 
                 <h3 className="text-[15px] font-bold text-gray-900 dark:text-white leading-tight">

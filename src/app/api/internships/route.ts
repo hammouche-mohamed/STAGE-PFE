@@ -136,8 +136,26 @@ export async function GET(req: NextRequest) {
       prisma.internship.count({ where }),
     ]);
 
+    // Per-internship count of documents still awaiting validation (UPLOADED is
+    // the status that exposes the Approve/Reject actions). Used by the UI to
+    // flag which internships need attention.
+    const pendingDocGroups = internships.length
+      ? await prisma.document.groupBy({
+          by: ['internshipId'],
+          where: {
+            internshipId: { in: (internships as any[]).map(i => i.id) },
+            status: 'UPLOADED',
+          },
+          _count: { _all: true },
+        })
+      : [];
+    const pendingDocMap = new Map<string, number>(
+      pendingDocGroups.map(g => [g.internshipId, g._count._all]),
+    );
+
     const mappedInternships = (internships as any[]).map(i => ({
       ...i,
+      pendingDocuments: pendingDocMap.get(i.id) ?? 0,
       teacher: i.user || { id: '', name: 'Unknown', email: '' },
       students: (i.internshipstudent || []).map((s: any) => ({
         ...s,

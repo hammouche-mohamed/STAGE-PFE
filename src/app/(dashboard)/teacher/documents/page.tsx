@@ -104,11 +104,16 @@ export default function TeacherDocumentsPage() {
             {internships.length === 0 ? (
               <option value="">{t("common.none", { defaultValue: "None" })}</option>
             ) : (
-              internships.map((int: any) => (
-                <option key={int.id} value={int.id}>
-                  {int.topic.title} ({int.students.map((s: any) => s.student.name).join(", ")})
-                </option>
-              ))
+              internships.map((int: any) => {
+                const needsReview = (int.pendingDocuments ?? 0) > 0;
+                return (
+                  <option key={int.id} value={int.id}>
+                    {needsReview ? "🟢 " : ""}
+                    {int.topic.title} ({int.students.map((s: any) => s.student.name).join(", ")})
+                    {needsReview ? ` — ${int.pendingDocuments} to review` : ""}
+                  </option>
+                );
+              })
             )}
           </select>
           <Button variant="outline" className="shrink-0" onClick={() => fetchDocs(selectedInternshipId)}>

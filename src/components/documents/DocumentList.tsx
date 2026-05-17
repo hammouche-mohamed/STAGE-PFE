@@ -69,9 +69,119 @@ export const DocumentList: React.FC<DocumentListProps> = ({ documents, onReview,
     return t(`documents.types.${type}` as any) || type.replace(/_/g, " ");
   };
 
+  const renderActions = (doc: InternshipDocument) => (
+    <div className="flex items-center justify-end space-x-1">
+      <a
+        href={doc.fileUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="p-1.5 text-gray-400 dark:text-gray-500 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-md transition-all"
+        title="View"
+      >
+        <Eye className="h-4 w-4" />
+      </a>
+      <a
+        href={doc.fileUrl}
+        download={doc.fileName}
+        className="p-1.5 text-gray-400 dark:text-gray-500 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-md transition-all"
+        title="Download"
+      >
+        <Download className="h-4 w-4" />
+      </a>
+
+      {canReview && doc.status === "UPLOADED" && (
+        <>
+          <button
+            onClick={() => handleOpenReview(doc.id, "APPROVED")}
+            className="p-1.5 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-md transition-all"
+            title="Approve"
+          >
+            <Check className="h-4 w-4" />
+          </button>
+          <button
+            onClick={() => handleOpenReview(doc.id, "REJECTED")}
+            className="p-1.5 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition-all"
+            title="Reject"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </>
+      )}
+
+      {onDelete && (
+        <button
+          onClick={() => onDelete(doc.id)}
+          className="p-1.5 text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition-all"
+          title="Delete"
+        >
+          <Trash2 className="h-4 w-4" />
+        </button>
+      )}
+
+      {doc.reviewComment && (
+        <button
+          onClick={() => {
+            toast.info(doc.reviewComment as string);
+          }}
+          className="p-1.5 text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 rounded-md transition-all"
+          title="View Feedback"
+        >
+          <MessageSquare className="h-4 w-4" />
+        </button>
+      )}
+    </div>
+  );
+
   return (
     <div className="space-y-4">
-      <div className="admin-table-container">
+      {/* Mobile (<768px): stacked cards — no horizontal scroll */}
+      <div className="space-y-3 md:hidden">
+        {documents.length === 0 ? (
+          <div className="text-center py-8 text-gray-400 dark:text-gray-500 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-lg">
+            {t("documents.noDocuments")}
+          </div>
+        ) : (
+          documents.map((doc) => (
+            <div
+              key={doc.id}
+              className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-lg p-4 shadow-sm space-y-3"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400 dark:text-gray-500">
+                    {getTypeLabel(doc.type)}
+                  </p>
+                  <div className="flex items-center mt-1">
+                    <FileIcon className="h-4 w-4 text-gray-400 dark:text-gray-500 mr-2 shrink-0" />
+                    <span
+                      className="truncate text-[13px] font-medium text-gray-900 dark:text-white"
+                      title={doc.fileName}
+                    >
+                      {doc.fileName}
+                    </span>
+                  </div>
+                </div>
+                <StatusBadge status={doc.status} />
+              </div>
+              <div className="flex items-center justify-between text-[11px] text-gray-500 dark:text-gray-400">
+                <span>
+                  <span className="font-mono bg-gray-100 dark:bg-slate-800 px-1.5 py-0.5 rounded mr-2">
+                    v{doc.version}
+                  </span>
+                  {doc.uploadedBy?.name || t("common.none")} ·{" "}
+                  {formatShortDate(doc.uploadedAt)}
+                </span>
+              </div>
+              <div className="border-t border-gray-100 dark:border-slate-800 pt-2">
+                {renderActions(doc)}
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* Desktop (>=768px): full table */}
+      <div className="admin-table-container hidden md:block">
         <table className="admin-table">
           <thead className="admin-table-header">
             <tr>
@@ -113,66 +223,7 @@ export const DocumentList: React.FC<DocumentListProps> = ({ documents, onReview,
                     <StatusBadge status={doc.status} />
                   </td>
                   <td className="text-right">
-                    <div className="flex items-center justify-end space-x-1">
-                      <a 
-                        href={doc.fileUrl} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="p-1.5 text-gray-400 dark:text-gray-500 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-md transition-all"
-                        title="View"
-                      >
-                        <Eye className="h-4 w-4" />
-                      </a>
-                      <a 
-                        href={doc.fileUrl} 
-                        download={doc.fileName}
-                        className="p-1.5 text-gray-400 dark:text-gray-500 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-md transition-all"
-                        title="Download"
-                      >
-                        <Download className="h-4 w-4" />
-                      </a>
-                      
-                      {canReview && doc.status === "UPLOADED" && (
-                        <>
-                          <button 
-                            onClick={() => handleOpenReview(doc.id, "APPROVED")}
-                            className="p-1.5 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-md transition-all"
-                            title="Approve"
-                          >
-                            <Check className="h-4 w-4" />
-                          </button>
-                          <button 
-                            onClick={() => handleOpenReview(doc.id, "REJECTED")}
-                            className="p-1.5 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition-all"
-                            title="Reject"
-                          >
-                            <X className="h-4 w-4" />
-                          </button>
-                        </>
-                      )}
-
-                      {onDelete && (
-                        <button 
-                          onClick={() => onDelete(doc.id)}
-                          className="p-1.5 text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition-all"
-                          title="Delete"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      )}
-
-                      {doc.reviewComment && (
-                        <button 
-                          onClick={() => {
-                            toast.info(doc.reviewComment as string);
-                          }}
-                          className="p-1.5 text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 rounded-md transition-all"
-                          title="View Feedback"
-                        >
-                          <MessageSquare className="h-4 w-4" />
-                        </button>
-                      )}
-                    </div>
+                    {renderActions(doc)}
                   </td>
                 </tr>
               ))
