@@ -252,9 +252,19 @@ export const DocumentList: React.FC<DocumentListProps> = ({ documents, onReview,
         )}
       </div>
 
-      {/* Desktop (>=768px): full table */}
-      <div className="admin-table-container hidden md:block">
-        <table className="admin-table">
+      {/* Desktop (>=768px): full table. table-fixed + colgroup keeps every
+          column within the card so the whole row is visible with no
+          horizontal scroll; cell padding is tightened to fit. */}
+      <div className="admin-table-container hidden md:block overflow-x-hidden [&_td]:!px-3 [&_th]:!px-3 [&_td]:!py-3.5">
+        <table className="admin-table table-fixed">
+          <colgroup>
+            <col className="w-[13%]" />
+            <col className="w-[27%]" />
+            <col className="w-[8%]" />
+            <col className="w-[16%]" />
+            <col className="w-[16%]" />
+            <col className="w-[20%]" />
+          </colgroup>
           <thead className="admin-table-header">
             <tr>
               <th>{t("documents.type")}</th>
@@ -277,9 +287,9 @@ export const DocumentList: React.FC<DocumentListProps> = ({ documents, onReview,
                     {getTypeLabel(doc.type)}
                   </td>
                   <td>
-                    <div className="flex items-center">
-                      <FileIcon className="h-4 w-4 text-gray-400 dark:text-gray-500 mr-2" />
-                      <span className="truncate max-w-[200px] text-gray-900 dark:text-white" title={doc.fileName}>{doc.fileName}</span>
+                    <div className="flex items-center min-w-0">
+                      <FileIcon className="h-4 w-4 text-gray-400 dark:text-gray-500 mr-2 shrink-0" />
+                      <span className="truncate text-gray-900 dark:text-white" title={doc.fileName}>{doc.fileName}</span>
                     </div>
                   </td>
                   <td>

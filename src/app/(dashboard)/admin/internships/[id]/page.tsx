@@ -252,7 +252,7 @@ export default function AdminInternshipDetailPage() {
    if (!internship) return <div className="p-8 text-center text-gray-400">Internship not found.</div>;
 
    return (
-      <div className="space-y-6 max-w-5xl mx-auto print-container">
+      <div className="space-y-6 max-w-7xl mx-auto print-container">
          <div className="flex items-center justify-between no-print">
             <Link
                href="/admin/internships"
@@ -391,24 +391,6 @@ export default function AdminInternshipDetailPage() {
                   </div>
                </div>
 
-               {!session?.user?.isSuperAdmin && (
-                 <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-md p-6 shadow-sm">
-                    <h2 className="text-[14px] font-bold text-gray-900 dark:text-white mb-6 flex items-center justify-between">
-                       <div className="flex items-center">
-                          <FileText className="h-4 w-4 mr-2 text-indigo-500" />
-                          Internship Documents
-                       </div>
-                       <span className="text-[11px] font-medium text-gray-400 bg-gray-50 dark:bg-slate-800 px-2 py-1 rounded">
-                          {documents.length} Files
-                       </span>
-                    </h2>
-                    <DocumentList 
-                       documents={documents}
-                       canReview={true}
-                       onReview={handleReview}
-                    />
-                 </div>
-               )}
             </div>
 
                <div className="space-y-6">
@@ -466,49 +448,70 @@ export default function AdminInternshipDetailPage() {
                      </div>
                   </div>
 
-                  {/* Final Confirmation Panel (Admin Action) — both teacher & company have validated */}
-                  {!session?.user?.isSuperAdmin && internship.status === "PENDING_ADMIN_CONFIRMATION" && (
-                     <div className="bg-white dark:bg-slate-900 border border-indigo-200 dark:border-indigo-900/40 rounded-md p-5 shadow-sm">
-                        <h3 className="text-[12px] font-bold text-indigo-800 dark:text-indigo-400 uppercase tracking-wide mb-1 flex items-center gap-1.5">
-                           <CheckCircle2 className="h-3.5 w-3.5" />
-                           Final Report — Awaiting Your Confirmation
-                        </h3>
-                        <p className="text-[11px] text-gray-500 dark:text-gray-400 mb-3">
-                           The supervisor and the company have both validated the final report.
-                           Confirm to officially complete and archive the internship, or send it
-                           back for revision.
-                        </p>
-                        <div className="space-y-2 mb-4">
-                           <div className="flex items-center gap-2 text-[12px] text-gray-700 dark:text-gray-300">
+                  {/* Final Report Panel (Admin) — visible through the whole
+                      final-report lifecycle so the admin always sees where it
+                      is, not just at the confirmation step. */}
+                  {!session?.user?.isSuperAdmin &&
+                   ["FINAL_REPORT_SUBMITTED", "PENDING_ADMIN_CONFIRMATION", "NEEDS_REVISION"].includes(internship.status) && (() => {
+                     const teacherOk = !!internship.teacherValidatedFinalReport;
+                     const companyOk = !!internship.companyValidatedFinalReport;
+                     const bothOk = teacherOk && companyOk;
+                     const readyToConfirm = internship.status === "PENDING_ADMIN_CONFIRMATION" && bothOk;
+
+                     const Row = ({ ok, label }: { ok: boolean; label: string }) => (
+                        <div className="flex items-center gap-2 text-[12px] text-gray-700 dark:text-gray-300">
+                           {ok ? (
                               <CheckCircle2 className="h-3.5 w-3.5 text-green-600 dark:text-green-400" />
-                              Supervisor validated
+                           ) : (
+                              <Clock className="h-3.5 w-3.5 text-amber-500 dark:text-amber-400" />
+                           )}
+                           {label} — {ok ? "validated" : "pending"}
+                        </div>
+                     );
+
+                     return (
+                        <div className="bg-white dark:bg-slate-900 border border-indigo-200 dark:border-indigo-900/40 rounded-md p-5 shadow-sm">
+                           <h3 className="text-[12px] font-bold text-indigo-800 dark:text-indigo-400 uppercase tracking-wide mb-1 flex items-center gap-1.5">
+                              <CheckCircle2 className="h-3.5 w-3.5" />
+                              Final Report Validation
+                           </h3>
+                           <p className="text-[11px] text-gray-500 dark:text-gray-400 mb-3">
+                              {internship.status === "NEEDS_REVISION"
+                                 ? "The report was sent back. The student must submit a revised version, then the supervisor and company validate again."
+                                 : readyToConfirm
+                                 ? "The supervisor and the company have both validated. Confirm to officially complete and archive the internship, or send it back for revision."
+                                 : "Both the supervisor and the company must validate before you can confirm completion."}
+                           </p>
+                           <div className="space-y-2 mb-4">
+                              <Row ok={teacherOk} label="Supervisor" />
+                              <Row ok={companyOk} label="Company" />
                            </div>
-                           <div className="flex items-center gap-2 text-[12px] text-gray-700 dark:text-gray-300">
-                              <CheckCircle2 className="h-3.5 w-3.5 text-green-600 dark:text-green-400" />
-                              Company validated
+                           <div className="space-y-2">
+                              <Button
+                                 size="sm"
+                                 className="w-full bg-indigo-600 hover:bg-indigo-700 text-white disabled:opacity-50"
+                                 onClick={() => setShowCompleteConfirm(true)}
+                                 disabled={!readyToConfirm}
+                                 title={readyToConfirm ? "" : "Available once both parties validate"}
+                              >
+                                 <CheckCircle2 className="h-3.5 w-3.5 mr-1.5" />
+                                 Confirm Completion
+                              </Button>
+                              {internship.status !== "NEEDS_REVISION" && (
+                                 <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="w-full"
+                                    onClick={() => setShowRevisionModal(true)}
+                                 >
+                                    <RotateCcw className="h-3.5 w-3.5 mr-1.5" />
+                                    Request Revision
+                                 </Button>
+                              )}
                            </div>
                         </div>
-                        <div className="space-y-2">
-                           <Button
-                              size="sm"
-                              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white"
-                              onClick={() => setShowCompleteConfirm(true)}
-                           >
-                              <CheckCircle2 className="h-3.5 w-3.5 mr-1.5" />
-                              Confirm Completion
-                           </Button>
-                           <Button
-                              size="sm"
-                              variant="outline"
-                              className="w-full"
-                              onClick={() => setShowRevisionModal(true)}
-                           >
-                              <RotateCcw className="h-3.5 w-3.5 mr-1.5" />
-                              Request Revision
-                           </Button>
-                        </div>
-                     </div>
-                  )}
+                     );
+                  })()}
 
                   {/* Set Final Deadline Panel (Admin Action) */}
                   {!session?.user?.isSuperAdmin && internship.status !== 'COMPLETED' && internship.status !== 'CANCELLED' && (
@@ -566,6 +569,25 @@ export default function AdminInternshipDetailPage() {
                      </ul>
                   </div>
                </div>
+
+            {!session?.user?.isSuperAdmin && (
+              <div className="lg:col-span-3 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-md p-6 shadow-sm">
+                 <h2 className="text-[14px] font-bold text-gray-900 dark:text-white mb-6 flex items-center justify-between">
+                    <div className="flex items-center">
+                       <FileText className="h-4 w-4 mr-2 text-indigo-500" />
+                       Internship Documents
+                    </div>
+                    <span className="text-[11px] font-medium text-gray-400 bg-gray-50 dark:bg-slate-800 px-2 py-1 rounded">
+                       {documents.length} Files
+                    </span>
+                 </h2>
+                 <DocumentList
+                    documents={documents}
+                    canReview={true}
+                    onReview={handleReview}
+                 />
+              </div>
+            )}
          </div>
 
          <ConfirmDialog

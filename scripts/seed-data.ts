@@ -371,6 +371,71 @@ async function main() {
     });
   }
 
+  // ── FINAL REPORT AWAITING ADMIN VALIDATION (END THE INTERNSHIP) ────────────
+  // Both the supervisor AND the company have already validated, so the ONLY
+  // remaining step is the admin's final validation. Sign in as the Computer
+  // Science admin → Internships → open "Ready for Admin Validation Demo":
+  // the "Final Report Validation" panel shows Supervisor ✓ / Company ✓ and an
+  // enabled "Confirm Completion" button that ends + archives the internship.
+  console.log("Generating a final report pending ADMIN validation...");
+  {
+    const reportStudent = students[6];        // dept 0, otherwise unused
+    const reportSupervisor = supervisors[0];  // dept 0 supervisor
+
+    const reportTopic = await (prisma.topic as any).create({
+      data: {
+        title: `Ready for Admin Validation Demo`,
+        description:
+          "Final report already validated by BOTH the supervisor and the company — only the administration's final confirmation is left to end the internship.",
+        type: "COMPANY_PROPOSED",
+        status: "TAKEN",
+        academicYear: currentYear,
+        proposedById: companies[0].id,
+        filiereId: createdDepts[0].id,
+        maxStudents: 1,
+        updatedAt: new Date(),
+      },
+    });
+
+    const reportInternship = await (prisma.internship as any).create({
+      data: {
+        topicId: reportTopic.id,
+        teacherId: reportSupervisor.id,
+        academicYear: currentYear,
+        // Both gates passed → the admin is the only one left to act.
+        status: "PENDING_ADMIN_CONFIRMATION",
+        internshipType: "PFE",
+        teacherValidatedFinalReport: true,
+        teacherValidatedAt: new Date(),
+        companyValidatedFinalReport: true,
+        companyValidatedAt: new Date(),
+        internshipstudent: { create: [{ studentId: reportStudent.id, isLeader: true }] },
+        updatedAt: new Date(),
+      },
+    });
+
+    await (prisma.document as any).create({
+      data: {
+        internshipId: reportInternship.id,
+        uploadedById: reportStudent.id,
+        type: "FINAL_REPORT",
+        fileName: `Final_Report_${reportStudent.name.replace(/\s+/g, "_")}.pdf`,
+        fileUrl: await createDemoUpload(
+          `Final_Report_${reportStudent.name.replace(/\s+/g, "_")}.pdf`,
+          `Final Report — ${reportStudent.name}`,
+        ),
+        fileSize: 2 * 1024 * 1024,
+        // Both parties approved → document fully APPROVED.
+        status: "APPROVED",
+        approvedByTeacher: true,
+        approvedByCompany: true,
+        reviewedById: reportSupervisor.id,
+        reviewedByCompany: companies[0].id,
+        uploadedAt: new Date(),
+      },
+    });
+  }
+
   // Some pending topics for current year
   for (let i = 0; i < 3; i++) {
     await (prisma.topic as any).create({
