@@ -391,6 +391,24 @@ export default function AdminInternshipDetailPage() {
                   </div>
                </div>
 
+               {!session?.user?.isSuperAdmin && (
+                 <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-md p-6 shadow-sm">
+                    <h2 className="text-[14px] font-bold text-gray-900 dark:text-white mb-6 flex items-center justify-between">
+                       <div className="flex items-center">
+                          <FileText className="h-4 w-4 mr-2 text-indigo-500" />
+                          Internship Documents
+                       </div>
+                       <span className="text-[11px] font-medium text-gray-400 bg-gray-50 dark:bg-slate-800 px-2 py-1 rounded">
+                          {documents.length} Files
+                       </span>
+                    </h2>
+                    <DocumentList
+                       documents={documents}
+                       canReview={true}
+                       onReview={handleReview}
+                    />
+                 </div>
+               )}
             </div>
 
                <div className="space-y-6">
@@ -569,25 +587,6 @@ export default function AdminInternshipDetailPage() {
                      </ul>
                   </div>
                </div>
-
-            {!session?.user?.isSuperAdmin && (
-              <div className="lg:col-span-3 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-md p-6 shadow-sm">
-                 <h2 className="text-[14px] font-bold text-gray-900 dark:text-white mb-6 flex items-center justify-between">
-                    <div className="flex items-center">
-                       <FileText className="h-4 w-4 mr-2 text-indigo-500" />
-                       Internship Documents
-                    </div>
-                    <span className="text-[11px] font-medium text-gray-400 bg-gray-50 dark:bg-slate-800 px-2 py-1 rounded">
-                       {documents.length} Files
-                    </span>
-                 </h2>
-                 <DocumentList
-                    documents={documents}
-                    canReview={true}
-                    onReview={handleReview}
-                 />
-              </div>
-            )}
          </div>
 
          <ConfirmDialog
