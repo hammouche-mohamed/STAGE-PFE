@@ -189,13 +189,19 @@ export class NotificationService {
    */
   static absoluteUrl(link?: string): string {
     if (!link) return "";
-    if (/^https?:\/\//i.test(link)) return link; // already absolute
-    const base = (
+    const PROD_URL = "https://esst-internship.vercel.app";
+    // A localhost/relative href is a dead link in a recipient's inbox. Never
+    // emit one: ignore any env value that points at localhost and fall back
+    // through the remaining sources to the production domain.
+    const isLocal = (u: string) => /localhost|127\.0\.0\.1|0\.0\.0\.0/i.test(u);
+    if (/^https?:\/\//i.test(link)) {
+      return isLocal(link) ? `${PROD_URL}/${link.replace(/^https?:\/\/[^/]+\/?/i, "")}` : link;
+    }
+    const candidate =
       process.env.NEXT_PUBLIC_APP_URL ||
       process.env.NEXTAUTH_URL ||
-      (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "") ||
-      "https://esst-internship.vercel.app"
-    ).replace(/\/+$/, "");
+      (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "");
+    const base = (candidate && !isLocal(candidate) ? candidate : PROD_URL).replace(/\/+$/, "");
     return `${base}/${String(link).replace(/^\/+/, "")}`;
   }
 
@@ -221,9 +227,9 @@ export class NotificationService {
         url
           ? `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 22px;">
               <tr>
-                <td style="border-radius:10px;background:linear-gradient(135deg,#4f46e5,#7c3aed);">
+                <td style="border-radius:6px;background-color:#1e293b;">
                   <a href="${safeUrl}"
-                     style="display:inline-block;padding:13px 30px;color:#ffffff;text-decoration:none;font-weight:700;font-size:14px;letter-spacing:.3px;border-radius:10px;">
+                     style="display:inline-block;padding:14px 28px;color:#ffffff;text-decoration:none;font-weight:600;font-size:15px;letter-spacing:.2px;border-radius:6px;">
                     ${cta} &rarr;
                   </a>
                 </td>

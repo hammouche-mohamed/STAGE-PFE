@@ -26,7 +26,21 @@ function escapeAndBr(value: unknown): string {
   return escapeHtml(value).replace(/\n/g, "<br />");
 }
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "";
+/**
+ * Absolute base URL for links in emails. A localhost/empty value is a dead
+ * link in a recipient's inbox, so ignore it and fall back to production.
+ */
+const APP_URL = (() => {
+  const candidate =
+    process.env.NEXT_PUBLIC_APP_URL ||
+    process.env.NEXTAUTH_URL ||
+    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "");
+  const isLocal = candidate && /localhost|127\.0\.0\.1|0\.0\.0\.0/i.test(candidate);
+  return (candidate && !isLocal ? candidate : "https://esst-internship.vercel.app").replace(
+    /\/+$/,
+    "",
+  );
+})();
 
 export class MailService {
   /** Public so other services (e.g. NotificationService) can sanitize input. */
@@ -109,12 +123,16 @@ export class MailService {
         ${safeMessage}
       </p>
       ${safeLink ? `
-        <div style="text-align: left;">
-          <a href="${escapeHtml(safeLink)}"
-             style="display: inline-block; background-color: ${ACCENT}; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 15px;">
-            Open in portal
-          </a>
-        </div>
+        <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 22px;">
+          <tr>
+            <td style="border-radius:6px;background-color:${NAVY};">
+              <a href="${escapeHtml(safeLink)}"
+                 style="display:inline-block;padding:14px 28px;color:#ffffff;text-decoration:none;font-weight:600;font-size:15px;letter-spacing:.2px;border-radius:6px;">
+                Open in portal &rarr;
+              </a>
+            </td>
+          </tr>
+        </table>
       ` : ""}
     `);
 
