@@ -177,7 +177,13 @@ export const translations = {
         selectTeam: "Select a team to start communicating.",
         loadingHub: "Loading Hub...",
         appsFilteredBy: "Showing applicants for",
-        appsShowAll: "Show all applications"
+        appsShowAll: "Show all applications",
+        confirmAcceptTitle: "Accept this application?",
+        confirmRejectTitle: "Reject this application?",
+        confirmAcceptCta: "Accept",
+        confirmRejectCta: "Reject",
+        confirmAcceptBody: "You are about to accept {group} for \"{topic}\". The team will be notified and the application forwarded to the administration.",
+        confirmRejectBody: "You are about to reject {group} for \"{topic}\". The team will be notified of this decision."
       }
     },
     breadcrumb: {
@@ -337,6 +343,7 @@ export const translations = {
       CANCELLED: "Cancelled",
       PENDING: "Pending",
       APPROVED: "Approved",
+      ACCEPTED: "Accepted",
       REJECTED: "Rejected",
       UPLOADED: "Uploaded",
       OPEN_FOR_SELECTION: "Open for Selection",
@@ -1108,7 +1115,13 @@ export const translations = {
         selectTeam: "Selectionnez une equipe pour communiquer.",
         loadingHub: "Chargement...",
         appsFilteredBy: "Candidatures pour",
-        appsShowAll: "Voir toutes les candidatures"
+        appsShowAll: "Voir toutes les candidatures",
+        confirmAcceptTitle: "Accepter cette candidature ?",
+        confirmRejectTitle: "Rejeter cette candidature ?",
+        confirmAcceptCta: "Accepter",
+        confirmRejectCta: "Rejeter",
+        confirmAcceptBody: "Vous êtes sur le point d'accepter {group} pour « {topic} ». L'équipe sera notifiée et la candidature transmise à l'administration.",
+        confirmRejectBody: "Vous êtes sur le point de rejeter {group} pour « {topic} ». L'équipe sera notifiée de cette décision."
       }
     },
     breadcrumb: {
@@ -1264,6 +1277,7 @@ export const translations = {
       CANCELLED: "Annulé",
       PENDING: "En Attente",
       APPROVED: "Approuvé",
+      ACCEPTED: "Accepté",
       REJECTED: "Rejeté",
       UPLOADED: "Téléchargé",
       OPEN_FOR_SELECTION: "Ouvert aux Candidatures",
@@ -2023,7 +2037,13 @@ export const translations = {
         selectTeam: "اختر فريقًا لبدء التواصل.",
         loadingHub: "جارٍ التحميل...",
         appsFilteredBy: "المتقدمون لـ",
-        appsShowAll: "عرض كل الطلبات"
+        appsShowAll: "عرض كل الطلبات",
+        confirmAcceptTitle: "قبول هذا الطلب؟",
+        confirmRejectTitle: "رفض هذا الطلب؟",
+        confirmAcceptCta: "قبول",
+        confirmRejectCta: "رفض",
+        confirmAcceptBody: "أنت على وشك قبول {group} لـ «{topic}». سيتم إخطار الفريق وإحالة الطلب إلى الإدارة.",
+        confirmRejectBody: "أنت على وشك رفض {group} لـ «{topic}». سيتم إخطار الفريق بهذا القرار."
       }
     },
     breadcrumb: {
@@ -2179,6 +2199,7 @@ export const translations = {
       CANCELLED: "ملغى",
       PENDING: "في الانتظار",
       APPROVED: "مقبول",
+      ACCEPTED: "مقبول",
       REJECTED: "مرفوض",
       UPLOADED: "تم الرفع",
       OPEN_FOR_SELECTION: "مفتوح للاختيار",

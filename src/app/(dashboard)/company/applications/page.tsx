@@ -1,17 +1,15 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
-  Users,
-  Search,
   CheckCircle2,
   XCircle,
   Eye,
-  ArrowRight,
-  Filter,
   User
 } from "lucide-react";
 import { StatusBadge } from "@/components/ui/StatusBadge";
+import { Modal } from "@/components/ui/Modal";
+import { Button } from "@/components/ui/Button";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { useTranslation } from "@/lib/i18n/LanguageContext";
@@ -28,12 +26,19 @@ interface Application {
   };
 }
 
+type StatusFilter = "ALL" | "PENDING" | "ACCEPTED" | "REJECTED";
+
 export default function CompanyApplicationsPage() {
-  const { t, isRTL } = useTranslation();
+  const { t } = useTranslation();
   const [applications, setApplications] = useState<Application[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedApp, setSelectedApp] = useState<Application | null>(null);
   const [isProcessing, setIsProcessing] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
+  const [confirmAction, setConfirmAction] = useState<{
+    app: Application;
+    status: "ACCEPTED" | "REJECTED";
+  } | null>(null);
   // When opened from a topic's "View Applications", scope to that topic only.
   const [topicFilterId, setTopicFilterId] = useState<string | null>(null);
   const [topicFilterTitle, setTopicFilterTitle] = useState<string | null>(null);
@@ -72,10 +77,34 @@ export default function CompanyApplicationsPage() {
     fetchApplications(null);
   };
 
-  const handleAction = async (id: string, status: "ACCEPTED" | "REJECTED") => {
-    setIsProcessing(id);
+  const counts = useMemo(() => {
+    const c = { ALL: applications.length, PENDING: 0, ACCEPTED: 0, REJECTED: 0 };
+    for (const a of applications) {
+      if (a.status === "PENDING") c.PENDING++;
+      else if (a.status === "ACCEPTED") c.ACCEPTED++;
+      else if (a.status === "REJECTED") c.REJECTED++;
+    }
+    return c;
+  }, [applications]);
+
+  const filteredApplications = useMemo(
+    () =>
+      statusFilter === "ALL"
+        ? applications
+        : applications.filter((a) => a.status === statusFilter),
+    [applications, statusFilter]
+  );
+
+  const performAction = async (app: Application, status: "ACCEPTED" | "REJECTED") => {
+    const prevStatus = app.status;
+    setConfirmAction(null);
+    setIsProcessing(app.id);
+    // Optimistic update — reflect the decision immediately.
+    setApplications((prev) =>
+      prev.map((a) => (a.id === app.id ? { ...a, status } : a))
+    );
     try {
-      const res = await fetch(`/api/applications/${id}`, {
+      const res = await fetch(`/api/applications/${app.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status })
@@ -83,13 +112,23 @@ export default function CompanyApplicationsPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to update");
       toast.success(data.message);
-      fetchApplications(topicFilterId);
     } catch (error: any) {
+      // Revert on failure.
+      setApplications((prev) =>
+        prev.map((a) => (a.id === app.id ? { ...a, status: prevStatus } : a))
+      );
       toast.error(error.message || t("toast.actionFailed"));
     } finally {
       setIsProcessing(null);
     }
   };
+
+  const filterTabs: { key: StatusFilter; label: string }[] = [
+    { key: "ALL", label: t("common.all") },
+    { key: "PENDING", label: t("status.PENDING") },
+    { key: "ACCEPTED", label: t("status.ACCEPTED") },
+    { key: "REJECTED", label: t("status.REJECTED") },
+  ];
 
   return (
     <div className="space-y-6">
@@ -115,6 +154,35 @@ export default function CompanyApplicationsPage() {
         </div>
       )}
 
+      {/* Status filter */}
+      <div className="flex flex-wrap items-center gap-2">
+        {filterTabs.map((tab) => {
+          const active = statusFilter === tab.key;
+          return (
+            <button
+              key={tab.key}
+              onClick={() => setStatusFilter(tab.key)}
+              className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[12px] font-semibold transition-colors ${
+                active
+                  ? "bg-indigo-600 text-white"
+                  : "bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-700"
+              }`}
+            >
+              {tab.label}
+              <span
+                className={`rounded-full px-1.5 text-[11px] ${
+                  active
+                    ? "bg-white/20 text-white"
+                    : "bg-white dark:bg-slate-900 text-gray-500 dark:text-gray-400"
+                }`}
+              >
+                {counts[tab.key]}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
       <div className="admin-table-container">
         <table className="admin-table stacked-table">
           <thead className="admin-table-header">
@@ -129,10 +197,10 @@ export default function CompanyApplicationsPage() {
           <tbody>
             {isLoading ? (
               <tr><td colSpan={5} className="text-center py-12 text-gray-400 dark:text-gray-500">{t("common.loading")}</td></tr>
-            ) : applications.length === 0 ? (
+            ) : filteredApplications.length === 0 ? (
               <tr><td colSpan={5} className="text-center py-12 text-gray-400 dark:text-gray-500">{t("common.noData")}</td></tr>
             ) : (
-              applications.map((app) => (
+              filteredApplications.map((app) => (
                 <tr key={app.id} className="admin-table-row">
                   <td data-label="Group">
                     <div className="flex items-center gap-2 justify-end sm:justify-start">
@@ -153,7 +221,7 @@ export default function CompanyApplicationsPage() {
                   </td>
                   <td data-label="Review" className="text-right">
                     <div className="flex items-center justify-end gap-1">
-                      <button 
+                      <button
                         onClick={() => setSelectedApp(app)}
                         className="p-1.5 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded"
                         title="View Details"
@@ -162,17 +230,18 @@ export default function CompanyApplicationsPage() {
                       </button>
                       {app.status === "PENDING" && (
                         <>
-                          <button 
-                            onClick={() => handleAction(app.id, "ACCEPTED")}
-                            className="p-1.5 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 rounded"
+                          <span className="mx-1 h-4 w-px bg-gray-200 dark:bg-slate-700" aria-hidden="true" />
+                          <button
+                            onClick={() => setConfirmAction({ app, status: "ACCEPTED" })}
+                            className="p-1.5 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 rounded disabled:opacity-40"
                             title="Accept"
                             disabled={isProcessing === app.id}
                           >
                             <CheckCircle2 className="h-4 w-4" />
                           </button>
-                          <button 
-                            onClick={() => handleAction(app.id, "REJECTED")}
-                            className="p-1.5 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded"
+                          <button
+                            onClick={() => setConfirmAction({ app, status: "REJECTED" })}
+                            className="p-1.5 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded disabled:opacity-40"
                             title="Reject"
                             disabled={isProcessing === app.id}
                           >
@@ -189,6 +258,48 @@ export default function CompanyApplicationsPage() {
         </table>
       </div>
 
+      {/* Accept / Reject confirmation */}
+      <Modal
+        isOpen={!!confirmAction}
+        onClose={() => setConfirmAction(null)}
+        title={
+          confirmAction?.status === "ACCEPTED"
+            ? t("company.msg.confirmAcceptTitle")
+            : t("company.msg.confirmRejectTitle")
+        }
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setConfirmAction(null)}>
+              {t("common.cancel", { defaultValue: "Cancel" })}
+            </Button>
+            <Button
+              variant={confirmAction?.status === "ACCEPTED" ? "primary" : "danger"}
+              onClick={() =>
+                confirmAction && performAction(confirmAction.app, confirmAction.status)
+              }
+            >
+              {confirmAction?.status === "ACCEPTED"
+                ? t("company.msg.confirmAcceptCta")
+                : t("company.msg.confirmRejectCta")}
+            </Button>
+          </>
+        }
+      >
+        {confirmAction && (
+          <p className="text-[13px] text-gray-600 dark:text-gray-300 leading-relaxed">
+            {confirmAction.status === "ACCEPTED"
+              ? t("company.msg.confirmAcceptBody", {
+                  group: `Group ${confirmAction.app.id.slice(-4)}`,
+                  topic: confirmAction.app.topic.title,
+                })
+              : t("company.msg.confirmRejectBody", {
+                  group: `Group ${confirmAction.app.id.slice(-4)}`,
+                  topic: confirmAction.app.topic.title,
+                })}
+          </p>
+        )}
+      </Modal>
+
       {/* Application Details Modal */}
       {selectedApp && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
@@ -199,13 +310,13 @@ export default function CompanyApplicationsPage() {
                 <XCircle className="h-5 w-5" />
               </button>
             </div>
-            
+
             <div className="p-6 space-y-6">
               <div>
                 <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Topic</p>
                 <p className="text-[14px] font-medium text-gray-900 dark:text-gray-100">{selectedApp.topic.title}</p>
               </div>
-              
+
               <div>
                 <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2">Team Members</p>
                 <div className="flex flex-col gap-2">
@@ -234,7 +345,7 @@ export default function CompanyApplicationsPage() {
             </div>
 
             <div className="px-6 py-4 bg-gray-50 dark:bg-slate-800/50 border-t border-gray-100 dark:border-slate-800 flex justify-end gap-3">
-              <button 
+              <button
                 onClick={() => setSelectedApp(null)}
                 className="px-4 py-2 text-[13px] font-medium text-gray-600 dark:text-gray-300 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700"
               >
@@ -247,4 +358,3 @@ export default function CompanyApplicationsPage() {
     </div>
   );
 }
-

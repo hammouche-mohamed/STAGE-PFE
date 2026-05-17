@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse, after } from "next/server";
 import prisma from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { NotificationService } from "@/lib/services/notification.service";
@@ -49,49 +49,60 @@ export async function PATCH(
       data: { status, reviewedAt: new Date() }
     });
 
+    // Notifications + audit involve SMTP email delivery, which is slow. Run
+    // them AFTER the response is flushed so the company UI gets an immediate
+    // reply. The in-app notification rows are still persisted; if the email
+    // step fails the daily cron (retryFailedEmails) re-attempts delivery.
     const leader = application.studentteam?.teammember[0]?.user;
-    if (leader) {
-      await NotificationService.trigger({
-        userId: leader.id,
-        type: "APPLICATION_STATUS_UPDATE",
-        title: "Company Review Update",
-        message: `Your application for "${application.topic.title}" was ${status.toLowerCase()} by the company.`,
-        relatedId: application.topicId,
-        relatedType: "Topic",
-        link: "/student/topics",
-      });
-    }
-
-
-    if (status === "ACCEPTED" && application.topic.filiereId) {
-      const deptAdmins = await prisma.user.findMany({
-        where: {
-          role: "ADMIN",
-          OR: [
-            { adminprofile: { filiereId: application.topic.filiereId } },
-            { adminprofile: { isSuperAdmin: true } }
-          ]
+    after(async () => {
+      try {
+        if (leader) {
+          await NotificationService.trigger({
+            userId: leader.id,
+            type: "APPLICATION_STATUS_UPDATE",
+            title: "Company Review Update",
+            message: `Your application for "${application.topic.title}" was ${status.toLowerCase()} by the company.`,
+            relatedId: application.topicId,
+            relatedType: "Topic",
+            link: "/student/topics",
+          });
         }
-      } as any);
-      for (const admin of deptAdmins) {
-        await NotificationService.trigger({
-          userId: admin.id,
-          type: "APPLICATION_STATUS_UPDATE",
-          title: "Company Validation Complete",
-          message: `The company has accepted a team for "${application.topic.title}". Please review and create the internship.`,
-          relatedId: application.topicId,
-          relatedType: "Topic",
-          link: `/admin/topics/${application.topicId}`,
-        });
-      }
-    }
 
-    await AuditService.log({
-      userId: session.user.id,
-      action: status === "ACCEPTED" ? "APPLICATION_ACCEPTED" : "APPLICATION_REJECTED",
-      targetType: "StudentApplication",
-      targetId: id,
-      details: { topicId: application.topicId, topicTitle: application.topic.title },
+        if (status === "ACCEPTED" && application.topic.filiereId) {
+          const deptAdmins = await prisma.user.findMany({
+            where: {
+              role: "ADMIN",
+              OR: [
+                { adminprofile: { filiereId: application.topic.filiereId } },
+                { adminprofile: { isSuperAdmin: true } }
+              ]
+            }
+          } as any);
+          await Promise.all(
+            deptAdmins.map((admin: { id: string }) =>
+              NotificationService.trigger({
+                userId: admin.id,
+                type: "APPLICATION_STATUS_UPDATE",
+                title: "Company Validation Complete",
+                message: `The company has accepted a team for "${application.topic.title}". Please review and create the internship.`,
+                relatedId: application.topicId,
+                relatedType: "Topic",
+                link: `/admin/topics/${application.topicId}`,
+              })
+            )
+          );
+        }
+
+        await AuditService.log({
+          userId: session.user.id,
+          action: status === "ACCEPTED" ? "APPLICATION_ACCEPTED" : "APPLICATION_REJECTED",
+          targetType: "StudentApplication",
+          targetId: id,
+          details: { topicId: application.topicId, topicTitle: application.topic.title },
+        });
+      } catch (err) {
+        console.error("[applications PATCH:after]", err);
+      }
     });
 
     return NextResponse.json({ data: updatedApplication, message: `Application marked as ${status}` });
