@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { 
   Plus, 
   Search, 
@@ -36,7 +36,8 @@ export default function CompanyInternshipsPage() {
   const { t, isRTL } = useTranslation();
   const [internships, setInternships] = useState<Internship[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [filter, setFilter] = useState<"ALL" | "PENDING">("ALL");
+  // "ALL" | "NEEDS_VALIDATION" | <internship status>
+  const [filter, setFilter] = useState<string>("ALL");
 
   const fetchInternships = async () => {
     try {
@@ -55,10 +56,39 @@ export default function CompanyInternshipsPage() {
   }, []);
 
   const pendingCount = internships.filter((i) => (i.pendingDocuments ?? 0) > 0).length;
-  const visibleInternships =
-    filter === "PENDING"
-      ? internships.filter((i) => (i.pendingDocuments ?? 0) > 0)
-      : internships;
+
+  // Build filter pills from the statuses actually present, plus a special
+  // "Needs validation" pill (documents awaiting the company's review).
+  const filterTabs = useMemo(() => {
+    const byStatus = new Map<string, number>();
+    for (const i of internships) {
+      byStatus.set(i.status, (byStatus.get(i.status) || 0) + 1);
+    }
+    return [
+      { key: "ALL", label: t("common.all"), count: internships.length, dot: false },
+      ...Array.from(byStatus.entries())
+        .sort((a, b) => a[0].localeCompare(b[0]))
+        .map(([status, count]) => ({
+          key: status,
+          label: t(`status.${status}` as any) || status,
+          count,
+          dot: false,
+        })),
+      {
+        key: "NEEDS_VALIDATION",
+        label: t("documents.needsValidation", { defaultValue: "Needs validation" }),
+        count: pendingCount,
+        dot: true,
+      },
+    ];
+  }, [internships, pendingCount, t]);
+
+  const visibleInternships = useMemo(() => {
+    if (filter === "ALL") return internships;
+    if (filter === "NEEDS_VALIDATION")
+      return internships.filter((i) => (i.pendingDocuments ?? 0) > 0);
+    return internships.filter((i) => i.status === filter);
+  }, [internships, filter]);
 
   return (
     <div className="space-y-6">
@@ -67,44 +97,48 @@ export default function CompanyInternshipsPage() {
           <h1 className="text-[17px] font-semibold text-gray-900 dark:text-white">{t("common.internships")}</h1>
           <p className="text-[13px] text-gray-500 dark:text-gray-400 mt-0.5">{t("dashboard.activeInternships")}</p>
         </div>
-
-        {/* Filter: all vs. only those with documents awaiting validation */}
-        <div className="inline-flex rounded-md border border-gray-200 dark:border-slate-700 p-0.5 bg-gray-50 dark:bg-slate-800/50 self-start">
-          <button
-            onClick={() => setFilter("ALL")}
-            className={`px-3 py-1.5 text-[12px] font-semibold rounded transition-colors ${
-              filter === "ALL"
-                ? "bg-white dark:bg-slate-900 text-gray-900 dark:text-white shadow-sm"
-                : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
-            }`}
-          >
-            {t("common.all", { defaultValue: "All" })}
-          </button>
-          <button
-            onClick={() => setFilter("PENDING")}
-            className={`px-3 py-1.5 text-[12px] font-semibold rounded transition-colors inline-flex items-center gap-1.5 ${
-              filter === "PENDING"
-                ? "bg-white dark:bg-slate-900 text-green-700 dark:text-green-400 shadow-sm"
-                : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
-            }`}
-          >
-            <span className="h-2 w-2 rounded-full bg-green-500" />
-            {t("documents.needsValidation", { defaultValue: "Needs validation" })}
-            {pendingCount > 0 && (
-              <span className="ml-1 bg-green-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
-                {pendingCount}
-              </span>
-            )}
-          </button>
-        </div>
       </div>
+
+      {/* Status filter */}
+      {!isLoading && internships.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2">
+          {filterTabs.map((tab) => {
+            const active = filter === tab.key;
+            return (
+              <button
+                key={tab.key}
+                onClick={() => setFilter(tab.key)}
+                className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[12px] font-semibold transition-colors ${
+                  active
+                    ? "bg-indigo-600 text-white"
+                    : "bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-700"
+                }`}
+              >
+                {tab.dot && (
+                  <span className="h-2 w-2 rounded-full bg-green-500" />
+                )}
+                {tab.label}
+                <span
+                  className={`rounded-full px-1.5 text-[11px] ${
+                    active
+                      ? "bg-white/20 text-white"
+                      : "bg-white dark:bg-slate-900 text-gray-500 dark:text-gray-400"
+                  }`}
+                >
+                  {tab.count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {isLoading ? (
           <div className="col-span-full text-center py-12 text-gray-400 dark:text-gray-500">{t("common.loading")}</div>
         ) : visibleInternships.length === 0 ? (
           <div className="col-span-full text-center py-12 text-gray-400 dark:text-gray-500 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-md">
-            {filter === "PENDING"
+            {filter === "NEEDS_VALIDATION"
               ? t("documents.noneToValidate", { defaultValue: "Nothing awaiting validation." })
               : t("common.noData")}
           </div>
