@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useCallback, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { useSession } from "next-auth/react";
 import { useTranslation } from "@/lib/i18n/LanguageContext";
@@ -21,6 +22,8 @@ interface SharedFile {
 function CompanyMessagesContent() {
   const { data: session } = useSession();
   const { t, isRTL } = useTranslation();
+  const searchParams = useSearchParams();
+  const wantedId = searchParams.get("internshipId");
   const [internships, setInternships] = useState<InternshipThread[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [sharedFiles, setSharedFiles] = useState<SharedFile[]>([]);
@@ -40,14 +43,17 @@ function CompanyMessagesContent() {
       );
       setInternships(active);
       if (active.length > 0 && !selectedId) {
-        setSelectedId(active[0].id);
+        // Honour ?internshipId= from the internships list's "Messages" button
+        // so it opens that exact team's chat instead of the first thread.
+        const match = wantedId && active.some((i: any) => i.id === wantedId);
+        setSelectedId(match ? (wantedId as string) : active[0].id);
       }
     } catch {
       toast.error(t("toast.loadInternshipsFailed"));
     } finally {
       setIsLoading(false);
     }
-  }, [t, selectedId]);
+  }, [t, selectedId, wantedId]);
 
   const fetchSharedFiles = useCallback(async (internshipId: string) => {
     try {

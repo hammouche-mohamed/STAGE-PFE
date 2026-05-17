@@ -153,7 +153,7 @@ export default function CompanyInternshipsPage() {
                     <ArrowRight className="ml-1 h-3 w-3" />
                   </button>
                 </Link>
-                <Link href="/company/messages">
+                <Link href={`/company/messages?internshipId=${internship.id}`}>
                    <Button size="sm" variant="outline" className="h-8">
                      {t("nav.messages")}
                    </Button>
