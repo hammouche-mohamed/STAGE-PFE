@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { 
   Plus, 
   Search, 
@@ -42,6 +42,7 @@ export default function CompanyTopicsPage() {
   const { t, isRTL } = useTranslation();
   const [topics, setTopics] = useState<Topic[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [statusFilter, setStatusFilter] = useState<string>("ALL");
   const [topicToDeleteId, setTopicToDeleteId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [topicToEdit, setTopicToEdit] = useState<Topic | null>(null);
@@ -68,6 +69,32 @@ export default function CompanyTopicsPage() {
   useEffect(() => {
     fetchTopics();
   }, []);
+
+  // Build filter tabs from the statuses actually present in the data.
+  const filterTabs = useMemo(() => {
+    const byStatus = new Map<string, number>();
+    for (const tp of topics) {
+      byStatus.set(tp.status, (byStatus.get(tp.status) || 0) + 1);
+    }
+    return [
+      { key: "ALL", label: t("common.all"), count: topics.length },
+      ...Array.from(byStatus.entries())
+        .sort((a, b) => a[0].localeCompare(b[0]))
+        .map(([status, count]) => ({
+          key: status,
+          label: t(`status.${status}` as any) || status,
+          count,
+        })),
+    ];
+  }, [topics, t]);
+
+  const filteredTopics = useMemo(
+    () =>
+      statusFilter === "ALL"
+        ? topics
+        : topics.filter((tp) => tp.status === statusFilter),
+    [topics, statusFilter]
+  );
 
   const handleDeleteTopic = (id: string) => {
     setTopicToDeleteId(id);
@@ -146,6 +173,37 @@ export default function CompanyTopicsPage() {
         </Link>
       </div>
 
+      {/* Status filter */}
+      {!isLoading && topics.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2">
+          {filterTabs.map((tab) => {
+            const active = statusFilter === tab.key;
+            return (
+              <button
+                key={tab.key}
+                onClick={() => setStatusFilter(tab.key)}
+                className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[12px] font-semibold transition-colors ${
+                  active
+                    ? "bg-indigo-600 text-white"
+                    : "bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-700"
+                }`}
+              >
+                {tab.label}
+                <span
+                  className={`rounded-full px-1.5 text-[11px] ${
+                    active
+                      ? "bg-white/20 text-white"
+                      : "bg-white dark:bg-slate-900 text-gray-500 dark:text-gray-400"
+                  }`}
+                >
+                  {tab.count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       <div className="grid grid-cols-1 gap-4">
         {isLoading ? (
           <div className="text-center py-12 text-gray-400 dark:text-gray-500 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-md">{t("common.loading")}</div>
@@ -157,8 +215,12 @@ export default function CompanyTopicsPage() {
               {t("topics.propose")}
             </Link>
           </div>
+        ) : filteredTopics.length === 0 ? (
+          <div className="text-center py-12 text-gray-400 dark:text-gray-500 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-md">
+            {t("common.noData")}
+          </div>
         ) : (
-          topics.map((topic) => (
+          filteredTopics.map((topic) => (
             <div key={topic.id} className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-md p-5 hover:border-indigo-300 dark:hover:border-indigo-900 transition-all shadow-sm group">
               <div className="flex items-start justify-between">
                 <div className="space-y-2 flex-1">
