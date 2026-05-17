@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse, after } from 'next/server';
 import prisma from '@/lib/prisma';
 import { auth } from '@/lib/auth';
 import { AuditService } from '@/lib/services/audit.service';
@@ -180,8 +180,15 @@ export async function PATCH(
       targetId: result.name,
     });
 
-    MailService.sendStatusUpdate(request.email, request.name, 'APPROVED', adminComment, updatedData, { ...request, role: request.role })
-      .catch(e => console.error('Approval mail failed:', e));
+    // after(): a non-awaited promise is killed when the function returns on
+    // Vercel, dropping the approval email. after() keeps the runtime alive.
+    after(async () => {
+      try {
+        await MailService.sendStatusUpdate(request.email, request.name, 'APPROVED', adminComment, updatedData, { ...request, role: request.role });
+      } catch (e) {
+        console.error('Approval mail failed:', e);
+      }
+    });
 
     await NotificationService.clearRelated(id, 'REGISTRATION_REQUEST');
 

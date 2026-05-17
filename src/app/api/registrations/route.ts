@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse, after } from "next/server";
 import prisma from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { registrationSchema } from "@/lib/validations/registration.schema";
@@ -242,9 +242,20 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    MailService.sendRegistrationReceived(validatedData.email, validatedData.name, validatedData.role).catch(err =>
-      console.error("Delayed registration email failed:", err)
-    );
+    // Run after the response is sent. On Vercel a non-awaited promise is
+    // killed once the function returns; after() keeps the runtime alive for
+    // the SMTP handshake so the confirmation email actually goes out.
+    after(async () => {
+      try {
+        await MailService.sendRegistrationReceived(
+          validatedData.email,
+          validatedData.name,
+          validatedData.role,
+        );
+      } catch (err) {
+        console.error("Registration confirmation email failed:", err);
+      }
+    });
 
     return NextResponse.json(
       { data: { id: request.id, status: request.status } },
