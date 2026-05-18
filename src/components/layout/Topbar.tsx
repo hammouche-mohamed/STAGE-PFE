@@ -47,7 +47,18 @@ export const Topbar: React.FC = () => {
   useEffect(() => {
     fetchUnread();
 
-    const handleUpdate = () => fetchUnread();
+    // The notifications page sends the freshly-computed unread count with the
+    // event so the badge updates instantly. Trust it and skip the server
+    // round-trip (which would otherwise race the in-flight delete and briefly
+    // show the stale count); the periodic poll reconciles any drift.
+    const handleUpdate = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail && typeof detail.unreadCount === "number") {
+        setUnreadCount(detail.unreadCount);
+      } else {
+        fetchUnread();
+      }
+    };
     window.addEventListener("notificationsUpdated", handleUpdate);
     
     return () => {

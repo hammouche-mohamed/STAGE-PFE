@@ -107,6 +107,14 @@ export function NotificationsClient() {
     fetchNotifications();
   }, []);
 
+  // Tell the Topbar bell the new unread count so its badge updates instantly,
+  // without waiting for a server round-trip that races the in-flight write.
+  const notifyTopbar = (unread: number) => {
+    window.dispatchEvent(
+      new CustomEvent("notificationsUpdated", { detail: { unreadCount: unread } }),
+    );
+  };
+
   const markAllRead = async () => {
     try {
       const res = await fetch("/api/notifications", {
@@ -116,7 +124,7 @@ export function NotificationsClient() {
       });
       if (res.ok) {
         setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
-        window.dispatchEvent(new Event("notificationsUpdated"));
+        notifyTopbar(0);
       }
     } catch {
       toast.error("Failed to mark all as read");
@@ -128,7 +136,7 @@ export function NotificationsClient() {
       const res = await fetch("/api/notifications?all=true", { method: "DELETE" });
       if (res.ok) {
         setNotifications([]);
-        window.dispatchEvent(new Event("notificationsUpdated"));
+        notifyTopbar(0);
         setIsClearAllDialogOpen(false);
       }
     } catch {
@@ -138,8 +146,9 @@ export function NotificationsClient() {
   };
 
   const deleteOne = async (id: string) => {
-    setNotifications((prev) => prev.filter((n) => n.id !== id));
-    window.dispatchEvent(new Event("notificationsUpdated"));
+    const remaining = notifications.filter((n) => n.id !== id);
+    setNotifications(remaining);
+    notifyTopbar(remaining.filter((n) => !n.isRead).length);
     try {
       await fetch(`/api/notifications?id=${id}`, { method: "DELETE" });
     } catch {
@@ -150,8 +159,9 @@ export function NotificationsClient() {
   // Phone-style: tapping a notification dismisses it (marked read + removed
   // from the list) and then opens its target.
   const openNotification = (n: Notification) => {
-    setNotifications((prev) => prev.filter((x) => x.id !== n.id));
-    window.dispatchEvent(new Event("notificationsUpdated"));
+    const remaining = notifications.filter((x) => x.id !== n.id);
+    setNotifications(remaining);
+    notifyTopbar(remaining.filter((x) => !x.isRead).length);
     fetch(`/api/notifications?id=${n.id}`, { method: "DELETE" }).catch(() => {});
     if (n.link) router.push(n.link);
   };
