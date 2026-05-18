@@ -46,6 +46,8 @@ interface Topic {
   rejectionReason?: string;
   filiereId?: string | null;
   targetLevels?: string | null;
+  requiredSkills?: string | null;
+  internshipType?: string | null;
   filiere?: Filiere | null;
   pendingEditData?: string | null;
   pendingEditRequestedAt?: string | null;
@@ -365,17 +367,33 @@ export default function AdminTopicDetailPage() {
 
                   <div className="space-y-1.5">
                     <label className="text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">{t("common.filiere")}</label>
-                    <select 
-                      className="admin-input w-full text-[13px] h-10"
+                    <select
+                      className="admin-input w-full text-[13px] h-10 disabled:opacity-70 disabled:cursor-not-allowed"
                       value={editData.filiereId}
                       onChange={(e) => setEditData({...editData, filiereId: e.target.value})}
-                      disabled={session?.user?.isSuperAdmin}
+                      disabled
+                      title="The department is fixed for this topic and cannot be changed here."
                     >
                       <option value="">Select Filière...</option>
                       {filieres.map(f => (
                         <option key={f.id} value={f.id}>{f.name}{f.code ? ` (${f.code})` : ""}</option>
                       ))}
                     </select>
+                  </div>
+                </div>
+
+                <div className="pt-6 border-t border-gray-100 grid grid-cols-1 sm:grid-cols-3 gap-6">
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">{t("company.topicNew.internshipType", { defaultValue: "Internship Type" })}</label>
+                    <p className="text-[13px] font-semibold text-gray-900 dark:text-white h-10 flex items-center">
+                      {topic.internshipType || "—"}
+                    </p>
+                  </div>
+                  <div className="space-y-1.5 sm:col-span-2">
+                    <label className="text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">{t("company.topicNew.requiredSkills", { defaultValue: "Required Skills & Technologies" })}</label>
+                    <p className="text-[13px] text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">
+                      {topic.requiredSkills?.trim() || t("common.none", { defaultValue: "None specified" })}
+                    </p>
                   </div>
                 </div>
 
