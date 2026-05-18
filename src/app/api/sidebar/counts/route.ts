@@ -34,12 +34,25 @@ export async function GET(req: NextRequest) {
         }
       }
 
-      const [regCount, topicCount, internCount] = await Promise.all([
+      const [regCount, topicCount, acceptedAppCount, internCount] = await Promise.all([
         prisma.registrationRequest.count({ where: regWhere as any }),
         prisma.topic.count({
           where: {
             status: "PENDING_ADMIN",
             ...(filiereId ? { filiereId } : {})
+          } as any,
+        }),
+        // Company has validated a team — the admin now has to confirm it to
+        // start the internship. Topic not yet TAKEN means no internship was
+        // created from it yet, so the application is still actionable.
+        prisma.studentApplication.count({
+          where: {
+            status: "ACCEPTED",
+            topic: {
+              type: "COMPANY_PROPOSED",
+              status: { not: "TAKEN" },
+              ...(filiereId ? { filiereId } : {}),
+            },
           } as any,
         }),
         prisma.internship.count({
@@ -51,7 +64,10 @@ export async function GET(req: NextRequest) {
       ]);
 
       counts["/admin/registrations"] = regCount;
-      counts["/admin/topics"] = topicCount;
+      // The Topics nav item flags both pending student/company proposals AND
+      // company-accepted applications waiting for the admin to create the
+      // internship (the notification links to /admin/topics/[id]).
+      counts["/admin/topics"] = topicCount + acceptedAppCount;
       counts["/admin/internships"] = internCount;
     } else if (role === "TEACHER") {
       const [internCount, docCount, msgCount] = await Promise.all([

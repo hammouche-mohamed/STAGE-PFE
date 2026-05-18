@@ -41,7 +41,7 @@ export default function TeacherTopicsPage() {
   const [isApplying, setIsApplying] = useState<string | null>(null);
   const [viewTopic, setViewTopic] = useState<Topic | null>(null);
   const [confirmAction, setConfirmAction] = useState<{
-    type: "apply" | "cancel";
+    type: "apply" | "cancel" | "accept" | "decline";
     topic: Topic;
   } | null>(null);
 
@@ -123,12 +123,39 @@ export default function TeacherTopicsPage() {
     }
   };
 
+  // Admin assigned this teacher to supervise — the teacher must explicitly
+  // accept or decline (topic sits in PENDING_TEACHER until they do).
+  const handleSupervisionDecision = async (
+    topicId: string,
+    action: "ACCEPT" | "REJECT",
+  ) => {
+    setIsApplying(topicId);
+    try {
+      const res = await fetch(`/api/topics/${topicId}/teacher-action`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || t("teacherTopics.decisionFailed"));
+      toast.success(t("teacherTopics.decisionSaved"));
+      setViewTopic(null);
+      fetchTopics();
+    } catch (error: any) {
+      toast.error(error.message);
+    } finally {
+      setIsApplying(null);
+    }
+  };
+
   const runConfirm = () => {
     if (!confirmAction) return;
     const { type, topic } = confirmAction;
     setConfirmAction(null);
     if (type === "apply") handleApply(topic.id);
-    else handleCancelRequest(topic.id);
+    else if (type === "cancel") handleCancelRequest(topic.id);
+    else if (type === "accept") handleSupervisionDecision(topic.id, "ACCEPT");
+    else if (type === "decline") handleSupervisionDecision(topic.id, "REJECT");
   };
 
   const TABS: { id: Tab; label: string }[] = [
@@ -148,6 +175,12 @@ export default function TeacherTopicsPage() {
     !!viewTopic &&
     !viewTopic.assignedTeacherId &&
     (viewTopic.teacherApplications ?? []).some((a) => a.status === "PENDING");
+
+  // Admin assigned this teacher; they must accept or decline the supervision.
+  const canRespondToAssignment =
+    !!viewTopic &&
+    viewTopic.assignedTeacherId === myId &&
+    viewTopic.status === "PENDING_TEACHER";
 
   return (
     <div className="space-y-6">
@@ -235,7 +268,11 @@ export default function TeacherTopicsPage() {
                     {activeTab === "REQUESTED" ? (
                       <StatusBadge status="PENDING" label={t("teacherTopics.statusRequestPending")} />
                     ) : activeTab === "SUPERVISING" ? (
-                      <StatusBadge status="APPROVED" label={t("teacherTopics.statusSupervising")} />
+                      topic.status === "PENDING_TEACHER" ? (
+                        <StatusBadge status="PENDING" label={t("teacherTopics.statusAwaitingResponse")} />
+                      ) : (
+                        <StatusBadge status="APPROVED" label={t("teacherTopics.statusSupervising")} />
+                      )
                     ) : (
                       <StatusBadge status={topic.status} />
                     )}
@@ -370,6 +407,26 @@ export default function TeacherTopicsPage() {
                   {t("teacherTopics.apply")}
                 </Button>
               )}
+              {canRespondToAssignment && (
+                <>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20 border-red-200 dark:border-red-900/30"
+                    onClick={() => setConfirmAction({ type: "decline", topic: viewTopic })}
+                    isLoading={isApplying === viewTopic.id}
+                  >
+                    {t("teacherTopics.decline")}
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={() => setConfirmAction({ type: "accept", topic: viewTopic })}
+                    isLoading={isApplying === viewTopic.id}
+                  >
+                    {t("teacherTopics.accept")}
+                  </Button>
+                </>
+              )}
             </div>
           </div>
         )}
@@ -379,23 +436,39 @@ export default function TeacherTopicsPage() {
         isOpen={!!confirmAction}
         onClose={() => setConfirmAction(null)}
         onConfirm={runConfirm}
-        title={
+        title={t(
           confirmAction?.type === "cancel"
-            ? t("teacherTopics.cancelConfirmTitle")
-            : t("teacherTopics.applyConfirmTitle")
-        }
-        description={
+            ? "teacherTopics.cancelConfirmTitle"
+            : confirmAction?.type === "accept"
+              ? "teacherTopics.acceptConfirmTitle"
+              : confirmAction?.type === "decline"
+                ? "teacherTopics.declineConfirmTitle"
+                : "teacherTopics.applyConfirmTitle",
+        )}
+        description={t(
           confirmAction?.type === "cancel"
-            ? t("teacherTopics.cancelConfirmDesc")
-            : t("teacherTopics.applyConfirmDesc")
-        }
-        confirmLabel={
+            ? "teacherTopics.cancelConfirmDesc"
+            : confirmAction?.type === "accept"
+              ? "teacherTopics.acceptConfirmDesc"
+              : confirmAction?.type === "decline"
+                ? "teacherTopics.declineConfirmDesc"
+                : "teacherTopics.applyConfirmDesc",
+        )}
+        confirmLabel={t(
           confirmAction?.type === "cancel"
-            ? t("teacherTopics.cancelRequest")
-            : t("teacherTopics.apply")
-        }
+            ? "teacherTopics.cancelRequest"
+            : confirmAction?.type === "accept"
+              ? "teacherTopics.accept"
+              : confirmAction?.type === "decline"
+                ? "teacherTopics.decline"
+                : "teacherTopics.apply",
+        )}
         cancelLabel={t("common.cancel")}
-        variant={confirmAction?.type === "cancel" ? "danger" : "warning"}
+        variant={
+          confirmAction?.type === "cancel" || confirmAction?.type === "decline"
+            ? "danger"
+            : "warning"
+        }
       />
     </div>
   );

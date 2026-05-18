@@ -59,16 +59,28 @@ export async function POST(req: NextRequest) {
       link: "/student/invitations",
     });
 
-    const admins = await prisma.user.findMany({ where: { role: "ADMIN" } });
+    // Notify the department's admins (+ super admins). "SYSTEM_ALERT" is not
+    // a valid notification_type enum, which silently broke this before.
+    const admins = await prisma.user.findMany({
+      where: {
+        role: "ADMIN",
+        OR: [
+          { adminprofile: { isSuperAdmin: true } },
+          { adminprofile: { filiereId: team.filiereId } },
+        ],
+      } as any,
+      select: { id: true },
+    });
     for (const admin of admins) {
       await NotificationService.trigger({
         userId: admin.id,
-        type: "SYSTEM_ALERT",
+        type: "BINOME_INVITATION",
         title: "New Team Invitation",
         message: `Student ${session.user.name} sent a team invitation to another student.`,
         relatedId: teamId,
         relatedType: "Team",
-        link: "/admin/internships",
+        link: "/admin/users?tab=teams",
+        skipEmail: true,
       });
     }
 
@@ -115,7 +127,10 @@ export async function GET(req: NextRequest) {
     const data = invitations.map((inv) => ({
       id: inv.id,
       status: inv.status,
-      message: inv.message,
+      // Show the receiver whatever the sender wrote: the invitation's own
+      // message, or — when invited via team creation — the message the
+      // leader typed when creating the team (studentteam.reason).
+      message: inv.message || (inv as any).studentteam?.reason || null,
       expiresAt: inv.expiresAt,
       createdAt: inv.createdAt,
       team: {

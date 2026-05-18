@@ -93,6 +93,8 @@ export default function AdminTopicDetailPage() {
   const [selectedLevels, setSelectedLevels] = useState<string[]>([]);
   const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false);
   const [rejectionReasonInput, setRejectionReasonInput] = useState("");
+  // The student application the admin is about to confirm into an internship.
+  const [approveTeamApp, setApproveTeamApp] = useState<any | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -199,6 +201,39 @@ export default function AdminTopicDetailPage() {
     const ok = await handleUpdate({ ...editData, status: "OPEN_FOR_SELECTION" });
     if (ok) {
       router.push("/admin/topics");
+    }
+  };
+
+  const confirmApproveTeam = async () => {
+    const app = approveTeamApp;
+    if (!app || !topic) return;
+    if (!topic.assignedTeacherId) {
+      toast.error("Please assign a supervisor before approving a team.");
+      setApproveTeamApp(null);
+      return;
+    }
+    setIsUpdating(true);
+    try {
+      const studentIds = app.studentteam.teammember.map((m: any) => m.studentId);
+      const res = await fetch("/api/internships", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          topicId: topic.id,
+          teacherId: topic.assignedTeacherId,
+          academicYear: topic.academicYear,
+          studentIds,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "Failed to approve team");
+      toast.success("Team approved and internship created!");
+      router.push("/admin/internships");
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setIsUpdating(false);
+      setApproveTeamApp(null);
     }
   };
 
@@ -499,43 +534,57 @@ export default function AdminTopicDetailPage() {
                          <p className="text-[11px] text-gray-400 dark:text-gray-500">Applied on {format(new Date(app.appliedAt), "MMM d, yyyy")}</p>
                        </div>
                      </div>
-                     {!session?.user?.isSuperAdmin && (
-                        <Button 
-                          size="sm" 
-                          className="bg-indigo-600 hover:bg-indigo-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
-                          onClick={async () => {
-                            if (!topic.assignedTeacherId) {
-                              toast.error("Please assign a supervisor before approving a team.");
-                              return;
-                            }
-                            setIsUpdating(true);
-                            try {
-                              const studentIds = app.studentteam.teammember.map((m: any) => m.studentId);
-                              const res = await fetch("/api/internships", {
-                                method: "POST",
-                                headers: { "Content-Type": "application/json" },
-                                body: JSON.stringify({
-                                  topicId: topic.id,
-                                  teacherId: topic.assignedTeacherId,
-                                  academicYear: topic.academicYear,
-                                  studentIds
-                                }),
-                              });
-                              if (!res.ok) throw new Error("Failed to approve team");
-                              toast.success("Team approved and internship created!");
-                              router.push("/admin/internships");
-                            } catch (err: any) {
-                              toast.error(err.message);
-                            } finally {
-                              setIsUpdating(false);
-                            }
-                          }}
-                          isLoading={isUpdating}
-                          disabled={topic.status === "TAKEN"}
-                        >
-                          {topic.status === "TAKEN" ? "Already Assigned" : "Approve & Create Internship"}
-                        </Button>
-                     )}
+                     {(() => {
+                       const needsCompany = topic.type === "COMPANY_PROPOSED";
+                       // For company topics the company must validate a team
+                       // first. Until then the admin only sees the applicants
+                       // — no action buttons.
+                       if (needsCompany && app.status === "PENDING") {
+                         return (
+                           <span className="inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-full text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-900/30">
+                             <Clock className="h-3.5 w-3.5" />
+                             Waiting for company validation
+                           </span>
+                         );
+                       }
+                       if (app.status === "REJECTED" || app.status === "CANCELLED") {
+                         return (
+                           <span className="inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-full text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-slate-800 border border-gray-100 dark:border-slate-700">
+                             <XCircle className="h-3.5 w-3.5" />
+                             Not selected
+                           </span>
+                         );
+                       }
+                       if (session?.user?.isSuperAdmin) return null;
+                       // An internship cannot be started without a supervisor.
+                       const noSupervisor = !topic.assignedTeacherId;
+                       return (
+                         <div className="flex items-center gap-2">
+                           {needsCompany && (
+                             <span className="inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-full text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/20 border border-green-100 dark:border-green-900/30">
+                               <CheckCircle2 className="h-3.5 w-3.5" />
+                               Company validated
+                             </span>
+                           )}
+                           {noSupervisor && topic.status !== "TAKEN" && (
+                             <span className="inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-full text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-900/30">
+                               <AlertCircle className="h-3.5 w-3.5" />
+                               Assign a supervisor first
+                             </span>
+                           )}
+                           <Button
+                             size="sm"
+                             className="bg-indigo-600 hover:bg-indigo-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                             onClick={() => setApproveTeamApp(app)}
+                             isLoading={isUpdating && approveTeamApp?.id === app.id}
+                             disabled={topic.status === "TAKEN" || noSupervisor}
+                             title={noSupervisor ? "Assign a supervisor before starting the internship." : undefined}
+                           >
+                             {topic.status === "TAKEN" ? "Already Assigned" : "Approve & Create Internship"}
+                           </Button>
+                         </div>
+                       );
+                     })()}
                    </div>
                  ))}
                </div>
@@ -620,6 +669,24 @@ export default function AdminTopicDetailPage() {
         title={t("common.save", { defaultValue: "Save Changes" })}
         description={`Save the changes to "${topic.title}"?`}
         confirmLabel={t("common.save", { defaultValue: "Save" })}
+        variant="warning"
+        isLoading={isUpdating}
+      />
+
+      <ConfirmDialog
+        isOpen={!!approveTeamApp}
+        onClose={() => setApproveTeamApp(null)}
+        onConfirm={confirmApproveTeam}
+        title="Start Internship"
+        description={
+          approveTeamApp
+            ? `Approve ${approveTeamApp.studentteam?.teammember
+                ?.map((m: any) => m.user.name)
+                .join(" & ")} for "${topic.title}" and create the internship? Other applications for this topic will be closed.`
+            : ""
+        }
+        confirmLabel="Approve & Create Internship"
+        cancelLabel="Cancel"
         variant="warning"
         isLoading={isUpdating}
       />

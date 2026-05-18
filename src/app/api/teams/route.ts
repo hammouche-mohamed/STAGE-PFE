@@ -96,7 +96,11 @@ export async function POST(req: NextRequest) {
     for (const admin of admins) {
       await NotificationService.trigger({
         userId: admin.id,
-        type: "SYSTEM_ALERT",
+        // NOTE: "SYSTEM_ALERT" is NOT a valid notification_type enum value —
+        // using it made prisma.notification.create throw (silently swallowed
+        // by NotificationService), so the admin never got notified. Use a
+        // valid team/binôme enum value instead.
+        type: "BINOME_ACCEPTED",
         title: "New Team Created",
         message: `${session.user.name} created a team${
           invitedStudentIds?.length ? ` and invited ${invitedStudentIds.length} student(s)` : ""

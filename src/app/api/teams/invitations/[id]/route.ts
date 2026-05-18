@@ -61,14 +61,35 @@ export async function PATCH(
         })
       ]);
 
+      // Tell everyone already on the team (leader + any existing members)
+      // that a new member just joined. The joiner is created inside the
+      // transaction above, so studentteam.teammember still holds only the
+      // pre-existing members here.
+      const existingMembers = invitation.studentteam.teammember;
+      await Promise.all(
+        existingMembers.map((m) =>
+          NotificationService.trigger({
+            userId: m.studentId,
+            type: "BINOME_ACCEPTED",
+            title: "New Team Member",
+            message: `${session.user.name} has joined your team.`,
+            relatedId: invitation.teamId,
+            relatedType: "Team",
+            link: "/student/team",
+          })
+        )
+      );
+
+      // Welcome the student who just joined.
       await NotificationService.trigger({
-        userId: invitation.studentteam.leaderId,
+        userId: session.user.id,
         type: "BINOME_ACCEPTED",
-        title: "Team Invitation Accepted",
-        message: `${session.user.name} has joined your team.`,
+        title: "You Joined a Team",
+        message: `You have joined the team. You can now apply to topics together.`,
         relatedId: invitation.teamId,
         relatedType: "Team",
         link: "/student/team",
+        skipEmail: true,
       });
 
       await AuditService.log({

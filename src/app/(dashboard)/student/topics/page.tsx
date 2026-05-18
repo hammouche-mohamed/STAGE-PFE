@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import {
-  Search, Building2, CheckCircle2, Loader2,
+  Search, Building2, CheckCircle2, Loader2, Clock,
   X, AlertCircle, Users, Calendar, Tag, ChevronRight, User, Plus, GraduationCap, Lock
 } from "lucide-react";
 import Link from "next/link";
@@ -161,13 +161,10 @@ export default function StudentTopicsPage() {
 
     if (topic.type === "COMPANY_PROPOSED") {
       if (app.status === "PENDING") {
-        const appliedDate = new Date(app.appliedAt);
-        const expiresAt = new Date(appliedDate.setMonth(appliedDate.getMonth() + 2));
-        const daysLeft = Math.max(0, Math.ceil((expiresAt.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)));
-        return { 
-          text: `Waiting for Company Validation (${daysLeft} days left)`, 
-          color: "text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 border-amber-100", 
-          icon: <Loader2 className="h-4 w-4 animate-spin" />
+        return {
+          text: "Waiting for validation",
+          color: "text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 border-amber-100",
+          icon: <Clock className="h-4 w-4" />
         };
       }
       if (app.status === "ACCEPTED") {
@@ -348,13 +345,15 @@ export default function StudentTopicsPage() {
                     </div>
                   </div>
 
-                  {topic.assignedTeacher && (
-                    <div className="flex items-center gap-1.5 text-[12px] text-gray-600 dark:text-gray-300 pt-1">
-                      <GraduationCap className="h-3.5 w-3.5 text-indigo-500 dark:text-indigo-400" />
-                      <span className="text-gray-400 dark:text-gray-500">{t("topics.list.supervisor")}:</span>
+                  <div className="flex items-center gap-1.5 text-[12px] text-gray-600 dark:text-gray-300 pt-1">
+                    <GraduationCap className="h-3.5 w-3.5 text-indigo-500 dark:text-indigo-400" />
+                    <span className="text-gray-400 dark:text-gray-500">{t("topics.list.supervisor")}:</span>
+                    {topic.assignedTeacher ? (
                       <span className="font-medium">{topic.assignedTeacher.name}</span>
-                    </div>
-                  )}
+                    ) : (
+                      <span className="italic text-gray-400 dark:text-gray-500">{t("topics.list.supervisorNotSelected")}</span>
+                    )}
+                  </div>
                 </div>
 
                 <div className="mt-5 pt-4 border-t border-gray-100 dark:border-slate-800 flex items-center justify-end" onClick={(e: React.MouseEvent) => e.stopPropagation()}>
@@ -441,15 +440,17 @@ export default function StudentTopicsPage() {
                     <p className="text-[13px] font-medium text-gray-800 dark:text-gray-200">{selectedTopic.academicYear}</p>
                   </div>
                 </div>
-                {selectedTopic.assignedTeacher && (
-                  <div className="bg-gray-50 dark:bg-slate-800 border border-gray-100 dark:border-slate-700 rounded-xl p-3.5">
-                    <p className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase mb-1.5">{t("topics.list.supervisor")}</p>
-                    <div className="flex items-center gap-2">
-                      <User className="h-4 w-4 text-indigo-500 dark:text-indigo-400" />
+                <div className="bg-gray-50 dark:bg-slate-800 border border-gray-100 dark:border-slate-700 rounded-xl p-3.5">
+                  <p className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase mb-1.5">{t("topics.list.supervisor")}</p>
+                  <div className="flex items-center gap-2">
+                    <User className="h-4 w-4 text-indigo-500 dark:text-indigo-400" />
+                    {selectedTopic.assignedTeacher ? (
                       <p className="text-[13px] font-medium text-gray-800 dark:text-gray-200">{selectedTopic.assignedTeacher.name}</p>
-                    </div>
+                    ) : (
+                      <p className="text-[13px] font-medium italic text-gray-400 dark:text-gray-500">{t("topics.list.supervisorNotSelected")}</p>
+                    )}
                   </div>
-                )}
+                </div>
               </div>
               {skills(selectedTopic).length > 0 && (
                 <div>

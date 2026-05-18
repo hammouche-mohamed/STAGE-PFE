@@ -44,9 +44,49 @@ export async function PATCH(
       return NextResponse.json({ error: "Forbidden. You can only validate applications for your own topics." }, { status: 403 });
     }
 
-    const updatedApplication = await prisma.studentApplication.update({
-      where: { id },
-      data: { status, reviewedAt: new Date() }
+    // Only one team can win a topic. When the company ACCEPTS an application,
+    // every other still-open application for the same topic is auto-rejected
+    // so a second team can't also be accepted later.
+    let autoRejected: Array<{
+      leaderId: string;
+      teamId: string | null;
+      topicTitle: string;
+    }> = [];
+
+    const updatedApplication = await prisma.$transaction(async (tx) => {
+      const updated = await tx.studentApplication.update({
+        where: { id },
+        data: { status, reviewedAt: new Date() },
+      });
+
+      if (status === "ACCEPTED") {
+        const losers = await tx.studentApplication.findMany({
+          where: {
+            topicId: application.topicId,
+            id: { not: id },
+            status: { notIn: ["REJECTED", "CANCELLED"] },
+          },
+          select: { leaderId: true, teamId: true },
+        });
+
+        if (losers.length > 0) {
+          await tx.studentApplication.updateMany({
+            where: {
+              topicId: application.topicId,
+              id: { not: id },
+              status: { notIn: ["REJECTED", "CANCELLED"] },
+            },
+            data: { status: "REJECTED", reviewedAt: new Date() },
+          });
+          autoRejected = losers.map((l) => ({
+            leaderId: l.leaderId,
+            teamId: l.teamId,
+            topicTitle: application.topic.title,
+          }));
+        }
+      }
+
+      return updated;
     });
 
     // Notifications + audit involve SMTP email delivery, which is slow. Run
@@ -59,7 +99,11 @@ export async function PATCH(
         if (leader) {
           await NotificationService.trigger({
             userId: leader.id,
-            type: "APPLICATION_STATUS_UPDATE",
+            // "APPLICATION_STATUS_UPDATE" is NOT a valid notification_type
+            // enum value — prisma.notification.create threw on it and the
+            // error was swallowed, so neither the in-app row nor the email
+            // was ever delivered. Use the real enum value.
+            type: status === "ACCEPTED" ? "APPLICATION_APPROVED" : "APPLICATION_REJECTED",
             title: "Company Review Update",
             message: `Your application for "${application.topic.title}" was ${status.toLowerCase()} by the company.`,
             relatedId: application.topicId,
@@ -82,7 +126,7 @@ export async function PATCH(
             deptAdmins.map((admin: { id: string }) =>
               NotificationService.trigger({
                 userId: admin.id,
-                type: "APPLICATION_STATUS_UPDATE",
+                type: "APPLICATION_APPROVED",
                 title: "Company Validation Complete",
                 message: `The company has accepted a team for "${application.topic.title}". Please review and create the internship.`,
                 relatedId: application.topicId,
@@ -92,6 +136,21 @@ export async function PATCH(
             )
           );
         }
+
+        // Tell every team that lost the topic why their application closed.
+        await Promise.all(
+          autoRejected.map((r) =>
+            NotificationService.trigger({
+              userId: r.leaderId,
+              type: "APPLICATION_REJECTED",
+              title: "Application Not Accepted",
+              message: `Your application for "${r.topicTitle}" was not accepted — another team was selected for this topic.`,
+              relatedId: application.topicId,
+              relatedType: "Topic",
+              link: "/student/topics",
+            })
+          )
+        );
 
         await AuditService.log({
           userId: session.user.id,

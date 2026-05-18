@@ -56,8 +56,10 @@ export default function StudentTeamPage() {
     });
   }, [availableStudents, inviteSearch, inviteLevel]);
 
-  const fetchTeam = async () => {
-    setIsLoading(true);
+  // `silent` skips the full-page loading state so post-action refreshes
+  // (invite / cancel / create) update in place instead of blanking the page.
+  const fetchTeam = async (opts?: { silent?: boolean }) => {
+    if (!opts?.silent) setIsLoading(true);
     try {
       const res = await fetch("/api/teams");
       const json = await res.json();
@@ -71,7 +73,7 @@ export default function StudentTeamPage() {
       console.error("fetchTeam error:", err);
       toast.error(t("studentTeam.toastNetwork"));
     } finally {
-      setIsLoading(false);
+      if (!opts?.silent) setIsLoading(false);
     }
   };
 
@@ -100,8 +102,8 @@ export default function StudentTeamPage() {
       });
       if (!res.ok) throw new Error((await res.json()).error);
       toast.success(t("studentTeam.toastCreated"));
-      fetchTeam();
       setShowCreateTeam(false);
+      fetchTeam({ silent: true });
     } catch (e: any) {
       toast.error(e.message || t("studentTeam.toastCreateFailed"));
     } finally {
@@ -111,15 +113,40 @@ export default function StudentTeamPage() {
 
   const handleInvite = async (studentId: string) => {
     setInvitingId(studentId);
+    const invited = availableStudents.find((s) => s.userId === studentId);
     try {
       const res = await fetch("/api/teams/invitations", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ studentId, teamId: team.id })
       });
-      if (!res.ok) throw new Error((await res.json()).error);
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error);
       toast.success(t("studentTeam.toastInvited"));
-      fetchTeam();
+      // Update in place — no full-page refresh: drop the invited student
+      // from the list and add them to Pending Invitations optimistically.
+      if (invited) {
+        setAvailableStudents((prev) => prev.filter((s) => s.userId !== studentId));
+        setTeam((prev: any) =>
+          prev
+            ? {
+                ...prev,
+                invitations: [
+                  ...(prev.invitations ?? []),
+                  {
+                    id: json.data?.id ?? `tmp-${studentId}`,
+                    status: "PENDING",
+                    invitedStudent: {
+                      name: invited.user?.name ?? "",
+                      email: invited.user?.email ?? "",
+                      level: invited.level ?? null,
+                    },
+                  },
+                ],
+              }
+            : prev
+        );
+      }
     } catch (e: any) {
       toast.error(e.message || t("studentTeam.toastInviteFailed"));
     } finally {
@@ -135,7 +162,14 @@ export default function StudentTeamPage() {
       });
       if (!res.ok) throw new Error((await res.json()).error);
       toast.success(t("studentTeam.toastInvitationCancelled", { defaultValue: "Invitation cancelled." }));
-      fetchTeam();
+      // Remove it from the list in place, then resync quietly.
+      setTeam((prev: any) =>
+        prev
+          ? { ...prev, invitations: (prev.invitations ?? []).filter((i: any) => i.id !== invitationId) }
+          : prev
+      );
+      fetchTeam({ silent: true });
+      fetchAvailableStudents();
     } catch (e: any) {
       toast.error(e.message || t("studentTeam.toastInviteFailed"));
     } finally {
@@ -273,52 +307,13 @@ export default function StudentTeamPage() {
               ))}
             </div>
           </div>
-
-          {/* Pending Invitations */}
-          {team.invitations.length > 0 && (
-            <div className="bg-white dark:bg-slate-900 border border-amber-200 dark:border-amber-900/30 rounded-xl overflow-hidden shadow-sm">
-              <div className="px-6 py-3 border-b border-amber-100 dark:border-amber-900/20 bg-amber-50/30 dark:bg-amber-900/10">
-                <h2 className="text-[13px] font-bold text-amber-900 dark:text-amber-400">{t("studentTeam.pendingInvitations")}</h2>
-              </div>
-              <div className="divide-y divide-amber-50 dark:divide-amber-900/20">
-                {team.invitations.map((inv: any) => (
-                  <div key={inv.id} className="p-4 flex items-center justify-between">
-                    <div>
-                      <p className="text-[13px] font-medium text-gray-900 dark:text-white flex items-center gap-2">
-                        {inv.invitedStudent.name}
-                        {inv.invitedStudent.level && (
-                          <span className="text-[10px] px-1.5 py-0.5 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 rounded-sm font-bold">{inv.invitedStudent.level}</span>
-                        )}
-                      </p>
-                      <p className="text-[11px] text-gray-500 dark:text-gray-400">{inv.invitedStudent.email}</p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-[10px] px-2 py-1 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 rounded-full font-semibold">
-                        {t("studentTeam.awaitingReply")}
-                      </span>
-                      {isLeader && (
-                        <button
-                          onClick={() => setPendingConfirm({ kind: "cancel", id: inv.id, name: inv.invitedStudent?.name || "" })}
-                          disabled={cancelingInvitationId === inv.id}
-                          title={t("studentTeam.cancelInvitation", { defaultValue: "Cancel invitation" })}
-                          className="p-1.5 text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition-colors disabled:opacity-50"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
 
-        {/* Sidebar Actions */}
-        <div className="space-y-6">
-          <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl p-5 shadow-sm">
+        {/* Sidebar Actions — stretches to match the Team Members card */}
+        <div className="h-full">
+          <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl p-5 shadow-sm h-full flex flex-col">
             <h3 className="text-[13px] font-bold text-gray-900 dark:text-white mb-4">{t("studentTeam.actions")}</h3>
-            <Button 
+            <Button
               variant="outline" 
               className="w-full justify-start text-red-600 hover:text-red-700 dark:hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 border-red-200 dark:border-red-900/30"
               onClick={() => setLeaveConfirmOpen(true)}
@@ -329,6 +324,70 @@ export default function StudentTeamPage() {
           </div>
         </div>
       </div>
+
+      {/* Pending Invitations — full-width table, below Team Members + Actions */}
+      {team.invitations.length > 0 && (
+        <div className="bg-white dark:bg-slate-900 border border-amber-200 dark:border-amber-900/30 rounded-xl overflow-hidden shadow-sm">
+          <div className="px-6 py-4 border-b border-amber-100 dark:border-amber-900/20 bg-amber-50/30 dark:bg-amber-900/10 flex items-center gap-2">
+            <h2 className="text-[14px] font-bold text-amber-900 dark:text-amber-400">{t("studentTeam.pendingInvitations")}</h2>
+            <span className="px-2 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-[10px] rounded-full">
+              {team.invitations.length}
+            </span>
+          </div>
+          <div className="admin-table-container !border-0 !rounded-none !shadow-none !min-h-0 !p-0 !bg-transparent overflow-x-hidden [&_td]:!px-4 [&_th]:!px-4 [&_td]:!py-3 [&_table]:!-mt-2">
+            <table className="admin-table table-fixed">
+              <colgroup>
+                <col className="w-[30%]" />
+                <col className="w-[34%]" />
+                <col className="w-[12%]" />
+                <col className="w-[14%]" />
+                <col className="w-[10%]" />
+              </colgroup>
+              <thead className="admin-table-header">
+                <tr>
+                  <th>{t("common.name", { defaultValue: "Name" })}</th>
+                  <th>{t("common.email", { defaultValue: "Email" })}</th>
+                  <th>{t("studentTeam.level", { defaultValue: "Level" })}</th>
+                  <th>{t("common.status", { defaultValue: "Status" })}</th>
+                  <th className="text-right">{t("common.actions", { defaultValue: "Action" })}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {team.invitations.map((inv: any) => (
+                  <tr key={inv.id} className="admin-table-row">
+                    <td className="font-medium text-gray-900 dark:text-white truncate">{inv.invitedStudent.name}</td>
+                    <td className="text-gray-500 dark:text-gray-400 truncate">{inv.invitedStudent.email}</td>
+                    <td>
+                      {inv.invitedStudent.level ? (
+                        <span className="text-[10px] px-1.5 py-0.5 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 rounded-sm font-bold">{inv.invitedStudent.level}</span>
+                      ) : (
+                        <span className="text-gray-400">—</span>
+                      )}
+                    </td>
+                    <td>
+                      <span className="text-[10px] px-2 py-1 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 rounded-full font-semibold whitespace-nowrap">
+                        {t("studentTeam.awaitingReply")}
+                      </span>
+                    </td>
+                    <td className="text-right">
+                      {isLeader && (
+                        <button
+                          onClick={() => setPendingConfirm({ kind: "cancel", id: inv.id, name: inv.invitedStudent?.name || "" })}
+                          disabled={cancelingInvitationId === inv.id}
+                          title={t("studentTeam.cancelInvitation", { defaultValue: "Cancel invitation" })}
+                          className="p-1.5 text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition-colors disabled:opacity-50"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       {/* Invite Students — full-width table with search + level filter */}
       {isLeader && (
@@ -365,7 +424,7 @@ export default function StudentTeamPage() {
             </div>
           </div>
 
-          <div className="admin-table-container overflow-x-hidden overflow-y-auto max-h-[340px] [&_td]:!px-4 [&_th]:!px-4 [&_td]:!py-3 [&_thead]:sticky [&_thead]:top-0 [&_thead]:z-10 [&_thead_th]:bg-gray-50 dark:[&_thead_th]:bg-slate-950">
+          <div className="admin-table-container !border-0 !rounded-none !shadow-none !min-h-0 !p-0 !bg-transparent overflow-x-hidden overflow-y-auto max-h-[560px] [&_td]:!px-4 [&_th]:!px-4 [&_td]:!py-3 [&_table]:!-mt-2 [&_thead]:sticky [&_thead]:top-0 [&_thead]:z-10 [&_thead_th]:bg-gray-50 dark:[&_thead_th]:bg-slate-950">
             <table className="admin-table table-fixed">
               <colgroup>
                 <col className="w-[34%]" />
