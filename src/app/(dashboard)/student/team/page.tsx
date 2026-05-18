@@ -309,13 +309,48 @@ export default function StudentTeamPage() {
           </div>
         </div>
 
-        {/* Sidebar Actions — stretches to match the Team Members card */}
+        {/* Sidebar Actions — stretches to match the Team Members card and
+            fills the space with at-a-glance team info above the action. */}
         <div className="h-full">
           <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl p-5 shadow-sm h-full flex flex-col">
             <h3 className="text-[13px] font-bold text-gray-900 dark:text-white mb-4">{t("studentTeam.actions")}</h3>
+
+            <dl className="space-y-3 text-[13px]">
+              <div className="flex items-center justify-between gap-3">
+                <dt className="text-gray-500 dark:text-gray-400">{t("studentTeam.membersCount")}</dt>
+                <dd className="font-semibold text-gray-900 dark:text-white">{team.members.length}</dd>
+              </div>
+              <div className="flex items-center justify-between gap-3">
+                <dt className="text-gray-500 dark:text-gray-400">{t("studentTeam.yourRole")}</dt>
+                <dd>
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded-sm font-bold uppercase tracking-wider ${
+                    isLeader
+                      ? "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400"
+                      : "bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400"
+                  }`}>
+                    {isLeader ? t("studentTeam.leader") : t("studentTeam.member")}
+                  </span>
+                </dd>
+              </div>
+              {team.academicYear && (
+                <div className="flex items-center justify-between gap-3">
+                  <dt className="text-gray-500 dark:text-gray-400">{t("studentTeam.academicYear")}</dt>
+                  <dd className="font-semibold text-gray-900 dark:text-white">{team.academicYear}</dd>
+                </div>
+              )}
+              {team.reason && (
+                <div className="pt-1">
+                  <dt className="text-gray-500 dark:text-gray-400 mb-1">{t("studentTeam.teamNote")}</dt>
+                  <dd className="text-[12px] text-gray-700 dark:text-gray-300 italic bg-gray-50 dark:bg-slate-800/60 border border-gray-100 dark:border-slate-800 rounded-md p-2.5 whitespace-pre-wrap break-words">
+                    "{team.reason}"
+                  </dd>
+                </div>
+              )}
+            </dl>
+
             <Button
-              variant="outline" 
-              className="w-full justify-start text-red-600 hover:text-red-700 dark:hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 border-red-200 dark:border-red-900/30"
+              variant="outline"
+              className="w-full justify-start mt-auto pt-2 text-red-600 hover:text-red-700 dark:hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 border-red-200 dark:border-red-900/30"
               onClick={() => setLeaveConfirmOpen(true)}
             >
               <LogOut className="h-4 w-4 mr-2" />
@@ -424,7 +459,7 @@ export default function StudentTeamPage() {
             </div>
           </div>
 
-          <div className="admin-table-container !border-0 !rounded-none !shadow-none !min-h-0 !p-0 !bg-transparent overflow-x-hidden overflow-y-auto max-h-[560px] [&_td]:!px-4 [&_th]:!px-4 [&_td]:!py-3 [&_table]:!-mt-2 [&_thead]:sticky [&_thead]:top-0 [&_thead]:z-10 [&_thead_th]:bg-gray-50 dark:[&_thead_th]:bg-slate-950">
+          <div className="admin-table-container !border-0 !rounded-none !shadow-none !min-h-0 !p-0 !bg-transparent overflow-x-hidden overflow-y-auto max-h-[492px] [&_td]:!px-4 [&_th]:!px-4 [&_td]:!py-3 [&_table]:!-mt-2 [&_thead]:sticky [&_thead]:top-0 [&_thead]:z-10 [&_thead_th]:bg-gray-50 dark:[&_thead_th]:bg-slate-950">
             <table className="admin-table table-fixed">
               <colgroup>
                 <col className="w-[34%]" />
