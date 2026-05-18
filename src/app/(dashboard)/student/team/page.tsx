@@ -19,6 +19,11 @@ export default function StudentTeamPage() {
   const [invitingId, setInvitingId] = useState<string | null>(null);
   const [cancelingInvitationId, setCancelingInvitationId] = useState<string | null>(null);
   const [leaveConfirmOpen, setLeaveConfirmOpen] = useState(false);
+  const [pendingConfirm, setPendingConfirm] = useState<{
+    kind: "invite" | "cancel";
+    id: string;
+    name: string;
+  } | null>(null);
   const [leaveReason, setLeaveReason] = useState("");
   
   // Create Team state
@@ -293,7 +298,7 @@ export default function StudentTeamPage() {
                       </span>
                       {isLeader && (
                         <button
-                          onClick={() => handleCancelInvitation(inv.id)}
+                          onClick={() => setPendingConfirm({ kind: "cancel", id: inv.id, name: inv.invitedStudent?.name || "" })}
                           disabled={cancelingInvitationId === inv.id}
                           title={t("studentTeam.cancelInvitation", { defaultValue: "Cancel invitation" })}
                           className="p-1.5 text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition-colors disabled:opacity-50"
@@ -360,7 +365,7 @@ export default function StudentTeamPage() {
             </div>
           </div>
 
-          <div className="admin-table-container overflow-x-hidden [&_td]:!px-4 [&_th]:!px-4 [&_td]:!py-3">
+          <div className="admin-table-container overflow-x-hidden overflow-y-auto max-h-[340px] [&_td]:!px-4 [&_th]:!px-4 [&_td]:!py-3 [&_thead]:sticky [&_thead]:top-0 [&_thead]:z-10 [&_thead_th]:bg-gray-50 dark:[&_thead_th]:bg-slate-950">
             <table className="admin-table table-fixed">
               <colgroup>
                 <col className="w-[34%]" />
@@ -399,7 +404,7 @@ export default function StudentTeamPage() {
                         <Button
                           size="sm"
                           className="text-[11px] h-7 bg-indigo-600 hover:bg-indigo-700 text-white"
-                          onClick={() => handleInvite(s.userId)}
+                          onClick={() => setPendingConfirm({ kind: "invite", id: s.userId, name: s.user?.name || "" })}
                           isLoading={invitingId === s.userId}
                           disabled={invitingId === s.userId}
                         >
@@ -436,6 +441,35 @@ export default function StudentTeamPage() {
           />
         </div>
       </ConfirmDialog>
+
+      <ConfirmDialog
+        isOpen={!!pendingConfirm}
+        onClose={() => setPendingConfirm(null)}
+        onConfirm={() => {
+          if (!pendingConfirm) return;
+          const { kind, id } = pendingConfirm;
+          setPendingConfirm(null);
+          if (kind === "invite") handleInvite(id);
+          else handleCancelInvitation(id);
+        }}
+        title={
+          pendingConfirm?.kind === "cancel"
+            ? t("studentTeam.confirmCancelTitle")
+            : t("studentTeam.confirmInviteTitle")
+        }
+        description={
+          pendingConfirm?.kind === "cancel"
+            ? t("studentTeam.confirmCancelDesc", { name: pendingConfirm?.name })
+            : t("studentTeam.confirmInviteDesc", { name: pendingConfirm?.name })
+        }
+        confirmLabel={
+          pendingConfirm?.kind === "cancel"
+            ? t("studentTeam.cancelInvitation")
+            : t("studentTeam.invite")
+        }
+        cancelLabel={t("common.cancel")}
+        variant={pendingConfirm?.kind === "cancel" ? "danger" : "warning"}
+      />
     </div>
   );
 }

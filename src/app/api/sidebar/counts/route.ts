@@ -98,7 +98,10 @@ export async function GET(req: NextRequest) {
       counts["/company/internships"] = docCount;
     } else if (role === "STUDENT") {
       const [invitCount, msgCount] = await Promise.all([
-        prisma.binomeinvitation.count({
+        // The student Invitations page lists TeamInvitation rows (via
+        // /api/teams/invitations) — count the SAME table so the badge
+        // matches what the student actually sees.
+        prisma.teamInvitation.count({
           where: { invitedStudentId: userId, status: "PENDING" },
         }),
         prisma.message.count({
