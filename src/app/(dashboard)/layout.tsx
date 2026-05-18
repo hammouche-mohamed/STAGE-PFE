@@ -33,7 +33,15 @@ export default async function DashboardLayout({
   const role = (session?.user?.role as "ADMIN" | "STUDENT" | "TEACHER" | "COMPANY") ?? "ADMIN";
   const baseLogoUrl = logoSetting?.value || "";
   const routedLogoUrl = baseLogoUrl.startsWith("/uploads/") ? `/api${baseLogoUrl}` : baseLogoUrl;
-  const logoUrl = routedLogoUrl ? `${routedLogoUrl}${logoSetting?.updatedAt ? `?v=${logoSetting.updatedAt.getTime()}` : ""}` : "";
+  // `unstable_cache` JSON-serializes the cached row, so `updatedAt` comes back
+  // as a string (not a Date) on cache hits — calling `.getTime()` on it threw
+  // and 500'd the whole dashboard. Normalise through `new Date()`.
+  const logoVersion = logoSetting?.updatedAt
+    ? new Date(logoSetting.updatedAt).getTime()
+    : null;
+  const logoUrl = routedLogoUrl
+    ? `${routedLogoUrl}${logoVersion ? `?v=${logoVersion}` : ""}`
+    : "";
 
   return (
     <PollingProvider>
