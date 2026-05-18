@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { AuditService } from "@/lib/services/audit.service";
+import { NotificationService } from "@/lib/services/notification.service";
 
 export async function POST(req: NextRequest) {
   const session = await auth();
@@ -80,6 +81,32 @@ export async function POST(req: NextRequest) {
         reason: reason || null,
       },
     });
+
+    // Notify the department's admins (and super admins) that a team formed.
+    const admins = await prisma.user.findMany({
+      where: {
+        role: "ADMIN",
+        OR: [
+          { adminprofile: { isSuperAdmin: true } },
+          { adminprofile: { filiereId: studentProfile.filiereId } },
+        ],
+      } as any,
+      select: { id: true },
+    });
+    for (const admin of admins) {
+      await NotificationService.trigger({
+        userId: admin.id,
+        type: "SYSTEM_ALERT",
+        title: "New Team Created",
+        message: `${session.user.name} created a team${
+          invitedStudentIds?.length ? ` and invited ${invitedStudentIds.length} student(s)` : ""
+        }.`,
+        relatedId: result.id,
+        relatedType: "Team",
+        link: "/admin/users?tab=teams",
+        skipEmail: true,
+      });
+    }
 
     return NextResponse.json({ data: result, message: "Team created successfully" }, { status: 201 });
   } catch (error) {

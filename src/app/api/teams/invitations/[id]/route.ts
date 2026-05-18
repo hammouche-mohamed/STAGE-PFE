@@ -127,3 +127,68 @@ export async function PATCH(
     return NextResponse.json({ error: "Failed to respond to invitation" }, { status: 500 });
   }
 }
+
+// The team leader cancels a PENDING invitation they sent (wrong student, etc.).
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const session = await auth();
+  if (!session || session.user.role !== "STUDENT") {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  try {
+    const { id } = await params;
+
+    const invitation = await prisma.teamInvitation.findUnique({
+      where: { id },
+      include: { studentteam: true },
+    });
+
+    if (!invitation) {
+      return NextResponse.json({ error: "Invitation not found" }, { status: 404 });
+    }
+
+    // Only the team leader who owns the team may cancel it.
+    if (invitation.studentteam.leaderId !== session.user.id) {
+      return NextResponse.json(
+        { error: "Only the team leader can cancel this invitation." },
+        { status: 403 },
+      );
+    }
+
+    if (invitation.status !== "PENDING") {
+      return NextResponse.json(
+        { error: "Only a pending invitation can be cancelled." },
+        { status: 400 },
+      );
+    }
+
+    await prisma.teamInvitation.delete({ where: { id } });
+
+    await NotificationService.trigger({
+      userId: invitation.invitedStudentId,
+      type: "BINOME_DECLINED",
+      title: "Team Invitation Withdrawn",
+      message: `${session.user.name} withdrew their team invitation.`,
+      relatedId: invitation.teamId,
+      relatedType: "Team",
+      link: "/student/invitations",
+      skipEmail: true,
+    });
+
+    await AuditService.log({
+      userId: session.user.id,
+      action: "TEAM_INVITATION_CANCELLED",
+      targetType: "TeamInvitation",
+      targetId: id,
+      details: { teamId: invitation.teamId, invitedStudentId: invitation.invitedStudentId },
+    });
+
+    return NextResponse.json({ message: "Invitation cancelled." });
+  } catch (error) {
+    console.error("[team invitations DELETE]", error);
+    return NextResponse.json({ error: "Failed to cancel invitation" }, { status: 500 });
+  }
+}

@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
 import { toast } from "sonner";
-import { Users, UserPlus, LogOut, CheckCircle2, AlertCircle, Trash2, Mail } from "lucide-react";
+import { Users, UserPlus, LogOut, CheckCircle2, AlertCircle, Trash2, Mail, Search } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { useTranslation } from "@/lib/i18n/LanguageContext";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
@@ -15,12 +15,41 @@ export default function StudentTeamPage() {
   const [availableStudents, setAvailableStudents] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isActionLoading, setIsActionLoading] = useState(false);
+  // Per-row loading so only the clicked Invite / cancel button spins.
+  const [invitingId, setInvitingId] = useState<string | null>(null);
+  const [cancelingInvitationId, setCancelingInvitationId] = useState<string | null>(null);
   const [leaveConfirmOpen, setLeaveConfirmOpen] = useState(false);
   const [leaveReason, setLeaveReason] = useState("");
   
   // Create Team state
   const [showCreateTeam, setShowCreateTeam] = useState(false);
   const [createReason, setCreateReason] = useState("");
+
+  // Invite Students table: search + level filter
+  const [inviteSearch, setInviteSearch] = useState("");
+  const [inviteLevel, setInviteLevel] = useState("ALL");
+
+  const inviteLevels = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          availableStudents.map((s) => s.level).filter(Boolean) as string[],
+        ),
+      ).sort(),
+    [availableStudents],
+  );
+
+  const filteredAvailable = useMemo(() => {
+    const q = inviteSearch.trim().toLowerCase();
+    return availableStudents.filter((s) => {
+      const matchesLevel = inviteLevel === "ALL" || s.level === inviteLevel;
+      const matchesSearch =
+        !q ||
+        s.user?.name?.toLowerCase().includes(q) ||
+        s.user?.email?.toLowerCase().includes(q);
+      return matchesLevel && matchesSearch;
+    });
+  }, [availableStudents, inviteSearch, inviteLevel]);
 
   const fetchTeam = async () => {
     setIsLoading(true);
@@ -76,7 +105,7 @@ export default function StudentTeamPage() {
   };
 
   const handleInvite = async (studentId: string) => {
-    setIsActionLoading(true);
+    setInvitingId(studentId);
     try {
       const res = await fetch("/api/teams/invitations", {
         method: "POST",
@@ -89,7 +118,23 @@ export default function StudentTeamPage() {
     } catch (e: any) {
       toast.error(e.message || t("studentTeam.toastInviteFailed"));
     } finally {
-      setIsActionLoading(false);
+      setInvitingId(null);
+    }
+  };
+
+  const handleCancelInvitation = async (invitationId: string) => {
+    setCancelingInvitationId(invitationId);
+    try {
+      const res = await fetch(`/api/teams/invitations/${invitationId}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) throw new Error((await res.json()).error);
+      toast.success(t("studentTeam.toastInvitationCancelled", { defaultValue: "Invitation cancelled." }));
+      fetchTeam();
+    } catch (e: any) {
+      toast.error(e.message || t("studentTeam.toastInviteFailed"));
+    } finally {
+      setCancelingInvitationId(null);
     }
   };
 
@@ -168,7 +213,7 @@ export default function StudentTeamPage() {
   }
 
   return (
-    <div className="space-y-6 max-w-4xl mx-auto">
+    <div className="space-y-6 max-w-6xl mx-auto">
       <div>
         <h1 className="text-[17px] font-semibold text-gray-900 dark:text-white flex items-center gap-2">
           <Users className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
@@ -242,9 +287,21 @@ export default function StudentTeamPage() {
                       </p>
                       <p className="text-[11px] text-gray-500 dark:text-gray-400">{inv.invitedStudent.email}</p>
                     </div>
-                    <span className="text-[10px] px-2 py-1 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 rounded-full font-semibold">
-                      {t("studentTeam.awaitingReply")}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] px-2 py-1 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 rounded-full font-semibold">
+                        {t("studentTeam.awaitingReply")}
+                      </span>
+                      {isLeader && (
+                        <button
+                          onClick={() => handleCancelInvitation(inv.id)}
+                          disabled={cancelingInvitationId === inv.id}
+                          title={t("studentTeam.cancelInvitation", { defaultValue: "Cancel invitation" })}
+                          className="p-1.5 text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition-colors disabled:opacity-50"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -265,39 +322,98 @@ export default function StudentTeamPage() {
               {t("studentTeam.leaveTeam")}
             </Button>
           </div>
-
-          {isLeader && availableStudents.length > 0 && (
-            <div className="bg-white dark:bg-slate-900 border border-indigo-200 dark:border-indigo-900/30 rounded-xl overflow-hidden shadow-sm">
-              <div className="px-5 py-3 border-b border-indigo-100 dark:border-indigo-900/20 bg-indigo-50/50 dark:bg-indigo-900/10">
-                <h3 className="text-[13px] font-bold text-indigo-900 dark:text-indigo-400">{t("studentTeam.inviteStudents")}</h3>
-              </div>
-              <div className="p-2 max-h-[300px] overflow-y-auto divide-y divide-gray-50 dark:divide-slate-800">
-                {availableStudents.map((s) => (
-                  <div key={s.id} className="p-3 flex flex-col gap-2 hover:bg-gray-50 dark:hover:bg-slate-800/50 rounded-lg">
-                    <div>
-                      <p className="text-[13px] font-medium text-gray-900 dark:text-white truncate flex items-center gap-2">
-                        {s.user.name}
-                        {s.level && (
-                          <span className="text-[10px] px-1.5 py-0.5 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 rounded-sm font-bold shrink-0">{s.level}</span>
-                        )}
-                      </p>
-                      <p className="text-[11px] text-gray-500 dark:text-gray-400 truncate">{s.user.email}</p>
-                    </div>
-                    <Button 
-                      size="sm" 
-                      className="w-full text-[11px] h-7 bg-indigo-600 hover:bg-indigo-700 text-white"
-                      onClick={() => handleInvite(s.userId)}
-                      isLoading={isActionLoading}
-                    >
-                      <Mail className="h-3 w-3 mr-1.5" /> {t("studentTeam.invite")}
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
       </div>
+
+      {/* Invite Students — full-width table with search + level filter */}
+      {isLeader && (
+        <div className="bg-white dark:bg-slate-900 border border-indigo-200 dark:border-indigo-900/30 rounded-xl overflow-hidden shadow-sm">
+          <div className="px-6 py-4 border-b border-indigo-100 dark:border-indigo-900/20 bg-indigo-50/50 dark:bg-indigo-900/10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <h3 className="text-[14px] font-bold text-indigo-900 dark:text-indigo-400 flex items-center gap-2">
+              <UserPlus className="h-4 w-4" />
+              {t("studentTeam.inviteStudents")}
+              <span className="px-2 py-0.5 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 text-[10px] rounded-full">
+                {filteredAvailable.length}
+              </span>
+            </h3>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder={t("common.search", { defaultValue: "Search name or email…" })}
+                  className="admin-input pl-9 h-9 text-[13px] w-full sm:w-64"
+                  value={inviteSearch}
+                  onChange={(e) => setInviteSearch(e.target.value)}
+                />
+              </div>
+              <select
+                className="admin-input h-9 text-[13px] w-full sm:w-36"
+                value={inviteLevel}
+                onChange={(e) => setInviteLevel(e.target.value)}
+              >
+                <option value="ALL">{t("common.all", { defaultValue: "All levels" })}</option>
+                {inviteLevels.map((lv) => (
+                  <option key={lv} value={lv}>{lv}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="admin-table-container overflow-x-hidden [&_td]:!px-4 [&_th]:!px-4 [&_td]:!py-3">
+            <table className="admin-table table-fixed">
+              <colgroup>
+                <col className="w-[34%]" />
+                <col className="w-[38%]" />
+                <col className="w-[12%]" />
+                <col className="w-[16%]" />
+              </colgroup>
+              <thead className="admin-table-header">
+                <tr>
+                  <th>{t("common.name", { defaultValue: "Name" })}</th>
+                  <th>{t("common.email", { defaultValue: "Email" })}</th>
+                  <th>{t("studentTeam.level", { defaultValue: "Level" })}</th>
+                  <th className="text-right">{t("common.actions", { defaultValue: "Action" })}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredAvailable.length === 0 ? (
+                  <tr>
+                    <td colSpan={4} className="text-center py-10 text-gray-400 dark:text-gray-500">
+                      {t("common.noData", { defaultValue: "No students found." })}
+                    </td>
+                  </tr>
+                ) : (
+                  filteredAvailable.map((s) => (
+                    <tr key={s.id} className="admin-table-row">
+                      <td className="font-medium text-gray-900 dark:text-white truncate">{s.user.name}</td>
+                      <td className="text-gray-500 dark:text-gray-400 truncate">{s.user.email}</td>
+                      <td>
+                        {s.level ? (
+                          <span className="text-[10px] px-1.5 py-0.5 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 rounded-sm font-bold">{s.level}</span>
+                        ) : (
+                          <span className="text-gray-400">—</span>
+                        )}
+                      </td>
+                      <td className="text-right">
+                        <Button
+                          size="sm"
+                          className="text-[11px] h-7 bg-indigo-600 hover:bg-indigo-700 text-white"
+                          onClick={() => handleInvite(s.userId)}
+                          isLoading={invitingId === s.userId}
+                          disabled={invitingId === s.userId}
+                        >
+                          <Mail className="h-3 w-3 mr-1.5" /> {t("studentTeam.invite")}
+                        </Button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       <ConfirmDialog
         isOpen={leaveConfirmOpen}

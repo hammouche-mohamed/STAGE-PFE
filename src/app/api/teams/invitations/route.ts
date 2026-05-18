@@ -109,7 +109,23 @@ export async function GET(req: NextRequest) {
       orderBy: { createdAt: "desc" }
     });
 
-    return NextResponse.json({ data: invitations });
+    // The client expects `team.members[].student.{name,email}` — map the
+    // Prisma relation names (studentteam / teammember / user) onto it so the
+    // page doesn't crash on `inv.team.members`.
+    const data = invitations.map((inv) => ({
+      id: inv.id,
+      status: inv.status,
+      message: inv.message,
+      expiresAt: inv.expiresAt,
+      createdAt: inv.createdAt,
+      team: {
+        members: (inv as any).studentteam?.teammember?.map((m: any) => ({
+          student: { name: m.user?.name ?? "", email: m.user?.email ?? "" },
+        })) ?? [],
+      },
+    }));
+
+    return NextResponse.json({ data });
   } catch (error) {
     console.error("[team invitations GET]", error);
     return NextResponse.json({ error: "Failed to load invitations" }, { status: 500 });
