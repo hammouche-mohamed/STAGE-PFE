@@ -4,6 +4,8 @@ import { auth } from "@/lib/auth";
 import { randomUUID } from "crypto";
 import { AuditService } from "@/lib/services/audit.service";
 import { resolveTeamCap } from "@/lib/services/teamSize.service";
+import { isEligibleForType } from "@/types/internship";
+import type { StudentLevel, InternshipType } from "@/types/internship";
 
 export async function GET(req: NextRequest) {
   const session = await auth();
@@ -190,7 +192,35 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // (b) PFE topics: the whole team must be the SAME level.
+    // (b) Internship-type eligibility: only L3 & M2 can do PFE; all levels
+    //     can do NORMAL. L1/L2/M1 may SEE a PFE topic but never apply.
+    if (topic.internshipType) {
+      const notEligible = teamMembers.filter(
+        (m) =>
+          !isEligibleForType(
+            (m.user?.level as StudentLevel | null) ?? undefined,
+            topic.internshipType as InternshipType,
+          ),
+      );
+      if (notEligible.length > 0) {
+        const onlySelf =
+          notEligible.length === 1 &&
+          notEligible[0].studentId === session.user.id;
+        const who = onlySelf
+          ? `Your level (${notEligible[0].user?.level || "?"})`
+          : notEligible
+              .map((m) => `${m.user?.name || "A team member"} (${m.user?.level || "?"})`)
+              .join(", ");
+        return NextResponse.json(
+          {
+            error: `${topic.internshipType} internships are not open to ${who}. Only L3 and M2 students can apply to PFE topics.`,
+          },
+          { status: 403 },
+        );
+      }
+    }
+
+    // (c) PFE topics: the whole team must be the SAME level.
     if (topic.internshipType === "PFE" && teamMembers.length > 1) {
       const distinctLevels = Array.from(
         new Set(teamMembers.map((m) => m.user?.level || "?")),

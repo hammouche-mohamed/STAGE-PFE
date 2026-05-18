@@ -243,11 +243,10 @@ export async function GET(req: NextRequest) {
         where.filiereId = filiereFilter;
       }
 
-      const studentLevel = (session.user as { level?: StudentLevel }).level;
-      const normalOnlyLevels: StudentLevel[] = ['L1', 'L2', 'M1'];
-      if (studentLevel && normalOnlyLevels.includes(studentLevel)) {
-        allowedInternshipTypes = ['NORMAL'];
-      }
+      // NOTE: we intentionally do NOT hide PFE topics from L1/L2/M1 here.
+      // Students must be able to SEE every topic in scope (same department)
+      // even if they can't apply — the PFE/level eligibility is enforced at
+      // application time instead (see /api/applications POST).
 
     } else if (session.user.role === 'TEACHER') {
       where.OR = [
