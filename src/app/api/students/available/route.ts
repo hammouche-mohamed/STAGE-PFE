@@ -22,10 +22,12 @@ export async function GET(req: NextRequest) {
     });
     const unavailableIds = unavailableMembers.map(m => m.studentId);
     unavailableIds.push(session.user.id);
+    // Same DEPARTMENT only. Level is intentionally NOT filtered here so a
+    // team can mix levels (allowed for multi-level / NORMAL topics). The
+    // per-topic level rules are enforced at application time.
     const availableStudents = await prisma.studentProfile.findMany({
       where: {
         filiereId: studentProfile.filiereId,
-        level: studentProfile.level,
         userId: { notIn: unavailableIds }
       },
       include: {

@@ -102,11 +102,11 @@ export async function GET(req: NextRequest) {
           studentteam: {
             include: {
               teammember: {
-                include: { user: { select: { id: true, name: true, email: true } } }
+                include: { user: { select: { id: true, name: true, email: true, level: true } } }
               },
               teaminvitation: {
                 where: { status: "PENDING" },
-                include: { user: { select: { id: true, name: true, email: true } } }
+                include: { user: { select: { id: true, name: true, email: true, level: true } } }
               }
             }
           }
@@ -149,7 +149,7 @@ export async function GET(req: NextRequest) {
         where: whereClause,
         include: {
           teammember: {
-            include: { user: { select: { id: true, name: true, email: true } } }
+            include: { user: { select: { id: true, name: true, email: true, level: true } } }
           },
           filiere: { select: { name: true } }
         },

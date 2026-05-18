@@ -77,6 +77,7 @@ export default function AdminTopicDetailPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
   const [isApproveDialogOpen, setIsApproveDialogOpen] = useState(false);
+  const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
   
   const [editData, setEditData] = useState({
     title: "",
@@ -187,6 +188,12 @@ export default function AdminTopicDetailPage() {
     setIsApproveDialogOpen(true);
   };
 
+  const confirmSave = async () => {
+    setIsSaveDialogOpen(false);
+    const ok = await handleUpdate();
+    if (ok) router.push("/admin/topics");
+  };
+
   const confirmApprove = async () => {
     setIsApproveDialogOpen(false);
     const ok = await handleUpdate({ ...editData, status: "OPEN_FOR_SELECTION" });
@@ -239,10 +246,7 @@ export default function AdminTopicDetailPage() {
         {session?.user?.role === "ADMIN" && !session?.user?.isSuperAdmin && (
           <div className="flex items-center gap-3">
             <Button
-              onClick={async () => {
-                const ok = await handleUpdate();
-                if (ok) router.push("/admin/topics");
-              }}
+              onClick={() => setIsSaveDialogOpen(true)}
               isLoading={isUpdating}
               size="sm"
               className="shadow-md"
@@ -606,6 +610,17 @@ export default function AdminTopicDetailPage() {
         }
         confirmLabel="Confirm Rejection"
         variant="danger"
+        isLoading={isUpdating}
+      />
+
+      <ConfirmDialog
+        isOpen={isSaveDialogOpen}
+        onClose={() => setIsSaveDialogOpen(false)}
+        onConfirm={confirmSave}
+        title={t("common.save", { defaultValue: "Save Changes" })}
+        description={`Save the changes to "${topic.title}"?`}
+        confirmLabel={t("common.save", { defaultValue: "Save" })}
+        variant="warning"
         isLoading={isUpdating}
       />
     </div>

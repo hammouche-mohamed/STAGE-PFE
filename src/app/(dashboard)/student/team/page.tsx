@@ -212,6 +212,9 @@ export default function StudentTeamPage() {
                         {m.studentId === session?.user?.id && (
                           <span className="text-[10px] px-1.5 py-0.5 bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-gray-400 rounded-sm">{t("studentTeam.you")}</span>
                         )}
+                        {m.student.level && (
+                          <span className="text-[10px] px-1.5 py-0.5 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 rounded-sm font-bold">{m.student.level}</span>
+                        )}
                       </p>
                       <p className="text-[12px] text-gray-500 dark:text-gray-400">{m.student.email}</p>
                     </div>
@@ -231,7 +234,12 @@ export default function StudentTeamPage() {
                 {team.invitations.map((inv: any) => (
                   <div key={inv.id} className="p-4 flex items-center justify-between">
                     <div>
-                      <p className="text-[13px] font-medium text-gray-900 dark:text-white">{inv.invitedStudent.name}</p>
+                      <p className="text-[13px] font-medium text-gray-900 dark:text-white flex items-center gap-2">
+                        {inv.invitedStudent.name}
+                        {inv.invitedStudent.level && (
+                          <span className="text-[10px] px-1.5 py-0.5 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 rounded-sm font-bold">{inv.invitedStudent.level}</span>
+                        )}
+                      </p>
                       <p className="text-[11px] text-gray-500 dark:text-gray-400">{inv.invitedStudent.email}</p>
                     </div>
                     <span className="text-[10px] px-2 py-1 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 rounded-full font-semibold">
@@ -267,7 +275,12 @@ export default function StudentTeamPage() {
                 {availableStudents.map((s) => (
                   <div key={s.id} className="p-3 flex flex-col gap-2 hover:bg-gray-50 dark:hover:bg-slate-800/50 rounded-lg">
                     <div>
-                      <p className="text-[13px] font-medium text-gray-900 dark:text-white truncate">{s.user.name}</p>
+                      <p className="text-[13px] font-medium text-gray-900 dark:text-white truncate flex items-center gap-2">
+                        {s.user.name}
+                        {s.level && (
+                          <span className="text-[10px] px-1.5 py-0.5 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 rounded-sm font-bold shrink-0">{s.level}</span>
+                        )}
+                      </p>
                       <p className="text-[11px] text-gray-500 dark:text-gray-400 truncate">{s.user.email}</p>
                     </div>
                     <Button 

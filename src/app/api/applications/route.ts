@@ -153,6 +153,60 @@ export async function POST(req: NextRequest) {
     if (!topic || topic.status !== "OPEN_FOR_SELECTION") {
       return NextResponse.json({ error: "This topic is no longer available." }, { status: 409 });
     }
+
+    // Level rules. Other levels can SEE a topic but must never apply.
+    // Checked for EVERY team member (a binôme can't carry an ineligible
+    // partner in).
+    const teamMembers = await prisma.teamMember.findMany({
+      where: { teamId },
+      include: { user: { select: { name: true, level: true } } },
+    });
+
+    // (a) targetLevels: each member's level must be one of the allowed
+    //     levels (e.g. an "L1, L2" topic accepts an L1 + L2 team; an
+    //     "L1"-only topic rejects an L2 member).
+    const allowedLevels = (topic.targetLevels || "")
+      .split(",")
+      .map((l) => l.trim())
+      .filter(Boolean);
+    if (allowedLevels.length > 0) {
+      const ineligible = teamMembers.filter(
+        (m) => !m.user?.level || !allowedLevels.includes(m.user.level),
+      );
+      if (ineligible.length > 0) {
+        const onlySelf =
+          ineligible.length === 1 && ineligible[0].studentId === session.user.id;
+        const who = onlySelf
+          ? "Your level"
+          : ineligible
+              .map((m) => `${m.user?.name || "A team member"} (${m.user?.level || "?"})`)
+              .join(", ");
+        return NextResponse.json(
+          {
+            error: `This topic is open only to ${allowedLevels.join(", ")} student(s). ${who} ${onlySelf ? "does" : "do"} not meet the required level.`,
+          },
+          { status: 403 },
+        );
+      }
+    }
+
+    // (b) PFE topics: the whole team must be the SAME level.
+    if (topic.internshipType === "PFE" && teamMembers.length > 1) {
+      const distinctLevels = Array.from(
+        new Set(teamMembers.map((m) => m.user?.level || "?")),
+      );
+      if (distinctLevels.length > 1) {
+        const roster = teamMembers
+          .map((m) => `${m.user?.name || "Member"} (${m.user?.level || "?"})`)
+          .join(", ");
+        return NextResponse.json(
+          {
+            error: `PFE topics require every team member to be the same level. Your team mixes levels: ${roster}.`,
+          },
+          { status: 403 },
+        );
+      }
+    }
     const cap = await resolveTeamCap(topic as any);
     if (cap !== null) {
       const teamSize = await prisma.teamMember.count({ where: { teamId } });
