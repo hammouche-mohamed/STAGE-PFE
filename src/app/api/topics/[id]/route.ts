@@ -212,10 +212,38 @@ export async function PATCH(
       }
     }
 
+    // A teacher only becomes the supervisor once THEY accept the assignment.
+    // Whenever the admin (re)assigns a teacher we hold the topic in
+    // PENDING_TEACHER — overriding any OPEN_FOR_SELECTION submitted in the
+    // same call — until the teacher confirms via /teacher-action.
+    const assigningNewTeacher = !!teacherId && teacherId !== topic.assignedTeacherId;
+    const effectiveStatus = assigningNewTeacher ? "PENDING_TEACHER" : status;
+
+    // Hard rule: an admin cannot manually publish a topic while its assigned
+    // supervisor still has a pending acceptance. They must either wait for the
+    // teacher to confirm, reassign a different teacher, or explicitly clear the
+    // supervisor (teacherId: "") to send it to the marketplace.
+    const clearingTeacher = teacherId !== undefined && !teacherId;
+    if (
+      topic.status === "PENDING_TEACHER" &&
+      topic.assignedTeacherId &&
+      effectiveStatus === "OPEN_FOR_SELECTION" &&
+      !assigningNewTeacher &&
+      !clearingTeacher
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "The assigned supervisor must accept the assignment before this topic can open for student selection.",
+        },
+        { status: 400 },
+      );
+    }
+
     // The department admin must set target study level(s) before a topic is
     // opened for selection. Company proposals never carry levels; student
     // proposals inherit the proposer's level, so they're exempt.
-    if (status === "OPEN_FOR_SELECTION" && !topic.proposedByStudent) {
+    if (effectiveStatus === "OPEN_FOR_SELECTION" && !topic.proposedByStudent) {
       const effectiveLevels =
         targetLevels !== undefined ? targetLevels : topic.targetLevels;
       if (!effectiveLevels || !String(effectiveLevels).trim()) {
@@ -230,7 +258,7 @@ export async function PATCH(
       where: { id },
       data: {
         ...(teacherId !== undefined && { assignedTeacherId: teacherId || null }),
-        ...(status && { status }),
+        ...(effectiveStatus && { status: effectiveStatus }),
         ...(title && { title }),
         ...(description && { description }),
         ...(type && { type }),
@@ -241,24 +269,24 @@ export async function PATCH(
         ...(targetLevels !== undefined && !topic.proposedByStudent && { targetLevels: targetLevels || null }),
         ...(rejectionReason && {
           rejectionReason,
-          ...(status === "REJECTED" && { supervisorRejectionCount: { increment: 1 } }),
+          ...(effectiveStatus === "REJECTED" && { supervisorRejectionCount: { increment: 1 } }),
         }),
         updatedAt: new Date(),
       },
     });
 
-    if (status && ["OPEN_FOR_SELECTION", "REJECTED", "PENDING_TEACHER"].includes(status)) {
-      const notifType = status === "REJECTED" ? "TOPIC_REJECTED" : "TOPIC_APPROVED";
+    if (effectiveStatus && ["OPEN_FOR_SELECTION", "REJECTED", "PENDING_TEACHER"].includes(effectiveStatus)) {
+      const notifType = effectiveStatus === "REJECTED" ? "TOPIC_REJECTED" : "TOPIC_APPROVED";
       const notifTitle =
-        status === "OPEN_FOR_SELECTION" ? "Topic Approved — Now Open for Selection"
-          : status === "REJECTED" ? "Topic Rejected"
-            : "Topic Updated";
+        effectiveStatus === "OPEN_FOR_SELECTION" ? "Topic Approved — Now Open for Selection"
+          : effectiveStatus === "REJECTED" ? "Topic Rejected"
+            : "Supervisor Assigned — Awaiting Confirmation";
       const notifMessage =
-        status === "OPEN_FOR_SELECTION"
+        effectiveStatus === "OPEN_FOR_SELECTION"
           ? `Your topic "${topic.title}" has been approved and is now open for student selection.`
-          : status === "REJECTED"
+          : effectiveStatus === "REJECTED"
             ? `Your topic "${topic.title}" was rejected. ${rejectionReason ? `Reason: ${rejectionReason}` : ""}`
-            : `Your topic "${topic.title}" has been updated.`;
+            : `A supervisor has been assigned to "${topic.title}" and must accept the assignment before it opens for student selection.`;
 
       await NotificationService.trigger({
         userId: topic.proposedById,
@@ -362,16 +390,39 @@ export async function DELETE(
 
   try {
     const { id } = await params;
-    const topic = await prisma.topic.findUnique({ where: { id } });
+
+    const body = await req.json().catch(() => ({} as any));
+    const reason = typeof body?.reason === "string" ? body.reason.trim() : "";
+
+    const topic = await prisma.topic.findUnique({
+      where: { id },
+      include: { internship: { select: { status: true, activatedAt: true } } },
+    });
 
     if (!topic) return NextResponse.json({ error: "Topic not found" }, { status: 404 });
 
     if ((topic as any).archivedAt) {
-      return NextResponse.json({ error: "Topic is already archived." }, { status: 400 });
+      return NextResponse.json({ error: "Topic is already deleted." }, { status: 400 });
     }
-    if (topic.status === "TAKEN") {
+
+    // A deletion reason is mandatory for everyone.
+    if (!reason) {
+      return NextResponse.json({ error: "A reason is required to delete this topic." }, { status: 400 });
+    }
+    if (reason.length > 1000) {
+      return NextResponse.json({ error: "The deletion reason is too long (max 1000 characters)." }, { status: 400 });
+    }
+
+    // If an internship has already started for this topic, the topic is locked:
+    // students are actively working on it and it must remain on record.
+    const internship = (topic as any).internship as { status: string; activatedAt: Date | null } | null;
+    const internshipStarted =
+      !!internship &&
+      (!!internship.activatedAt ||
+        !["REQUESTED", "CANCELLED"].includes(internship.status));
+    if (internshipStarted || topic.status === "TAKEN") {
       return NextResponse.json({
-        error: "Cannot archive a taken topic. It will move to archives automatically once its internship ends.",
+        error: "This topic cannot be deleted because students have already started the internship linked to it.",
       }, { status: 400 });
     }
 
@@ -405,18 +456,57 @@ export async function DELETE(
 
     await prisma.topic.update({
       where: { id },
-      data: { archivedAt: new Date() } as any,
+      data: {
+        archivedAt: new Date(),
+        deletionReason: reason,
+        deletedById: session.user.id,
+      } as any,
     });
 
     await AuditService.log({
       userId: session.user.id,
-      action: "TOPIC_ARCHIVED",
+      action: "TOPIC_DELETED",
       targetType: "Topic",
       targetId: topic.title,
-      details: { title: topic.title, status: topic.status },
+      details: { title: topic.title, status: topic.status, reason },
     });
 
-    return NextResponse.json({ message: "Topic archived successfully." });
+    // Notify the responsible administrators (department admins for this topic's
+    // filière + super admins) with both an in-app notification and an email.
+    try {
+      const admins = await prisma.user.findMany({
+        where: {
+          role: "ADMIN",
+          ...(topic.filiereId
+            ? {
+                OR: [
+                  { adminprofile: { isSuperAdmin: true } },
+                  { adminprofile: { filiereId: topic.filiereId } },
+                ],
+              }
+            : {}),
+        } as any,
+        select: { id: true },
+      });
+
+      await Promise.all(
+        admins.map((admin) =>
+          NotificationService.trigger({
+            userId: admin.id,
+            type: "TOPIC_DELETED",
+            title: "Topic Deleted",
+            message: `${session.user.name} deleted the topic "${topic.title}". Reason: ${reason}`,
+            relatedId: topic.id,
+            relatedType: "Topic",
+            link: "/admin/topics",
+          }).catch(() => null),
+        ),
+      );
+    } catch (notifyError) {
+      console.error("[topics/[id] DELETE] admin notification failed:", notifyError);
+    }
+
+    return NextResponse.json({ message: "Topic deleted successfully." });
   } catch (error) {
     console.error("Topic delete error:", error);
     return NextResponse.json({ error: "Failed to delete topic." }, { status: 500 });

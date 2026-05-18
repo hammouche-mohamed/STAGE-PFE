@@ -17,7 +17,6 @@ import {
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Button } from "@/components/ui/Button";
 import { toast } from "sonner";
-import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslation } from "@/lib/i18n/LanguageContext";
@@ -34,6 +33,8 @@ interface Topic {
   maxStudents: number;
   createdAt: string;
   requiredSkills?: string;
+  archivedAt?: string | null;
+  deletionReason?: string | null;
   _count?: { applications: number };
 }
 
@@ -44,6 +45,7 @@ export default function CompanyTopicsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
   const [topicToDeleteId, setTopicToDeleteId] = useState<string | null>(null);
+  const [deleteReason, setDeleteReason] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
   const [topicToEdit, setTopicToEdit] = useState<Topic | null>(null);
   const [isUpdating, setIsUpdating] = useState(false);
@@ -70,14 +72,24 @@ export default function CompanyTopicsPage() {
     fetchTopics();
   }, []);
 
-  // Build filter tabs from the statuses actually present in the data.
+  const activeTopics = useMemo(
+    () => topics.filter((tp) => !tp.archivedAt),
+    [topics]
+  );
+  const deletedTopics = useMemo(
+    () => topics.filter((tp) => !!tp.archivedAt),
+    [topics]
+  );
+
+  // Build filter tabs from the statuses actually present in the active data,
+  // plus a dedicated "Deleted" tab so companies can review removed topics.
   const filterTabs = useMemo(() => {
     const byStatus = new Map<string, number>();
-    for (const tp of topics) {
+    for (const tp of activeTopics) {
       byStatus.set(tp.status, (byStatus.get(tp.status) || 0) + 1);
     }
-    return [
-      { key: "ALL", label: t("common.all"), count: topics.length },
+    const tabs = [
+      { key: "ALL", label: t("common.all"), count: activeTopics.length },
       ...Array.from(byStatus.entries())
         .sort((a, b) => a[0].localeCompare(b[0]))
         .map(([status, count]) => ({
@@ -86,26 +98,36 @@ export default function CompanyTopicsPage() {
           count,
         })),
     ];
-  }, [topics, t]);
+    if (deletedTopics.length > 0) {
+      tabs.push({ key: "DELETED", label: "Deleted", count: deletedTopics.length });
+    }
+    return tabs;
+  }, [activeTopics, deletedTopics, t]);
 
-  const filteredTopics = useMemo(
-    () =>
-      statusFilter === "ALL"
-        ? topics
-        : topics.filter((tp) => tp.status === statusFilter),
-    [topics, statusFilter]
-  );
+  const filteredTopics = useMemo(() => {
+    if (statusFilter === "DELETED") return deletedTopics;
+    if (statusFilter === "ALL") return activeTopics;
+    return activeTopics.filter((tp) => tp.status === statusFilter);
+  }, [activeTopics, deletedTopics, statusFilter]);
 
   const handleDeleteTopic = (id: string) => {
     setTopicToDeleteId(id);
   };
 
-  const confirmDeleteTopic = async () => {
+  const confirmDeleteTopic = async (e: React.FormEvent) => {
+    e.preventDefault();
     if (!topicToDeleteId) return;
+    const reason = deleteReason.trim();
+    if (!reason) {
+      toast.error("Please provide a reason for deleting this topic.");
+      return;
+    }
     setIsDeleting(true);
     try {
       const res = await fetch(`/api/topics/${topicToDeleteId}`, {
         method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reason }),
       });
 
       if (!res.ok) {
@@ -114,8 +136,17 @@ export default function CompanyTopicsPage() {
       }
 
       toast.success(t("toast.topicProposalDeleted"));
-      setTopics(prev => prev.filter(t => t.id !== topicToDeleteId));
+      // Keep the topic visible but flag it as deleted so the company can still
+      // review it under the "Deleted" filter.
+      setTopics((prev) =>
+        prev.map((tp) =>
+          tp.id === topicToDeleteId
+            ? { ...tp, archivedAt: new Date().toISOString(), deletionReason: reason }
+            : tp
+        )
+      );
       setTopicToDeleteId(null);
+      setDeleteReason("");
     } catch (error: any) {
       toast.error(error.message || "An error occurred while deleting the topic");
     } finally {
@@ -226,11 +257,23 @@ export default function CompanyTopicsPage() {
                 <div className="space-y-2 flex-1">
                   <div className="flex items-center gap-2">
                     <StatusBadge status={topic.status} />
+                    {topic.archivedAt && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide">
+                        <Trash2 className="h-3 w-3" />
+                        Deleted
+                      </span>
+                    )}
                     <span className="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">{topic.academicYear}</span>
                   </div>
-                  <h3 className="text-[16px] font-bold text-gray-900 dark:text-white leading-tight group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                  <h3 className={`text-[16px] font-bold leading-tight transition-colors ${topic.archivedAt ? "text-gray-500 dark:text-gray-400 line-through" : "text-gray-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400"}`}>
                     {topic.title}
                   </h3>
+                  {topic.archivedAt && topic.deletionReason && (
+                    <div className="mt-2 rounded-md bg-red-50 dark:bg-red-900/15 border border-red-100 dark:border-red-900/40 px-3 py-2 text-[12px] text-red-700 dark:text-red-300">
+                      <span className="font-bold">Reason for deletion: </span>
+                      {topic.deletionReason}
+                    </div>
+                  )}
                   <div className="flex items-center gap-6 mt-4">
                     <div className="flex items-center text-[12px] text-gray-600 dark:text-gray-300">
                       <Users className="h-3.5 w-3.5 mr-1.5 text-gray-400 dark:text-gray-500" />
@@ -243,45 +286,88 @@ export default function CompanyTopicsPage() {
                   </div>
                 </div>
                 
-                <div className="flex flex-col items-end gap-4">
-                   <div className="flex items-center gap-2">
-                      <button 
-                        onClick={() => handleStartEdit(topic)}
-                        className="p-2 text-gray-400 dark:text-gray-500 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-gray-50 dark:hover:bg-slate-800 rounded-md transition-all"
-                        title="Request edit"
-                      >
-                        <Edit className="h-4 w-4" />
-                      </button>
-                       <button 
-                         onClick={() => handleDeleteTopic(topic.id)}
-                         className="p-2 text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-gray-50 dark:hover:bg-slate-800 rounded-md transition-all"
-                         title="Delete topic"
-                       >
-                         <Trash2 className="h-4 w-4" />
-                       </button>
-                   </div>
-                   <Link 
-                     href={`/company/applications?topicId=${topic.id}`}
-                     className="text-[11px] font-bold text-indigo-600 uppercase tracking-wide flex items-center hover:underline"
-                   >
-                     View Applications
-                     <ChevronRight className="ml-1 h-3 w-3" />
-                   </Link>
-                </div>
+                {!topic.archivedAt && (
+                  <div className="flex flex-col items-end gap-4">
+                     <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => handleStartEdit(topic)}
+                          className="p-2 text-gray-400 dark:text-gray-500 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-gray-50 dark:hover:bg-slate-800 rounded-md transition-all"
+                          title="Request edit"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </button>
+                         <button
+                           onClick={() => handleDeleteTopic(topic.id)}
+                           className="p-2 text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-gray-50 dark:hover:bg-slate-800 rounded-md transition-all"
+                           title="Delete topic"
+                         >
+                           <Trash2 className="h-4 w-4" />
+                         </button>
+                     </div>
+                     <Link
+                       href={`/company/applications?topicId=${topic.id}`}
+                       className="text-[11px] font-bold text-indigo-600 uppercase tracking-wide flex items-center hover:underline"
+                     >
+                       View Applications
+                       <ChevronRight className="ml-1 h-3 w-3" />
+                     </Link>
+                  </div>
+                )}
               </div>
             </div>
           ))
         )}
       </div>
       
-      <ConfirmDialog
+      <Modal
         isOpen={!!topicToDeleteId}
-        onClose={() => setTopicToDeleteId(null)}
-        onConfirm={confirmDeleteTopic}
-        title={t("common.delete")}
-        description={t("topics.confirmDelete") || "Are you sure you want to delete this topic proposal?"}
-        isLoading={isDeleting}
-      />
+        onClose={() => {
+          setTopicToDeleteId(null);
+          setDeleteReason("");
+        }}
+        title="Delete Topic"
+        size="md"
+      >
+        <form onSubmit={confirmDeleteTopic} className="space-y-5 py-2">
+          <div className="bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800/50 p-4 rounded-lg flex items-start gap-3">
+            <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400 mt-0.5 shrink-0" />
+            <div className="text-[13px] text-red-800 dark:text-red-300 leading-relaxed">
+              <p className="font-bold">This action requires a reason</p>
+              <p>The topic will be removed from active listings but stays on record for you. The administrator will be notified by email and in-app.</p>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-[12px] font-bold text-gray-700 dark:text-gray-300 uppercase tracking-tight">
+              Reason for deletion <span className="text-red-500">*</span>
+            </label>
+            <textarea
+              className="admin-input min-h-[110px] py-3 leading-relaxed"
+              value={deleteReason}
+              onChange={(e) => setDeleteReason(e.target.value)}
+              placeholder="Explain why this topic is being deleted…"
+              maxLength={1000}
+              required
+            />
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4 border-t border-gray-100 dark:border-slate-800">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setTopicToDeleteId(null);
+                setDeleteReason("");
+              }}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" variant="danger" isLoading={isDeleting} disabled={!deleteReason.trim()}>
+              Delete Topic
+            </Button>
+          </div>
+        </form>
+      </Modal>
 
       <Modal
         isOpen={!!topicToEdit}

@@ -459,6 +459,8 @@ model Topic {
   pendingEditData                    String?              @db.LongText
   pendingEditRequestedAt             DateTime?
   archivedAt                         DateTime?
+  deletionReason                     String?              @db.Text
+  deletedById                        String?
   createdAt                          DateTime             @default(now())
   updatedAt                          DateTime
   internship                         Internship?
@@ -598,6 +600,7 @@ enum notification_type {
   TOPIC_SUBMITTED
   TOPIC_APPROVED
   TOPIC_REJECTED
+  TOPIC_DELETED
   TEACHER_ASSIGNED
   TEACHER_ACCEPTED
   TEACHER_REJECTED

@@ -39,6 +39,7 @@ export async function GET(req: NextRequest) {
         prisma.topic.count({
           where: {
             status: "PENDING_ADMIN",
+            archivedAt: null,
             ...(filiereId ? { filiereId } : {})
           } as any,
         }),
@@ -51,6 +52,7 @@ export async function GET(req: NextRequest) {
             topic: {
               type: "COMPANY_PROPOSED",
               status: { not: "TAKEN" },
+              archivedAt: null,
               ...(filiereId ? { filiereId } : {}),
             },
           } as any,

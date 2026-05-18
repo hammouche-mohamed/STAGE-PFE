@@ -64,16 +64,16 @@ export default async function AdminDashboardPage() {
     [recentTopics, pendingCompanyProposals, topicsApproved, topicsRejected, pendingRegistrations] =
       await Promise.all([
         prisma.topic.count({
-          where: { status: "PENDING_ADMIN", ...filiereFilter } as any,
+          where: { status: "PENDING_ADMIN", archivedAt: null, ...filiereFilter } as any,
         }),
         prisma.topic.count({
-          where: { type: "COMPANY_PROPOSED", status: "PENDING_ADMIN", ...filiereFilter },
+          where: { type: "COMPANY_PROPOSED", status: "PENDING_ADMIN", archivedAt: null, ...filiereFilter },
         }),
         prisma.topic.count({
-          where: { status: "APPROVED", ...filiereFilter } as any,
+          where: { status: "APPROVED", archivedAt: null, ...filiereFilter } as any,
         }),
         prisma.topic.count({
-          where: { status: "REJECTED", ...filiereFilter } as any,
+          where: { status: "REJECTED", archivedAt: null, ...filiereFilter } as any,
         }),
         prisma.registrationRequest.findMany({
           where: { status: "PENDING" },

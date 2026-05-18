@@ -176,7 +176,12 @@ export async function GET(req: NextRequest) {
 
   const where: Record<string, any> = {};
 
-  where.archivedAt = null;
+  // Companies keep visibility of their own deleted (archived) topics so they
+  // can review them and the reason they were removed. Every other role only
+  // ever sees active topics.
+  if (session.user.role !== 'COMPANY') {
+    where.archivedAt = null;
+  }
 
   try {
     try {
@@ -253,8 +258,12 @@ export async function GET(req: NextRequest) {
         { assignedTeacherId: session.user.id },
         { teacherapplication: { some: { teacherId: session.user.id } } },
         {
+          // Marketplace: any admin-cleared topic in the teacher's own
+          // department that still has no supervisor. Admin publishing sets
+          // the status to OPEN_FOR_SELECTION (students see it under that
+          // status), so APPROVED alone misses every published topic.
           AND: [
-            { status: 'APPROVED' },
+            { status: { in: ['APPROVED', 'OPEN_FOR_SELECTION'] } },
             { assignedTeacherId: null },
             { filiereId: session.user.filiereId ?? '__no_department__' },
           ]
@@ -294,6 +303,8 @@ export async function GET(req: NextRequest) {
       rejectionReason: true,
       createdAt: true,
       updatedAt: true,
+      archivedAt: true,
+      deletionReason: true,
       pendingEditData: true,
       pendingEditRequestedAt: true,
       targetLevels: true,

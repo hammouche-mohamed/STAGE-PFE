@@ -22,7 +22,7 @@ export default async function CompanyDashboardPage() {
   try {
     const [topicCount, applicationCount, internshipCount, pendingValidations] =
       await Promise.all([
-        prisma.topic.count({ where: { proposedById: company.id } }),
+        prisma.topic.count({ where: { proposedById: company.id, archivedAt: null } }),
         prisma.studentApplication.count({
           where: {
             topic: { proposedById: company.id },

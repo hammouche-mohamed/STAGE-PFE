@@ -69,18 +69,21 @@ export async function GET(req: NextRequest) {
       prisma.topic.count({
         where: {
           status: "PENDING_ADMIN",
+          archivedAt: null,
           ...(targetFiliereId ? { filiereId: targetFiliereId } : {})
         } as any
       }),
       prisma.topic.count({
         where: {
           status: "APPROVED",
+          archivedAt: null,
           ...(targetFiliereId ? { filiereId: targetFiliereId } : {})
         } as any
       }),
       prisma.topic.count({
         where: {
           status: "REJECTED",
+          archivedAt: null,
           ...(targetFiliereId ? { filiereId: targetFiliereId } : {})
         } as any
       }),
@@ -121,6 +124,7 @@ export async function GET(req: NextRequest) {
         where: {
           type: "COMPANY_PROPOSED",
           status: "PENDING_ADMIN",
+          archivedAt: null,
           ...(targetFiliereId ? { filiereId: targetFiliereId } : {})
         } as any
       }),

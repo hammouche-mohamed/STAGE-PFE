@@ -25,38 +25,88 @@ export async function PATCH(
       return NextResponse.json({ error: "Topic not assigned to you" }, { status: 403 });
     }
 
+    // The accept/decline gate only applies while the topic is waiting on the
+    // teacher. Once it has moved on (already opened, taken, …) the assignment
+    // can no longer be confirmed or declined here.
+    if (topic.status !== "PENDING_TEACHER") {
+      return NextResponse.json(
+        { error: "This assignment is no longer awaiting your confirmation." },
+        { status: 400 },
+      );
+    }
+
     if (action === "ACCEPT") {
+      // The teacher confirmed the assignment — they are now the supervisor and
+      // the topic opens for student selection.
       await prisma.topic.update({
         where: { id },
-        data: { status: "APPROVED" },
+        data: { status: "OPEN_FOR_SELECTION" },
       });
 
       await NotificationService.trigger({
         userId: topic.proposedById,
         type: "TEACHER_ACCEPTED",
         title: "Supervisor Accepted",
-        message: `The teacher has accepted to supervise your topic: "${topic.title}". The topic is now fully approved.`,
+        message: `The assigned supervisor has accepted "${topic.title}". The topic is now open for student selection.`,
         relatedId: topic.id,
         relatedType: "Topic",
       });
     } else {
+      // The teacher declined — release the assignment and hand the topic back
+      // to the administration so a different supervisor can be picked.
       await prisma.topic.update({
         where: { id },
         data: {
-          status: "REJECTED",
-          rejectionReason: "Teacher rejected assignment",
+          status: "PENDING_ADMIN",
+          rejectionReason: "Assigned teacher declined the supervision",
           assignedTeacherId: null,
         },
       });
 
+      // Drop the declining teacher's marketplace application so they are no
+      // longer listed as a candidate for this topic.
+      await prisma.teacherApplication
+        .deleteMany({ where: { topicId: id, teacherId: session.user.id } })
+        .catch(() => null);
+
       await NotificationService.trigger({
         userId: topic.proposedById,
         type: "TEACHER_REJECTED",
-        title: "Supervisor Rejected",
-        message: `The assigned teacher has declined to supervise your topic: "${topic.title}". Please consult with the administration.`,
+        title: "Supervisor Declined",
+        message: `The assigned supervisor declined "${topic.title}". The administration will assign another supervisor.`,
         relatedId: topic.id,
         relatedType: "Topic",
       });
+
+      // Notify the responsible administrators so they can reassign.
+      const admins = await prisma.user.findMany({
+        where: {
+          role: "ADMIN",
+          ...(topic.filiereId
+            ? {
+                OR: [
+                  { adminprofile: { isSuperAdmin: true } },
+                  { adminprofile: { filiereId: topic.filiereId } },
+                ],
+              }
+            : {}),
+        } as any,
+        select: { id: true },
+      });
+
+      await Promise.all(
+        admins.map((admin) =>
+          NotificationService.trigger({
+            userId: admin.id,
+            type: "TEACHER_REJECTED",
+            title: "Supervisor Declined — Reassignment Needed",
+            message: `${session.user.name} declined to supervise "${topic.title}". Please assign another supervisor.`,
+            relatedId: topic.id,
+            relatedType: "Topic",
+            link: "/admin/topics",
+          }).catch(() => null),
+        ),
+      );
     }
 
     await AuditService.log({
