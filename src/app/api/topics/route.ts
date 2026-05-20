@@ -185,8 +185,13 @@ export async function GET(req: NextRequest) {
 
   try {
     try {
+      // Hide topics tied to a FINISHED internship. CANCELLED is intentionally
+      // excluded from this filter: a cancelled internship means the topic is
+      // available again — keeping it filtered makes the topic vanish from
+      // every role (marketplace, students, supervisors) forever, which is
+      // what was producing empty "Topics" tabs after a test cancellation.
       const completedInternships = await prisma.internship.findMany({
-        where: { status: { in: ['COMPLETED', 'CANCELLED'] } },
+        where: { status: 'COMPLETED' },
         select: { topicId: true }
       });
       const completedTopicIds = completedInternships.map(i => i.topicId);
@@ -239,9 +244,23 @@ export async function GET(req: NextRequest) {
       if (assigned === 'false') where.assignedTeacherId = null;
 
     } else if (session.user.role === 'STUDENT') {
+      // Students see: anything currently open for selection, anything they
+      // proposed, AND anything their team already applied to — even after it
+      // becomes TAKEN. Without the third clause, the moment the admin creates
+      // the internship the topic vanishes from the student's "All" / "Applied"
+      // tabs even though the badge still says they have applications.
       where.OR = [
         { status: 'OPEN_FOR_SELECTION' },
-        { proposedById: session.user.id }
+        { proposedById: session.user.id },
+        {
+          studentapplication: {
+            some: {
+              studentteam: {
+                teammember: { some: { studentId: session.user.id } },
+              },
+            },
+          },
+        },
       ];
 
       if (filiereFilter && filiereFilter !== 'ALL') {
