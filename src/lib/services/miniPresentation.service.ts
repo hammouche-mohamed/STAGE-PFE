@@ -24,6 +24,25 @@ export interface BulkSchedulePayload {
 }
 
 /**
+ * Per-internship presentation slot: each PFE team gets its own scheduledAt,
+ * room and time-slot label. The submission deadline is shared across the
+ * cohort and lives on the parent payload.
+ */
+export interface MilestoneSlot {
+  internshipId: string;
+  scheduledAt: Date;
+  room: string;
+  timeSlot: string;
+}
+
+export interface BulkScheduleSlotsPayload {
+  title: string;
+  /** Shared across every milestone row created by this call. */
+  documentDeadline: Date;
+  slots: MilestoneSlot[];
+}
+
+/**
  * FR-A5: Schedule, update and cancel mini-presentation sessions.
  *
  * Each session is anchored to an existing internship. Notifications are
@@ -238,6 +257,131 @@ export class MiniPresentationService {
     }).catch((err) => console.error("[mini-presentation] audit failed:", err));
 
     return { created, skipped, total: internships.length };
+  }
+
+  /**
+   * Bulk schedule a milestone with per-internship slots: each team gets its
+   * own presentation time + room, but the document submission deadline is
+   * shared across the cohort. Replaces the older "same time/room for all"
+   * flow once the admin starts using the per-slot form.
+   *
+   * Skips internships that already have a milestone with the same title
+   * (idempotent — re-submitting the form won't double-schedule).
+   */
+  static async scheduleBulkWithSlots(
+    data: BulkScheduleSlotsPayload,
+    scheduledById: string,
+  ): Promise<{ created: number; skipped: number; total: number }> {
+    if (data.slots.length === 0) {
+      throw new Error("At least one internship slot is required.");
+    }
+
+    const now = Date.now();
+    for (const s of data.slots) {
+      if (s.scheduledAt.getTime() < now) {
+        throw new Error("Every presentation date must be in the future.");
+      }
+      if (data.documentDeadline.getTime() > s.scheduledAt.getTime()) {
+        throw new Error(
+          "The document submission deadline must be on or before every presentation date.",
+        );
+      }
+    }
+
+    const internshipIds = data.slots.map((s) => s.internshipId);
+    const internships = await prisma.internship.findMany({
+      where: {
+        id: { in: internshipIds },
+        internshipType: "PFE",
+        status: { notIn: ["CANCELLED", "COMPLETED"] },
+      },
+      select: {
+        id: true,
+        teacherId: true,
+        topic: { select: { title: true } },
+        internshipstudent: { select: { studentId: true } },
+        minipresentation: {
+          where: { title: data.title.trim() },
+          select: { id: true },
+        },
+      } as any,
+    });
+
+    if (internships.length === 0) {
+      throw new Error("No active PFE internships matched the selected slots.");
+    }
+
+    const byId = new Map((internships as any[]).map((i) => [i.id, i]));
+    let created = 0;
+    let skipped = 0;
+
+    for (const slot of data.slots) {
+      const i = byId.get(slot.internshipId);
+      if (!i) {
+        // Slot referenced an internship that's CANCELLED/COMPLETED or simply
+        // doesn't exist anymore. Skip silently rather than error the whole batch.
+        skipped++;
+        continue;
+      }
+      if ((i.minipresentation ?? []).length > 0) {
+        skipped++;
+        continue;
+      }
+
+      const row = await prisma.miniPresentation.create({
+        data: {
+          id: randomUUID(),
+          internshipId: i.id,
+          title: data.title.trim(),
+          scheduledAt: slot.scheduledAt,
+          room: slot.room.trim(),
+          timeSlot: slot.timeSlot.trim(),
+          documentDeadline: data.documentDeadline,
+        },
+      });
+      created++;
+
+      const niceDate = slot.scheduledAt.toLocaleString("en-GB", {
+        dateStyle: "full",
+        timeStyle: "short",
+      });
+      const recipients = [
+        i.teacherId,
+        ...i.internshipstudent.map((s: { studentId: string }) => s.studentId),
+      ];
+      await Promise.all(
+        recipients.map((userId) =>
+          NotificationService.trigger({
+            userId,
+            type: "MINI_PRESENTATION_SCHEDULED",
+            title: "Mini-presentation scheduled",
+            message:
+              `A mini-presentation has been scheduled for "${i.topic.title}".\n` +
+              `When: ${niceDate}\nRoom: ${slot.room}\nTime slot: ${slot.timeSlot}\n` +
+              `Document deadline: ${data.documentDeadline.toLocaleDateString("en-GB")}`,
+            relatedId: row.id,
+            relatedType: "MiniPresentation",
+            link: "/student/documents",
+          }).catch(() => null),
+        ),
+      );
+    }
+
+    await AuditService.log({
+      userId: scheduledById,
+      action: "MINI_PRESENTATION_BULK_SCHEDULED_WITH_SLOTS",
+      targetType: "MiniPresentation",
+      targetId: `bulk-slots:${data.title.trim()}`,
+      details: {
+        title: data.title,
+        documentDeadline: data.documentDeadline.toISOString(),
+        slotCount: data.slots.length,
+        created,
+        skipped,
+      },
+    }).catch((err) => console.error("[mini-presentation] audit failed:", err));
+
+    return { created, skipped, total: data.slots.length };
   }
 
   static async update(

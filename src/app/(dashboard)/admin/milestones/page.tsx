@@ -65,6 +65,10 @@ const emptyForm = {
   filiereId: "" as string, // super admin only — dept admin's filière is implicit
 };
 
+/** Per-internship slot input row in create mode. Keyed by internshipId. */
+type SlotInput = { date: string; time: string; room: string; timeSlot: string };
+const emptySlot: SlotInput = { date: "", time: "", room: "", timeSlot: "" };
+
 export default function AdminMilestonesPage() {
   const { t } = useTranslation();
   const { data: session } = useSession();
@@ -78,6 +82,8 @@ export default function AdminMilestonesPage() {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
+  // Create-mode only: per-internship presentation slot inputs.
+  const [slots, setSlots] = useState<Record<string, SlotInput>>({});
   const [isSaving, setIsSaving] = useState(false);
 
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
@@ -123,27 +129,33 @@ export default function AdminMilestonesPage() {
     if (isSuperAdmin) fetchFilieres();
   }, [fetchSessions, fetchInternships, fetchFilieres, isSuperAdmin]);
 
-  // Count active PFE internships the next milestone will fan out to. For
-  // dept admin: their own filière. For super admin: the picked filière, or
-  // all if none picked.
-  const targetCount = useMemo(() => {
-    if (editingId) return 0; // edit mode is per-row, no fan-out
+  // Active PFE internships the next milestone will fan out to. For dept
+  // admin: their own filière. For super admin: the picked filière, or all
+  // if none picked. Used to build the per-internship slot input rows.
+  const eligibleInternships = useMemo(() => {
+    if (editingId) return [];
     const cancelledStatuses = new Set(["CANCELLED", "COMPLETED"]);
     return internships.filter((i: any) => {
       if (cancelledStatuses.has(i.status)) return false;
       if (isSuperAdmin) {
-        if (!form.filiereId) return true; // all filières
+        if (!form.filiereId) return true;
         return i.topic?.filiere?.id === form.filiereId;
       }
-      // dept admin's filière scope is enforced server-side; the client
-      // already only gets internships in their filière for non-super
       return true;
-    }).length;
+    });
   }, [internships, isSuperAdmin, form.filiereId, editingId]);
 
   const resetForm = () => {
     setEditingId(null);
     setForm(emptyForm);
+    setSlots({});
+  };
+
+  const updateSlot = (id: string, patch: Partial<SlotInput>) => {
+    setSlots((prev) => ({
+      ...prev,
+      [id]: { ...emptySlot, ...prev[id], ...patch },
+    }));
   };
 
   const openCreate = () => {
@@ -167,18 +179,16 @@ export default function AdminMilestonesPage() {
   };
 
   const handleSubmit = async () => {
-    if (!form.title || !form.date || !form.time || !form.room || !form.timeSlot || !form.documentDeadline) {
-      toast.error("Please fill in every field.");
-      return;
-    }
-
-    const scheduledAt = new Date(`${form.date}T${form.time}`).toISOString();
-    const documentDeadline = new Date(`${form.documentDeadline}T23:59`).toISOString();
-
-    setIsSaving(true);
-    try {
-      if (editingId) {
-        // Edit mode stays per-row (PATCH a single MiniPresentation).
+    if (editingId) {
+      // Edit mode stays per-row (PATCH a single MiniPresentation).
+      if (!form.title || !form.date || !form.time || !form.room || !form.timeSlot || !form.documentDeadline) {
+        toast.error("Please fill in every field.");
+        return;
+      }
+      const scheduledAt = new Date(`${form.date}T${form.time}`).toISOString();
+      const documentDeadline = new Date(`${form.documentDeadline}T23:59`).toISOString();
+      setIsSaving(true);
+      try {
         const res = await fetch(`/api/mini-presentations/${editingId}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
@@ -193,35 +203,65 @@ export default function AdminMilestonesPage() {
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || "Failed to save");
         toast.success("Session updated");
-      } else {
-        // Create mode fans out across every active PFE internship in scope.
-        const res = await fetch("/api/mini-presentations", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            title: form.title,
-            scheduledAt,
-            room: form.room,
-            timeSlot: form.timeSlot,
-            documentDeadline,
-            filiereId: isSuperAdmin && form.filiereId ? form.filiereId : null,
-          }),
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || "Failed to save");
-        const { created, skipped } = data.data || { created: 0, skipped: 0 };
-        toast.success(
-          skipped > 0
-            ? `Scheduled for ${created} PFE internship${created === 1 ? "" : "s"} (${skipped} skipped — same title already exists).`
-            : `Scheduled for ${created} PFE internship${created === 1 ? "" : "s"}.`,
-        );
+        setShowForm(false);
+        resetForm();
+        fetchSessions();
+      } catch (err: unknown) {
+        toast.error(err instanceof Error ? err.message : "Failed to save");
+      } finally {
+        setIsSaving(false);
       }
+      return;
+    }
+
+    // Create mode: bulk-schedule with one slot per filled-in internship row.
+    // The submission deadline is shared, time/room are per-internship.
+    if (!form.title || !form.documentDeadline) {
+      toast.error("Title and document submission deadline are required.");
+      return;
+    }
+
+    const filledSlots = eligibleInternships
+      .map((i: any) => ({ internshipId: i.id, ...(slots[i.id] ?? emptySlot) }))
+      .filter((s) => s.date && s.time && s.room && s.timeSlot);
+
+    if (filledSlots.length === 0) {
+      toast.error("Set a date, time, room and time-slot label for at least one team.");
+      return;
+    }
+
+    const apiSlots = filledSlots.map((s) => ({
+      internshipId: s.internshipId,
+      scheduledAt: new Date(`${s.date}T${s.time}`).toISOString(),
+      room: s.room,
+      timeSlot: s.timeSlot,
+    }));
+    const documentDeadline = new Date(`${form.documentDeadline}T23:59`).toISOString();
+
+    setIsSaving(true);
+    try {
+      const res = await fetch("/api/mini-presentations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: form.title,
+          documentDeadline,
+          slots: apiSlots,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to save");
+      const { created, skipped } = data.data || { created: 0, skipped: 0 };
+      toast.success(
+        skipped > 0
+          ? `Scheduled for ${created} PFE internship${created === 1 ? "" : "s"} (${skipped} skipped — same title already exists).`
+          : `Scheduled for ${created} PFE internship${created === 1 ? "" : "s"}.`,
+      );
       setShowForm(false);
       resetForm();
       fetchSessions();
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Failed to save";
-      toast.error(message);
+      toast.error(err instanceof Error ? err.message : "Failed to save");
     } finally {
       setIsSaving(false);
     }
@@ -283,11 +323,55 @@ export default function AdminMilestonesPage() {
           </>
         }
       >
-        <div className="grid gap-6 md:grid-cols-2">
-          {/* Bulk scope. Dept admin's filière is implicit (server enforces it).
-              Super admin gets a selector — empty = every filière at once. */}
-          {!editingId && (
-            <div className="md:col-span-2 space-y-3">
+        {editingId ? (
+          /* Edit mode keeps the simple single-row form: changes one team's
+             milestone only. */
+          <div className="grid gap-6 md:grid-cols-2">
+            <div className="md:col-span-2 flex items-start gap-2 rounded-md border border-gray-100 dark:border-slate-800 bg-gray-50 dark:bg-slate-800/40 px-3 py-2.5">
+              <Layers className="h-4 w-4 mt-0.5 text-gray-400 shrink-0" />
+              <p className="text-[12px] text-gray-600 dark:text-gray-300 leading-relaxed">
+                Editing this milestone only affects this one team. To change every team's date, edit each row or re-create the milestone.
+              </p>
+            </div>
+            <Input
+              label="Session title"
+              value={form.title}
+              onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))}
+            />
+            <Input
+              label="Time slot label"
+              value={form.timeSlot}
+              onChange={(e) => setForm((p) => ({ ...p, timeSlot: e.target.value }))}
+            />
+            <Input
+              label="Date"
+              type="date"
+              value={form.date}
+              onChange={(e) => setForm((p) => ({ ...p, date: e.target.value }))}
+            />
+            <Input
+              label="Time"
+              type="time"
+              value={form.time}
+              onChange={(e) => setForm((p) => ({ ...p, time: e.target.value }))}
+            />
+            <Input
+              label="Room"
+              value={form.room}
+              onChange={(e) => setForm((p) => ({ ...p, room: e.target.value }))}
+            />
+            <Input
+              label="Document submission deadline"
+              type="date"
+              value={form.documentDeadline}
+              onChange={(e) => setForm((p) => ({ ...p, documentDeadline: e.target.value }))}
+            />
+          </div>
+        ) : (
+          /* Create mode: shared fields up top, then a per-internship slot
+             table where each PFE team gets its own date / time / room. */
+          <div className="space-y-5">
+            <div className="grid gap-4 md:grid-cols-2">
               {isSuperAdmin && (
                 <div>
                   <label className="text-[12px] font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wide block mb-1.5">
@@ -305,65 +389,107 @@ export default function AdminMilestonesPage() {
                   </select>
                 </div>
               )}
-              <div className="flex items-start gap-2 rounded-md border border-indigo-100 dark:border-indigo-900/40 bg-indigo-50 dark:bg-indigo-900/20 px-3 py-2.5">
-                <Layers className="h-4 w-4 mt-0.5 text-indigo-500 shrink-0" />
-                <p className="text-[12px] text-indigo-800 dark:text-indigo-300 leading-relaxed">
-                  This milestone will be scheduled for <strong>{targetCount}</strong> active PFE internship{targetCount === 1 ? "" : "s"}
-                  {isSuperAdmin && form.filiereId
-                    ? ` in ${filieres.find((f) => f.id === form.filiereId)?.name ?? "the selected filière"}`
-                    : isSuperAdmin
-                      ? " across every filière"
-                      : ""}
-                  . Each student team gets the same date, room and deadline.
-                </p>
-              </div>
+              <Input
+                label="Session title (shared across all teams)"
+                value={form.title}
+                onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))}
+                placeholder="e.g. Mid-term Presentation"
+              />
+              <Input
+                label="Document submission deadline (shared)"
+                type="date"
+                value={form.documentDeadline}
+                onChange={(e) => setForm((p) => ({ ...p, documentDeadline: e.target.value }))}
+              />
             </div>
-          )}
-          {editingId && (
-            <div className="md:col-span-2 flex items-start gap-2 rounded-md border border-gray-100 dark:border-slate-800 bg-gray-50 dark:bg-slate-800/40 px-3 py-2.5">
-              <Layers className="h-4 w-4 mt-0.5 text-gray-400 shrink-0" />
-              <p className="text-[12px] text-gray-600 dark:text-gray-300 leading-relaxed">
-                Editing this milestone only affects this one team. To change every team's date, edit each row or re-create the milestone.
+
+            <div className="flex items-start gap-2 rounded-md border border-indigo-100 dark:border-indigo-900/40 bg-indigo-50 dark:bg-indigo-900/20 px-3 py-2.5">
+              <Layers className="h-4 w-4 mt-0.5 text-indigo-500 shrink-0" />
+              <p className="text-[12px] text-indigo-800 dark:text-indigo-300 leading-relaxed">
+                Set the presentation <strong>date, time and room</strong> for each PFE team below.
+                Rows you leave blank are skipped. The submission deadline above is shared by every team you schedule.
               </p>
             </div>
-          )}
-          <Input
-            label="Session title"
-            value={form.title}
-            onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))}
-            placeholder="e.g. Mini-Presentation 1"
-          />
-          <Input
-            label="Time slot label"
-            value={form.timeSlot}
-            onChange={(e) => setForm((p) => ({ ...p, timeSlot: e.target.value }))}
-            placeholder="e.g. 10:00 – 10:30"
-          />
-          <Input
-            label="Date"
-            type="date"
-            value={form.date}
-            onChange={(e) => setForm((p) => ({ ...p, date: e.target.value }))}
-          />
-          <Input
-            label="Time"
-            type="time"
-            value={form.time}
-            onChange={(e) => setForm((p) => ({ ...p, time: e.target.value }))}
-          />
-          <Input
-            label="Room"
-            value={form.room}
-            onChange={(e) => setForm((p) => ({ ...p, room: e.target.value }))}
-            placeholder="e.g. Room 101B"
-          />
-          <Input
-            label="Document submission deadline"
-            type="date"
-            value={form.documentDeadline}
-            onChange={(e) => setForm((p) => ({ ...p, documentDeadline: e.target.value }))}
-          />
-        </div>
+
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-[12px] font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wide">
+                  PFE teams
+                </label>
+                <span className="text-[11px] text-gray-500 dark:text-gray-400">
+                  {eligibleInternships.length} team{eligibleInternships.length === 1 ? "" : "s"} in scope
+                </span>
+              </div>
+
+              {eligibleInternships.length === 0 ? (
+                <div className="rounded-md border border-dashed border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800/30 px-4 py-6 text-center text-[12px] text-gray-500 dark:text-gray-400">
+                  No active PFE internships found{isSuperAdmin && form.filiereId ? " in this filière" : ""}.
+                </div>
+              ) : (
+                <div className="border border-gray-100 dark:border-slate-800 rounded-md overflow-hidden">
+                  <div className="max-h-[360px] overflow-y-auto divide-y divide-gray-100 dark:divide-slate-800">
+                    {eligibleInternships.map((i: any) => {
+                      const s = slots[i.id] ?? emptySlot;
+                      const studentNames =
+                        i.students?.map((sx: any) => sx.student?.name).filter(Boolean).join(" & ") ||
+                        i.internshipstudent?.map((sx: any) => sx.user?.name).filter(Boolean).join(" & ") ||
+                        "no students";
+                      return (
+                        <div key={i.id} className="p-3 bg-white dark:bg-slate-900">
+                          <div className="flex items-start justify-between gap-2 mb-2">
+                            <div className="min-w-0">
+                              <p className="text-[13px] font-semibold text-gray-900 dark:text-white truncate" title={i.topic?.title}>
+                                {i.topic?.title || "(untitled topic)"}
+                              </p>
+                              <p className="text-[11px] text-gray-500 dark:text-gray-400 truncate">{studentNames}</p>
+                            </div>
+                            {isSuperAdmin && i.topic?.filiere?.name && (
+                              <span className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider whitespace-nowrap">
+                                {i.topic.filiere.name}
+                              </span>
+                            )}
+                          </div>
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                            <input
+                              type="date"
+                              className="admin-input text-[12px] h-9"
+                              value={s.date}
+                              onChange={(e) => updateSlot(i.id, { date: e.target.value })}
+                              aria-label={`Date for ${i.topic?.title}`}
+                            />
+                            <input
+                              type="time"
+                              className="admin-input text-[12px] h-9"
+                              value={s.time}
+                              onChange={(e) => updateSlot(i.id, { time: e.target.value })}
+                              aria-label={`Time for ${i.topic?.title}`}
+                            />
+                            <input
+                              type="text"
+                              className="admin-input text-[12px] h-9"
+                              placeholder="Room"
+                              value={s.room}
+                              onChange={(e) => updateSlot(i.id, { room: e.target.value })}
+                              aria-label={`Room for ${i.topic?.title}`}
+                            />
+                            <input
+                              type="text"
+                              className="admin-input text-[12px] h-9"
+                              placeholder="e.g. 10:00 – 10:30"
+                              value={s.timeSlot}
+                              onChange={(e) => updateSlot(i.id, { timeSlot: e.target.value })}
+                              aria-label={`Time-slot label for ${i.topic?.title}`}
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </Modal>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

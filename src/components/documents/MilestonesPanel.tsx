@@ -157,16 +157,23 @@ export const MilestonesPanel: React.FC<MilestonesPanelProps> = ({ internshipId }
                   <p className="text-[14px] font-semibold text-gray-900 dark:text-white truncate" title={m.title}>
                     {m.title}
                   </p>
-                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1 text-[11px] text-gray-500 dark:text-gray-400">
+                  <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-y-1 sm:gap-y-1 sm:gap-x-4 mt-1 text-[11px] text-gray-500 dark:text-gray-400">
                     <span className="inline-flex items-center gap-1">
-                      <Calendar className="h-3 w-3" />
+                      <Calendar className="h-3 w-3 flex-shrink-0" />
+                      <span className="font-semibold text-gray-700 dark:text-gray-300">Deadline:</span>
                       {format(deadline, "PPP 'at' p")}
                     </span>
-                    <span className="inline-flex items-center gap-1">
-                      <Clock className="h-3 w-3" />
-                      Presentation: {format(new Date(m.scheduledAt), "PPP")} · {m.timeSlot}
+                    <span className="inline-flex items-center gap-1 flex-wrap">
+                      <Clock className="h-3 w-3 flex-shrink-0" />
+                      <span className="font-semibold text-gray-700 dark:text-gray-300">Presentation:</span>
+                      {format(new Date(m.scheduledAt), "PPP")} · {m.timeSlot}
                     </span>
-                    {m.room && <span>Room {m.room}</span>}
+                    {m.room && (
+                      <span className="inline-flex items-center gap-1">
+                        <span className="font-semibold text-gray-700 dark:text-gray-300">Room:</span>
+                        {m.room.replace(/^room\s+/i, "")}
+                      </span>
+                    )}
                   </div>
                 </div>
                 <div className="flex-shrink-0">{renderStatusBadge(m)}</div>

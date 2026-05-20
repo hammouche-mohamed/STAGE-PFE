@@ -4,16 +4,23 @@ import { z } from "zod";
 import { MiniPresentationService } from "@/lib/services/miniPresentation.service";
 import prisma from "@/lib/prisma";
 
-const bulkScheduleSchema = z.object({
+/**
+ * Per-internship slots: each PFE team gets its own presentation time + room,
+ * while the document submission deadline is shared on the parent payload.
+ */
+const slotsScheduleSchema = z.object({
   title: z.string().min(2).max(200),
-  scheduledAt: z.string().datetime(),
-  room: z.string().min(1).max(120),
-  timeSlot: z.string().min(1).max(60),
   documentDeadline: z.string().datetime(),
-  /** Optional. Dept admins ignore this (their filière is implicit). Super
-   *  admins may pass it to scope a bulk milestone to one filière, or omit
-   *  it to schedule across every filière at once. */
-  filiereId: z.string().min(1).optional().nullable(),
+  slots: z
+    .array(
+      z.object({
+        internshipId: z.string().min(1),
+        scheduledAt: z.string().datetime(),
+        room: z.string().min(1).max(120),
+        timeSlot: z.string().min(1).max(60),
+      }),
+    )
+    .min(1),
 });
 
 export async function GET() {
@@ -58,10 +65,11 @@ export async function GET() {
 
 /**
  * Bulk-schedule a milestone across an entire filière's active PFE internships.
- * A milestone is a cohort-wide event, so one POST creates N MiniPresentation
- * rows (one per PFE internship). Dept admins are scoped to their own filière
- * automatically; super admins may pass an explicit `filiereId` (or omit it to
- * fan out across every filière at once).
+ * Each internship gets its own presentation time + room from the `slots`
+ * array; the document submission deadline is shared (one date for the whole
+ * cohort). Dept admin's filière scope is enforced by the GET endpoints that
+ * feed the form — the form can only list internships the admin can see, so
+ * the slots array is already filtered by the time it lands here.
  */
 export async function POST(req: NextRequest) {
   const session = await auth();
@@ -72,10 +80,8 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const parsed = bulkScheduleSchema.parse(body);
+    const parsed = slotsScheduleSchema.parse(body);
 
-    // Dept admin without a filière can't reach any PFE internships — block
-    // early so they don't get a confusing "no internships found" later.
     if (!session.user.isSuperAdmin && !session.user.filiereId) {
       return NextResponse.json(
         { error: "Your admin account has no filière assigned." },
@@ -83,20 +89,37 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Super admin may choose any filière (or all). Dept admin is locked to
-    // their own — we ignore the body's filiereId and substitute their own.
-    const effectiveFiliereId = session.user.isSuperAdmin
-      ? (parsed.filiereId ?? null)
-      : session.user.filiereId!;
+    // For dept admins, verify every slot's internship belongs to their filière.
+    // Server-side defence in depth: stops a tampered form from creating
+    // milestones on other filières' internships.
+    if (!session.user.isSuperAdmin) {
+      const allowed = await prisma.internship.findMany({
+        where: {
+          id: { in: parsed.slots.map((s) => s.internshipId) },
+          topic: { filiereId: session.user.filiereId! },
+        },
+        select: { id: true },
+      });
+      const allowedIds = new Set(allowed.map((i) => i.id));
+      const stray = parsed.slots.find((s) => !allowedIds.has(s.internshipId));
+      if (stray) {
+        return NextResponse.json(
+          { error: "One or more selected internships are outside your filière." },
+          { status: 403 },
+        );
+      }
+    }
 
-    const result = await MiniPresentationService.scheduleBulkForFiliere(
+    const result = await MiniPresentationService.scheduleBulkWithSlots(
       {
         title: parsed.title,
-        scheduledAt: new Date(parsed.scheduledAt),
         documentDeadline: new Date(parsed.documentDeadline),
-        room: parsed.room,
-        timeSlot: parsed.timeSlot,
-        filiereId: effectiveFiliereId,
+        slots: parsed.slots.map((s) => ({
+          internshipId: s.internshipId,
+          scheduledAt: new Date(s.scheduledAt),
+          room: s.room,
+          timeSlot: s.timeSlot,
+        })),
       },
       session.user.id,
     );
