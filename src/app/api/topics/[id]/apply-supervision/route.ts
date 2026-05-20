@@ -31,11 +31,18 @@ export async function POST(
       return NextResponse.json({ error: "Topic not found" }, { status: 404 });
     }
 
-    if (topic.assignedTeacherId) {
+    // A topic is "officially taken" only when an assigned teacher has accepted
+    // (status moves out of PENDING_TEACHER while the assignedTeacherId stays).
+    // While it sits in PENDING_TEACHER the supervisor isn't officially set,
+    // so other teachers can still apply via the marketplace.
+    const officiallyTaken =
+      !!topic.assignedTeacherId && topic.status !== "PENDING_TEACHER";
+    if (officiallyTaken) {
       return NextResponse.json({ error: "Topic already has a supervisor" }, { status: 400 });
     }
 
-    if (topic.status !== "APPROVED" && topic.status !== "OPEN_FOR_SELECTION") {
+    const marketplaceStatuses = ["APPROVED", "OPEN_FOR_SELECTION", "PENDING_TEACHER"] as const;
+    if (!marketplaceStatuses.includes(topic.status as any)) {
       return NextResponse.json({ error: "Topic is not available for supervision" }, { status: 400 });
     }
 

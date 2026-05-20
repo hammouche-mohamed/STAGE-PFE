@@ -43,6 +43,33 @@ export async function PATCH(
         data: { status: "OPEN_FOR_SELECTION" },
       });
 
+      // The topic stayed in the marketplace while it was PENDING_TEACHER, so
+      // other teachers may have applied in the meantime. Now that this teacher
+      // is officially the supervisor, close out every other PENDING
+      // application and notify those teachers their request was not selected.
+      const losers = await prisma.teacherApplication.findMany({
+        where: { topicId: id, status: "PENDING", NOT: { teacherId: session.user.id } },
+        select: { teacherId: true },
+      });
+      if (losers.length > 0) {
+        await prisma.teacherApplication.updateMany({
+          where: { topicId: id, status: "PENDING", NOT: { teacherId: session.user.id } },
+          data: { status: "REJECTED" },
+        });
+        await Promise.all(
+          losers.map((l) =>
+            NotificationService.trigger({
+              userId: l.teacherId,
+              type: "TEACHER_REJECTED",
+              title: "Supervision Request Closed",
+              message: `Another supervisor was confirmed for "${topic.title}". Your supervision request was not selected.`,
+              relatedId: topic.id,
+              relatedType: "Topic",
+            }).catch(() => null),
+          ),
+        );
+      }
+
       await NotificationService.trigger({
         userId: topic.proposedById,
         type: "TEACHER_ACCEPTED",

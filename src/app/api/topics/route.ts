@@ -273,20 +273,38 @@ export async function GET(req: NextRequest) {
       // application time instead (see /api/applications POST).
 
     } else if (session.user.role === 'TEACHER') {
+      // Marketplace: a topic stays here until a supervisor is officially
+      // assigned (i.e., the assigned teacher has accepted). So it shows when:
+      //   - status is APPROVED or OPEN_FOR_SELECTION with no supervisor, OR
+      //   - status is PENDING_TEACHER (admin picked someone, but they haven't
+      //     accepted yet — the topic is not officially taken).
+      // We constrain by department ONLY when the teacher actually has one. A
+      // teacher whose profile has no filiereId was previously matched against
+      // '__no_department__', which matches nothing — silently emptying their
+      // marketplace forever even after a decline/cancel that should re-expose
+      // the topic. Drop the constraint in that case so they at least see what
+      // exists; an admin can fix the profile later.
+      const marketAnd: any[] = [
+        {
+          OR: [
+            {
+              AND: [
+                { status: { in: ['APPROVED', 'OPEN_FOR_SELECTION'] } },
+                { assignedTeacherId: null },
+              ],
+            },
+            { status: 'PENDING_TEACHER' },
+          ],
+        },
+      ];
+      if (session.user.filiereId) {
+        marketAnd.push({ filiereId: session.user.filiereId });
+      }
+
       where.OR = [
         { assignedTeacherId: session.user.id },
         { teacherapplication: { some: { teacherId: session.user.id } } },
-        {
-          // Marketplace: any admin-cleared topic in the teacher's own
-          // department that still has no supervisor. Admin publishing sets
-          // the status to OPEN_FOR_SELECTION (students see it under that
-          // status), so APPROVED alone misses every published topic.
-          AND: [
-            { status: { in: ['APPROVED', 'OPEN_FOR_SELECTION'] } },
-            { assignedTeacherId: null },
-            { filiereId: session.user.filiereId ?? '__no_department__' },
-          ]
-        }
+        { AND: marketAnd },
       ];
       if (filiereFilter && filiereFilter !== 'ALL') {
         where.filiereId = filiereFilter;

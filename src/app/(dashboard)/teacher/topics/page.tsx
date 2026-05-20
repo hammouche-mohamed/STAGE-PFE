@@ -74,12 +74,20 @@ export default function TeacherTopicsPage() {
     const marketplace: Topic[] = [];
     for (const tp of topics) {
       const applied = (tp.teacherApplications?.length ?? 0) > 0;
+      // Topic is "officially taken" only when its assigned teacher has
+      // accepted. While it sits in PENDING_TEACHER the topic is still up for
+      // grabs in the marketplace.
+      const officiallyTaken =
+        !!tp.assignedTeacherId && tp.status !== "PENDING_TEACHER";
+
       if (tp.assignedTeacherId === myId) supervising.push(tp);
-      else if (applied && !tp.assignedTeacherId) requested.push(tp);
+      else if (applied && !officiallyTaken) requested.push(tp);
       else if (
-        !tp.assignedTeacherId &&
         !applied &&
-        (tp.status === "APPROVED" || tp.status === "OPEN_FOR_SELECTION")
+        !officiallyTaken &&
+        (tp.status === "APPROVED" ||
+          tp.status === "OPEN_FOR_SELECTION" ||
+          tp.status === "PENDING_TEACHER")
       )
         marketplace.push(tp);
     }
