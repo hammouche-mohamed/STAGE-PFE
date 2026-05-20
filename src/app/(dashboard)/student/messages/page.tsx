@@ -7,6 +7,7 @@ import { format } from "date-fns";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
+import { mutate as swrMutate } from "swr";
 import { useTranslation } from "@/lib/i18n/LanguageContext";
 
 interface Message {
@@ -125,6 +126,10 @@ function MessagesContent() {
         if (active) {
           setInternship(active);
           await fetchMessages(active.id);
+          // The first GET /api/messages flipped MessageRead rows on the
+          // server. Nudge SWR to refetch the sidebar counts so the Messages
+          // badge drops to zero now instead of after the next 30s poll.
+          swrMutate("/api/sidebar/counts");
         }
       } catch {
         toast.error(t("toast.loadInternshipFailed"));

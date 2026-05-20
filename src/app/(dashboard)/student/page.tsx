@@ -73,6 +73,11 @@ export default function StudentDashboard() {
   const [recentMessages, setRecentMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [viewUserId, setViewUserId] = useState<string | null>(null);
+  // Total documents for the active internship, sourced from /api/documents
+  // which already merges milestone submissions into the count. The
+  // `_count.documents` on the internship payload only sees real Document
+  // rows, missing milestone uploads — hence the separate fetch.
+  const [docCount, setDocCount] = useState<number | null>(null);
 
   useEffect(() => {
     const load = async () => {
@@ -83,7 +88,14 @@ export default function StudentDashboard() {
           const active = (data.data as Internship[] || []).find(
             (i) => !["CANCELLED", "COMPLETED"].includes(i.status)
           );
-          if (active) setInternship(active);
+          if (active) {
+            setInternship(active);
+            // Fan-out: real + milestone documents in one merged total.
+            fetch(`/api/documents?internshipId=${active.id}`)
+              .then((r) => r.json())
+              .then((d) => setDocCount((d.data ?? []).length))
+              .catch(() => setDocCount(active._count?.documents ?? 0));
+          }
         }
 
         const msgRes = await fetch("/api/messages/recent");
@@ -170,7 +182,7 @@ export default function StudentDashboard() {
           <p className="text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2">{t("common.documents")}</p>
           {internship ? (
             <>
-              <p className="text-[20px] font-bold text-gray-900 dark:text-white">{internship._count.documents} {t("dashboard.uploaded")}</p>
+              <p className="text-[20px] font-bold text-gray-900 dark:text-white">{docCount ?? internship._count.documents} {t("dashboard.uploaded")}</p>
               <Link href="/student/documents" className="text-[12px] text-indigo-600 dark:text-indigo-400 font-medium hover:underline mt-1 block">
                 {t("documents.upload")} →
               </Link>

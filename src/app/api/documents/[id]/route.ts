@@ -27,6 +27,69 @@ export async function PATCH(
       );
     }
 
+    // Milestone documents are synthesized rows ("milestone-<uuid>") that live
+    // on MiniPresentation, not Document. Route them to their own update path
+    // so the supervisor's approve/reject lands on the right table. Only the
+    // academic supervisor reviews milestones — admins and companies are not
+    // in the loop here.
+    if (id.startsWith("milestone-")) {
+      const milestoneId = id.slice("milestone-".length);
+      const milestone = await prisma.miniPresentation.findUnique({
+        where: { id: milestoneId },
+        include: {
+          internship: {
+            select: {
+              teacherId: true,
+              internshipstudent: { select: { studentId: true } },
+            },
+          },
+        },
+      });
+      if (!milestone) {
+        return NextResponse.json({ error: "Milestone not found" }, { status: 404 });
+      }
+      if (milestone.internship.teacherId !== session.user.id) {
+        return NextResponse.json(
+          { error: "Only the academic supervisor can review milestone documents." },
+          { status: 403 },
+        );
+      }
+
+      const newStatus = status === "APPROVED" ? "REVIEWED" : "DOCUMENT_SUBMITTED";
+      const updated = await prisma.miniPresentation.update({
+        where: { id: milestoneId },
+        data: {
+          status: newStatus,
+          adminComment: reviewComment ?? null,
+        },
+      });
+
+      // Tell the student(s) so they know it was reviewed.
+      await Promise.all(
+        milestone.internship.internshipstudent.map((s) =>
+          NotificationService.trigger({
+            userId: s.studentId,
+            type: status === "APPROVED" ? "DOCUMENT_APPROVED" : "DOCUMENT_REJECTED",
+            title: status === "APPROVED" ? "Milestone Document Approved" : "Milestone Document Needs Revision",
+            message: `${session.user.name} ${status === "APPROVED" ? "approved" : "rejected"} your milestone "${milestone.title}".${reviewComment ? ` Comment: ${reviewComment}` : ""}`,
+            relatedId: milestoneId,
+            relatedType: "MiniPresentation",
+            link: "/student/documents",
+          }).catch(() => null),
+        ),
+      );
+
+      await AuditService.log({
+        userId: session.user.id,
+        action: status === "APPROVED" ? "MILESTONE_APPROVED" : "MILESTONE_REJECTED",
+        targetType: "MiniPresentation",
+        targetId: milestoneId,
+        details: { comment: reviewComment },
+      }).catch(() => null);
+
+      return NextResponse.json({ data: updated });
+    }
+
     const document = await prisma.document.findUnique({
       where: { id },
       include: {

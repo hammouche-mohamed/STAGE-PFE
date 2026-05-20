@@ -72,10 +72,22 @@ export async function GET(req: NextRequest) {
       counts["/admin/topics"] = topicCount + acceptedAppCount;
       counts["/admin/internships"] = internCount;
     } else if (role === "TEACHER") {
-      const [internCount, docCount, msgCount] = await Promise.all([
+      // The Documents badge surfaces everything awaiting the supervisor's
+      // approval: real Document rows that are still UPLOADED, PLUS milestone
+      // submissions that haven't been reviewed yet (status DOCUMENT_SUBMITTED).
+      // The supervisor is the only one who reviews milestones, so they need
+      // to see both streams in the same number.
+      const [internCount, docCount, milestoneToReview, msgCount] = await Promise.all([
         prisma.internship.count({ where: { teacherId: userId, status: "REQUESTED" } }),
         prisma.document.count({
           where: { internship: { teacherId: userId }, status: "UPLOADED" },
+        }),
+        prisma.miniPresentation.count({
+          where: {
+            internship: { teacherId: userId },
+            status: "DOCUMENT_SUBMITTED",
+            documentUrl: { not: null },
+          } as any,
         }),
         prisma.message.count({
           where: {
@@ -86,7 +98,7 @@ export async function GET(req: NextRequest) {
         })
       ]);
       counts["/teacher/internships"] = internCount;
-      counts["/teacher/documents"] = docCount;
+      counts["/teacher/documents"] = docCount + milestoneToReview;
       counts["/teacher/messages"] = msgCount;
     } else if (role === "COMPANY") {
       const [appCount, msgCount, docCount] = await Promise.all([

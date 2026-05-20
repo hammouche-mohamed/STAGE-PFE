@@ -406,11 +406,11 @@ export default function AdminInternshipDetailPage() {
                           {documents.length} Files
                        </span>
                     </h2>
-                    <DocumentList
-                       documents={documents}
-                       canReview={true}
-                       onReview={handleReview}
-                    />
+                    {/* Admin watches the document list (view + download)
+                        but doesn't approve/reject — that's the supervisor's
+                        responsibility. Final-report admin confirmation
+                        happens through a dedicated panel below, not here. */}
+                    <DocumentList documents={documents} canReview={false} />
                  </div>
                )}
             </div>
