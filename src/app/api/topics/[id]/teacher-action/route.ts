@@ -93,13 +93,17 @@ export async function PATCH(
         },
       });
 
-      // Clear EVERY teacher application for this topic — the declining
-      // teacher's own row + any rows the admin auto-rejected when picking
-      // this teacher. Without this, those other teachers can't re-apply
-      // (the unique (teacherId, topicId) row blocks the POST), and the
-      // topic effectively stays out of their marketplace.
+      // Mark the declining teacher's own application as REJECTED so the
+      // record remains for audit purposes. Other teachers' applications
+      // (the queue of interest) stay untouched so the admin can pick from
+      // them. Stale REJECTED rows are no longer a re-application blocker —
+      // apply-supervision POST repurposes a REJECTED row back to PENDING
+      // when the same teacher wants another chance.
       await prisma.teacherApplication
-        .deleteMany({ where: { topicId: id } })
+        .updateMany({
+          where: { topicId: id, teacherId: session.user.id },
+          data: { status: "REJECTED" },
+        })
         .catch(() => null);
 
       await NotificationService.trigger({

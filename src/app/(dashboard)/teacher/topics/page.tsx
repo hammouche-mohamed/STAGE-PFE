@@ -190,9 +190,15 @@ export default function TeacherTopicsPage() {
 
   const canApply =
     !!viewTopic &&
-    !viewTopic.assignedTeacherId &&
-    (viewTopic.teacherApplications?.length ?? 0) === 0 &&
-    (viewTopic.status === "APPROVED" || viewTopic.status === "OPEN_FOR_SELECTION");
+    viewTopic.assignedTeacherId !== myId &&
+    !(viewTopic.teacherApplications ?? []).some(
+      (a) => a.status === "PENDING" || a.status === "ACCEPTED",
+    ) &&
+    (viewTopic.status === "APPROVED" ||
+      viewTopic.status === "OPEN_FOR_SELECTION" ||
+      // Another teacher is being asked; queue an application so the admin
+      // can pick this teacher if the first one declines.
+      viewTopic.status === "PENDING_TEACHER");
 
   // Teacher has a still-pending request the admin hasn't acted on yet.
   const canCancelRequest =

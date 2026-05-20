@@ -77,6 +77,19 @@ export async function POST(
     });
 
     if (existingApp) {
+      // A leftover REJECTED row (from when the admin previously picked someone
+      // else) would otherwise block the teacher from ever re-applying — the
+      // (teacherId, topicId) pair is unique. Repurpose that row instead.
+      if (existingApp.status === "REJECTED") {
+        const reused = await prisma.teacherApplication.update({
+          where: { id: existingApp.id },
+          data: { status: "PENDING", appliedAt: new Date() },
+        });
+        return NextResponse.json({
+          message: "Application re-submitted successfully",
+          data: reused,
+        });
+      }
       return NextResponse.json({ error: "You have already applied to supervise this topic" }, { status: 400 });
     }
 
