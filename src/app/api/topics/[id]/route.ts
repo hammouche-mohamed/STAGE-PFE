@@ -212,12 +212,27 @@ export async function PATCH(
       }
     }
 
-    // A teacher only becomes the supervisor once THEY accept the assignment.
-    // Whenever the admin (re)assigns a teacher we hold the topic in
-    // PENDING_TEACHER — overriding any OPEN_FOR_SELECTION submitted in the
-    // same call — until the teacher confirms via /teacher-action.
+    // A teacher only becomes the supervisor once THEY accept the assignment,
+    // EXCEPT when the teacher already self-applied through the marketplace —
+    // their application IS their acceptance, so the admin picking them is a
+    // direct confirmation. Skip the PENDING_TEACHER detour in that case.
     const assigningNewTeacher = !!teacherId && teacherId !== topic.assignedTeacherId;
-    const effectiveStatus = assigningNewTeacher ? "PENDING_TEACHER" : status;
+    let teacherSelfApplied = false;
+    if (assigningNewTeacher) {
+      const existingApp = await prisma.teacherApplication.findFirst({
+        where: {
+          topicId: id,
+          teacherId,
+          status: { in: ["PENDING", "ACCEPTED"] },
+        },
+        select: { id: true },
+      });
+      teacherSelfApplied = !!existingApp;
+    }
+    const effectiveStatus =
+      assigningNewTeacher && !teacherSelfApplied
+        ? "PENDING_TEACHER"
+        : status;
 
     // Hard rule: an admin cannot manually publish a topic while its assigned
     // supervisor still has a pending acceptance. They must either wait for the
@@ -299,13 +314,26 @@ export async function PATCH(
     }
 
     if (teacherId && teacherId !== topic.assignedTeacherId) {
+      // Two distinct cases:
+      //  - Teacher self-applied via marketplace → admin picking them IS the
+      //    confirmation; no extra accept step. Notify as "You're the
+      //    supervisor".
+      //  - Admin picked a teacher who did NOT apply → ask them to accept or
+      //    decline.
       await NotificationService.trigger({
         userId: teacherId,
-        type: "TEACHER_ASSIGNED",
-        title: "New Supervision Request",
-        message: `You have been assigned to supervise: "${topic.title}". Please review and accept or decline.`,
+        type: teacherSelfApplied ? "TEACHER_ACCEPTED" : "TEACHER_ASSIGNED",
+        title: teacherSelfApplied
+          ? "Supervision Confirmed"
+          : "New Supervision Request",
+        message: teacherSelfApplied
+          ? `Your supervision request for "${topic.title}" was accepted. You are now the supervisor — the topic is open for student selection.`
+          : `You have been assigned to supervise: "${topic.title}". Please review and accept or decline.`,
         relatedId: topic.id,
         relatedType: "Topic",
+        link: teacherSelfApplied
+          ? `/teacher/internships`
+          : `/teacher/topics`,
       });
     }
 
