@@ -2,7 +2,6 @@
 
 import React, { useEffect, useState, useCallback, Suspense } from "react";
 import { DocumentList } from "@/components/documents/DocumentList";
-import { UploadDocumentSection } from "@/components/documents/UploadDocumentSection";
 import { MilestonesPanel } from "@/components/documents/MilestonesPanel";
 import { toast } from "sonner";
 import { Info, ChevronLeft, Trash2 } from "lucide-react";
@@ -104,43 +103,31 @@ function DocumentsContent() {
           <p className="text-[12px] text-amber-600 dark:text-amber-400/80 mt-1">{t("internship.noInternship")}</p>
         </div>
       ) : (
-        <>
-          <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 items-start">
-            <div className="xl:col-span-2 space-y-6">
-              <DocumentList
-                documents={documents}
-                canReview={false}
-                onDelete={(id) => setDeleteId(id)}
-              />
-            </div>
-
-            <div className="space-y-6">
-              {internshipId && (
-                <UploadDocumentSection
-                  internshipId={internshipId}
-                  onUploadSuccess={fetchInternshipAndDocs}
-                />
-              )}
-
-              <div className="p-5 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-900/30 rounded-md">
-                <h3 className="text-[13px] font-semibold text-indigo-900 dark:text-indigo-400 uppercase tracking-widest mb-3">{t("documents.guidelines")}</h3>
-                <ul className="text-[12px] text-indigo-700 dark:text-indigo-300 list-disc list-inside space-y-2">
-                  <li>{t("documents.guideline1")}</li>
-                  <li>{t("documents.guideline2")}</li>
-                  <li>{t("documents.guideline3")}</li>
-                  <li>{t("documents.guideline4")}</li>
-                </ul>
-              </div>
-            </div>
-          </div>
+        <div className="space-y-6">
+          <DocumentList
+            documents={documents}
+            canReview={false}
+            onDelete={(id) => setDeleteId(id)}
+          />
 
           {/* Deadlines / milestones panel — PFE-only since NORMAL internships
-              don't run mini-presentations. Renders below the documents grid
-              so the existing layout above is untouched. */}
+              don't run mini-presentations. Submission happens from the
+              per-milestone "Upload document" button below, so the generic
+              UploadDocumentSection is gone. */}
           {internshipId && isPfe && (
             <MilestonesPanel internshipId={internshipId} />
           )}
-        </>
+
+          <div className="p-5 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-900/30 rounded-md">
+            <h3 className="text-[13px] font-semibold text-indigo-900 dark:text-indigo-400 uppercase tracking-widest mb-3">{t("documents.guidelines")}</h3>
+            <ul className="text-[12px] text-indigo-700 dark:text-indigo-300 list-disc list-inside space-y-2">
+              <li>{t("documents.guideline1")}</li>
+              <li>{t("documents.guideline2")}</li>
+              <li>{t("documents.guideline3")}</li>
+              <li>{t("documents.guideline4")}</li>
+            </ul>
+          </div>
+        </div>
       )}
 
       <ConfirmDialog

@@ -45,6 +45,17 @@ interface Document {
   version: number;
 }
 
+interface Milestone {
+  id: string;
+  internshipId: string;
+  title: string;
+  scheduledAt: string;
+  documentDeadline: string;
+  status: "SCHEDULED" | "DOCUMENT_SUBMITTED" | "MISSED" | "REVIEWED" | "HELD" | "POSTPONED" | "CANCELLED";
+  documentUrl: string | null;
+  submittedAt: string | null;
+}
+
 type ReportStatus = "SUBMITTED" | "SUBMITTED_LATE" | "MISSING_OVERDUE" | "PENDING" | "NOT_REQUIRED";
 
 function getReportStatus(deadline: string | null | undefined, docs: Document[], type: string): ReportStatus {
@@ -56,6 +67,71 @@ function getReportStatus(deadline: string | null | undefined, docs: Document[], 
     return submittedDate <= dl ? "SUBMITTED" : "SUBMITTED_LATE";
   }
   return isPast(dl) ? "MISSING_OVERDUE" : "PENDING";
+}
+
+function MilestoneRow({ milestone, uploadLink, labels }: {
+  milestone: Milestone;
+  uploadLink: string;
+  labels: {
+    submittedOnTime: string;
+    submittedLate: string;
+    missingOverdue: string;
+    daysRemaining: string;
+    daysRemainingPlural: string;
+    upcoming: string;
+    upload: string;
+  };
+}) {
+  if (milestone.status === "CANCELLED" || milestone.status === "POSTPONED") return null;
+
+  const deadline = new Date(milestone.documentDeadline);
+  const deadlinePast = isPast(deadline);
+  const daysLeft = deadlinePast ? null : differenceInDays(deadline, new Date());
+  const submitted = milestone.status === "DOCUMENT_SUBMITTED" || milestone.status === "REVIEWED" || milestone.status === "HELD";
+  const missed = milestone.status === "MISSED";
+
+  const config = submitted
+    ? { icon: <CheckCircle2 className="h-5 w-5 text-green-600" />, badge: "bg-green-50 text-green-700 border-green-200", text: labels.submittedOnTime, border: "border-green-200" }
+    : missed
+      ? { icon: <XCircle className="h-5 w-5 text-red-600" />, badge: "bg-red-50 text-red-700 border-red-200", text: labels.missingOverdue, border: "border-red-300" }
+      : {
+          icon: <Clock className="h-5 w-5 text-indigo-500" />,
+          badge: "bg-indigo-50 text-indigo-700 border-indigo-200",
+          text: daysLeft != null
+            ? (daysLeft === 1 ? labels.daysRemaining.replace("{days}", "1") : labels.daysRemainingPlural.replace("{days}", String(daysLeft)))
+            : labels.upcoming,
+          border: "border-indigo-200",
+        };
+
+  // Upload is allowed only while the milestone is still open: SCHEDULED and
+  // deadline not yet passed. Once MISSED (cron flipped it) submissions are
+  // closed — match the lock enforced in the backend.
+  const canUpload = milestone.status === "SCHEDULED" && !deadlinePast;
+
+  return (
+    <div className={`flex items-center justify-between p-4 rounded-lg border ${config.border} bg-white dark:bg-slate-900`}>
+      <div className="report-row-inner flex items-center gap-3 flex-1">
+        {config.icon}
+        <div>
+          <p className="text-[13px] font-bold text-gray-900 dark:text-white">{milestone.title}</p>
+          <p className="text-[11px] text-gray-500 dark:text-gray-400">{format(deadline, "PPP 'at' p")}</p>
+          <span className={`inline-block mt-1 text-[10px] font-bold px-2 py-0.5 rounded-full border ${config.badge}`}>
+            {config.text}
+          </span>
+        </div>
+      </div>
+      {canUpload && (
+        <Link
+          href={uploadLink}
+          className="report-upload-btn flex items-center gap-1.5 text-[12px] font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800 px-3 py-1.5 rounded-lg transition-colors"
+        >
+          <Upload className="h-3.5 w-3.5" />
+          {labels.upload}
+          <ChevronRight className="h-3 w-3" />
+        </Link>
+      )}
+    </div>
+  );
 }
 
 function ReportRow({ label, deadline, status, uploadLink, daysLeft, labels }: {
@@ -123,6 +199,7 @@ export default function StudentInternshipPage() {
   const { t } = useTranslation();
   const [internship, setInternship] = useState<Internship | null>(null);
   const [documents, setDocuments] = useState<Document[]>([]);
+  const [milestones, setMilestones] = useState<Milestone[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchData = useCallback(async () => {
@@ -133,9 +210,16 @@ export default function StudentInternshipPage() {
       setInternship(active);
 
       if (active) {
-        const docRes = await fetch(`/api/documents?internshipId=${active.id}`);
+        const [docRes, milestoneRes] = await Promise.all([
+          fetch(`/api/documents?internshipId=${active.id}`),
+          fetch(`/api/mini-presentations`),
+        ]);
         const docData = await docRes.json();
         setDocuments(docData.data || []);
+        const milestoneData = await milestoneRes.json();
+        setMilestones(
+          (milestoneData.data || []).filter((m: Milestone) => m.internshipId === active.id),
+        );
       }
     } catch {
       toast.error(t("toast.loadInternshipFailed"));
@@ -299,6 +383,22 @@ export default function StudentInternshipPage() {
                   daysLeft={finalDaysLeft}
                   labels={panelLabels}
                 />
+                {/* PFE milestones (mini-presentations) share the same list as
+                    the mid-term and final reports so the student sees every
+                    deadline they're on the hook for in one place. Upload
+                    button links to /student/documents where the per-milestone
+                    file picker lives. */}
+                {isPFE && milestones
+                  .filter((m) => m.status !== "CANCELLED" && m.status !== "POSTPONED")
+                  .sort((a, b) => new Date(a.documentDeadline).getTime() - new Date(b.documentDeadline).getTime())
+                  .map((m) => (
+                    <MilestoneRow
+                      key={m.id}
+                      milestone={m}
+                      uploadLink={uploadUrl}
+                      labels={panelLabels}
+                    />
+                  ))}
                 <div className="pt-3 border-t border-gray-100 dark:border-slate-800 flex items-center gap-4 text-[12px] text-gray-500 dark:text-gray-400">
                   <span className="flex items-center gap-1">
                     <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />

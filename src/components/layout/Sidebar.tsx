@@ -103,7 +103,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ role: initialRole, logoUrl }) 
             { label: "My Team", icon: Users, href: "/student/team", active: pathname.startsWith("/student/team") },
             { label: t("common.topics"), icon: Briefcase, href: "/student/topics", active: pathname.startsWith("/student/topics") },
             { label: t("common.internship"), icon: ShieldCheck, href: "/student/internship", active: pathname.startsWith("/student/internship") },
-            { label: t("common.documents"), icon: FileText, href: "/student/documents", active: pathname.startsWith("/student/documents") },
+            { label: t("common.documentsAndMilestones", { defaultValue: "Documents & Milestones" }), icon: FileText, href: "/student/documents", active: pathname.startsWith("/student/documents") },
             { label: t("common.messages"), icon: MessageSquare, href: "/student/messages", active: pathname.startsWith("/student/messages") },
             { label: t("common.invitations"), icon: UserIcon, href: "/student/invitations", active: pathname.startsWith("/student/invitations") },
             { label: t("nav.archives"), icon: Archive, href: "/student/archives", active: pathname.startsWith("/student/archives") },

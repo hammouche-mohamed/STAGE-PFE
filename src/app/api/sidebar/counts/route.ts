@@ -115,7 +115,11 @@ export async function GET(req: NextRequest) {
       counts["/company/messages"] = msgCount;
       counts["/company/internships"] = docCount;
     } else if (role === "STUDENT") {
-      const [invitCount, msgCount] = await Promise.all([
+      // The "Documents & Milestones" sidebar badge surfaces every pending
+      // submission the student still owes — mid-term report, final report,
+      // and any open PFE milestone. We compute all three in parallel and
+      // sum them so the number matches what the student sees on the page.
+      const [invitCount, msgCount, milestoneCount, activeInternship] = await Promise.all([
         // The student Invitations page lists TeamInvitation rows (via
         // /api/teams/invitations) — count the SAME table so the badge
         // matches what the student actually sees.
@@ -131,10 +135,47 @@ export async function GET(req: NextRequest) {
             senderId: { not: userId },
             messageread: { none: { userId } },
           } as any,
-        })
+        }),
+        // Milestones the student still has to act on: SCHEDULED, no upload.
+        // Drops to zero on submit (or once the cron flips a missed one to
+        // MISSED), so the badge always reflects "things I still need to do".
+        prisma.miniPresentation.count({
+          where: {
+            status: "SCHEDULED",
+            documentUrl: null,
+            internship: {
+              internshipstudent: { some: { studentId: userId } },
+              status: { notIn: ["COMPLETED", "CANCELLED"] },
+            },
+          } as any,
+        }),
+        // Fetch the active internship + its uploaded documents so we can
+        // compute "owes mid-term" and "owes final" with one round trip.
+        prisma.internship.findFirst({
+          where: {
+            internshipstudent: { some: { studentId: userId } },
+            status: { notIn: ["COMPLETED", "CANCELLED"] },
+          },
+          select: {
+            midtermDeadline: true,
+            finalDeadline: true,
+            document: { select: { type: true } },
+          } as any,
+        }),
       ]);
+
+      let reportCount = 0;
+      if (activeInternship) {
+        const docs = (activeInternship as any).document as { type: string }[];
+        const hasMid = docs.some((d) => d.type === "MID_REPORT");
+        const hasFinal = docs.some((d) => d.type === "FINAL_REPORT");
+        if ((activeInternship as any).midtermDeadline && !hasMid) reportCount++;
+        if ((activeInternship as any).finalDeadline && !hasFinal) reportCount++;
+      }
+
       counts["/student/invitations"] = invitCount;
       counts["/student/messages"] = msgCount;
+      counts["/student/documents"] = milestoneCount + reportCount;
     }
 
     if (session.user.mustChangePassword) {
