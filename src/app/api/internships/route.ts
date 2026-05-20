@@ -361,27 +361,37 @@ export async function POST(req: NextRequest) {
       }).catch(() => null);
     }
 
-    if (!session.user.isSuperAdmin) {
-      const superAdmins = await prisma.user.findMany({
-        where: { adminprofile: { isSuperAdmin: true } },
-        select: { id: true }
-      } as any);
+    // Notify every relevant admin (super admins + the topic's department admin)
+    // about the new internship — in-app + email. Excludes the creator so they
+    // don't get pinged about their own action. Uses NotificationService.trigger
+    // (not createMany) because createMany skips the email path entirely.
+    const adminsToNotify = await prisma.user.findMany({
+      where: {
+        role: 'ADMIN',
+        id: { not: session.user.id },
+        adminprofile: {
+          OR: [
+            { isSuperAdmin: true },
+            ...(topic?.filiereId ? [{ filiereId: topic.filiereId }] : []),
+          ],
+        },
+      },
+      select: { id: true },
+    } as any);
 
-      if (superAdmins.length > 0) {
-        await prisma.notification.createMany({
-          data: superAdmins.map(sa => ({
-            id: randomUUID(),
-            userId: sa.id,
-            type: "INTERNSHIP_STARTED",
-            title: "New Team Created by Department Admin",
-            message: `Admin ${session.user.name} has created a new internship team for topic ID: ${topicId}.`,
-            relatedId: internship.id,
-            relatedType: "Internship",
-            link: `/admin/internships`
-          }))
-        });
-      }
-    }
+    await Promise.all(
+      adminsToNotify.map((a: { id: string }) =>
+        NotificationService.trigger({
+          userId: a.id,
+          type: 'INTERNSHIP_STARTED',
+          title: 'New Internship Started',
+          message: `${session.user.name} has created a new internship team for "${topicTitle}". The supervisor, students${topic?.proposedById && !topic.proposedByStudent ? ', and host company' : ''} can now coordinate via the messages hub.`,
+          relatedId: internship.id,
+          relatedType: 'Internship',
+          link: '/admin/internships',
+        }).catch(() => null),
+      ),
+    );
 
     await AuditService.log({
       userId: session.user.id,

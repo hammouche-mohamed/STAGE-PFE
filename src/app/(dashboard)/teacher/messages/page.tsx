@@ -36,7 +36,7 @@ function TeacherMessagesContent() {
       const res = await fetch("/api/internships");
       const data = await res.json();
       const active = (data.data || []).filter(
-        (i: any) => !["CANCELLED", "REQUESTED"].includes(i.status)
+        (i: any) => i.status !== "CANCELLED"
       );
       setInternships(active);
       if (active.length > 0 && !selectedId) {
