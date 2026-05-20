@@ -258,6 +258,13 @@ model MiniPresentation {
   documentUrl      String?
   documentName     String?
   submittedAt      DateTime?
+  /// Idempotency markers for the 24h/4h/1h pre-deadline reminder emails.
+  /// Set once when the reminder fires so the cron doesn't double-send.
+  remindedAt24h    DateTime?
+  remindedAt4h     DateTime?
+  remindedAt1h     DateTime?
+  /// Set once when the cron has notified the admin about a missed deadline.
+  missedNotifiedAt DateTime?
   adminComment     String?
   createdAt        DateTime                @default(now())
   internship       Internship              @relation(fields: [internshipId], references: [id], onDelete: Cascade)
@@ -732,6 +739,7 @@ enum registrationrequest_status {
 enum minipresentation_status {
   SCHEDULED
   DOCUMENT_SUBMITTED
+  MISSED
   REVIEWED
   HELD
   POSTPONED

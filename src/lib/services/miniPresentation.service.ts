@@ -51,6 +51,13 @@ export class MiniPresentationService {
     });
     if (!internship) throw new Error("Internship not found");
 
+    // Milestones are a PFE-only ceremony. NORMAL internships don't run
+    // intermediate presentations, so blocking creation here keeps the admin
+    // from accidentally scheduling one for the wrong cohort.
+    if (internship.internshipType !== "PFE") {
+      throw new Error("Milestones can only be scheduled for PFE internships.");
+    }
+
     if (data.scheduledAt.getTime() < Date.now()) {
       throw new Error("Scheduled date must be in the future");
     }
@@ -193,5 +200,234 @@ export class MiniPresentationService {
       targetType: "MiniPresentation",
       targetId: id,
     }).catch((err) => console.error("[mini-presentation] audit failed:", err));
+  }
+
+  /**
+   * Student attaches a document to a milestone. Hard rule: once the deadline
+   * has passed the milestone is locked — the cron flips it to MISSED and no
+   * further uploads are accepted. This keeps the deadline meaningful and
+   * prevents "submit it anyway, mark it late" workarounds.
+   */
+  static async submit(
+    id: string,
+    file: { url: string; name: string },
+    actorId: string,
+  ) {
+    const milestone = await prisma.miniPresentation.findUnique({
+      where: { id },
+      include: {
+        internship: {
+          select: {
+            teacherId: true,
+            topic: { select: { title: true } },
+            internshipstudent: { select: { studentId: true } },
+          },
+        },
+      },
+    });
+    if (!milestone) throw new Error("Milestone not found");
+
+    const isStudentOnTeam = milestone.internship.internshipstudent.some(
+      (s) => s.studentId === actorId,
+    );
+    if (!isStudentOnTeam) throw new Error("You are not part of this internship");
+
+    if (milestone.status === "CANCELLED") {
+      throw new Error("This milestone has been cancelled");
+    }
+    if (milestone.status === "MISSED") {
+      throw new Error("The deadline for this milestone has passed — submissions are closed.");
+    }
+    if (Date.now() > milestone.documentDeadline.getTime()) {
+      // Defence in depth: the cron usually flips status to MISSED, but there
+      // can be up to ~15 min of lag before it runs. Block here too.
+      throw new Error("The deadline for this milestone has passed — submissions are closed.");
+    }
+
+    const now = new Date();
+    const updated = await prisma.miniPresentation.update({
+      where: { id },
+      data: {
+        documentUrl: file.url,
+        documentName: file.name,
+        submittedAt: now,
+        status: "DOCUMENT_SUBMITTED",
+      },
+    });
+
+    await AuditService.log({
+      userId: actorId,
+      action: "MILESTONE_SUBMITTED",
+      targetType: "MiniPresentation",
+      targetId: id,
+      details: { fileName: file.name, deadline: milestone.documentDeadline.toISOString() },
+    }).catch((err) => console.error("[mini-presentation] audit failed:", err));
+
+    await NotificationService.trigger({
+      userId: milestone.internship.teacherId,
+      type: "DOCUMENT_UPLOADED",
+      title: "Milestone Document Submitted",
+      message: `A document was submitted for milestone "${milestone.title}" on "${milestone.internship.topic.title}".`,
+      relatedId: id,
+      relatedType: "MiniPresentation",
+      link: "/teacher/internships",
+    }).catch(() => null);
+
+    return updated;
+  }
+
+  /**
+   * Cron entry point. Walks every active PFE milestone and:
+   *  - fires the 24h / 4h / 1h pre-deadline reminders (once each, idempotent
+   *    via `remindedAt24h/4h/1h` columns)
+   *  - flips missed milestones (deadline passed, no upload) to LATE_SUBMITTED
+   *    and pings the department admin once.
+   * Safe to call as often as the cron runs; each branch is guarded by a
+   * "have we done this already" timestamp.
+   */
+  static async runDeadlineSweep() {
+    const now = new Date();
+    const upcoming = await prisma.miniPresentation.findMany({
+      where: {
+        status: "SCHEDULED",
+        documentDeadline: { gt: new Date(now.getTime() - 60 * 60 * 1000) },
+      },
+      include: {
+        internship: {
+          select: {
+            teacherId: true,
+            topic: { select: { title: true, filiereId: true } },
+            internshipstudent: { select: { studentId: true } },
+          },
+        },
+      },
+    });
+
+    const sent = { r24: 0, r4: 0, r1: 0, missed: 0 };
+
+    for (const m of upcoming) {
+      const minsToDeadline = (m.documentDeadline.getTime() - now.getTime()) / 60000;
+      const recipients = [
+        ...m.internship.internshipstudent.map((s) => s.studentId),
+        m.internship.teacherId,
+      ];
+
+      // 24h ± 30 min
+      if (!m.remindedAt24h && minsToDeadline > 23 * 60 - 30 && minsToDeadline <= 25 * 60) {
+        await Promise.all(
+          recipients.map((uid) =>
+            NotificationService.trigger({
+              userId: uid,
+              type: "MINI_PRESENTATION_REMINDER",
+              title: "Milestone Deadline in 24h",
+              message: `The document deadline for "${m.title}" (${m.internship.topic.title}) is in about 24 hours (${m.documentDeadline.toLocaleString()}).`,
+              relatedId: m.id,
+              relatedType: "MiniPresentation",
+              link: "/student/documents",
+            }).catch(() => null),
+          ),
+        );
+        await prisma.miniPresentation.update({ where: { id: m.id }, data: { remindedAt24h: now } });
+        sent.r24++;
+      }
+
+      // 4h ± 30 min
+      if (!m.remindedAt4h && minsToDeadline > 4 * 60 - 30 && minsToDeadline <= 4 * 60 + 30) {
+        await Promise.all(
+          recipients.map((uid) =>
+            NotificationService.trigger({
+              userId: uid,
+              type: "MINI_PRESENTATION_REMINDER",
+              title: "Milestone Deadline in 4h",
+              message: `Only 4 hours left to submit "${m.title}" (${m.internship.topic.title}). Deadline: ${m.documentDeadline.toLocaleString()}.`,
+              relatedId: m.id,
+              relatedType: "MiniPresentation",
+              link: "/student/documents",
+            }).catch(() => null),
+          ),
+        );
+        await prisma.miniPresentation.update({ where: { id: m.id }, data: { remindedAt4h: now } });
+        sent.r4++;
+      }
+
+      // 1h ± 30 min
+      if (!m.remindedAt1h && minsToDeadline > 30 && minsToDeadline <= 90) {
+        await Promise.all(
+          recipients.map((uid) =>
+            NotificationService.trigger({
+              userId: uid,
+              type: "MINI_PRESENTATION_REMINDER",
+              title: "Milestone Deadline in 1h",
+              message: `Last hour to submit "${m.title}" (${m.internship.topic.title}). Deadline: ${m.documentDeadline.toLocaleString()}.`,
+              relatedId: m.id,
+              relatedType: "MiniPresentation",
+              link: "/student/documents",
+            }).catch(() => null),
+          ),
+        );
+        await prisma.miniPresentation.update({ where: { id: m.id }, data: { remindedAt1h: now } });
+        sent.r1++;
+      }
+
+      // Deadline passed with no upload → flip to MISSED (terminal) and ping
+      // the admin. Submissions are closed; the student can't recover the
+      // milestone once it's flipped.
+      if (
+        minsToDeadline <= 0 &&
+        !m.documentUrl &&
+        !m.missedNotifiedAt &&
+        m.status === "SCHEDULED"
+      ) {
+        await prisma.miniPresentation.update({
+          where: { id: m.id },
+          data: {
+            status: "MISSED",
+            missedNotifiedAt: now,
+          },
+        });
+
+        const admins = await prisma.user.findMany({
+          where: {
+            role: "ADMIN",
+            OR: [
+              { adminprofile: { isSuperAdmin: true } },
+              ...(m.internship.topic.filiereId
+                ? [{ adminprofile: { filiereId: m.internship.topic.filiereId } }]
+                : []),
+            ],
+          } as any,
+          select: { id: true },
+        });
+        await Promise.all(
+          admins.map((a: { id: string }) =>
+            NotificationService.trigger({
+              userId: a.id,
+              type: "DEADLINE_OVERDUE",
+              title: "Milestone Deadline Missed",
+              message: `"${m.title}" for "${m.internship.topic.title}" passed its document deadline with no submission. Submissions are now closed.`,
+              relatedId: m.id,
+              relatedType: "MiniPresentation",
+              link: "/admin/milestones",
+            }).catch(() => null),
+          ),
+        );
+        await Promise.all(
+          m.internship.internshipstudent.map((s) =>
+            NotificationService.trigger({
+              userId: s.studentId,
+              type: "DEADLINE_OVERDUE",
+              title: "Milestone Deadline Missed",
+              message: `The deadline for "${m.title}" has passed without a submission. Submissions are now closed; please contact the administration.`,
+              relatedId: m.id,
+              relatedType: "MiniPresentation",
+              link: "/student/documents",
+            }).catch(() => null),
+          ),
+        );
+        sent.missed++;
+      }
+    }
+
+    return sent;
   }
 }

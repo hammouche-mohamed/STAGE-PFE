@@ -3,6 +3,7 @@
 import React, { useEffect, useState, useCallback, Suspense } from "react";
 import { DocumentList } from "@/components/documents/DocumentList";
 import { UploadDocumentSection } from "@/components/documents/UploadDocumentSection";
+import { MilestonesPanel } from "@/components/documents/MilestonesPanel";
 import { toast } from "sonner";
 import { Info, ChevronLeft, Trash2 } from "lucide-react";
 import Link from "next/link";
@@ -19,6 +20,9 @@ function DocumentsContent() {
   const [documents, setDocuments] = useState<InternshipDocument[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [internshipId, setInternshipId] = useState<string | null>(null);
+  // Track whether the active internship is PFE — milestones / deadlines panel
+  // is PFE-only since NORMAL internships don't run intermediate presentations.
+  const [isPfe, setIsPfe] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -26,13 +30,17 @@ function DocumentsContent() {
     try {
       const intRes = await fetch("/api/internships");
       const intData = await intRes.json();
-      
+
       const internships = intData.data || [];
       const activeInternship = internships.find((i: any) => i.status !== "CANCELLED");
 
       if (activeInternship) {
         const activeIntId = activeInternship.id;
         setInternshipId(activeIntId);
+        setIsPfe(
+          activeInternship.internshipType === "PFE" ||
+            activeInternship.topic?.internshipType === "PFE",
+        );
 
         const docRes = await fetch(`/api/documents?internshipId=${activeIntId}`);
         const docData = await docRes.json();
@@ -79,7 +87,9 @@ function DocumentsContent() {
         </Link>
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-[17px] font-semibold text-gray-900 dark:text-white">{t("documents.title")}</h1>
+            <h1 className="text-[17px] font-semibold text-gray-900 dark:text-white">
+              {isPfe ? `${t("documents.title")} & ${t("common.deadlines", { defaultValue: "Deadlines" })}` : t("documents.title")}
+            </h1>
             <p className="text-[13px] text-gray-500 dark:text-gray-400 mt-0.5">
               {!internshipId ? t("common.none") : t("common.documents")}
             </p>
@@ -94,34 +104,43 @@ function DocumentsContent() {
           <p className="text-[12px] text-amber-600 dark:text-amber-400/80 mt-1">{t("internship.noInternship")}</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 items-start">
-          <div className="xl:col-span-2 space-y-6">
-            <DocumentList 
-              documents={documents} 
-              canReview={false}
-              onDelete={(id) => setDeleteId(id)}
-            />
-          </div>
-
-          <div className="space-y-6">
-            {internshipId && (
-              <UploadDocumentSection 
-                internshipId={internshipId} 
-                onUploadSuccess={fetchInternshipAndDocs}
+        <>
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 items-start">
+            <div className="xl:col-span-2 space-y-6">
+              <DocumentList
+                documents={documents}
+                canReview={false}
+                onDelete={(id) => setDeleteId(id)}
               />
-            )}
-            
-            <div className="p-5 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-900/30 rounded-md">
-              <h3 className="text-[13px] font-semibold text-indigo-900 dark:text-indigo-400 uppercase tracking-widest mb-3">{t("documents.guidelines")}</h3>
-              <ul className="text-[12px] text-indigo-700 dark:text-indigo-300 list-disc list-inside space-y-2">
-                <li>{t("documents.guideline1")}</li>
-                <li>{t("documents.guideline2")}</li>
-                <li>{t("documents.guideline3")}</li>
-                <li>{t("documents.guideline4")}</li>
-              </ul>
+            </div>
+
+            <div className="space-y-6">
+              {internshipId && (
+                <UploadDocumentSection
+                  internshipId={internshipId}
+                  onUploadSuccess={fetchInternshipAndDocs}
+                />
+              )}
+
+              <div className="p-5 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-900/30 rounded-md">
+                <h3 className="text-[13px] font-semibold text-indigo-900 dark:text-indigo-400 uppercase tracking-widest mb-3">{t("documents.guidelines")}</h3>
+                <ul className="text-[12px] text-indigo-700 dark:text-indigo-300 list-disc list-inside space-y-2">
+                  <li>{t("documents.guideline1")}</li>
+                  <li>{t("documents.guideline2")}</li>
+                  <li>{t("documents.guideline3")}</li>
+                  <li>{t("documents.guideline4")}</li>
+                </ul>
+              </div>
             </div>
           </div>
-        </div>
+
+          {/* Deadlines / milestones panel — PFE-only since NORMAL internships
+              don't run mini-presentations. Renders below the documents grid
+              so the existing layout above is untouched. */}
+          {internshipId && isPfe && (
+            <MilestonesPanel internshipId={internshipId} />
+          )}
+        </>
       )}
 
       <ConfirmDialog

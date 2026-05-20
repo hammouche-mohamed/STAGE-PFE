@@ -20,7 +20,8 @@ import { useTranslation } from "@/lib/i18n/LanguageContext";
 
 interface InternshipOption {
   id: string;
-  topic: { title: string };
+  topic: { title: string; internshipType?: string | null };
+  internshipType?: string | null;
   internshipstudent?: { user: { name: string } }[];
   user?: { name: string };
 }
@@ -82,7 +83,7 @@ export default function AdminMilestonesPage() {
 
   const fetchInternships = useCallback(async () => {
     try {
-      const res = await fetch("/api/internships?limit=100");
+      const res = await fetch("/api/internships?internshipType=PFE&limit=100");
       const data = await res.json();
       if (res.ok) setInternships(data.data || []);
     } catch {

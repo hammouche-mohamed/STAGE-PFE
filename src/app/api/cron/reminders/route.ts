@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { DeadlineService } from '@/lib/services/deadline.service';
 import { BinomeService } from '@/lib/services/binome.service';
 import { NotificationService } from '@/lib/services/notification.service';
+import { MiniPresentationService } from '@/lib/services/miniPresentation.service';
 
 
 export async function GET(req: NextRequest) {
@@ -19,6 +20,16 @@ export async function GET(req: NextRequest) {
   } catch (err) {
     results.remindersError = err instanceof Error ? err.message : 'Unknown error';
     console.error('[CRON] deadline reminders failed:', err);
+  }
+
+  // Per-milestone 1d/4h/1h pre-deadline reminders + late-flip on missed
+  // deadlines. Each branch is idempotent (timestamped on the row) so calling
+  // the cron multiple times in the same window won't double-send.
+  try {
+    results.milestoneSweep = await MiniPresentationService.runDeadlineSweep();
+  } catch (err) {
+    results.milestoneSweepError = err instanceof Error ? err.message : 'Unknown error';
+    console.error('[CRON] milestone sweep failed:', err);
   }
 
   try {
