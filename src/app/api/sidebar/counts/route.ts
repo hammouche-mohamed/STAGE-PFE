@@ -164,13 +164,26 @@ export async function GET(req: NextRequest) {
         }),
       ]);
 
+      // Mid-term and final reports are counted ONLY on their due date.
+      // Showing "1 pending" weeks ahead of the deadline is just noise — the
+      // student knows the deadline is months away. The badge should mean
+      // "act today", not "exists in the future".
+      const startOfToday = new Date();
+      startOfToday.setHours(0, 0, 0, 0);
+      const endOfToday = new Date(startOfToday);
+      endOfToday.setDate(endOfToday.getDate() + 1);
+      const isDueToday = (d: Date | null | undefined) =>
+        !!d && d >= startOfToday && d < endOfToday;
+
       let reportCount = 0;
       if (activeInternship) {
         const docs = (activeInternship as any).document as { type: string }[];
         const hasMid = docs.some((d) => d.type === "MID_REPORT");
         const hasFinal = docs.some((d) => d.type === "FINAL_REPORT");
-        if ((activeInternship as any).midtermDeadline && !hasMid) reportCount++;
-        if ((activeInternship as any).finalDeadline && !hasFinal) reportCount++;
+        const mid = (activeInternship as any).midtermDeadline as Date | null;
+        const fin = (activeInternship as any).finalDeadline as Date | null;
+        if (isDueToday(mid) && !hasMid) reportCount++;
+        if (isDueToday(fin) && !hasFinal) reportCount++;
       }
 
       counts["/student/invitations"] = invitCount;
