@@ -77,31 +77,26 @@ export default function TeacherTopicsPage() {
       const officiallyTaken =
         !!tp.assignedTeacherId && tp.status !== "PENDING_TEACHER";
 
-      // Topics where this teacher has officially accepted (assignedTeacherId
-      // is them AND status moved past PENDING_TEACHER) live in Supervising.
-      // A PENDING_TEACHER topic assigned to them is NOT being supervised yet
-      // — it's still an active marketplace decision, so it stays there with
-      // an "Awaiting your response" badge.
+      // Topics where this teacher has officially accepted (assigned to them
+      // AND status moved past PENDING_TEACHER) live in Supervising.
       if (tp.assignedTeacherId === myId && tp.status !== "PENDING_TEACHER") {
         supervising.push(tp);
       } else if (applied && !officiallyTaken) {
         requested.push(tp);
-      } else if (
-        !officiallyTaken &&
-        (tp.status === "APPROVED" || tp.status === "OPEN_FOR_SELECTION") &&
-        !tp.assignedTeacherId &&
-        !applied
-      ) {
-        // Plain open marketplace: APPROVED / OPEN_FOR_SELECTION with no
-        // supervisor yet and no application from me.
-        marketplace.push(tp);
-      } else if (
-        tp.status === "PENDING_TEACHER" &&
-        tp.assignedTeacherId === myId
-      ) {
-        // Admin invited ME — sits in Marketplace with Accept/Decline so the
-        // decision happens in the same place as a normal marketplace action.
-        marketplace.push(tp);
+      } else if (!officiallyTaken) {
+        // Marketplace shows every department topic that is NOT yet officially
+        // taken — including ones with a pending invitation to ANOTHER teacher
+        // (rendered as "Pending another supervisor" so it stays visible
+        // instead of vanishing while the other teacher decides).
+        if (
+          (tp.status === "APPROVED" || tp.status === "OPEN_FOR_SELECTION") &&
+          !tp.assignedTeacherId &&
+          !applied
+        ) {
+          marketplace.push(tp);
+        } else if (tp.status === "PENDING_TEACHER") {
+          marketplace.push(tp);
+        }
       }
     }
     return { supervising, requested, marketplace };
@@ -210,6 +205,14 @@ export default function TeacherTopicsPage() {
     !!viewTopic &&
     viewTopic.assignedTeacherId === myId &&
     viewTopic.status === "PENDING_TEACHER";
+
+  // Topic is awaiting ANOTHER teacher's accept/decline. The card stays
+  // visible in the marketplace but the user can't act on it yet.
+  const pendingAnotherSupervisor =
+    !!viewTopic &&
+    viewTopic.status === "PENDING_TEACHER" &&
+    !!viewTopic.assignedTeacherId &&
+    viewTopic.assignedTeacherId !== myId;
 
   return (
     <div className="space-y-6">
@@ -335,6 +338,7 @@ export default function TeacherTopicsPage() {
         isOpen={!!viewTopic}
         onClose={() => setViewTopic(null)}
         title={t("common.view") + " — " + (viewTopic?.title ?? "")}
+        size="xl"
       >
         {viewTopic && (
           <div className="space-y-5">
@@ -395,7 +399,7 @@ export default function TeacherTopicsPage() {
               <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">
                 {t("teacherTopics.description")}
               </p>
-              <p className="text-[13px] text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">
+              <p className="text-[13px] text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap break-words">
                 {viewTopic.description || t("teacherTopics.noDescription")}
               </p>
             </div>
@@ -405,11 +409,20 @@ export default function TeacherTopicsPage() {
                 <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">
                   {t("teacherTopics.requiredSkills")}
                 </p>
-                <p className="text-[13px] text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">
+                <p className="text-[13px] text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap break-words">
                   {viewTopic.requiredSkills}
                 </p>
               </div>
             )}
+
+            {viewTopic.status === "PENDING_TEACHER" &&
+              viewTopic.assignedTeacherId &&
+              viewTopic.assignedTeacherId !== myId && (
+                <div className="rounded-md bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/50 px-3 py-2 text-[12px] text-amber-700 dark:text-amber-300">
+                  This topic is currently pending another supervisor's
+                  response. It will re-open here if they decline.
+                </div>
+              )}
 
             <div className="flex items-center justify-end gap-2 pt-2 border-t border-gray-100 dark:border-slate-800">
               <Button variant="outline" size="sm" onClick={() => setViewTopic(null)}>

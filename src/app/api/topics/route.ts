@@ -302,16 +302,24 @@ export async function GET(req: NextRequest) {
         }
       }
 
-      // Marketplace = open topics any teacher can actually act on. Only
-      // APPROVED / OPEN_FOR_SELECTION with NO supervisor belong here.
-      // PENDING_TEACHER topics are a private decision for the invited teacher
-      // — they come back through the first OR clause (`assignedTeacherId ===
-      // me`). Including a global `{ status: 'PENDING_TEACHER' }` made those
-      // topics leak into OTHER teachers' marketplaces as action-less cards
-      // (no Apply, no Accept, no Decline) — which is the bug you saw.
+      // Marketplace: every topic in this teacher's department that is still
+      // up for grabs — i.e. either currently open with no supervisor, OR
+      // pending another teacher's response (so it remains visible to the
+      // department; the client renders a "Pending another supervisor" badge
+      // instead of action buttons). The teacher's OWN pending invitations
+      // still come through the first OR clause (`assignedTeacherId === me`).
       const marketAnd: any[] = [
-        { status: { in: ['APPROVED', 'OPEN_FOR_SELECTION'] } },
-        { assignedTeacherId: null },
+        {
+          OR: [
+            {
+              AND: [
+                { status: { in: ['APPROVED', 'OPEN_FOR_SELECTION'] } },
+                { assignedTeacherId: null },
+              ],
+            },
+            { status: 'PENDING_TEACHER' },
+          ],
+        },
       ];
       if (teacherFiliereId) {
         marketAnd.push({ filiereId: teacherFiliereId });
