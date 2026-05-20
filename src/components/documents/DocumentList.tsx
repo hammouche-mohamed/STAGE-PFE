@@ -218,35 +218,41 @@ export const DocumentList: React.FC<DocumentListProps> = ({ documents, onReview,
               key={doc.id}
               className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-lg p-4 shadow-sm space-y-3"
             >
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400 dark:text-gray-500">
-                    {getTypeLabel(doc.type)}
-                  </p>
-                  <div className="flex items-center mt-1">
-                    <FileIcon className="h-4 w-4 text-gray-400 dark:text-gray-500 mr-2 shrink-0" />
-                    <span
-                      className="truncate text-[13px] font-medium text-gray-900 dark:text-white"
-                      title={doc.fileName}
-                    >
-                      {doc.fileName}
-                    </span>
-                  </div>
-                </div>
-                <div className="flex flex-col items-end gap-1.5 shrink-0">
-                  <StatusBadge status={doc.status} />
-                  {renderApprovalChips(doc)}
-                </div>
+              {/* Top row: type tag + status badge — each on its own line so
+                  neither truncates on a narrow phone screen. */}
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 px-2 py-0.5 rounded">
+                  {getTypeLabel(doc.type)}
+                </span>
+                <StatusBadge status={doc.status} />
               </div>
-              <div className="flex items-center justify-between text-[11px] text-gray-500 dark:text-gray-400">
-                <span>
-                  <span className="font-mono bg-gray-100 dark:bg-slate-800 px-1.5 py-0.5 rounded mr-2">
-                    v{doc.version}
-                  </span>
-                  {doc.uploadedBy?.name || t("common.none")} ·{" "}
-                  {formatShortDate(doc.uploadedAt)}
+
+              {/* File name on its own line so long names wrap, not truncate. */}
+              <div className="flex items-start gap-2">
+                <FileIcon className="h-4 w-4 text-gray-400 dark:text-gray-500 mt-0.5 shrink-0" />
+                <span
+                  className="text-[13px] font-semibold text-gray-900 dark:text-white break-all leading-snug"
+                  title={doc.fileName}
+                >
+                  {doc.fileName}
                 </span>
               </div>
+
+              {/* Metadata grid: each pair on its own row, label + value, so
+                  nothing falls off the right edge on a phone. */}
+              <dl className="grid grid-cols-[auto,1fr] gap-x-3 gap-y-1 text-[11px]">
+                <dt className="text-gray-400 dark:text-gray-500 font-semibold uppercase tracking-wider">Version</dt>
+                <dd className="text-gray-700 dark:text-gray-300 font-mono">v{doc.version}</dd>
+                <dt className="text-gray-400 dark:text-gray-500 font-semibold uppercase tracking-wider">Uploaded by</dt>
+                <dd className="text-gray-700 dark:text-gray-300 truncate">{doc.uploadedBy?.name || t("common.none")}</dd>
+                <dt className="text-gray-400 dark:text-gray-500 font-semibold uppercase tracking-wider">Date</dt>
+                <dd className="text-gray-700 dark:text-gray-300">{formatShortDate(doc.uploadedAt)}</dd>
+              </dl>
+
+              {renderApprovalChips(doc) && (
+                <div className="pt-1">{renderApprovalChips(doc)}</div>
+              )}
+
               <div className="border-t border-gray-100 dark:border-slate-800 pt-2">
                 {renderActions(doc)}
               </div>
