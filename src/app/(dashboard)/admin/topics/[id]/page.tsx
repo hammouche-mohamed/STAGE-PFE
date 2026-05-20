@@ -472,35 +472,52 @@ export default function AdminTopicDetailPage() {
                   </div>
                 </div>
 
-                {!session?.user?.isSuperAdmin && ["PENDING_ADMIN", "PENDING_TEACHER", "REJECTED"].includes(topic.status) && (
-                  <div className="mt-8 pt-8 border-t border-gray-200 dark:border-slate-800">
-                    <div className="flex flex-col gap-4">
-                      <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400">
-                        <AlertCircle className="h-4 w-4" />
-                        <span className="text-[12px] font-bold uppercase tracking-wider">Moderation Actions</span>
-                      </div>
-                      <div className="flex flex-wrap gap-3">
-                        <Button 
-                          onClick={handleApprove} 
-                          isLoading={isUpdating}
-                          className="bg-emerald-600 hover:bg-emerald-700 text-white border-none min-w-[140px]"
-                        >
-                          <CheckCircle2 className="h-4 w-4 mr-2" />
-                          Approve Topic
-                        </Button>
-                        <Button 
-                          variant="outline"
-                          onClick={() => setIsRejectDialogOpen(true)}
-                          disabled={isUpdating}
-                          className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 dark:border-red-900/30 dark:hover:bg-red-900/20 min-w-[140px]"
-                        >
-                          <XCircle className="h-4 w-4 mr-2" />
-                          Reject Topic
-                        </Button>
+                {(() => {
+                  // Moderation only makes sense at the initial review step.
+                  // Once the admin has already approved the topic (assigned a
+                  // supervisor → PENDING_TEACHER, opened for selection, or it
+                  // has been TAKEN), or once any student team has applied,
+                  // re-approving / rejecting from this panel is misleading
+                  // and bypasses the rest of the workflow. Keep it only for
+                  // PENDING_ADMIN, or for REJECTED so a rejection can be
+                  // reconsidered as long as no team has applied.
+                  if (session?.user?.isSuperAdmin) return null;
+                  const hasApplications =
+                    (topic.studentApplications?.length ?? 0) > 0;
+                  const moderableStatus =
+                    topic.status === "PENDING_ADMIN" ||
+                    topic.status === "REJECTED";
+                  if (!moderableStatus || hasApplications) return null;
+                  return (
+                    <div className="mt-8 pt-8 border-t border-gray-200 dark:border-slate-800">
+                      <div className="flex flex-col gap-4">
+                        <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400">
+                          <AlertCircle className="h-4 w-4" />
+                          <span className="text-[12px] font-bold uppercase tracking-wider">Moderation Actions</span>
+                        </div>
+                        <div className="flex flex-wrap gap-3">
+                          <Button
+                            onClick={handleApprove}
+                            isLoading={isUpdating}
+                            className="bg-emerald-600 hover:bg-emerald-700 text-white border-none min-w-[140px]"
+                          >
+                            <CheckCircle2 className="h-4 w-4 mr-2" />
+                            Approve Topic
+                          </Button>
+                          <Button
+                            variant="outline"
+                            onClick={() => setIsRejectDialogOpen(true)}
+                            disabled={isUpdating}
+                            className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 dark:border-red-900/30 dark:hover:bg-red-900/20 min-w-[140px]"
+                          >
+                            <XCircle className="h-4 w-4 mr-2" />
+                            Reject Topic
+                          </Button>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                )}
+                  );
+                })()}
              </div>
           </div>
 

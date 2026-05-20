@@ -74,22 +74,29 @@ export default function TeacherTopicsPage() {
     const marketplace: Topic[] = [];
     for (const tp of topics) {
       const applied = (tp.teacherApplications?.length ?? 0) > 0;
-      // Topic is "officially taken" only when its assigned teacher has
-      // accepted. While it sits in PENDING_TEACHER the topic is still up for
-      // grabs in the marketplace.
       const officiallyTaken =
         !!tp.assignedTeacherId && tp.status !== "PENDING_TEACHER";
 
-      if (tp.assignedTeacherId === myId) supervising.push(tp);
-      else if (applied && !officiallyTaken) requested.push(tp);
-      else if (
-        !applied &&
+      // Topics where this teacher has officially accepted (assignedTeacherId
+      // is them AND status moved past PENDING_TEACHER) live in Supervising.
+      // A PENDING_TEACHER topic assigned to them is NOT being supervised yet
+      // — it's still an active marketplace decision, so it stays there with
+      // an "Awaiting your response" badge.
+      if (tp.assignedTeacherId === myId && tp.status !== "PENDING_TEACHER") {
+        supervising.push(tp);
+      } else if (applied && !officiallyTaken) {
+        requested.push(tp);
+      } else if (
         !officiallyTaken &&
         (tp.status === "APPROVED" ||
           tp.status === "OPEN_FOR_SELECTION" ||
           tp.status === "PENDING_TEACHER")
-      )
-        marketplace.push(tp);
+      ) {
+        // Show in Marketplace if:
+        //   - this teacher is the one PENDING_TEACHER is waiting on, OR
+        //   - this teacher has no application yet and the topic is open.
+        if (tp.assignedTeacherId === myId || !applied) marketplace.push(tp);
+      }
     }
     return { supervising, requested, marketplace };
   }, [topics, myId]);
@@ -284,11 +291,10 @@ export default function TeacherTopicsPage() {
                     {activeTab === "REQUESTED" ? (
                       <StatusBadge status="PENDING" label={t("teacherTopics.statusRequestPending")} />
                     ) : activeTab === "SUPERVISING" ? (
-                      topic.status === "PENDING_TEACHER" ? (
-                        <StatusBadge status="PENDING" label={t("teacherTopics.statusAwaitingResponse")} />
-                      ) : (
-                        <StatusBadge status="APPROVED" label={t("teacherTopics.statusSupervising")} />
-                      )
+                      <StatusBadge status="APPROVED" label={t("teacherTopics.statusSupervising")} />
+                    ) : topic.status === "PENDING_TEACHER" && topic.assignedTeacherId === myId ? (
+                      // Marketplace + admin assigned me but I haven't accepted.
+                      <StatusBadge status="PENDING" label={t("teacherTopics.statusAwaitingResponse")} />
                     ) : (
                       <StatusBadge status={topic.status} />
                     )}

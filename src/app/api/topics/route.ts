@@ -284,6 +284,24 @@ export async function GET(req: NextRequest) {
       // marketplace forever even after a decline/cancel that should re-expose
       // the topic. Drop the constraint in that case so they at least see what
       // exists; an admin can fix the profile later.
+      // Resolve the teacher's department from the DB if the session lost it
+      // (JWT only refetches on `undefined`, not on a cached `null`). Without
+      // this, a stale token leaves the teacher with `__no_department__` for
+      // life and they never see any marketplace topic.
+      let teacherFiliereId =
+        (session.user as any).filiereId as string | null | undefined;
+      if (!teacherFiliereId) {
+        try {
+          const profile = await prisma.teacherProfile.findUnique({
+            where: { userId: session.user.id },
+            select: { filiereId: true },
+          });
+          teacherFiliereId = profile?.filiereId ?? null;
+        } catch {
+          teacherFiliereId = null;
+        }
+      }
+
       const marketAnd: any[] = [
         {
           OR: [
@@ -297,8 +315,8 @@ export async function GET(req: NextRequest) {
           ],
         },
       ];
-      if (session.user.filiereId) {
-        marketAnd.push({ filiereId: session.user.filiereId });
+      if (teacherFiliereId) {
+        marketAnd.push({ filiereId: teacherFiliereId });
       }
 
       where.OR = [
