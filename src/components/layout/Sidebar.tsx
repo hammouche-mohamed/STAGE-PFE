@@ -6,12 +6,12 @@ import { usePathname } from "next/navigation";
 import Image from "next/image";
 import { useSidebar } from "@/lib/contexts/SidebarContext";
 import { useApi } from "@/lib/swr/useApi";
-import { 
-  LayoutDashboard, 
-  Briefcase, 
-  Users, 
-  FileText, 
-  MessageSquare, 
+import {
+  LayoutDashboard,
+  Briefcase,
+  Users,
+  FileText,
+  MessageSquare,
   LogOut,
   ShieldCheck,
   User as UserIcon,
@@ -20,7 +20,8 @@ import {
   Archive,
   GraduationCap,
   Building2,
-  Mail
+  Mail,
+  CalendarClock,
 } from "lucide-react";
 import { useSession, signOut } from "next-auth/react";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
@@ -64,6 +65,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ role: initialRole, logoUrl }) 
             { label: t("common.users"), icon: Users, href: "/admin/users", active: pathname.startsWith("/admin/users") },
             { label: t("common.topics"), icon: Briefcase, href: "/admin/topics", active: pathname.startsWith("/admin/topics") },
             { label: t("common.internships"), icon: ShieldCheck, href: "/admin/internships", active: pathname.startsWith("/admin/internships") },
+            { label: t("common.milestones", { defaultValue: "Milestones" }), icon: CalendarClock, href: "/admin/milestones", active: pathname.startsWith("/admin/milestones") },
             ...(!session?.user?.isSuperAdmin ? [{ label: t("common.messages"), icon: MessageSquare, href: "/admin/messages", active: pathname.startsWith("/admin/messages") }] : []),
             { label: t("nav.archives"), icon: Archive, href: "/admin/archives", active: pathname.startsWith("/admin/archives") },
           ];
