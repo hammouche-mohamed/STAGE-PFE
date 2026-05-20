@@ -544,6 +544,57 @@ export class MiniPresentationService {
   }
 
   /**
+   * Student withdraws a milestone submission. Allowed only while the deadline
+   * is still in the future — once it passes, withdrawals are blocked the same
+   * way new submissions are. Clears the file fields and flips status back to
+   * SCHEDULED so a re-upload is possible.
+   */
+  static async withdrawSubmission(id: string, actorId: string) {
+    const milestone = await prisma.miniPresentation.findUnique({
+      where: { id },
+      include: {
+        internship: {
+          select: {
+            internshipstudent: { select: { studentId: true } },
+          },
+        },
+      },
+    });
+    if (!milestone) throw new Error("Milestone not found");
+
+    const isStudentOnTeam = milestone.internship.internshipstudent.some(
+      (s) => s.studentId === actorId,
+    );
+    if (!isStudentOnTeam) throw new Error("You are not part of this internship");
+
+    if (!milestone.documentUrl) {
+      throw new Error("No submission to withdraw");
+    }
+    if (Date.now() > milestone.documentDeadline.getTime()) {
+      throw new Error("The deadline has passed — the submission can no longer be withdrawn.");
+    }
+
+    const updated = await prisma.miniPresentation.update({
+      where: { id },
+      data: {
+        documentUrl: null,
+        documentName: null,
+        submittedAt: null,
+        status: "SCHEDULED",
+      },
+    });
+
+    await AuditService.log({
+      userId: actorId,
+      action: "MILESTONE_SUBMISSION_WITHDRAWN",
+      targetType: "MiniPresentation",
+      targetId: id,
+    }).catch((err) => console.error("[mini-presentation] audit failed:", err));
+
+    return updated;
+  }
+
+  /**
    * Cron entry point. Walks every active PFE milestone and:
    *  - fires the 24h / 4h / 1h pre-deadline reminders (once each, idempotent
    *    via `remindedAt24h/4h/1h` columns)

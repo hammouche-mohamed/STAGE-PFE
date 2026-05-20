@@ -259,14 +259,16 @@ export const DocumentList: React.FC<DocumentListProps> = ({ documents, onReview,
           column within the card so the whole row is visible with no
           horizontal scroll; cell padding is tightened to fit. */}
       <div className="admin-table-container hidden lg:block overflow-x-hidden [&_td]:!px-3 [&_th]:!px-3 [&_td]:!py-3.5">
-        <table className="admin-table table-fixed">
+        <table className="admin-table table-fixed w-full">
           <colgroup>
-            <col className="w-[13%]" />
-            <col className="w-[27%]" />
-            <col className="w-[8%]" />
-            <col className="w-[16%]" />
-            <col className="w-[16%]" />
-            <col className="w-[20%]" />
+            {/* Six equal columns. table-fixed enforces the 1/6 widths so the
+                header and the row cells line up regardless of content length. */}
+            <col className="w-1/6" />
+            <col className="w-1/6" />
+            <col className="w-1/6" />
+            <col className="w-1/6" />
+            <col className="w-1/6" />
+            <col className="w-1/6" />
           </colgroup>
           <thead className="admin-table-header">
             <tr>

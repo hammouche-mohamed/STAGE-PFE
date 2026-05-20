@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Calendar, Clock, FileText, FileUp, Loader2, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { Calendar, Clock, FileText, FileUp, Loader2, AlertTriangle, CheckCircle2, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { format } from "date-fns";
 import { useTranslation } from "@/lib/i18n/LanguageContext";
@@ -31,6 +31,7 @@ export const MilestonesPanel: React.FC<MilestonesPanelProps> = ({ internshipId }
   const [milestones, setMilestones] = useState<Milestone[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [uploadingId, setUploadingId] = useState<string | null>(null);
+  const [withdrawingId, setWithdrawingId] = useState<string | null>(null);
   const fileInputs = useRef<Record<string, HTMLInputElement | null>>({});
 
   const load = useCallback(async () => {
@@ -49,6 +50,23 @@ export const MilestonesPanel: React.FC<MilestonesPanelProps> = ({ internshipId }
   useEffect(() => {
     load();
   }, [load]);
+
+  const handleWithdraw = async (milestoneId: string) => {
+    setWithdrawingId(milestoneId);
+    try {
+      const res = await fetch(`/api/mini-presentations/${milestoneId}/submit`, {
+        method: "DELETE",
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to withdraw");
+      toast.success("Submission withdrawn — you can upload a new file.");
+      await load();
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to withdraw submission");
+    } finally {
+      setWithdrawingId(null);
+    }
+  };
 
   const handleSubmit = async (milestoneId: string, file: File) => {
     setUploadingId(milestoneId);
@@ -180,20 +198,41 @@ export const MilestonesPanel: React.FC<MilestonesPanelProps> = ({ internshipId }
               </div>
 
               {m.documentUrl && m.documentName && (
-                <a
-                  href={m.documentUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-2 text-[12px] text-indigo-600 dark:text-indigo-400 hover:underline mb-3"
-                >
-                  <FileText className="h-3.5 w-3.5" />
-                  {m.documentName}
-                  {m.submittedAt && (
-                    <span className="text-gray-400 dark:text-gray-500">
-                      · submitted {format(new Date(m.submittedAt), "PP")}
-                    </span>
+                <div className="flex items-center gap-3 mb-3 flex-wrap">
+                  <a
+                    href={m.documentUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-2 text-[12px] text-indigo-600 dark:text-indigo-400 hover:underline"
+                  >
+                    <FileText className="h-3.5 w-3.5" />
+                    {m.documentName}
+                    {m.submittedAt && (
+                      <span className="text-gray-400 dark:text-gray-500">
+                        · submitted {format(new Date(m.submittedAt), "PP")}
+                      </span>
+                    )}
+                  </a>
+                  {/* Withdraw is allowed only while the deadline is still
+                      in the future. After that the file is locked, matching
+                      the strict-deadline rule the backend enforces. */}
+                  {!past && (
+                    <button
+                      type="button"
+                      onClick={() => handleWithdraw(m.id)}
+                      disabled={withdrawingId === m.id}
+                      className="inline-flex items-center gap-1 text-[11px] font-medium text-rose-600 dark:text-rose-400 hover:text-rose-700 dark:hover:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-900/20 px-2 py-0.5 rounded transition-colors disabled:opacity-50"
+                      title="Delete submission and re-upload"
+                    >
+                      {withdrawingId === m.id ? (
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                      ) : (
+                        <Trash2 className="h-3 w-3" />
+                      )}
+                      Delete
+                    </button>
                   )}
-                </a>
+                </div>
               )}
 
               {canSubmit(m) ? (

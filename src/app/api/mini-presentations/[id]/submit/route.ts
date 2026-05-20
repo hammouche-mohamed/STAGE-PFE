@@ -43,3 +43,31 @@ export async function POST(
     return NextResponse.json({ error: message }, { status });
   }
 }
+
+/**
+ * Withdraw a milestone submission — only allowed while the deadline is still
+ * in the future. Clears documentUrl/Name/submittedAt and flips the status
+ * back to SCHEDULED so the student can re-upload (or just walk away). Once
+ * the deadline has passed, withdrawals are locked: this matches the strict
+ * deadline rule enforced on submission.
+ */
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const session = await auth();
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (session.user.role !== "STUDENT") {
+    return NextResponse.json({ error: "Only students can withdraw milestone documents" }, { status: 403 });
+  }
+
+  try {
+    const { id } = await params;
+    const updated = await MiniPresentationService.withdrawSubmission(id, session.user.id);
+    return NextResponse.json({ data: updated });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Failed to withdraw";
+    const status = message === "Milestone not found" ? 404 : 400;
+    return NextResponse.json({ error: message }, { status });
+  }
+}

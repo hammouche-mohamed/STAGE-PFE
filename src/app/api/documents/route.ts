@@ -120,20 +120,76 @@ export async function GET(req: NextRequest) {
     if (!isAuthorized) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
 
-    const documents = await prisma.document.findMany({
-      where: { internshipId },
-      include: {
-        uploadedBy: { select: { name: true } },
-      },
-      orderBy: [{ type: "asc" }, { version: "desc" }]
-    });
+    const [documents, milestones] = await Promise.all([
+      prisma.document.findMany({
+        where: { internshipId },
+        include: {
+          uploadedBy: { select: { name: true } },
+        },
+        orderBy: [{ type: "asc" }, { version: "desc" }],
+      }),
+      // Milestone submissions live on `minipresentation`, not `document`. Merge
+      // the submitted ones in as virtual document rows so they show up in the
+      // same table for every role (student, teacher, admin, company).
+      prisma.miniPresentation.findMany({
+        where: { internshipId, documentUrl: { not: null } },
+        include: {
+          internship: {
+            select: {
+              internshipstudent: {
+                select: { user: { select: { id: true, name: true } } },
+              },
+            },
+          },
+        } as any,
+      }),
+    ]);
 
-    const formattedDocuments = documents.map(doc => ({
+    const formattedDocuments = documents.map((doc) => ({
       ...doc,
-      uploadedBy: doc.uploadedBy
+      uploadedBy: doc.uploadedBy,
     }));
 
-    return NextResponse.json({ data: formattedDocuments });
+    // The MiniPresentation row doesn't track who uploaded — every team
+    // member is on the hook for the milestone, so attribute it to the first
+    // student on the team (just for display). Cast through `any` because the
+    // shape is intentionally document-like but synthesized, not a real row.
+    const milestoneDocuments = (milestones as any[])
+      .filter((m) => m.documentUrl && m.documentName)
+      .map((m) => {
+        const firstStudent = m.internship?.internshipstudent?.[0]?.user;
+        return {
+          id: `milestone-${m.id}`,
+          internshipId: m.internshipId,
+          uploadedById: firstStudent?.id ?? "",
+          type: "MILESTONE",
+          fileName: m.documentName,
+          fileUrl: m.documentUrl,
+          fileSize: 0,
+          version: 1,
+          status:
+            m.status === "REVIEWED"
+              ? "REVIEWED"
+              : m.status === "MISSED"
+                ? "REJECTED"
+                : "UPLOADED",
+          reviewComment: m.adminComment ?? null,
+          reviewedById: null,
+          approvedByTeacher: false,
+          approvedByCompany: false,
+          reviewedByCompany: null,
+          companyComment: null,
+          uploadedBy: firstStudent ? { name: firstStudent.name } : { name: "Team" },
+          uploadedAt: m.submittedAt ?? m.createdAt,
+          // Bonus context for the UI — non-Document fields tagged with the
+          // milestone title so future renderers can label these as milestones.
+          milestoneTitle: m.title,
+        };
+      });
+
+    return NextResponse.json({
+      data: [...formattedDocuments, ...milestoneDocuments],
+    });
   } catch (error) {
     return NextResponse.json({ error: "Fetch failed" }, { status: 500 });
   }

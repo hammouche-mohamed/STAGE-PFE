@@ -802,6 +802,7 @@ export const translations = {
         PROGRESS_REPORT: "Progress Report (Mini-Pres)",
         MID_REPORT: "Mid-term Report",
         FINAL_REPORT: "Final Report / Thesis",
+        MILESTONE: "Milestone",
         OTHER: "Other Attachment",
       }
     },
@@ -1762,6 +1763,7 @@ export const translations = {
         PROGRESS_REPORT: "Rapport d'avancement (Mini-Pres)",
         MID_REPORT: "Rapport de mi-parcours",
         FINAL_REPORT: "Rapport final / Thèse",
+        MILESTONE: "Jalon",
         OTHER: "Autre pièce jointe",
       }
     },
@@ -2710,6 +2712,7 @@ export const translations = {
         PROGRESS_REPORT: "تقرير التقدم (Mini-Pres)",
         MID_REPORT: "تقرير منتصف المدة",
         FINAL_REPORT: "التقرير النهائي / الأطروحة",
+        MILESTONE: "مرحلة",
         OTHER: "مرفق آخر",
       }
     },
