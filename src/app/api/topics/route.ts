@@ -304,7 +304,6 @@ export async function GET(req: NextRequest) {
       createdAt: true,
       updatedAt: true,
       archivedAt: true,
-      deletionReason: true,
       pendingEditData: true,
       pendingEditRequestedAt: true,
       targetLevels: true,
@@ -323,17 +322,27 @@ export async function GET(req: NextRequest) {
       }
     };
 
-    const topicSelect = session.user.role === 'TEACHER'
-      ? {
-        ...baseSelect,
-        teacherapplication: {
-          where: { teacherId: session.user.id },
-          select: { id: true, status: true },
-        },
-      }
-      : baseSelect;
+    const topicSelect =
+      session.user.role === 'TEACHER'
+        ? {
+            ...baseSelect,
+            teacherapplication: {
+              where: { teacherId: session.user.id },
+              select: { id: true, status: true },
+            },
+          }
+        : session.user.role === 'COMPANY'
+        ? {
+            // Only the company view shows the deletion reason for its own
+            // archived topics, so request that column only here. Pulled in
+            // separately so the rest of the app keeps working before
+            // `prisma db push` adds the column to the DB.
+            ...baseSelect,
+            deletionReason: true,
+          }
+        : baseSelect;
 
-    const [rawTopics, total] = await Promise.all([
+    const [rawTopics, total, totalTopicsInDb] = await Promise.all([
       prisma.topic.findMany({
         where,
         select: topicSelect as any,
@@ -342,7 +351,22 @@ export async function GET(req: NextRequest) {
         skip,
       }),
       prisma.topic.count({ where }),
+      prisma.topic.count(),
     ]);
+
+    // Diagnostic: when nothing matches but there ARE topics in the DB, dump
+    // the where clause + the user's filière/year so the cause is visible in
+    // the server console instead of silently empty UIs.
+    if (total === 0 && totalTopicsInDb > 0) {
+      console.warn('[Topics GET] empty result', {
+        role: session.user.role,
+        userId: session.user.id,
+        filiereId: (session.user as any).filiereId ?? null,
+        academicYear,
+        totalTopicsInDb,
+        where: JSON.stringify(where),
+      });
+    }
 
     const topics = rawTopics.map((t: any) => ({
       ...t,
