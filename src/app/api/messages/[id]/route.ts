@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { auth } from "@/lib/auth";
+import { randomUUID } from "crypto";
 
 
 export async function GET(
@@ -65,6 +66,24 @@ export async function GET(
       include: { user: { select: { name: true } } },
       orderBy: { sentAt: "asc" },
     });
+
+    // Mark every other-author message as read for this user. The sidebar
+    // unread badge counts messages with no MessageRead row for the viewer,
+    // so this is what makes the +1 drop the moment they open the chat.
+    // `skipDuplicates` makes re-loads (polling) a cheap no-op once read.
+    const unreadIds = messages
+      .filter((m) => m.senderId !== session.user.id)
+      .map((m) => m.id);
+    if (unreadIds.length > 0) {
+      await prisma.messageRead.createMany({
+        data: unreadIds.map((mid) => ({
+          id: randomUUID(),
+          messageId: mid,
+          userId: session.user.id,
+        })),
+        skipDuplicates: true,
+      });
+    }
 
     const formatted = messages.map((msg) => ({
       id: msg.id,

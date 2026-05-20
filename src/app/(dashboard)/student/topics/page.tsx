@@ -57,6 +57,10 @@ export default function StudentTopicsPage() {
   // Whether this student is allowed to submit an application: a solo student
   // (no team yet) is, and a team member is only if they are the leader.
   const [canSubmit, setCanSubmit] = useState(true);
+  // Active internship (if any) — blocks every new application until cancelled.
+  const [activeInternshipTitle, setActiveInternshipTitle] = useState<string | null>(null);
+  // Current team size — used to flag topics whose maxStudents < teamSize.
+  const [teamSize, setTeamSize] = useState<number>(1);
 
   const studentLevel = (session?.user as any)?.level as string | undefined;
 
@@ -68,11 +72,20 @@ export default function StudentTopicsPage() {
       fetch("/api/profile").then(r => r.json()),
       fetch("/api/applications").then(r => r.json()),
       fetch("/api/teams").then(r => r.json()).catch(() => ({ data: null })),
-    ]).then(([topicsData, filieresData, profileData, applicationsData, teamData]) => {
+      fetch("/api/internships").then(r => r.json()).catch(() => ({ data: [] })),
+    ]).then(([topicsData, filieresData, profileData, applicationsData, teamData, internshipsData]) => {
       const team = teamData?.data;
       const myId = (session?.user as any)?.id;
       // No team yet → solo, can apply. Has a team → must be the leader.
       setCanSubmit(!team || team.leaderId === myId);
+      // Team size used for the "max students per team" cap check below.
+      setTeamSize(team?.members?.length ?? 1);
+      // If the student is in an active (non-cancelled) internship, every
+      // Apply button is blocked with a clear reason.
+      const active = (internshipsData?.data ?? []).find(
+        (i: any) => i.status !== "CANCELLED",
+      );
+      setActiveInternshipTitle(active ? (active.topic?.title ?? "an internship") : null);
       const allTopics = topicsData.data || [];
       const allFilieres = filieresData.data || [];
       const studentSpec = profileData.data?.studentProfile?.speciality;
@@ -302,6 +315,14 @@ export default function StudentTopicsPage() {
             const eligible = canApply(studentLevel, topic.targetLevels);
             const topicSkills = skills(topic);
             const status = isApplied ? getApplicationStatus(topic) : null;
+            // Surface why the student can't apply BEFORE they click — the
+            // server enforces the same rules, but no point letting them open
+            // a modal just to bounce them out with an error.
+            const blockedReason: string | null = activeInternshipTitle
+              ? `You're already enrolled in "${activeInternshipTitle}". Cancel or finish it before applying elsewhere.`
+              : teamSize > topic.maxStudents
+                ? `Your team has ${teamSize} member${teamSize === 1 ? "" : "s"}; this topic allows at most ${topic.maxStudents}. Remove member${teamSize - topic.maxStudents === 1 ? "" : "s"} or pick a topic with a larger cap.`
+                : null;
 
             return (
               <div 
@@ -378,6 +399,14 @@ export default function StudentTopicsPage() {
                   ) : !eligible ? (
                     <span className="flex items-center gap-1.5 text-[12px] text-amber-600 dark:text-amber-400 font-medium">
                       <Lock className="h-3.5 w-3.5" /> {t("topics.list.requires", { levels: topic.targetLevels })}
+                    </span>
+                  ) : blockedReason ? (
+                    <span
+                      className="flex items-center gap-1.5 text-[11px] text-rose-700 dark:text-rose-400 font-medium bg-rose-50 dark:bg-rose-900/20 border border-rose-100 dark:border-rose-900/40 px-2 py-1 rounded max-w-full text-right"
+                      title={blockedReason}
+                    >
+                      <Lock className="h-3.5 w-3.5 flex-shrink-0" />
+                      <span className="truncate">{blockedReason}</span>
                     </span>
                   ) : !canSubmit ? (
                     <span className="flex items-center gap-1.5 text-[12px] text-gray-500 dark:text-gray-400 font-medium" title="Only your team leader can apply">
