@@ -195,6 +195,10 @@ export default function StudentTeamPage() {
   };
 
   const isLeader = team?.leaderId === session?.user?.id;
+  const isLocked = !!team?.locked;
+  const lockMessage = team?.lockReason === "active_internship"
+    ? t("studentTeam.lockedActiveInternship", { defaultValue: "Your team is enrolled in an active internship — the roster is locked. Members cannot leave and no new invitations can be sent." })
+    : t("studentTeam.lockedAcceptedTopic", { defaultValue: "Your team has been accepted on a topic — the roster is locked. Members cannot leave and no new invitations can be sent." });
 
   if (isLoading) {
     return <div className="py-12 text-center text-gray-500">{t("studentTeam.loading")}</div>;
@@ -262,6 +266,13 @@ export default function StudentTeamPage() {
           {t("studentTeam.manageDesc")}
         </p>
       </div>
+
+      {isLocked && (
+        <div className="flex items-start gap-3 px-4 py-3 rounded-xl border border-amber-200 dark:border-amber-900/30 bg-amber-50 dark:bg-amber-900/10">
+          <AlertCircle className="h-4 w-4 mt-0.5 text-amber-500 flex-shrink-0" />
+          <p className="text-[13px] text-amber-800 dark:text-amber-300 leading-relaxed">{lockMessage}</p>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="md:col-span-2 space-y-6">
@@ -348,14 +359,16 @@ export default function StudentTeamPage() {
               )}
             </dl>
 
-            <Button
-              variant="outline"
-              className="w-full justify-start mt-auto pt-2 text-red-600 hover:text-red-700 dark:hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 border-red-200 dark:border-red-900/30"
-              onClick={() => setLeaveConfirmOpen(true)}
-            >
-              <LogOut className="h-4 w-4 mr-2" />
-              {t("studentTeam.leaveTeam")}
-            </Button>
+            {!isLocked && (
+              <Button
+                variant="outline"
+                className="w-full justify-start mt-auto pt-2 text-red-600 hover:text-red-700 dark:hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 border-red-200 dark:border-red-900/30"
+                onClick={() => setLeaveConfirmOpen(true)}
+              >
+                <LogOut className="h-4 w-4 mr-2" />
+                {t("studentTeam.leaveTeam")}
+              </Button>
+            )}
           </div>
         </div>
       </div>
@@ -405,7 +418,7 @@ export default function StudentTeamPage() {
                       </span>
                     </td>
                     <td className="text-right">
-                      {isLeader && (
+                      {isLeader && !isLocked && (
                         <button
                           onClick={() => setPendingConfirm({ kind: "cancel", id: inv.id, name: inv.invitedStudent?.name || "" })}
                           disabled={cancelingInvitationId === inv.id}
@@ -425,7 +438,7 @@ export default function StudentTeamPage() {
       )}
 
       {/* Invite Students — full-width table with search + level filter */}
-      {isLeader && (
+      {isLeader && !isLocked && (
         <div className="bg-white dark:bg-slate-900 border border-indigo-200 dark:border-indigo-900/30 rounded-xl overflow-hidden shadow-sm">
           <div className="px-6 py-4 border-b border-indigo-100 dark:border-indigo-900/20 bg-indigo-50/50 dark:bg-indigo-900/10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <h3 className="text-[14px] font-bold text-indigo-900 dark:text-indigo-400 flex items-center gap-2">

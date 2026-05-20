@@ -3,6 +3,7 @@ import prisma from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { NotificationService } from "@/lib/services/notification.service";
 import { AuditService } from "@/lib/services/audit.service";
+import { getTeamCommitment } from "@/lib/services/teamCommitment.service";
 
 export async function DELETE(
   req: NextRequest,
@@ -31,12 +32,16 @@ export async function DELETE(
       return NextResponse.json({ error: "You are not in this team" }, { status: 403 });
     }
 
-    const activeInternship = await prisma.internshipStudent.findFirst({
-      where: { studentId: session.user.id, internship: { status: { notIn: ["CANCELLED"] } } }
-    });
-
-    if (activeInternship) {
-      return NextResponse.json({ error: "You cannot leave a team while enrolled in an active internship." }, { status: 400 });
+    const commitment = await getTeamCommitment(teamId);
+    if (commitment.locked) {
+      const why =
+        commitment.reason === 'active_internship'
+          ? 'the team is enrolled in an active internship'
+          : 'the team has been accepted on a topic';
+      return NextResponse.json(
+        { error: `You cannot leave this team because ${why}.` },
+        { status: 400 },
+      );
     }
 
     await prisma.$transaction(async (tx) => {

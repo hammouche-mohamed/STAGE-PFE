@@ -202,8 +202,8 @@ function AdminMessagesContent() {
                       }`}
                     >
                       <Users className="h-3.5 w-3.5" />
-                      <span className="hidden xs:inline">{t("messages.participants")} ({(selectedInternship?.students.length || 0) + 1})</span>
-                      <span className="xs:hidden">{(selectedInternship?.students.length || 0) + 1}</span>
+                      <span className="hidden xs:inline">{t("messages.participants")} ({(selectedInternship?.students.length || 0) + 1 + (selectedInternship?.topic.type === "COMPANY_PROPOSED" ? 1 : 0)})</span>
+                      <span className="xs:hidden">{(selectedInternship?.students.length || 0) + 1 + (selectedInternship?.topic.type === "COMPANY_PROPOSED" ? 1 : 0)}</span>
                     </button>
                   </div>
                 </div>
@@ -269,6 +269,24 @@ function AdminMessagesContent() {
                               </div>
                             </div>
                           </div>
+
+                          {/* Hosting Company — only for company-proposed topics */}
+                          {selectedInternship?.topic.type === "COMPANY_PROPOSED" && (
+                            <div className="space-y-2">
+                              <p className="text-[10px] text-gray-400 dark:text-gray-500 font-bold uppercase tracking-tighter px-1">{t("company.msg.hostingCompany")}</p>
+                              <div className="rounded-xl border border-gray-100 dark:border-slate-800 bg-white dark:bg-slate-800 p-2.5 shadow-sm">
+                                <div className={`flex items-center gap-4 ${isRTL ? "flex-row-reverse text-right" : ""}`}>
+                                  <div className="h-8 w-8 rounded-full bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 flex items-center justify-center font-bold text-[12px] flex-shrink-0">
+                                    {selectedInternship?.topic.companyName?.charAt(0) || "C"}
+                                  </div>
+                                  <div className="min-w-0 flex-1">
+                                    <p className="text-[12px] font-bold text-gray-900 dark:text-white truncate">{selectedInternship?.topic.companyName || "Company"}</p>
+                                    <p className="text-[10px] text-gray-500 dark:text-gray-400 truncate">{t("company.msg.hostingPartner")}</p>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          )}
 
                           {/* Students */}
                           <div className="space-y-2">

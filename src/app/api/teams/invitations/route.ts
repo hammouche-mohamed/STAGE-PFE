@@ -3,6 +3,7 @@ import prisma from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { NotificationService } from "@/lib/services/notification.service";
 import { AuditService } from "@/lib/services/audit.service";
+import { getTeamCommitment } from "@/lib/services/teamCommitment.service";
 
 export async function POST(req: NextRequest) {
   const session = await auth();
@@ -22,6 +23,18 @@ export async function POST(req: NextRequest) {
 
     if (team.leaderId !== session.user.id) {
       return NextResponse.json({ error: "Only the team leader can send invitations" }, { status: 403 });
+    }
+
+    const commitment = await getTeamCommitment(teamId);
+    if (commitment.locked) {
+      const why =
+        commitment.reason === 'active_internship'
+          ? 'the team is enrolled in an active internship'
+          : 'the team has been accepted on a topic';
+      return NextResponse.json(
+        { error: `You cannot invite new members because ${why}. The team roster is locked.` },
+        { status: 400 },
+      );
     }
 
     const isAlreadyInTeam = await prisma.teamMember.findFirst({

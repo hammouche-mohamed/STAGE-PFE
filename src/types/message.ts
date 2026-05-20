@@ -17,6 +17,7 @@ export interface InternshipThread {
   id: string;
   topic: {
     title: string;
+    type?: "STUDENT_PROPOSED" | "COMPANY_PROPOSED";
     companyName?: string | null;
   };
   students: {
@@ -31,4 +32,7 @@ export interface InternshipThread {
   };
   midtermDeadline?: string | null;
   finalDeadline?: string | null;
+  archivedAt?: string | null;
+  chatArchivedAt?: string | null;
+  status?: string;
 }

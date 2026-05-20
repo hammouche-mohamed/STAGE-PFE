@@ -25,9 +25,6 @@ export default function AdminSettingsPage() {
     availablePromotions: "",
     proposalFormTemplateUrl: "",
     MAX_TEAM_SIZE: "2",
-    // Global end date for every PFE internship — both the internship end and
-    // its final report deadline lock to this single date set by the super
-    // admin. ISO yyyy-MM-dd in storage.
     pfeEndDate: "",
   });
   const [loadingKey, setLoadingKey] = useState<string | null>(null);

@@ -203,8 +203,11 @@ export const DocumentList: React.FC<DocumentListProps> = ({ documents, onReview,
 
   return (
     <div className="space-y-4">
-      {/* Mobile (<768px): stacked cards — no horizontal scroll */}
-      <div className="space-y-3 md:hidden">
+      {/* Narrow viewports (<lg/1024px): stacked cards — no horizontal scroll.
+          Card view extends past `md` (768px) because the dashboard sidebar
+          takes 240px from there, squeezing the content area too narrow for
+          the 6-column table to fit without overlapping headers. */}
+      <div className="space-y-3 lg:hidden">
         {documents.length === 0 ? (
           <div className="text-center py-8 text-gray-400 dark:text-gray-500 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-lg">
             {t("documents.noDocuments")}
@@ -252,10 +255,10 @@ export const DocumentList: React.FC<DocumentListProps> = ({ documents, onReview,
         )}
       </div>
 
-      {/* Desktop (>=768px): full table. table-fixed + colgroup keeps every
+      {/* Desktop (>=lg/1024px): full table. table-fixed + colgroup keeps every
           column within the card so the whole row is visible with no
           horizontal scroll; cell padding is tightened to fit. */}
-      <div className="admin-table-container hidden md:block overflow-x-hidden [&_td]:!px-3 [&_th]:!px-3 [&_td]:!py-3.5">
+      <div className="admin-table-container hidden lg:block overflow-x-hidden [&_td]:!px-3 [&_th]:!px-3 [&_td]:!py-3.5">
         <table className="admin-table table-fixed">
           <colgroup>
             <col className="w-[13%]" />

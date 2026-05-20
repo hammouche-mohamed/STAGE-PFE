@@ -95,14 +95,45 @@ export async function DELETE(
   try {
     const { id } = await params;
 
-    const message = await prisma.message.findUnique({ where: { id } });
+    const message = await prisma.message.findUnique({
+      where: { id },
+      include: { user: { select: { name: true } } } as any,
+    });
     if (!message) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
     if (message.senderId !== session.user.id && session.user.role !== "ADMIN") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    await prisma.message.delete({ where: { id } });
+    // Rewrite the inline quote prefix on any reply that referenced this message
+    // so it shows "deleted message from <sender>" instead of stale quoted text.
+    // Replies are stored as `↩ <senderName>: "<snippet>"\n\n<body>` (see client
+    // composer) — we reconstruct that exact prefix and swap it for a tombstone.
+    const senderName = (message as any).user?.name ?? "User";
+    const snippet =
+      message.content.slice(0, 60) + (message.content.length > 60 ? "…" : "");
+    const quotePrefix = `↩ ${senderName}: "${snippet}"`;
+    const tombstonePrefix = `↩ deleted message from ${senderName}`;
+
+    const replies = await prisma.message.findMany({
+      where: {
+        internshipId: message.internshipId,
+        id: { not: id },
+        content: { startsWith: quotePrefix },
+      },
+      select: { id: true, content: true },
+    });
+
+    await prisma.$transaction([
+      ...replies.map((r) =>
+        prisma.message.update({
+          where: { id: r.id },
+          data: { content: tombstonePrefix + r.content.slice(quotePrefix.length) },
+        }),
+      ),
+      prisma.message.delete({ where: { id } }),
+    ]);
+
     return NextResponse.json({ success: true });
   } catch {
     return NextResponse.json({ error: "Failed to delete" }, { status: 500 });

@@ -143,7 +143,7 @@ export default function AdminInternshipsPage() {
       </div>
 
       {/* Control Bar */}
-      <div className="flex flex-col sm:flex-row gap-4">
+      <div className="flex flex-col lg:flex-row gap-4">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
           <input
@@ -154,10 +154,10 @@ export default function AdminInternshipsPage() {
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:flex lg:flex-row gap-2 w-full lg:w-auto">
           {isSuperAdmin && (
             <select
-              className="admin-input min-w-0 sm:min-w-[180px] w-full sm:w-auto"
+              className="admin-input min-w-0 lg:min-w-[180px] w-full lg:w-auto"
               value={filiereFilter}
               onChange={(e) => setFiliereFilter(e.target.value)}
             >
@@ -168,7 +168,7 @@ export default function AdminInternshipsPage() {
             </select>
           )}
           <select
-            className="admin-input min-w-0 sm:min-w-[200px] w-full sm:w-auto"
+            className="admin-input min-w-0 lg:min-w-[200px] w-full lg:w-auto"
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
           >
@@ -183,7 +183,7 @@ export default function AdminInternshipsPage() {
             <option value="CANCELLED">{t("status.CANCELLED")}</option>
           </select>
           <select
-            className="admin-input min-w-0 sm:min-w-[140px] w-full sm:w-auto"
+            className="admin-input min-w-0 lg:min-w-[140px] w-full lg:w-auto"
             value={typeFilter}
             onChange={(e) => setTypeFilter(e.target.value)}
             title="Filter by internship type"
@@ -193,7 +193,7 @@ export default function AdminInternshipsPage() {
             <option value="NORMAL">Normal</option>
           </select>
           <select
-            className="admin-input min-w-0 sm:min-w-[170px] w-full sm:w-auto"
+            className="admin-input min-w-0 lg:min-w-[170px] w-full lg:w-auto"
             value={attentionFilter}
             onChange={(e) => setAttentionFilter(e.target.value)}
             title="Flag internships missing an end date or final report"
@@ -202,7 +202,7 @@ export default function AdminInternshipsPage() {
             <option value="ATTENTION">Needs attention</option>
           </select>
           <select
-            className="admin-input min-w-0 sm:min-w-[120px] w-full sm:w-auto"
+            className="admin-input min-w-0 lg:min-w-[120px] w-full lg:w-auto"
             value={levelFilter}
             onChange={(e) => setLevelFilter(e.target.value)}
             title="Filter by student level"

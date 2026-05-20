@@ -3,6 +3,7 @@ import prisma from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { AuditService } from "@/lib/services/audit.service";
 import { NotificationService } from "@/lib/services/notification.service";
+import { getTeamCommitment } from "@/lib/services/teamCommitment.service";
 
 export async function POST(req: NextRequest) {
   const session = await auth();
@@ -155,6 +156,8 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({ data: null });
       }
 
+      const commitment = await getTeamCommitment(m.studentteam.id);
+
       const team = {
         ...m.studentteam,
         members: m.studentteam.teammember.map((tm: any) => ({
@@ -164,7 +167,9 @@ export async function GET(req: NextRequest) {
         invitations: m.studentteam.teaminvitation.map((ti: any) => ({
           ...ti,
           invitedStudent: ti.user
-        }))
+        })),
+        locked: commitment.locked,
+        lockReason: commitment.locked ? commitment.reason : null,
       };
 
       return NextResponse.json({ data: team });

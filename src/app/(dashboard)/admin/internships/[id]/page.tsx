@@ -313,7 +313,11 @@ export default function AdminInternshipDetailPage() {
                         <label className="text-[11px] font-bold text-gray-400 uppercase tracking-widest block mb-2">Host Organization</label>
                         <div className="flex items-center gap-2">
                            <Building2 className="h-4 w-4 text-gray-400" />
-                           <span className="text-[13px] font-medium text-gray-900 dark:text-white">{internship.topic.companyName || "N/A"}</span>
+                           <span className="text-[13px] font-medium text-gray-900 dark:text-white">
+                              {internship.topic.companyName
+                                 || (internship.topic.proposedBy?.role === "COMPANY" ? internship.topic.proposedBy.name : null)
+                                 || "N/A"}
+                           </span>
                         </div>
                      </div>
                   </div>

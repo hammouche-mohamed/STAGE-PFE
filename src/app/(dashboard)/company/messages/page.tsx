@@ -30,6 +30,9 @@ function CompanyMessagesContent() {
   const [isLoading, setIsLoading] = useState(true);
   const [showFiles, setShowFiles] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  // Per-internship unread message counts, derived from unread MESSAGE_RECEIVED
+  // notifications. Used to render the NEW badge in the team sidebar.
+  const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
 
   const [sidebarTab, setSidebarTab] = useState<"files" | "participants">("files");
 
@@ -54,6 +57,32 @@ function CompanyMessagesContent() {
       setIsLoading(false);
     }
   }, [t, selectedId, wantedId]);
+
+  // Count unread MESSAGE_RECEIVED notifications per internship so the sidebar
+  // can show a NEW badge on threads with fresh messages. The server already
+  // marks these read when the user opens a chat (GET /api/messages/[id]).
+  const refreshUnreadCounts = useCallback(async () => {
+    try {
+      const res = await fetch("/api/notifications?unread=true");
+      const data = await res.json();
+      const counts: Record<string, number> = {};
+      for (const n of data.data || []) {
+        if (n.type === "MESSAGE_RECEIVED" && n.relatedId) {
+          counts[n.relatedId] = (counts[n.relatedId] || 0) + 1;
+        }
+      }
+      setUnreadCounts(counts);
+    } catch {
+      // Silent — badge is a non-critical UI hint.
+    }
+  }, []);
+
+  const openChat = useCallback((id: string) => {
+    setSelectedId(id);
+    // Optimistic: clear the badge as soon as the user clicks. The server-side
+    // notification flip happens once ChatWindow fetches the messages.
+    setUnreadCounts((prev) => (prev[id] ? { ...prev, [id]: 0 } : prev));
+  }, []);
 
   const fetchSharedFiles = useCallback(async (internshipId: string) => {
     try {
@@ -99,6 +128,12 @@ function CompanyMessagesContent() {
   }, [loadInternships]);
 
   useEffect(() => {
+    refreshUnreadCounts();
+    const interval = setInterval(refreshUnreadCounts, 15000);
+    return () => clearInterval(interval);
+  }, [refreshUnreadCounts]);
+
+  useEffect(() => {
     if (selectedId) {
       fetchSharedFiles(selectedId);
       const interval = setInterval(() => fetchSharedFiles(selectedId), 30000);
@@ -118,7 +153,7 @@ function CompanyMessagesContent() {
   };
 
   return (
-    <div className="-mt-4 md:-mt-6 h-[calc(100vh-115px)] flex flex-col space-y-3 overflow-hidden">
+    <div className="-mx-6 md:mx-0 -mt-6 md:-mt-6 px-3 md:px-0 pt-3 md:pt-0 h-[calc(100dvh-80px)] md:h-[calc(100vh-115px)] flex flex-col space-y-3 overflow-hidden">
       <div className="flex-shrink-0">
         <h1 className="text-[17px] font-bold text-gray-900 dark:text-white leading-none">{t("company.msg.title")}</h1>
         <p className="text-[12px] text-gray-500 dark:text-gray-400 mt-1">
@@ -146,24 +181,35 @@ function CompanyMessagesContent() {
             ) : internships.length === 0 ? (
               <p className="p-6 text-center text-[12px] text-gray-400 dark:text-gray-500 italic">{t("company.msg.noTeams")}</p>
             ) : (
-              internships.map((i) => (
+              internships.map((i) => {
+                const unread = unreadCounts[i.id] || 0;
+                return (
                 <button
                   key={i.id}
-                  onClick={() => setSelectedId(i.id)}
+                  onClick={() => openChat(i.id)}
                   className={`w-full text-left px-4 py-4 border-b border-gray-50 dark:border-slate-800/50 transition-all group relative ${selectedId === i.id ? "bg-indigo-50/50 dark:bg-indigo-900/20" : "hover:bg-gray-50 dark:hover:bg-slate-800/50"
                     }`}
                 >
                   {selectedId === i.id && (
                     <div className="absolute left-0 top-0 bottom-0 w-1 bg-indigo-600" />
                   )}
-                  <p className={`text-[13px] font-bold truncate ${selectedId === i.id ? "text-indigo-700 dark:text-indigo-400" : "text-gray-800 dark:text-gray-200"}`}>
-                    {i.topic.title}
-                  </p>
+                  <div className="flex items-start justify-between gap-2">
+                    <p className={`text-[13px] font-bold truncate flex-1 ${selectedId === i.id ? "text-indigo-700 dark:text-indigo-400" : "text-gray-800 dark:text-gray-200"}`}>
+                      {i.topic.title}
+                    </p>
+                    {unread > 0 && (
+                      <span className="flex-shrink-0 inline-flex items-center gap-1 rounded-full bg-rose-500 text-white text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 leading-none">
+                        <span className="h-1.5 w-1.5 rounded-full bg-white" />
+                        {unread > 9 ? "9+" : unread} new
+                      </span>
+                    )}
+                  </div>
                   <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-1 truncate">
                     {i.students.map((s) => s.student.name).join(", ")}
                   </p>
                 </button>
-              ))
+                );
+              })
             )}
           </div>
         </div>

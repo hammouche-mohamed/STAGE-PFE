@@ -208,12 +208,14 @@
   }
 }
 
-/* Mobile Optimizations */
-@media (max-width: 768px) {
+/* Admin tables: stack into cards while the sidebar (240px from `md`/768px up)
+   squeezes content too narrow for multi-column tables to fit. Stays stacked
+   until Tailwind's `lg` (1024px) where the layout finally has room. */
+@media (max-width: 1023.98px) {
   .admin-table-row {
     @apply h-auto py-2;
   }
-  
+
   .admin-table td, .admin-table th {
     @apply px-2.5;
   }
@@ -222,38 +224,42 @@
   .stacked-table {
     @apply block w-full;
   }
-  
+
   .stacked-table thead {
     @apply hidden;
   }
-  
-  .stacked-table tbody, 
-  .stacked-table tr, 
+
+  .stacked-table tbody,
+  .stacked-table tr,
   .stacked-table td {
     @apply block w-full;
   }
-  
+
   .stacked-table tr:not(.empty-row) {
     @apply mb-1.5 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-lg pl-3 pr-1.5 py-2.5 shadow-sm;
   }
-  
+
   .stacked-table tr:not(.empty-row) td {
     @apply flex justify-between items-start py-2 border-b border-gray-50 dark:border-slate-800 last:border-0 text-right;
   }
-  
+
   .stacked-table tr:not(.empty-row) td::before {
     content: attr(data-label);
     @apply font-bold text-[9px] uppercase text-gray-400 dark:text-gray-500 text-left block w-20 pt-1 flex-shrink-0;
   }
-  
+
   .stacked-table tr:not(.empty-row) td > * {
     @apply flex-1 flex justify-end items-end min-w-0;
   }
-  
+
   .stacked-table tr.empty-row td {
     @apply text-center py-12 text-gray-400 dark:text-gray-500 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-lg shadow-sm block w-full;
   }
+}
 
+/* Phone-only optimizations (kept at 768px because they're sidebar-independent —
+   forms, mobile-specific buttons, the student internship card layout). */
+@media (max-width: 768px) {
   /* Responsive Grid for Forms */
   .grid-cols-2 {
     @apply grid-cols-1!;
