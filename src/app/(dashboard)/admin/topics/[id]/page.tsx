@@ -95,6 +95,11 @@ export default function AdminTopicDetailPage() {
   const [rejectionReasonInput, setRejectionReasonInput] = useState("");
   // The student application the admin is about to confirm into an internship.
   const [approveTeamApp, setApproveTeamApp] = useState<any | null>(null);
+  // Multi-invite supervisor UI: teacher being staged for invitation + an
+  // "in-flight" flag per teacher so individual rows show their own spinner.
+  const [pickTeacherId, setPickTeacherId] = useState<string>("");
+  const [inviteBusy, setInviteBusy] = useState(false);
+  const [removeBusyId, setRemoveBusyId] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -247,25 +252,88 @@ export default function AdminTopicDetailPage() {
   };
 
   const toggleLevel = (level: string) => {
-    setSelectedLevels(prev => 
+    setSelectedLevels(prev =>
       prev.includes(level) ? prev.filter(l => l !== level) : [...prev, level]
     );
   };
 
   const studyLevels = ["L1", "L2", "L3", "M1", "M2"];
 
+  // ── Multi-invite supervisor handlers ───────────────────────────────────────
+  const refreshTopic = async () => {
+    try {
+      const res = await fetch(`/api/topics/${id}`, { cache: "no-store" });
+      const json = await res.json();
+      const fresh = json.data || json;
+      setTopic(fresh);
+      setEditData(prev => ({ ...prev, teacherId: fresh.assignedTeacherId || "" }));
+    } catch (err) {
+      console.error("refresh topic failed", err);
+    }
+  };
+
+  const handleInviteSupervisor = async () => {
+    if (!pickTeacherId) {
+      toast.error("Pick a teacher to invite first.");
+      return;
+    }
+    setInviteBusy(true);
+    try {
+      const res = await fetch(`/api/topics/${id}/invite-supervisor`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ teacherId: pickTeacherId }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to send invitation");
+      toast.success(data.message || "Invitation sent.");
+      setPickTeacherId("");
+      await refreshTopic();
+    } catch (error: any) {
+      toast.error(error.message || "Failed to send invitation");
+    } finally {
+      setInviteBusy(false);
+    }
+  };
+
+  const handleRemoveSupervisor = async (teacherId: string, isConfirmed: boolean) => {
+    if (!confirm(
+      isConfirmed
+        ? "Remove this supervisor from the topic? They will be notified, and the topic returns to the marketplace."
+        : "Withdraw this invitation? The teacher will be notified."
+    )) return;
+    setRemoveBusyId(teacherId);
+    try {
+      const res = await fetch(
+        `/api/topics/${id}/invite-supervisor?teacherId=${encodeURIComponent(teacherId)}`,
+        { method: "DELETE" },
+      );
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to remove");
+      toast.success(data.message || "Done.");
+      await refreshTopic();
+    } catch (error: any) {
+      toast.error(error.message || "Failed to remove");
+    } finally {
+      setRemoveBusyId(null);
+    }
+  };
+
 
   if (isLoading) return <div className="p-8 text-center text-gray-400">Loading topic details...</div>;
   if (!topic) return <div className="p-8 text-center text-gray-400">Topic not found.</div>;
 
-  // Teachers who applied to supervise THIS topic (still pending). Surfaced in
-  // the supervisor picker so the admin knows who volunteered before choosing.
+  // All PENDING invitations / self-applications for THIS topic. The admin
+  // can have many open at once; the first teacher to accept wins.
   const supervisionApplicants: { id: string; name: string }[] = (
     topic.teacherApplications || []
   )
     .filter((a: any) => a?.status === "PENDING" && a?.user?.id)
     .map((a: any) => ({ id: a.user.id, name: a.user.name }));
   const applicantIds = new Set(supervisionApplicants.map((a) => a.id));
+  const assignedTeacher = topic.assignedTeacherId
+    ? teachers.find((t: any) => t.id === topic.assignedTeacherId)
+    : null;
 
   return (
     <div className="space-y-6 max-w-5xl">
@@ -377,30 +445,94 @@ export default function AdminTopicDetailPage() {
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-6 border-t border-gray-100">
-                  <div className="space-y-1.5">
+                  <div className="space-y-2 sm:col-span-2">
                     <label className="text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">{t("topics.list.supervisor")}</label>
-                    <select 
-                      className="admin-input w-full text-[13px] h-10"
-                      value={editData.teacherId}
-                      onChange={(e) => setEditData({...editData, teacherId: e.target.value})}
-                      disabled={session?.user?.isSuperAdmin}
-                    >
-                      <option value="">No Supervisor Assigned</option>
-                      {teachers.map(t => (
-                        <option key={t.id} value={t.id}>
-                          {t.name}
-                          {applicantIds.has(t.id) ? "  — wants to supervise" : ""}
-                        </option>
-                      ))}
-                    </select>
+
+                    {/* Confirmed supervisor — set only when a teacher has
+                        accepted. Comes with a Remove action that bounces the
+                        topic back to the marketplace and notifies them. */}
+                    {assignedTeacher ? (
+                      <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-emerald-200 dark:border-emerald-900/40 bg-emerald-50/50 dark:bg-emerald-900/10 px-3 py-2">
+                        <div className="flex items-center gap-2 text-[13px]">
+                          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 px-2 py-0.5 text-[10px] font-bold uppercase">
+                            Confirmed
+                          </span>
+                          <span className="font-semibold text-gray-900 dark:text-white">{(assignedTeacher as any).name}</span>
+                        </div>
+                        {!session?.user?.isSuperAdmin && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20 border-red-200 dark:border-red-900/30"
+                            onClick={() => handleRemoveSupervisor(topic.assignedTeacherId!, true)}
+                            isLoading={removeBusyId === topic.assignedTeacherId}
+                          >
+                            <XCircle className="h-3.5 w-3.5 mr-1" /> Remove Supervisor
+                          </Button>
+                        )}
+                      </div>
+                    ) : (
+                      <p className="text-[12px] text-gray-500 dark:text-gray-400 italic">No supervisor confirmed yet.</p>
+                    )}
+
+                    {/* Pending invitations — multi-invite list. Each row has
+                        its own withdraw button. */}
                     {supervisionApplicants.length > 0 && (
-                      <p className="text-[11px] text-indigo-600 dark:text-indigo-400 mt-1.5">
-                        {supervisionApplicants.length === 1
-                          ? `${supervisionApplicants[0].name} applied to supervise this topic.`
-                          : `${supervisionApplicants.length} teachers applied to supervise: ${supervisionApplicants
-                              .map((x) => x.name)
-                              .join(", ")}. Pick one.`}
-                      </p>
+                      <div className="space-y-1.5 mt-2">
+                        <p className="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
+                          Pending invitations ({supervisionApplicants.length})
+                        </p>
+                        <ul className="space-y-1.5">
+                          {supervisionApplicants.map((a) => (
+                            <li key={a.id} className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-amber-200 dark:border-amber-900/40 bg-amber-50/50 dark:bg-amber-900/10 px-3 py-2">
+                              <div className="flex items-center gap-2 text-[13px]">
+                                <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 px-2 py-0.5 text-[10px] font-bold uppercase">
+                                  Invited
+                                </span>
+                                <span className="font-medium text-gray-900 dark:text-white">{a.name}</span>
+                              </div>
+                              {!session?.user?.isSuperAdmin && !topic.assignedTeacherId && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20 border-red-200 dark:border-red-900/30"
+                                  onClick={() => handleRemoveSupervisor(a.id, false)}
+                                  isLoading={removeBusyId === a.id}
+                                >
+                                  <XCircle className="h-3.5 w-3.5 mr-1" /> Withdraw
+                                </Button>
+                              )}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {/* Invite a new supervisor (hidden once one is confirmed
+                        or for super admins, who are read-only). */}
+                    {!topic.assignedTeacherId && !session?.user?.isSuperAdmin && (
+                      <div className="mt-2 flex flex-wrap items-center gap-2">
+                        <select
+                          className="admin-input flex-1 min-w-[200px] text-[13px] h-10"
+                          value={pickTeacherId}
+                          onChange={(e) => setPickTeacherId(e.target.value)}
+                        >
+                          <option value="">Select a teacher to invite…</option>
+                          {teachers
+                            .filter((t: any) => !applicantIds.has(t.id))
+                            .map((t: any) => (
+                              <option key={t.id} value={t.id}>{t.name}</option>
+                            ))}
+                        </select>
+                        <Button
+                          size="sm"
+                          onClick={handleInviteSupervisor}
+                          isLoading={inviteBusy}
+                          disabled={!pickTeacherId}
+                        >
+                          Invite
+                        </Button>
+                      </div>
                     )}
                   </div>
 

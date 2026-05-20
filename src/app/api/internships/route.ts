@@ -394,8 +394,19 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ data: internship }, { status: 201 });
   } catch (error: unknown) {
     if ((error as { name?: string })?.name === 'ZodError') {
+      // Surface the offending field(s) so the admin can tell what's wrong
+      // instead of seeing a useless "Please check your input" message. The
+      // previous version hid every validation failure behind that string.
+      const issues = (error as any)?.issues as
+        | Array<{ path?: (string | number)[]; message?: string }>
+        | undefined;
+      const detail = issues?.length
+        ? issues
+            .map((i) => `${(i.path ?? []).join('.') || 'input'}: ${i.message}`)
+            .join('; ')
+        : 'invalid request body';
       return NextResponse.json(
-        { error: 'Please check your input and try again.' },
+        { error: `Validation failed — ${detail}` },
         { status: 400 },
       );
     }

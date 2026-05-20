@@ -6,7 +6,7 @@ import { NotificationService } from "@/lib/services/notification.service";
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const session = await auth();
   if (!session || session.user.role !== "TEACHER") {
@@ -16,44 +16,92 @@ export async function PATCH(
   try {
     const { id } = await params;
     const { action } = await req.json();
+    if (action !== "ACCEPT" && action !== "REJECT") {
+      return NextResponse.json({ error: "Invalid action" }, { status: 400 });
+    }
 
     const topic = await prisma.topic.findUnique({
       where: { id },
+      select: {
+        id: true,
+        title: true,
+        status: true,
+        filiereId: true,
+        assignedTeacherId: true,
+        proposedById: true,
+      },
     });
-
-    if (!topic || topic.assignedTeacherId !== session.user.id) {
-      return NextResponse.json({ error: "Topic not assigned to you" }, { status: 403 });
+    if (!topic) {
+      return NextResponse.json({ error: "Topic not found" }, { status: 404 });
     }
 
-    // The accept/decline gate only applies while the topic is waiting on the
-    // teacher. Once it has moved on (already opened, taken, …) the assignment
-    // can no longer be confirmed or declined here.
-    if (topic.status !== "PENDING_TEACHER") {
+    // The teacher must either be the legacy single-assigned PENDING_TEACHER
+    // invitee OR have a PENDING TeacherApplication created by the new multi-
+    // invite flow. Either way they're considered "invited to supervise".
+    const isLegacyAssignee =
+      topic.assignedTeacherId === session.user.id &&
+      topic.status === "PENDING_TEACHER";
+
+    const myApp = await prisma.teacherApplication.findUnique({
+      where: {
+        teacherId_topicId: { teacherId: session.user.id, topicId: id },
+      },
+    });
+    const hasPendingInvite = myApp?.status === "PENDING";
+
+    if (!isLegacyAssignee && !hasPendingInvite) {
       return NextResponse.json(
-        { error: "This assignment is no longer awaiting your confirmation." },
-        { status: 400 },
+        { error: "You don't have a pending invitation for this topic." },
+        { status: 403 },
+      );
+    }
+
+    // Another teacher already accepted while this teacher was deciding.
+    if (topic.assignedTeacherId && topic.assignedTeacherId !== session.user.id) {
+      return NextResponse.json(
+        { error: "Another supervisor has already been confirmed for this topic." },
+        { status: 409 },
       );
     }
 
     if (action === "ACCEPT") {
-      // The teacher confirmed the assignment — they are now the supervisor and
-      // the topic opens for student selection.
+      // The first accepter wins. Lock the topic to this teacher and publish
+      // it for student selection in the same step.
       await prisma.topic.update({
         where: { id },
-        data: { status: "OPEN_FOR_SELECTION" },
+        data: {
+          status: "OPEN_FOR_SELECTION",
+          assignedTeacherId: session.user.id,
+        },
       });
 
-      // The topic stayed in the marketplace while it was PENDING_TEACHER, so
-      // other teachers may have applied in the meantime. Now that this teacher
-      // is officially the supervisor, close out every other PENDING
-      // application and notify those teachers their request was not selected.
+      // Mark this teacher's application ACCEPTED (create it if it doesn't
+      // exist — covers the legacy single-assign path where no application
+      // row was ever created).
+      if (myApp) {
+        await prisma.teacherApplication.update({
+          where: { id: myApp.id },
+          data: { status: "ACCEPTED" },
+        });
+      }
+
+      // Close out every other PENDING invitation and tell those teachers
+      // why their invitation was withdrawn.
       const losers = await prisma.teacherApplication.findMany({
-        where: { topicId: id, status: "PENDING", NOT: { teacherId: session.user.id } },
+        where: {
+          topicId: id,
+          status: "PENDING",
+          NOT: { teacherId: session.user.id },
+        },
         select: { teacherId: true },
       });
       if (losers.length > 0) {
         await prisma.teacherApplication.updateMany({
-          where: { topicId: id, status: "PENDING", NOT: { teacherId: session.user.id } },
+          where: {
+            topicId: id,
+            status: "PENDING",
+            NOT: { teacherId: session.user.id },
+          },
           data: { status: "REJECTED" },
         });
         await Promise.all(
@@ -61,8 +109,8 @@ export async function PATCH(
             NotificationService.trigger({
               userId: l.teacherId,
               type: "TEACHER_REJECTED",
-              title: "Supervision Request Closed",
-              message: `Another supervisor was confirmed for "${topic.title}". Your supervision request was not selected.`,
+              title: "Supervision Invitation Closed",
+              message: `Another supervisor was confirmed for "${topic.title}".`,
               relatedId: topic.id,
               relatedType: "Topic",
             }).catch(() => null),
@@ -74,48 +122,44 @@ export async function PATCH(
         userId: topic.proposedById,
         type: "TEACHER_ACCEPTED",
         title: "Supervisor Accepted",
-        message: `The assigned supervisor has accepted "${topic.title}". The topic is now open for student selection.`,
+        message: `${session.user.name} accepted to supervise "${topic.title}". The topic is now open for student selection.`,
         relatedId: topic.id,
         relatedType: "Topic",
       });
     } else {
-      // The teacher declined — release the assignment but keep the topic
-      // open: it goes back to OPEN_FOR_SELECTION so it shows up in the
-      // teachers' marketplace (any other teacher can self-apply) and stays
-      // available to students. The admin is still notified to reassign if
-      // they want to pick a specific supervisor.
-      await prisma.topic.update({
-        where: { id },
-        data: {
-          status: "OPEN_FOR_SELECTION",
-          rejectionReason: "Assigned teacher declined the supervision",
-          assignedTeacherId: null,
-        },
-      });
-
-      // Mark the declining teacher's own application as REJECTED so the
-      // record remains for audit purposes. Other teachers' applications
-      // (the queue of interest) stay untouched so the admin can pick from
-      // them. Stale REJECTED rows are no longer a re-application blocker —
-      // apply-supervision POST repurposes a REJECTED row back to PENDING
-      // when the same teacher wants another chance.
-      await prisma.teacherApplication
-        .updateMany({
-          where: { topicId: id, teacherId: session.user.id },
+      // This teacher declines their invitation. Do NOT touch topic state —
+      // other invitees may still accept. Only reject this teacher's row.
+      if (myApp) {
+        await prisma.teacherApplication.update({
+          where: { id: myApp.id },
           data: { status: "REJECTED" },
-        })
-        .catch(() => null);
+        });
+      }
+
+      // Legacy single-assign path: also clear the topic's assignedTeacherId
+      // and bounce it back to OPEN_FOR_SELECTION so it stays in the pool.
+      if (isLegacyAssignee) {
+        await prisma.topic.update({
+          where: { id },
+          data: {
+            status: "OPEN_FOR_SELECTION",
+            assignedTeacherId: null,
+            rejectionReason: "Assigned teacher declined the supervision",
+          },
+        });
+      }
 
       await NotificationService.trigger({
         userId: topic.proposedById,
         type: "TEACHER_REJECTED",
         title: "Supervisor Declined",
-        message: `The assigned supervisor declined "${topic.title}". The administration will assign another supervisor.`,
+        message: `${session.user.name} declined to supervise "${topic.title}".`,
         relatedId: topic.id,
         relatedType: "Topic",
       });
 
-      // Notify the responsible administrators so they can reassign.
+      // Tell the admins so they can invite someone else (or know the queue
+      // is thinning out).
       const admins = await prisma.user.findMany({
         where: {
           role: "ADMIN",
@@ -130,14 +174,13 @@ export async function PATCH(
         } as any,
         select: { id: true },
       });
-
       await Promise.all(
         admins.map((admin) =>
           NotificationService.trigger({
             userId: admin.id,
             type: "TEACHER_REJECTED",
             title: "Supervisor Declined — Reassignment Needed",
-            message: `${session.user.name} declined to supervise "${topic.title}". Please assign another supervisor.`,
+            message: `${session.user.name} declined to supervise "${topic.title}". You may invite another supervisor.`,
             relatedId: topic.id,
             relatedType: "Topic",
             link: "/admin/topics",
@@ -153,10 +196,13 @@ export async function PATCH(
       targetId: topic.title,
     });
 
-    await NotificationService.clearRelated(id, 'Topic');
+    await NotificationService.clearRelated(id, "Topic");
 
-    return NextResponse.json({ message: `Topic ${action.toLowerCase()}ed successfully` });
+    return NextResponse.json({
+      message: action === "ACCEPT" ? "Supervision accepted." : "Supervision declined.",
+    });
   } catch (error) {
+    console.error("[teacher-action]", error);
     return NextResponse.json({ error: "Action failed" }, { status: 500 });
   }
 }

@@ -1,10 +1,17 @@
 import { z } from 'zod';
 
+// IDs in this app are produced by `randomUUID()` (UUID v4), not cuid. Using
+// `.cuid()` here silently rejected every real id and surfaced the generic
+// "Please check your input and try again" error on every "Create Internship"
+// click. Accept UUIDs and fall back to a plain non-empty string for safety
+// in case any non-standard id format ever sneaks in.
+const idSchema = z.string().min(1);
+
 export const internshipSchema = z.object({
-  topicId: z.string().cuid(),
-  teacherId: z.string().cuid(),
+  topicId: idSchema,
+  teacherId: idSchema,
   academicYear: z.string(),
-  studentIds: z.array(z.string().cuid()).min(1).max(2),
+  studentIds: z.array(idSchema).min(1).max(2),
   // internshipType is inherited from the topic — optional override
   internshipType: z.enum(['PFE', 'NORMAL']).optional(),
 });
