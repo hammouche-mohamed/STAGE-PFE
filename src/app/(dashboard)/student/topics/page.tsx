@@ -319,9 +319,9 @@ export default function StudentTopicsPage() {
             // server enforces the same rules, but no point letting them open
             // a modal just to bounce them out with an error.
             const blockedReason: string | null = activeInternshipTitle
-              ? `You're already enrolled in "${activeInternshipTitle}". Cancel or finish it before applying elsewhere.`
+              ? "Already in an internship"
               : teamSize > topic.maxStudents
-                ? `Your team has ${teamSize} member${teamSize === 1 ? "" : "s"}; this topic allows at most ${topic.maxStudents}. Remove member${teamSize - topic.maxStudents === 1 ? "" : "s"} or pick a topic with a larger cap.`
+                ? "Team size is more than capacity"
                 : null;
 
             return (
