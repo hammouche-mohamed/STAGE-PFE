@@ -403,10 +403,17 @@ export class MiniPresentationService {
    * Cron entry point. Walks every active PFE milestone and:
    *  - fires the 24h / 4h / 1h pre-deadline reminders (once each, idempotent
    *    via `remindedAt24h/4h/1h` columns)
-   *  - flips missed milestones (deadline passed, no upload) to LATE_SUBMITTED
+   *  - flips missed milestones (deadline passed, no upload) to MISSED
    *    and pings the department admin once.
    * Safe to call as often as the cron runs; each branch is guarded by a
    * "have we done this already" timestamp.
+   *
+   * IMPORTANT: with Vercel Hobby's once-daily cron only the 24h reminder
+   * lands reliably — the 4h and 1h windows are too narrow to be hit by a
+   * once-a-day run unless the deadline happens to fall ~4h/1h after the
+   * cron's fixed time. The branches stay in place so a sub-daily cadence
+   * (Pro plan, GitHub Actions, external scheduler) Just Works without
+   * code changes.
    */
   static async runDeadlineSweep() {
     const now = new Date();
