@@ -2,8 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { AuditService } from "@/lib/services/audit.service";
+import { NotificationService } from "@/lib/services/notification.service";
 import { randomUUID } from "crypto";
 import { revalidateTag } from "next/cache";
+import { addDays, differenceInDays } from "date-fns";
 
 export async function GET(req: NextRequest) {
   const session = await auth();
@@ -67,7 +69,70 @@ export async function POST(req: NextRequest) {
       console.error("Failed to log audit for settings update:", auditError);
     }
 
-    return NextResponse.json({ data: setting });
+    // When the super admin updates the global PFE end date, every active PFE
+    // internship must be realigned: end date AND final report deadline both
+    // jump to the new date. Midterm is recomputed from the existing start +
+    // new end. Completed/cancelled internships are left alone (historical).
+    let propagated = 0;
+    if (key === "pfeEndDate" && value) {
+      const newEnd = new Date(String(value));
+      if (!Number.isNaN(newEnd.getTime())) {
+        const activePfe = await prisma.internship.findMany({
+          where: {
+            internshipType: "PFE",
+            status: { notIn: ["COMPLETED", "CANCELLED"] },
+          },
+          select: {
+            id: true,
+            startDate: true,
+            teacherId: true,
+            topic: { select: { title: true } },
+            internshipstudent: { select: { studentId: true } },
+          },
+        });
+
+        await Promise.all(
+          activePfe.map(async (i) => {
+            const data: Record<string, any> = {
+              endDate: newEnd,
+              finalDeadline: newEnd,
+              updatedAt: new Date(),
+            };
+            // Only recompute midterm if the internship has actually started
+            // (start date is set). Use floor(duration/2) — the same rule
+            // calculateDeadlines uses on activation.
+            if (i.startDate) {
+              const duration = differenceInDays(newEnd, i.startDate);
+              if (duration > 0) {
+                data.midtermDeadline = addDays(i.startDate, Math.floor(duration / 2));
+              }
+            }
+            await prisma.internship.update({ where: { id: i.id }, data });
+            propagated++;
+
+            // Tell everyone whose deadline just shifted.
+            const recipients = [
+              ...i.internshipstudent.map((s) => s.studentId),
+              i.teacherId,
+            ];
+            await Promise.all(
+              recipients.map((userId) =>
+                NotificationService.trigger({
+                  userId,
+                  type: "DEADLINE_APPROACHING",
+                  title: "PFE Deadline Updated",
+                  message: `The PFE end date and final report deadline for "${i.topic.title}" have been updated to ${newEnd.toLocaleDateString()}.`,
+                  relatedId: i.id,
+                  relatedType: "Internship",
+                }).catch(() => null),
+              ),
+            );
+          }),
+        );
+      }
+    }
+
+    return NextResponse.json({ data: setting, propagated });
   } catch (error: any) {
     console.error("Settings update error:", error);
     return NextResponse.json({

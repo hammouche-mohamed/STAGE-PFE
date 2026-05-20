@@ -29,7 +29,9 @@ export async function GET(req: NextRequest) {
       });
       if (member) {
         where.teamId = member.teamId;
-        where.status = { not: "REJECTED" };
+        // Only count applications that are still alive. REJECTED (by company)
+        // and CANCELLED (withdrawn) must never inflate the "applied" badge.
+        where.status = { notIn: ["REJECTED", "CANCELLED"] };
       } else {
         return NextResponse.json({ data: [], pagination: { page, limit, total: 0 } });
       }
@@ -140,6 +142,19 @@ export async function POST(req: NextRequest) {
         data: { teamId: team.id, studentId: session.user.id, isLeader: true },
         include: { studentteam: true }
       });
+    }
+
+    // Only the team leader may submit an application on behalf of the team.
+    // Team members must ask their leader to apply — submitting from a member
+    // account otherwise lets anyone bind the whole team to a topic.
+    if (!member.isLeader) {
+      return NextResponse.json(
+        {
+          error:
+            "Only your team leader can apply to a topic. Ask your team leader to submit the application.",
+        },
+        { status: 403 },
+      );
     }
 
     const teamId = member.teamId;

@@ -243,6 +243,7 @@ export async function POST(req: NextRequest) {
         targetLevels: true,
         assignedTeacherId: true,
         proposedByStudent: true,
+        proposedById: true,
       },
     });
 
@@ -317,30 +318,48 @@ export async function POST(req: NextRequest) {
 
     const students = (internship as any).internshipstudent.map((s: { studentId: string }) => s.studentId);
 
-    if (students.length > 0) {
-      await (prisma as any).notification.createMany({
-        data: students.map((uid: string) => ({
-          id: randomUUID(),
+    const topicTitle = topic?.title || 'your topic';
+
+    // Notify every student on the team — in-app + email (so a solo student or
+    // each binôme member gets both). createMany would skip the email entirely.
+    await Promise.all(
+      students.map((uid: string) =>
+        NotificationService.trigger({
           userId: uid,
           type: 'INTERNSHIP_STARTED',
-          title: 'Internship Record Created',
-          message: 'Your internship has been officially created and is awaiting document exchange.',
+          title: 'Internship Started',
+          message: `Your internship for "${topicTitle}" has officially started. You can now follow it from your dashboard.`,
           relatedId: internship.id,
           relatedType: 'Internship',
           link: '/student/internship',
-        }))
-      });
-    }
+        }).catch(() => null),
+      ),
+    );
 
+    // Supervisor — in-app + email.
     await NotificationService.trigger({
       userId: teacherId,
       type: 'INTERNSHIP_STARTED',
-      title: 'New Supervision Assigned',
-      message: `You have been assigned as the supervisor for the project: ${topic?.title || 'New Internship'}.`,
+      title: 'Internship Started',
+      message: `The internship you are supervising — "${topicTitle}" — has officially started.`,
       relatedId: internship.id,
       relatedType: 'Internship',
       link: `/teacher/internships/${internship.id}`,
     });
+
+    // Host company / proposer — in-app + email. Skipped for student-proposed
+    // topics, where the proposer is one of the students already notified above.
+    if (topic?.proposedById && !topic.proposedByStudent) {
+      await NotificationService.trigger({
+        userId: topic.proposedById,
+        type: 'INTERNSHIP_STARTED',
+        title: 'Internship Started',
+        message: `The internship for your topic "${topicTitle}" has officially started. The supervisor and student team are set; you can follow it from your portal.`,
+        relatedId: internship.id,
+        relatedType: 'Internship',
+        link: `/company/internships/${internship.id}`,
+      }).catch(() => null);
+    }
 
     if (!session.user.isSuperAdmin) {
       const superAdmins = await prisma.user.findMany({

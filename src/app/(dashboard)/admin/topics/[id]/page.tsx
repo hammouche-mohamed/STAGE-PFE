@@ -541,16 +541,16 @@ export default function AdminTopicDetailPage() {
                        // — no action buttons.
                        if (needsCompany && app.status === "PENDING") {
                          return (
-                           <span className="inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-full text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-900/30">
-                             <Clock className="h-3.5 w-3.5" />
+                           <span className="inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-full text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-900/30 whitespace-nowrap self-start sm:self-auto">
+                             <Clock className="h-3.5 w-3.5 shrink-0" />
                              Waiting for company validation
                            </span>
                          );
                        }
                        if (app.status === "REJECTED" || app.status === "CANCELLED") {
                          return (
-                           <span className="inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-full text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-slate-800 border border-gray-100 dark:border-slate-700">
-                             <XCircle className="h-3.5 w-3.5" />
+                           <span className="inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-full text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-slate-800 border border-gray-100 dark:border-slate-700 whitespace-nowrap self-start sm:self-auto">
+                             <XCircle className="h-3.5 w-3.5 shrink-0" />
                              Not selected
                            </span>
                          );
@@ -559,22 +559,26 @@ export default function AdminTopicDetailPage() {
                        // An internship cannot be started without a supervisor.
                        const noSupervisor = !topic.assignedTeacherId;
                        return (
-                         <div className="flex items-center gap-2">
-                           {needsCompany && (
-                             <span className="inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-full text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/20 border border-green-100 dark:border-green-900/30">
-                               <CheckCircle2 className="h-3.5 w-3.5" />
-                               Company validated
-                             </span>
-                           )}
-                           {noSupervisor && topic.status !== "TAKEN" && (
-                             <span className="inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-full text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-900/30">
-                               <AlertCircle className="h-3.5 w-3.5" />
-                               Assign a supervisor first
-                             </span>
+                         <div className="flex flex-col items-stretch sm:flex-row sm:items-center sm:justify-end gap-2 w-full sm:w-auto">
+                           {(needsCompany || (noSupervisor && topic.status !== "TAKEN")) && (
+                             <div className="flex flex-wrap items-center gap-2">
+                               {needsCompany && (
+                                 <span className="inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-full text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/20 border border-green-100 dark:border-green-900/30 whitespace-nowrap">
+                                   <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
+                                   Company validated
+                                 </span>
+                               )}
+                               {noSupervisor && topic.status !== "TAKEN" && (
+                                 <span className="inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-full text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-900/30 whitespace-nowrap">
+                                   <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                                   Assign a supervisor first
+                                 </span>
+                               )}
+                             </div>
                            )}
                            <Button
                              size="sm"
-                             className="bg-indigo-600 hover:bg-indigo-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                             className="bg-indigo-600 hover:bg-indigo-700 text-white disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto"
                              onClick={() => setApproveTeamApp(app)}
                              isLoading={isUpdating && approveTeamApp?.id === app.id}
                              disabled={topic.status === "TAKEN" || noSupervisor}

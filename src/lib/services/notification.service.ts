@@ -76,6 +76,42 @@ export class NotificationService {
   }
 
   /**
+   * Deliver the same notification to every member of a student team — leader
+   * AND every other member — so a binôme partner is never left out of an
+   * acceptance/rejection/deadline message. For a solo student (team of one)
+   * only that single member is notified, matching the "alone → only him"
+   * rule. Falls back gracefully if the team has no members.
+   */
+  static async triggerTeam(args: {
+    teamId: string | null | undefined;
+    type: string;
+    title: string;
+    message: string;
+    relatedId?: string;
+    relatedType?: string;
+    link?: string;
+    skipEmail?: boolean;
+  }) {
+    if (!args.teamId) return [];
+    const { teamId, ...payload } = args;
+    try {
+      const members = await prisma.teamMember.findMany({
+        where: { teamId },
+        select: { studentId: true },
+      });
+      const ids = Array.from(new Set(members.map((m) => m.studentId).filter(Boolean)));
+      return Promise.all(
+        ids.map((userId) =>
+          NotificationService.trigger({ ...payload, userId }).catch(() => null),
+        ),
+      );
+    } catch (error) {
+      console.error('[Notification] triggerTeam failed:', error);
+      return [];
+    }
+  }
+
+  /**
    * NFR-RDI2: Retry sending emails for notifications where emailSent = false.
    * Called by the daily cron job. Skips notifications younger than 5 minutes
    * to avoid re-attempting before the initial call has finished.

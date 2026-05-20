@@ -17,7 +17,7 @@ import { useTranslation } from "@/lib/i18n/LanguageContext";
 interface Application {
   id: string;
   topicId: string;
-  topic: { title: string };
+  topic: { title: string; status?: string };
   status: string;
   appliedAt: string;
   message?: string | null;
@@ -217,7 +217,19 @@ export default function CompanyApplicationsPage() {
                     <span className="text-[12px] text-gray-500 dark:text-gray-400">{format(new Date(app.appliedAt), "MMM d, yyyy")}</span>
                   </td>
                   <td data-label="Status">
-                    <StatusBadge status={app.status} />
+                    <div className="flex flex-col items-end sm:items-start gap-1.5">
+                      <StatusBadge status={app.status} />
+                      {app.status === "ACCEPTED" && app.topic.status !== "TAKEN" && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/50 text-amber-700 dark:text-amber-400 px-2 py-0.5 text-[11px] font-semibold whitespace-nowrap">
+                          Waiting for admin validation to start the internship
+                        </span>
+                      )}
+                      {app.status === "ACCEPTED" && app.topic.status === "TAKEN" && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800/50 text-emerald-700 dark:text-emerald-400 px-2 py-0.5 text-[11px] font-semibold whitespace-nowrap">
+                          Internship started
+                        </span>
+                      )}
+                    </div>
                   </td>
                   <td data-label="Review" className="text-right">
                     <div className="flex items-center justify-end gap-1">

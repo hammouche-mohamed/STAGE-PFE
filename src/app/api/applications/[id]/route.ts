@@ -25,14 +25,7 @@ export async function PATCH(
       where: { id },
       include: {
         topic: true,
-        studentteam: {
-          include: {
-            teammember: {
-              where: { isLeader: true },
-              include: { user: true }
-            }
-          }
-        }
+        studentteam: { select: { id: true } },
       }
     });
 
@@ -93,24 +86,22 @@ export async function PATCH(
     // them AFTER the response is flushed so the company UI gets an immediate
     // reply. The in-app notification rows are still persisted; if the email
     // step fails the daily cron (retryFailedEmails) re-attempts delivery.
-    const leader = application.studentteam?.teammember[0]?.user;
+    const applicantTeamId = application.studentteam?.id ?? application.teamId;
     after(async () => {
       try {
-        if (leader) {
-          await NotificationService.trigger({
-            userId: leader.id,
-            // "APPLICATION_STATUS_UPDATE" is NOT a valid notification_type
-            // enum value — prisma.notification.create threw on it and the
-            // error was swallowed, so neither the in-app row nor the email
-            // was ever delivered. Use the real enum value.
-            type: status === "ACCEPTED" ? "APPLICATION_APPROVED" : "APPLICATION_REJECTED",
-            title: "Company Review Update",
-            message: `Your application for "${application.topic.title}" was ${status.toLowerCase()} by the company.`,
-            relatedId: application.topicId,
-            relatedType: "Topic",
-            link: "/student/topics",
-          });
-        }
+        // Notify EVERY member of the applying team — leader + binôme partner(s)
+        // — so the news lands in every member's inbox and notifications panel.
+        await NotificationService.triggerTeam({
+          teamId: applicantTeamId,
+          // "APPLICATION_STATUS_UPDATE" is NOT a valid notification_type enum
+          // value — use the real enum value.
+          type: status === "ACCEPTED" ? "APPLICATION_APPROVED" : "APPLICATION_REJECTED",
+          title: "Company Review Update",
+          message: `Your application for "${application.topic.title}" was ${status.toLowerCase()} by the company.`,
+          relatedId: application.topicId,
+          relatedType: "Topic",
+          link: "/student/topics",
+        });
 
         if (status === "ACCEPTED" && application.topic.filiereId) {
           const deptAdmins = await prisma.user.findMany({
@@ -137,11 +128,12 @@ export async function PATCH(
           );
         }
 
-        // Tell every team that lost the topic why their application closed.
+        // Tell every team that lost the topic why their application closed —
+        // and reach every member of those teams, not just the leader.
         await Promise.all(
           autoRejected.map((r) =>
-            NotificationService.trigger({
-              userId: r.leaderId,
+            NotificationService.triggerTeam({
+              teamId: r.teamId,
               type: "APPLICATION_REJECTED",
               title: "Application Not Accepted",
               message: `Your application for "${r.topicTitle}" was not accepted — another team was selected for this topic.`,

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { InternshipService } from '@/lib/services/internship.service';
+import { SettingsService } from '@/lib/services/settings.service';
 import prisma from '@/lib/prisma';
 import { z } from 'zod';
 
@@ -47,16 +48,22 @@ export async function POST(
     let endDate: Date;
     let technicalSupervisorName: string;
     let technicalSupervisorEmail: string;
+    let finalDeadlineOverride: Date | null = null;
 
     if (isPFE) {
-      if (!internship.finalDeadline) {
+      // PFE internships use the system-wide end date / final report deadline
+      // set by the super admin in /admin/settings. Both fields are locked to
+      // that single date so every PFE cohort ends on the same day.
+      const pfeEndDate = await SettingsService.getPfeEndDate();
+      if (!pfeEndDate) {
         return NextResponse.json({
-          error: 'The administration must set the final report deadline before the company can activate a PFE internship.',
+          error: 'The super administrator has not set the PFE end date yet. Configure it in Admin Settings before activating a PFE internship.',
         }, { status: 400 });
       }
       const parsed = pfeActivationSchema.parse(body);
       startDate = new Date(parsed.startDate);
-      endDate = internship.finalDeadline;
+      endDate = pfeEndDate;
+      finalDeadlineOverride = pfeEndDate;
       technicalSupervisorName = parsed.technicalSupervisorName;
       technicalSupervisorEmail = parsed.technicalSupervisorEmail;
     } else {
@@ -78,11 +85,12 @@ export async function POST(
       technicalSupervisorName,
       technicalSupervisorEmail,
       session.user.id,
+      finalDeadlineOverride,
     );
 
     return NextResponse.json({
       message: isPFE
-        ? 'PFE internship activated. End date is locked to the admin-set final report deadline.'
+        ? 'PFE internship activated. End date and final report deadline are locked to the system-wide PFE date.'
         : 'Internship activated. Deadlines have been calculated.',
     });
   } catch (error: unknown) {

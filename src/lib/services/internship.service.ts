@@ -46,6 +46,12 @@ export class InternshipService {
     technicalSupervisorName: string,
     technicalSupervisorEmail: string,
     actorId: string,
+    /**
+     * When provided, replaces the auto-calculated `endDate - 7` final
+     * deadline. Used for PFE internships where the super admin fixes both
+     * the end date and the final-report deadline globally in settings.
+     */
+    finalDeadlineOverride?: Date | null,
   ) {
     const internship = await prisma.internship.findUnique({
       where: { id: internshipId },
@@ -58,11 +64,9 @@ export class InternshipService {
     if (!internship) throw new Error('Internship not found');
 
     const internshipType: internship_type = internship.internshipType ?? internship_type.PFE;
-    const { midtermDeadline, finalDeadline } = this.calculateDeadlines(
-      startDate,
-      endDate,
-      internshipType,
-    );
+    const auto = this.calculateDeadlines(startDate, endDate, internshipType);
+    const midtermDeadline = auto.midtermDeadline;
+    const finalDeadline = finalDeadlineOverride ?? auto.finalDeadline;
 
     const updated = await prisma.$transaction(async (tx) => {
       const result = await tx.internship.update({

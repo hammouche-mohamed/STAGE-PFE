@@ -36,6 +36,7 @@ interface Topic {
   createdAt: string;
   pendingEditData?: string | null;
   pendingEditRequestedAt?: string | null;
+  pendingTeacherApplicationsCount?: number;
 }
 
 export default function AdminTopicsPage() {
@@ -195,13 +196,27 @@ export default function AdminTopicsPage() {
             >
               <div className="flex items-start justify-between">
                 <div className="space-y-1 pr-6 flex-1">
-                  <div className="flex items-center gap-2 mb-1">
+                  <div className="flex flex-wrap items-center gap-2 mb-1">
                     <StatusBadge status={topic.status} />
                     {topic.pendingEditData && (
                        <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 px-1.5 py-0.5 rounded flex items-center">
                          <AlertCircle className="h-3 w-3 mr-1" />
                          PENDING EDIT
                        </span>
+                    )}
+                    {(topic.pendingTeacherApplicationsCount ?? 0) > 0 && (
+                      <span
+                        title={`${topic.pendingTeacherApplicationsCount} teacher${(topic.pendingTeacherApplicationsCount ?? 0) > 1 ? "s want" : " wants"} to supervise this topic`}
+                        className="relative inline-flex items-center gap-1 text-[10px] font-bold text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-200 dark:border-indigo-800/60 px-1.5 py-0.5 rounded"
+                      >
+                        <span className="relative flex h-1.5 w-1.5">
+                          <span className="absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75 animate-ping" />
+                          <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-indigo-600" />
+                        </span>
+                        <GraduationCap className="h-3 w-3" />
+                        {topic.pendingTeacherApplicationsCount}
+                        {" "}supervision request{(topic.pendingTeacherApplicationsCount ?? 0) > 1 ? "s" : ""}
+                      </span>
                     )}
                     <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">{topic.academicYear}</span>
                   </div>

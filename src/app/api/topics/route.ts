@@ -315,7 +315,10 @@ export async function GET(req: NextRequest) {
       assignedTeacher: { select: { id: true, name: true } },
       _count: {
         select: {
-          studentapplication: true
+          studentapplication: true,
+          // Surface pending teacher supervision requests so the admin list
+          // can flag topics where a teacher wants to supervise.
+          teacherapplication: { where: { status: 'PENDING' } } as any,
         }
       }
     };
@@ -344,8 +347,10 @@ export async function GET(req: NextRequest) {
     const topics = rawTopics.map((t: any) => ({
       ...t,
       teacherApplications: t.teacherapplication || [],
+      pendingTeacherApplicationsCount: t._count?.teacherapplication || 0,
       _count: {
-        applications: t._count?.studentapplication || 0
+        applications: t._count?.studentapplication || 0,
+        pendingTeacherApplications: t._count?.teacherapplication || 0,
       },
     }));
 

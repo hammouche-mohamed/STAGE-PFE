@@ -52,21 +52,27 @@ export async function PATCH(
         relatedType: "Topic",
       });
     } else {
-      // The teacher declined — release the assignment and hand the topic back
-      // to the administration so a different supervisor can be picked.
+      // The teacher declined — release the assignment but keep the topic
+      // open: it goes back to OPEN_FOR_SELECTION so it shows up in the
+      // teachers' marketplace (any other teacher can self-apply) and stays
+      // available to students. The admin is still notified to reassign if
+      // they want to pick a specific supervisor.
       await prisma.topic.update({
         where: { id },
         data: {
-          status: "PENDING_ADMIN",
+          status: "OPEN_FOR_SELECTION",
           rejectionReason: "Assigned teacher declined the supervision",
           assignedTeacherId: null,
         },
       });
 
-      // Drop the declining teacher's marketplace application so they are no
-      // longer listed as a candidate for this topic.
+      // Clear EVERY teacher application for this topic — the declining
+      // teacher's own row + any rows the admin auto-rejected when picking
+      // this teacher. Without this, those other teachers can't re-apply
+      // (the unique (teacherId, topicId) row blocks the POST), and the
+      // topic effectively stays out of their marketplace.
       await prisma.teacherApplication
-        .deleteMany({ where: { topicId: id, teacherId: session.user.id } })
+        .deleteMany({ where: { topicId: id } })
         .catch(() => null);
 
       await NotificationService.trigger({

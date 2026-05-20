@@ -25,6 +25,10 @@ export default function AdminSettingsPage() {
     availablePromotions: "",
     proposalFormTemplateUrl: "",
     MAX_TEAM_SIZE: "2",
+    // Global end date for every PFE internship — both the internship end and
+    // its final report deadline lock to this single date set by the super
+    // admin. ISO yyyy-MM-dd in storage.
+    pfeEndDate: "",
   });
   const [loadingKey, setLoadingKey] = useState<string | null>(null);
   const [brandingFile, setBrandingFile] = useState<File | null>(null);
@@ -377,16 +381,53 @@ export default function AdminSettingsPage() {
             </div>
           </div>
           <div className="flex items-center space-x-3 w-full sm:w-auto">
-            <input 
+            <input
               type="number"
-              className="admin-input flex-1 sm:w-[80px] text-center" 
+              className="admin-input flex-1 sm:w-[80px] text-center"
               value={settings.maxResubmissions || "3"}
               onChange={(e) => setSettings({...settings, maxResubmissions: e.target.value})}
             />
-            <Button 
-              size="sm" 
+            <Button
+              size="sm"
               isLoading={loadingKey === "maxResubmissions"}
               onClick={() => handleUpdate("maxResubmissions", settings.maxResubmissions)}
+            >
+              {t("common.save")}
+            </Button>
+          </div>
+        </div>
+
+        {/* PFE End Date — single system-wide deadline used for both the PFE
+            internship end date and its final report deadline. */}
+        <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-md p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
+          <div className="flex items-center space-x-4">
+            <div className="p-3 bg-purple-50 dark:bg-purple-900/30 rounded-md text-purple-600 dark:text-purple-400 flex-shrink-0">
+              <Calendar className="h-5 w-5" />
+            </div>
+            <div>
+              <h3 className="text-[14px] font-semibold text-gray-900 dark:text-white">PFE End Date</h3>
+              <p className="text-[12px] text-gray-500 dark:text-gray-400">
+                System-wide deadline for every PFE internship. The end date and the final report deadline both lock to this date.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center space-x-3 w-full sm:w-auto">
+            <input
+              type="date"
+              className="admin-input flex-1 sm:w-[180px] text-center"
+              value={settings.pfeEndDate || ""}
+              onChange={(e) => setSettings({ ...settings, pfeEndDate: e.target.value })}
+            />
+            <Button
+              size="sm"
+              isLoading={loadingKey === "pfeEndDate"}
+              onClick={() => {
+                if (!settings.pfeEndDate) {
+                  toast.error("Pick a date first.");
+                  return;
+                }
+                handleUpdate("pfeEndDate", settings.pfeEndDate);
+              }}
             >
               {t("common.save")}
             </Button>

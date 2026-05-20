@@ -54,6 +54,9 @@ export default function StudentTopicsPage() {
   const [filieres, setFilieres] = useState<Filiere[]>([]);
   const [filiereFilter, setFiliereFilter] = useState<string>("ALL");
   const [activeTab, setActiveTab] = useState<"ALL" | "APPLIED" | "MY_PROPOSALS">("ALL");
+  // Whether this student is allowed to submit an application: a solo student
+  // (no team yet) is, and a team member is only if they are the leader.
+  const [canSubmit, setCanSubmit] = useState(true);
 
   const studentLevel = (session?.user as any)?.level as string | undefined;
 
@@ -63,8 +66,13 @@ export default function StudentTopicsPage() {
       fetch("/api/topics").then(r => r.json()),
       fetch("/api/filieres").then(r => r.json()),
       fetch("/api/profile").then(r => r.json()),
-      fetch("/api/applications").then(r => r.json())
-    ]).then(([topicsData, filieresData, profileData, applicationsData]) => {
+      fetch("/api/applications").then(r => r.json()),
+      fetch("/api/teams").then(r => r.json()).catch(() => ({ data: null })),
+    ]).then(([topicsData, filieresData, profileData, applicationsData, teamData]) => {
+      const team = teamData?.data;
+      const myId = (session?.user as any)?.id;
+      // No team yet → solo, can apply. Has a team → must be the leader.
+      setCanSubmit(!team || team.leaderId === myId);
       const allTopics = topicsData.data || [];
       const allFilieres = filieresData.data || [];
       const studentSpec = profileData.data?.studentProfile?.speciality;
@@ -85,7 +93,11 @@ export default function StudentTopicsPage() {
 
       if (applicationsData.data) {
         const appliedMap = new Map<string, any>();
-        applicationsData.data.forEach((app: any) => appliedMap.set(app.topicId, app));
+        // Ignore inactive applications (rejected by company, withdrawn) so
+        // the "Applied" badge mirrors actually-live applications only.
+        applicationsData.data
+          .filter((app: any) => app.status !== "REJECTED" && app.status !== "CANCELLED")
+          .forEach((app: any) => appliedMap.set(app.topicId, app));
         setApplied(appliedMap);
       }
     })
@@ -366,6 +378,10 @@ export default function StudentTopicsPage() {
                   ) : !eligible ? (
                     <span className="flex items-center gap-1.5 text-[12px] text-amber-600 dark:text-amber-400 font-medium">
                       <Lock className="h-3.5 w-3.5" /> {t("topics.list.requires", { levels: topic.targetLevels })}
+                    </span>
+                  ) : !canSubmit ? (
+                    <span className="flex items-center gap-1.5 text-[12px] text-gray-500 dark:text-gray-400 font-medium" title="Only your team leader can apply">
+                      <Lock className="h-3.5 w-3.5" /> Only the team leader can apply
                     </span>
                   ) : (
                     <Button

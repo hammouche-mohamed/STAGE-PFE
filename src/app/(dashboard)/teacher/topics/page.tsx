@@ -39,6 +39,9 @@ export default function TeacherTopicsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<Tab>("SUPERVISING");
   const [isApplying, setIsApplying] = useState<string | null>(null);
+  // Tracks which assignment decision is currently in-flight so only the
+  // pressed button (Accept OR Decline) spins, while the other is disabled.
+  const [pendingDecision, setPendingDecision] = useState<"ACCEPT" | "REJECT" | null>(null);
   const [viewTopic, setViewTopic] = useState<Topic | null>(null);
   const [confirmAction, setConfirmAction] = useState<{
     type: "apply" | "cancel" | "accept" | "decline";
@@ -46,8 +49,11 @@ export default function TeacherTopicsPage() {
   } | null>(null);
 
   const fetchTopics = async () => {
+    // Always pull fresh data so a cancelled / declined supervision request
+    // re-surfaces in the marketplace immediately instead of showing the
+    // cached "Requested" snapshot.
     try {
-      const res = await fetch("/api/topics");
+      const res = await fetch("/api/topics", { cache: "no-store" });
       const data = await res.json();
       setTopics(data.data || []);
     } catch {
@@ -130,6 +136,7 @@ export default function TeacherTopicsPage() {
     action: "ACCEPT" | "REJECT",
   ) => {
     setIsApplying(topicId);
+    setPendingDecision(action);
     try {
       const res = await fetch(`/api/topics/${topicId}/teacher-action`, {
         method: "PATCH",
@@ -145,6 +152,7 @@ export default function TeacherTopicsPage() {
       toast.error(error.message);
     } finally {
       setIsApplying(null);
+      setPendingDecision(null);
     }
   };
 
@@ -414,14 +422,16 @@ export default function TeacherTopicsPage() {
                     variant="outline"
                     className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20 border-red-200 dark:border-red-900/30"
                     onClick={() => setConfirmAction({ type: "decline", topic: viewTopic })}
-                    isLoading={isApplying === viewTopic.id}
+                    isLoading={isApplying === viewTopic.id && pendingDecision === "REJECT"}
+                    disabled={isApplying === viewTopic.id && pendingDecision !== "REJECT"}
                   >
                     {t("teacherTopics.decline")}
                   </Button>
                   <Button
                     size="sm"
                     onClick={() => setConfirmAction({ type: "accept", topic: viewTopic })}
-                    isLoading={isApplying === viewTopic.id}
+                    isLoading={isApplying === viewTopic.id && pendingDecision === "ACCEPT"}
+                    disabled={isApplying === viewTopic.id && pendingDecision !== "ACCEPT"}
                   >
                     {t("teacherTopics.accept")}
                   </Button>
