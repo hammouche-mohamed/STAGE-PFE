@@ -12,6 +12,17 @@ export interface SchedulePayload {
   documentDeadline: Date;
 }
 
+export interface BulkSchedulePayload {
+  title: string;
+  scheduledAt: Date;
+  room: string;
+  timeSlot: string;
+  documentDeadline: Date;
+  /** Restrict to PFE internships in this filière. Null/undefined = every PFE
+   *  internship across the institution (only meaningful for super admins). */
+  filiereId?: string | null;
+}
+
 /**
  * FR-A5: Schedule, update and cancel mini-presentation sessions.
  *
@@ -115,6 +126,118 @@ export class MiniPresentationService {
     }
 
     return created;
+  }
+
+  /**
+   * Bulk-schedule a milestone for every active PFE internship in scope.
+   * A milestone is conceptually a *cohort-wide* event — the whole filière's
+   * PFE students run their mid-term presentation the same week — so creating
+   * one milestone fans out into N rows (one per PFE internship). Each row is
+   * independent thereafter (status / documentUrl / etc. are per-team).
+   *
+   * Skips internships that already have a milestone with the same `title` so
+   * re-running by accident doesn't create duplicates.
+   */
+  static async scheduleBulkForFiliere(
+    data: BulkSchedulePayload,
+    scheduledById: string,
+  ): Promise<{ created: number; skipped: number; total: number }> {
+    if (data.scheduledAt.getTime() < Date.now()) {
+      throw new Error("Scheduled date must be in the future");
+    }
+    if (data.documentDeadline.getTime() > data.scheduledAt.getTime()) {
+      throw new Error("Document deadline must be on or before the scheduled date");
+    }
+
+    const internships = await prisma.internship.findMany({
+      where: {
+        internshipType: "PFE",
+        status: { notIn: ["CANCELLED", "COMPLETED"] },
+        ...(data.filiereId ? { topic: { filiereId: data.filiereId } } : {}),
+      },
+      select: {
+        id: true,
+        teacherId: true,
+        topic: { select: { title: true } },
+        internshipstudent: { select: { studentId: true } },
+        minipresentation: {
+          where: { title: data.title.trim() },
+          select: { id: true },
+        },
+      } as any,
+    });
+
+    if (internships.length === 0) {
+      throw new Error(
+        data.filiereId
+          ? "No active PFE internships found in this filière."
+          : "No active PFE internships found.",
+      );
+    }
+
+    const niceDate = data.scheduledAt.toLocaleString("en-GB", {
+      dateStyle: "full",
+      timeStyle: "short",
+    });
+    let created = 0;
+    let skipped = 0;
+
+    for (const i of internships as any[]) {
+      if ((i.minipresentation ?? []).length > 0) {
+        skipped++;
+        continue;
+      }
+
+      const row = await prisma.miniPresentation.create({
+        data: {
+          id: randomUUID(),
+          internshipId: i.id,
+          title: data.title.trim(),
+          scheduledAt: data.scheduledAt,
+          room: data.room.trim(),
+          timeSlot: data.timeSlot.trim(),
+          documentDeadline: data.documentDeadline,
+        },
+      });
+      created++;
+
+      const recipientIds = [
+        i.teacherId,
+        ...i.internshipstudent.map((s: { studentId: string }) => s.studentId),
+      ];
+      await Promise.all(
+        recipientIds.map((userId) =>
+          NotificationService.trigger({
+            userId,
+            type: "MINI_PRESENTATION_SCHEDULED",
+            title: "Mini-presentation scheduled",
+            message:
+              `A mini-presentation has been scheduled for "${i.topic.title}".\n` +
+              `When: ${niceDate}\nRoom: ${data.room}\nTime slot: ${data.timeSlot}\n` +
+              `Document deadline: ${data.documentDeadline.toLocaleDateString("en-GB")}`,
+            relatedId: row.id,
+            relatedType: "MiniPresentation",
+            link: "/student/documents",
+          }).catch(() => null),
+        ),
+      );
+    }
+
+    await AuditService.log({
+      userId: scheduledById,
+      action: "MINI_PRESENTATION_BULK_SCHEDULED",
+      targetType: "MiniPresentation",
+      targetId: `bulk:${data.filiereId ?? "all"}`,
+      details: {
+        title: data.title,
+        scheduledAt: data.scheduledAt.toISOString(),
+        filiereId: data.filiereId ?? null,
+        created,
+        skipped,
+      },
+    }).catch((err) => console.error("[mini-presentation] audit failed:", err));
+
+    return { created, skipped, total: internships.length };
   }
 
   static async update(

@@ -475,9 +475,19 @@ export default function AdminTopicDetailPage() {
                       <p className="text-[12px] text-gray-500 dark:text-gray-400 italic">No supervisor confirmed yet.</p>
                     )}
 
-                    {/* Pending invitations — multi-invite list. Each row has
-                        its own withdraw button. */}
-                    {supervisionApplicants.length > 0 && (
+                    {/* Pending invitations — multi-invite list with withdraw
+                        buttons for the dept admin who actually manages them.
+                        Super admin only watches, so they get an inline
+                        "count — names" summary instead of a stacked list. */}
+                    {supervisionApplicants.length > 0 && session?.user?.isSuperAdmin && (
+                      <p className="text-[12px] text-gray-600 dark:text-gray-300 mt-2">
+                        <span className="font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider text-[11px] mr-2">
+                          Supervisor invitations ({supervisionApplicants.length}):
+                        </span>
+                        {supervisionApplicants.map((a) => a.name).join(", ")}
+                      </p>
+                    )}
+                    {supervisionApplicants.length > 0 && !session?.user?.isSuperAdmin && (
                       <div className="space-y-1.5 mt-2">
                         <p className="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
                           Pending invitations ({supervisionApplicants.length})
@@ -491,7 +501,7 @@ export default function AdminTopicDetailPage() {
                                 </span>
                                 <span className="font-medium text-gray-900 dark:text-white">{a.name}</span>
                               </div>
-                              {!session?.user?.isSuperAdmin && !topic.assignedTeacherId && (
+                              {!topic.assignedTeacherId && (
                                 <Button
                                   size="sm"
                                   variant="outline"

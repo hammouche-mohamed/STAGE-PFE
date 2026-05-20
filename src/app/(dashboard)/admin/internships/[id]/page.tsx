@@ -535,18 +535,33 @@ export default function AdminInternshipDetailPage() {
                      );
                   })()}
 
-                  {/* Set Final Deadline Panel (Admin Action) */}
-                  {!session?.user?.isSuperAdmin && internship.status !== 'COMPLETED' && internship.status !== 'CANCELLED' && (
+                  {/* Set Final Deadline Panel (Admin Action) — PFE final
+                      deadline is owned globally by the super admin via the
+                      system-wide PFE end date, so dept admins see a locked
+                      read-only notice instead of the editor for PFE rows. */}
+                  {!session?.user?.isSuperAdmin && internship.status !== 'COMPLETED' && internship.status !== 'CANCELLED' && internship.internshipType === 'PFE' && (
+                     <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-md p-5 shadow-sm">
+                        <h3 className="text-[12px] font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wide mb-2 flex items-center gap-1.5">
+                           <Clock className="h-3.5 w-3.5" />
+                           Final Report Deadline
+                        </h3>
+                        <p className="text-[12px] text-gray-600 dark:text-gray-400 leading-relaxed">
+                           The final report deadline for <strong>PFE</strong> internships is set system-wide by the super administrator
+                           (<em>Admin Settings → PFE end date</em>). It cannot be edited per-internship.
+                        </p>
+                        {internship.finalDeadline && (
+                           <p className="mt-3 text-[13px] text-gray-900 dark:text-white">
+                              Current deadline: <strong>{format(new Date(internship.finalDeadline), 'PP')}</strong>
+                           </p>
+                        )}
+                     </div>
+                  )}
+                  {!session?.user?.isSuperAdmin && internship.status !== 'COMPLETED' && internship.status !== 'CANCELLED' && internship.internshipType !== 'PFE' && (
                      <div className="bg-white dark:bg-slate-900 border border-amber-200 dark:border-amber-900/30 rounded-md p-5 shadow-sm">
                         <h3 className="text-[12px] font-bold text-amber-800 dark:text-amber-500 uppercase tracking-wide mb-1 flex items-center gap-1.5">
                            <Clock className="h-3.5 w-3.5" />
                            Set Final Report Deadline
                         </h3>
-                        {internship.internshipType === 'PFE' && (
-                           <p className="text-[11px] text-amber-700 dark:text-amber-400 mb-3 bg-amber-50 dark:bg-amber-900/20 rounded p-2">
-                              ⚠️ PFE: Setting this deadline will automatically update the internship <strong>end date</strong> to match.
-                           </p>
-                        )}
                         <div className="space-y-3">
                            <input
                               type="date"

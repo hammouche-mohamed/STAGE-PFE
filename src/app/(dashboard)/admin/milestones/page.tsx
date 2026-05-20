@@ -1,18 +1,20 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
   MapPin,
   Users,
   Plus,
   TrendingUp,
   CalendarClock,
+  Layers,
 } from "lucide-react";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { useSession } from "next-auth/react";
 
 import { Modal } from "@/components/ui/Modal";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
@@ -20,10 +22,19 @@ import { useTranslation } from "@/lib/i18n/LanguageContext";
 
 interface InternshipOption {
   id: string;
-  topic: { title: string; internshipType?: string | null };
+  topic: {
+    title: string;
+    internshipType?: string | null;
+    filiere?: { id: string; name: string } | null;
+  };
   internshipType?: string | null;
   internshipstudent?: { user: { name: string } }[];
   user?: { name: string };
+}
+
+interface Filiere {
+  id: string;
+  name: string;
 }
 
 interface MiniPresentation {
@@ -45,20 +56,23 @@ interface MiniPresentation {
 }
 
 const emptyForm = {
-  internshipId: "",
   title: "",
   date: "",
   time: "",
   room: "",
   timeSlot: "",
   documentDeadline: "",
+  filiereId: "" as string, // super admin only — dept admin's filière is implicit
 };
 
 export default function AdminMilestonesPage() {
   const { t } = useTranslation();
+  const { data: session } = useSession();
+  const isSuperAdmin = !!session?.user?.isSuperAdmin;
 
   const [sessions, setSessions] = useState<MiniPresentation[]>([]);
   const [internships, setInternships] = useState<InternshipOption[]>([]);
+  const [filieres, setFilieres] = useState<Filiere[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const [showForm, setShowForm] = useState(false);
@@ -83,18 +97,49 @@ export default function AdminMilestonesPage() {
 
   const fetchInternships = useCallback(async () => {
     try {
-      const res = await fetch("/api/internships?internshipType=PFE&limit=100");
+      // Used only to show "this will be scheduled for N PFE internships" in
+      // the form. The actual fan-out happens server-side by filière scope.
+      const res = await fetch("/api/internships?internshipType=PFE&limit=200");
       const data = await res.json();
       if (res.ok) setInternships(data.data || []);
     } catch {
-      // non-fatal — the form will just show "no internships available"
+      // non-fatal — the form will just show "0 PFE internships found"
+    }
+  }, []);
+
+  const fetchFilieres = useCallback(async () => {
+    try {
+      const res = await fetch("/api/filieres");
+      const data = await res.json();
+      if (res.ok) setFilieres(data.data || []);
+    } catch {
+      // non-fatal — super admin will see an empty selector
     }
   }, []);
 
   useEffect(() => {
     fetchSessions();
     fetchInternships();
-  }, [fetchSessions, fetchInternships]);
+    if (isSuperAdmin) fetchFilieres();
+  }, [fetchSessions, fetchInternships, fetchFilieres, isSuperAdmin]);
+
+  // Count active PFE internships the next milestone will fan out to. For
+  // dept admin: their own filière. For super admin: the picked filière, or
+  // all if none picked.
+  const targetCount = useMemo(() => {
+    if (editingId) return 0; // edit mode is per-row, no fan-out
+    const cancelledStatuses = new Set(["CANCELLED", "COMPLETED"]);
+    return internships.filter((i: any) => {
+      if (cancelledStatuses.has(i.status)) return false;
+      if (isSuperAdmin) {
+        if (!form.filiereId) return true; // all filières
+        return i.topic?.filiere?.id === form.filiereId;
+      }
+      // dept admin's filière scope is enforced server-side; the client
+      // already only gets internships in their filière for non-super
+      return true;
+    }).length;
+  }, [internships, isSuperAdmin, form.filiereId, editingId]);
 
   const resetForm = () => {
     setEditingId(null);
@@ -110,19 +155,19 @@ export default function AdminMilestonesPage() {
     const dt = new Date(session.scheduledAt);
     setEditingId(session.id);
     setForm({
-      internshipId: session.internshipId,
       title: session.title,
       date: format(dt, "yyyy-MM-dd"),
       time: format(dt, "HH:mm"),
       room: session.room,
       timeSlot: session.timeSlot,
       documentDeadline: format(new Date(session.documentDeadline), "yyyy-MM-dd"),
+      filiereId: "",
     });
     setShowForm(true);
   };
 
   const handleSubmit = async () => {
-    if (!form.internshipId || !form.title || !form.date || !form.time || !form.room || !form.timeSlot || !form.documentDeadline) {
+    if (!form.title || !form.date || !form.time || !form.room || !form.timeSlot || !form.documentDeadline) {
       toast.error("Please fill in every field.");
       return;
     }
@@ -132,23 +177,45 @@ export default function AdminMilestonesPage() {
 
     setIsSaving(true);
     try {
-      const url = editingId ? `/api/mini-presentations/${editingId}` : "/api/mini-presentations";
-      const method = editingId ? "PATCH" : "POST";
-      const res = await fetch(url, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          internshipId: form.internshipId,
-          title: form.title,
-          scheduledAt,
-          room: form.room,
-          timeSlot: form.timeSlot,
-          documentDeadline,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to save");
-      toast.success(editingId ? "Session updated" : "Session scheduled");
+      if (editingId) {
+        // Edit mode stays per-row (PATCH a single MiniPresentation).
+        const res = await fetch(`/api/mini-presentations/${editingId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            title: form.title,
+            scheduledAt,
+            room: form.room,
+            timeSlot: form.timeSlot,
+            documentDeadline,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Failed to save");
+        toast.success("Session updated");
+      } else {
+        // Create mode fans out across every active PFE internship in scope.
+        const res = await fetch("/api/mini-presentations", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            title: form.title,
+            scheduledAt,
+            room: form.room,
+            timeSlot: form.timeSlot,
+            documentDeadline,
+            filiereId: isSuperAdmin && form.filiereId ? form.filiereId : null,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Failed to save");
+        const { created, skipped } = data.data || { created: 0, skipped: 0 };
+        toast.success(
+          skipped > 0
+            ? `Scheduled for ${created} PFE internship${created === 1 ? "" : "s"} (${skipped} skipped — same title already exists).`
+            : `Scheduled for ${created} PFE internship${created === 1 ? "" : "s"}.`,
+        );
+      }
       setShowForm(false);
       resetForm();
       fetchSessions();
@@ -217,28 +284,49 @@ export default function AdminMilestonesPage() {
         }
       >
         <div className="grid gap-6 md:grid-cols-2">
-          <div className="md:col-span-2">
-            <label className="text-[12px] font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wide block mb-1.5">
-              Internship
-            </label>
-            <select
-              className="admin-input w-full"
-              value={form.internshipId}
-              onChange={(e) => setForm((p) => ({ ...p, internshipId: e.target.value }))}
-              disabled={!!editingId}
-            >
-              <option value="">— Select an internship —</option>
-              {internships.map((i) => {
-                const studentNames =
-                  i.internshipstudent?.map((s) => s.user.name).join(" & ") || "no students";
-                return (
-                  <option key={i.id} value={i.id}>
-                    {i.topic.title} — {studentNames}
-                  </option>
-                );
-              })}
-            </select>
-          </div>
+          {/* Bulk scope. Dept admin's filière is implicit (server enforces it).
+              Super admin gets a selector — empty = every filière at once. */}
+          {!editingId && (
+            <div className="md:col-span-2 space-y-3">
+              {isSuperAdmin && (
+                <div>
+                  <label className="text-[12px] font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wide block mb-1.5">
+                    Filière
+                  </label>
+                  <select
+                    className="admin-input w-full"
+                    value={form.filiereId}
+                    onChange={(e) => setForm((p) => ({ ...p, filiereId: e.target.value }))}
+                  >
+                    <option value="">— All filières —</option>
+                    {filieres.map((f) => (
+                      <option key={f.id} value={f.id}>{f.name}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+              <div className="flex items-start gap-2 rounded-md border border-indigo-100 dark:border-indigo-900/40 bg-indigo-50 dark:bg-indigo-900/20 px-3 py-2.5">
+                <Layers className="h-4 w-4 mt-0.5 text-indigo-500 shrink-0" />
+                <p className="text-[12px] text-indigo-800 dark:text-indigo-300 leading-relaxed">
+                  This milestone will be scheduled for <strong>{targetCount}</strong> active PFE internship{targetCount === 1 ? "" : "s"}
+                  {isSuperAdmin && form.filiereId
+                    ? ` in ${filieres.find((f) => f.id === form.filiereId)?.name ?? "the selected filière"}`
+                    : isSuperAdmin
+                      ? " across every filière"
+                      : ""}
+                  . Each student team gets the same date, room and deadline.
+                </p>
+              </div>
+            </div>
+          )}
+          {editingId && (
+            <div className="md:col-span-2 flex items-start gap-2 rounded-md border border-gray-100 dark:border-slate-800 bg-gray-50 dark:bg-slate-800/40 px-3 py-2.5">
+              <Layers className="h-4 w-4 mt-0.5 text-gray-400 shrink-0" />
+              <p className="text-[12px] text-gray-600 dark:text-gray-300 leading-relaxed">
+                Editing this milestone only affects this one team. To change every team's date, edit each row or re-create the milestone.
+              </p>
+            </div>
+          )}
           <Input
             label="Session title"
             value={form.title}

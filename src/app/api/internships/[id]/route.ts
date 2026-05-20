@@ -134,6 +134,22 @@ export async function PATCH(
     const deadline = new Date(finalDeadline);
     const isPFE = internship.internshipType === 'PFE';
 
+    // PFE final deadline is owned by the super admin's system-wide setting.
+    // Department admins must not edit it per-internship — changes flow only
+    // from POST /api/settings (key=pfeEndDate), which fans out to every
+    // active PFE row in one shot. Block the per-internship edit here so the
+    // UI button (already hidden for dept admins on PFE) can't be bypassed.
+    if (isPFE && !session.user.isSuperAdmin) {
+      return NextResponse.json(
+        {
+          error:
+            'The PFE final report deadline is set system-wide by the super administrator. ' +
+            'Update it from Admin Settings → PFE end date.',
+        },
+        { status: 403 },
+      );
+    }
+
     if (!isPFE && !internship.startDate) {
       return NextResponse.json(
         {
