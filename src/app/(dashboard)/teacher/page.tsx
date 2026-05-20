@@ -18,6 +18,8 @@ export default async function TeacherDashboardPage() {
 
   if (!teacher) return <div className="p-8 text-gray-400">Teacher profile not found.</div>;
 
+  const teacherFiliereId = teacher.teacherprofile?.filiereId ?? null;
+
   const [
     internshipCount,
     pendingApplications,
@@ -27,8 +29,35 @@ export default async function TeacherDashboardPage() {
     recentMessages,
     companyTopicCount
   ] = await Promise.all([
-    prisma.internship.count({ where: { teacherId: teacher.id, status: "IN_PROGRESS" } }),
-    prisma.teacherApplication.count({ where: { teacherId: teacher.id, status: "PENDING" } }),
+    // "Supervisions" = every topic the teacher is currently responsible for —
+    // not just IN_PROGRESS. Counts both topics they've confirmed (OPEN, TAKEN
+    // with internship not finished) and topics still awaiting their response
+    // (PENDING_TEACHER). The card subtitle already says "max capacity".
+    prisma.topic.count({
+      where: {
+        assignedTeacherId: teacher.id,
+        archivedAt: null,
+      },
+    }),
+    // "Applications / Topic requests" = both the teacher's self-applications
+    // still pending admin review AND the topics where the admin invited THEM
+    // and is waiting for their accept/decline (PENDING_TEACHER assigned to
+    // them). Previously this missed every admin-initiated invitation.
+    (async () => {
+      const [selfApplied, invited] = await Promise.all([
+        prisma.teacherApplication.count({
+          where: { teacherId: teacher.id, status: "PENDING" },
+        }),
+        prisma.topic.count({
+          where: {
+            assignedTeacherId: teacher.id,
+            status: "PENDING_TEACHER",
+            archivedAt: null,
+          },
+        }),
+      ]);
+      return selfApplied + invited;
+    })(),
     prisma.document.count({
       where: {
         internship: { teacherId: teacher.id },
@@ -69,14 +98,17 @@ export default async function TeacherDashboardPage() {
         take: 4,
         orderBy: { sentAt: "desc" }
       }),
+    // Open company topics the teacher could pick up. Department scoping is
+    // applied ONLY when the teacher has a filière — otherwise the previous
+    // '__no_department__' fallback matched zero forever and gave the
+    // misleading "0 — None awaiting a supervisor" card.
     prisma.topic.count({
       where: {
         type: "COMPANY_PROPOSED",
         assignedTeacherId: null,
-        // Only topics a teacher can actually pick up …
         status: { in: ["APPROVED", "OPEN_FOR_SELECTION"] },
-        // … and only in this teacher's own department.
-        filiereId: teacher.teacherprofile?.filiereId ?? "__no_department__",
+        archivedAt: null,
+        ...(teacherFiliereId ? { filiereId: teacherFiliereId } : {}),
       }
     })
   ]);

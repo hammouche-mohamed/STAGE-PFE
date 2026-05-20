@@ -88,14 +88,20 @@ export default function TeacherTopicsPage() {
         requested.push(tp);
       } else if (
         !officiallyTaken &&
-        (tp.status === "APPROVED" ||
-          tp.status === "OPEN_FOR_SELECTION" ||
-          tp.status === "PENDING_TEACHER")
+        (tp.status === "APPROVED" || tp.status === "OPEN_FOR_SELECTION") &&
+        !tp.assignedTeacherId &&
+        !applied
       ) {
-        // Show in Marketplace if:
-        //   - this teacher is the one PENDING_TEACHER is waiting on, OR
-        //   - this teacher has no application yet and the topic is open.
-        if (tp.assignedTeacherId === myId || !applied) marketplace.push(tp);
+        // Plain open marketplace: APPROVED / OPEN_FOR_SELECTION with no
+        // supervisor yet and no application from me.
+        marketplace.push(tp);
+      } else if (
+        tp.status === "PENDING_TEACHER" &&
+        tp.assignedTeacherId === myId
+      ) {
+        // Admin invited ME — sits in Marketplace with Accept/Decline so the
+        // decision happens in the same place as a normal marketplace action.
+        marketplace.push(tp);
       }
     }
     return { supervising, requested, marketplace };
