@@ -194,7 +194,6 @@ export const MilestonesPanel: React.FC<MilestonesPanelProps> = ({ internshipId }
                   <input
                     ref={(el) => { fileInputs.current[m.id] = el; }}
                     type="file"
-                    accept="application/pdf"
                     className="hidden"
                     onChange={(e) => {
                       const file = e.target.files?.[0];
