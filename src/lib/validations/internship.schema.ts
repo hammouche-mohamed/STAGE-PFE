@@ -9,7 +9,9 @@ const idSchema = z.string().min(1);
 
 export const internshipSchema = z.object({
   topicId: idSchema,
-  teacherId: idSchema,
+  /** Required for PFE, optional for NORMAL. The route handler enforces the
+   *  per-type rule because Zod can't see the topic.internshipType here. */
+  teacherId: idSchema.nullable().optional(),
   academicYear: z.string(),
   studentIds: z.array(idSchema).min(1).max(2),
   // internshipType is inherited from the topic — optional override

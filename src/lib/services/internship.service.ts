@@ -187,6 +187,7 @@ export class InternshipService {
           select: {
             proposedById: true,
             internshipType: true,
+            type: true,
           },
         },
       } as any,
@@ -201,11 +202,21 @@ export class InternshipService {
     const isStudent = (internship as any).internshipstudent.some((s: any) => s.studentId === studentId);
     if (!isStudent) throw new Error('You are not a student on this internship.');
 
+    // Dynamic gates: if no role validators are needed (NORMAL + student-
+    // proposed + no supervisor), jump straight to PENDING_ADMIN_CONFIRMATION
+    // so the admin can confirm without waiting for a no-op review step.
+    const needsTeacher = !!(internship as any).teacherId;
+    const needsCompany = (internship as any).topic?.type === 'COMPANY_PROPOSED';
+    const nextStatus =
+      !needsTeacher && !needsCompany
+        ? internship_status.PENDING_ADMIN_CONFIRMATION
+        : internship_status.FINAL_REPORT_SUBMITTED;
+
     await prisma.$transaction(async (tx) => {
       await tx.internship.update({
         where: { id: internshipId },
         data: {
-          status: internship_status.FINAL_REPORT_SUBMITTED,
+          status: nextStatus,
           // Reset validation flags in case of resubmission after revision
           teacherValidatedFinalReport: false,
           teacherValidatedAt: null,
@@ -223,8 +234,17 @@ export class InternshipService {
       });
     });
 
-    // Notify teacher (always) and company (topic proposer)
-    const notifyIds: string[] = [internship.teacherId, (internship as any).topic.proposedById];
+    // Notify only the parties that actually need to act:
+    //   • teacher only if a supervisor is assigned
+    //   • company only if the topic was company-proposed
+    //   • admin if no role validators are needed (their confirmation is next)
+    const notifyIds: string[] = [];
+    if (needsTeacher && (internship as any).teacherId) {
+      notifyIds.push((internship as any).teacherId);
+    }
+    if (needsCompany && (internship as any).topic?.proposedById) {
+      notifyIds.push((internship as any).topic.proposedById);
+    }
 
     for (const userId of notifyIds) {
       await NotificationService.trigger({
@@ -236,6 +256,25 @@ export class InternshipService {
         relatedType: 'Internship',
         link: '/teacher/internships',
       });
+    }
+
+    if (nextStatus === internship_status.PENDING_ADMIN_CONFIRMATION) {
+      const admins = await prisma.user.findMany({
+        where: { role: 'ADMIN', isActive: true } as any,
+        select: { id: true },
+      });
+      for (const admin of admins) {
+        await NotificationService.trigger({
+          userId: admin.id,
+          type: 'FINAL_REPORT_SUBMITTED',
+          title: 'Final Report Awaiting Admin Confirmation',
+          message:
+            'A final report was submitted on an internship with no supervisor and no company stakeholder. It now requires your final confirmation.',
+          relatedId: internshipId,
+          relatedType: 'Internship',
+          link: `/admin/internships/${internshipId}`,
+        });
+      }
     }
   }
 
@@ -376,8 +415,12 @@ export class InternshipService {
   // ─── Admin final confirmation + completion ─────────────────────────────────
 
   /**
-   * Admin confirms the final report after both teacher and company have validated.
-   * Sets status → COMPLETED. Decrements teacher load.
+   * Admin confirms the final report once every applicable gate has been
+   * validated. Required gates depend on which roles actually participate:
+   *   • needsTeacher  = internship has a supervisor assigned
+   *   • needsCompany  = topic was company-proposed
+   * If no role gates apply (NORMAL + student-proposed + no supervisor), only
+   * the admin's confirmation is needed.
    */
   static async completeInternship(internshipId: string, adminId: string) {
     const internship = await prisma.internship.findUnique({
@@ -385,14 +428,24 @@ export class InternshipService {
       include: {
         internshipstudent: { select: { studentId: true } },
         user: { select: { id: true } },
-        topic: { select: { proposedById: true } },
+        topic: { select: { proposedById: true, type: true } },
       } as any,
     });
 
     if (!internship) throw new Error('Internship not found');
-    if (internship.status !== internship_status.PENDING_ADMIN_CONFIRMATION) {
+
+    const needsTeacher = !!(internship as any).teacherId;
+    const needsCompany = (internship as any).topic?.type === 'COMPANY_PROPOSED';
+    const teacherOk = needsTeacher ? !!(internship as any).teacherValidatedFinalReport : true;
+    const companyOk = needsCompany ? !!(internship as any).companyValidatedFinalReport : true;
+
+    if (!teacherOk || !companyOk) {
+      const missing = [
+        !teacherOk ? 'the supervisor' : null,
+        !companyOk ? 'the company' : null,
+      ].filter(Boolean).join(' and ');
       throw new Error(
-        'Both the teacher and company must validate the final report before admin can confirm completion.',
+        `${missing} must validate the final report before admin can confirm completion.`,
       );
     }
 
@@ -414,15 +467,19 @@ export class InternshipService {
       });
     });
 
-    // Decrement teacher load
-    await TeacherLoadService.decrement(internship.teacherId);
+    // Decrement teacher load only if a teacher was supervising.
+    if ((internship as any).teacherId) {
+      await TeacherLoadService.decrement((internship as any).teacherId);
+    }
 
-    // Notify: students + teacher + company
-    const notifyIds = [
+    // Notify: students + teacher (if any) + company (if any).
+    const notifyIds: string[] = [
       ...(internship as any).internshipstudent.map((s: any) => s.studentId),
-      internship.teacherId,
-      (internship as any).topic.proposedById,
     ];
+    if ((internship as any).teacherId) notifyIds.push((internship as any).teacherId);
+    if (needsCompany && (internship as any).topic.proposedById) {
+      notifyIds.push((internship as any).topic.proposedById);
+    }
 
     for (const userId of notifyIds) {
       await NotificationService.trigger({

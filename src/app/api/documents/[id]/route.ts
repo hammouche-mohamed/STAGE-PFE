@@ -117,25 +117,25 @@ export async function PATCH(
     // to the other, so we track each side separately and only resolve the
     // overall status from the combination.
     //
-    // Final-report validation rule:
-    //   • PFE  → supervisor AND company must both validate before admin.
-    //   • NORMAL with supervisor assigned → same 3-gate flow as PFE.
-    //   • NORMAL without supervisor → company validates, admin confirms.
-    // We use `topic.assignedTeacherId` (nullable) as the source of truth for
-    // "supervisor assigned" — `internship.teacherId` is required by schema
-    // so it isn't a reliable signal on its own.
+    // Final-report validation rule — dynamic gates based on actual participants:
+    //   • needsTeacher  = internship.teacherId is set (PFE always has one;
+    //                     NORMAL may or may not).
+    //   • needsCompany  = topic was company-proposed (student-proposed topics
+    //                     have no real company stakeholder, so that gate is
+    //                     auto-passed).
+    // The internship moves to PENDING_ADMIN_CONFIRMATION as soon as every
+    // *required* gate is satisfied.
     const intRow = await prisma.internship.findUnique({
       where: { id: document.internshipId },
       select: {
         internshipType: true,
-        topic: { select: { assignedTeacherId: true } },
+        teacherId: true,
+        topic: { select: { type: true } },
       } as any,
     });
-    const internshipType = (intRow as any)?.internshipType as string | null;
-    const isPFE = internshipType === "PFE";
-    const hasSupervisor = !!(intRow as any)?.topic?.assignedTeacherId;
-    const supervisorRequired = isPFE || hasSupervisor;
-    const requiresBoth = document.type === "FINAL_REPORT" && supervisorRequired;
+    const needsTeacher = !!(intRow as any)?.teacherId;
+    const needsCompany = (intRow as any)?.topic?.type === "COMPANY_PROPOSED";
+    const requiresBoth = document.type === "FINAL_REPORT" && needsTeacher && needsCompany;
     const approving = status === "APPROVED";
 
     const data: Record<string, unknown> = {};
@@ -228,12 +228,10 @@ export async function PATCH(
           const companyValidated = isCompany
             ? true
             : !!(internship as any).companyValidatedFinalReport;
-          // Hand off to admin once every required gate has cleared.
-          // PFE or NORMAL-with-supervisor: both gates; NORMAL-no-supervisor:
-          // company only.
-          const allValidated = supervisorRequired
-            ? teacherValidated && companyValidated
-            : companyValidated;
+          // Auto-pass the gates that don't have a real participant.
+          const teacherOk = needsTeacher ? teacherValidated : true;
+          const companyOk = needsCompany ? companyValidated : true;
+          const allValidated = teacherOk && companyOk;
 
           await prisma.internship.update({
             where: { id: document.internshipId },
@@ -252,9 +250,16 @@ export async function PATCH(
               where: { role: "ADMIN", isActive: true },
               select: { id: true },
             });
-            const adminMessage = supervisorRequired
-              ? "The supervisor and the company have both validated a final report. It now requires your final confirmation."
-              : "The company has validated a final report. It now requires your final confirmation.";
+            const validators = [
+              needsTeacher ? "supervisor" : null,
+              needsCompany ? "company" : null,
+            ].filter(Boolean) as string[];
+            const adminMessage =
+              validators.length === 0
+                ? "A final report is ready for your final confirmation."
+                : validators.length === 1
+                  ? `The ${validators[0]} has validated a final report. It now requires your final confirmation.`
+                  : `The ${validators.join(" and the ")} have both validated a final report. It now requires your final confirmation.`;
             for (const admin of admins) {
               await NotificationService.trigger({
                 userId: admin.id,
@@ -267,9 +272,12 @@ export async function PATCH(
                 skipEmail: true,
               });
             }
-            const studentMessage = supervisorRequired
-              ? "Both your supervisor and the company validated your final report. It is now awaiting the administration's final confirmation."
-              : "The company validated your final report. It is now awaiting the administration's final confirmation.";
+            const studentMessage =
+              validators.length === 0
+                ? "Your final report is now awaiting the administration's final confirmation."
+                : validators.length === 1
+                  ? `The ${validators[0]} validated your final report. It is now awaiting the administration's final confirmation.`
+                  : `Both your ${validators.join(" and the ")} validated your final report. It is now awaiting the administration's final confirmation.`;
             for (const { studentId } of (internship as any).internshipstudent) {
               await NotificationService.trigger({
                 userId: studentId,

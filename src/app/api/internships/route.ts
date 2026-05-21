@@ -159,7 +159,9 @@ export async function GET(req: NextRequest) {
     const mappedInternships = (internships as any[]).map(i => ({
       ...i,
       pendingDocuments: pendingDocMap.get(i.id) ?? 0,
-      teacher: i.user || { id: '', name: 'Unknown', email: '' },
+      // Null when there's no supervisor (NORMAL without teacher). Clients
+      // check `internship.teacher` directly rather than a sentinel name.
+      teacher: i.user || null,
       students: (i.internshipstudent || []).map((s: any) => ({
         ...s,
         student: {
@@ -183,7 +185,9 @@ export async function GET(req: NextRequest) {
     ]);
 
     const stitchedInternships = mappedInternships.map(i => {
-      if (!i.teacher?.id) return { ...i, teacher: { id: '', name: 'Unknown', email: '', filiereName: 'N/A' } };
+      // teacher can be null when the NORMAL internship started without a
+      // supervisor — keep it null instead of inventing an "Unknown" record.
+      if (!i.teacher?.id) return { ...i, teacher: null };
       const prof = teacherProfiles.find(p => p.userId === i.teacher.id);
       const filiere = prof ? allFilieres.find(f => f.id === prof.filiereId) : null;
       return {
@@ -222,17 +226,8 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const teacherProfile = await prisma.teacherProfile.findUnique({
-      where: { userId: teacherId },
-      select: { currentLoad: true, maxStudents: true },
-    });
-    if (!teacherProfile || teacherProfile.currentLoad >= teacherProfile.maxStudents) {
-      return NextResponse.json(
-        { error: 'This teacher has reached their maximum supervision capacity.' },
-        { status: 409 },
-      );
-    }
-
+    // Look up the topic first — we need its internshipType to know whether
+    // a supervisor is required.
     const topic = await prisma.topic.findUnique({
       where: { id: topicId },
       select: {
@@ -254,6 +249,29 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Topic not found.' }, { status: 404 });
     }
 
+    // PFE requires a supervisor. NORMAL doesn't — admin can start it solo.
+    const isPFE = topic.internshipType === 'PFE';
+    const effectiveTeacherId = teacherId || topic.assignedTeacherId || null;
+    if (isPFE && !effectiveTeacherId) {
+      return NextResponse.json(
+        { error: 'PFE internships require an assigned supervisor before they can start.' },
+        { status: 400 },
+      );
+    }
+
+    if (effectiveTeacherId) {
+      const teacherProfile = await prisma.teacherProfile.findUnique({
+        where: { userId: effectiveTeacherId },
+        select: { currentLoad: true, maxStudents: true },
+      });
+      if (!teacherProfile || teacherProfile.currentLoad >= teacherProfile.maxStudents) {
+        return NextResponse.json(
+          { error: 'This teacher has reached their maximum supervision capacity.' },
+          { status: 409 },
+        );
+      }
+    }
+
     const missing: string[] = [];
     if (!topic.title?.trim()) missing.push('title');
     if (!topic.description?.trim()) missing.push('description');
@@ -261,13 +279,13 @@ export async function POST(req: NextRequest) {
     if (!topic.filiereId) missing.push('department');
     if (!topic.proposedByStudent && !topic.targetLevels?.trim())
       missing.push('target level(s)');
-    const hasSupervisor = !!teacherId || !!topic.assignedTeacherId;
-    if (!hasSupervisor) missing.push('supervisor (assigned teacher)');
+    // PFE-only sanity check; NORMAL is allowed without a supervisor.
+    if (isPFE && !effectiveTeacherId) missing.push('supervisor (assigned teacher)');
 
     if (missing.length > 0) {
       return NextResponse.json(
         {
-          error: `Cannot start the internship — this topic is incomplete. Missing: ${missing.join(', ')}. Complete the topic and assign a supervisor first.`,
+          error: `Cannot start the internship — this topic is incomplete. Missing: ${missing.join(', ')}. Complete the topic${isPFE ? ' and assign a supervisor' : ''} first.`,
         },
         { status: 400 },
       );
@@ -291,7 +309,7 @@ export async function POST(req: NextRequest) {
         data: {
           id: randomUUID(),
           topicId,
-          teacherId,
+          teacherId: effectiveTeacherId,
           academicYear,
           internshipType: topic?.internshipType ?? null,
           status: 'REQUESTED',
@@ -317,7 +335,10 @@ export async function POST(req: NextRequest) {
       return created;
     });
 
-    await TeacherLoadService.increment(teacherId);
+    // No teacher → no load to bump and no supervisor notification to send.
+    if (effectiveTeacherId) {
+      await TeacherLoadService.increment(effectiveTeacherId);
+    }
 
     const students = (internship as any).internshipstudent.map((s: { studentId: string }) => s.studentId);
 
@@ -339,16 +360,18 @@ export async function POST(req: NextRequest) {
       ),
     );
 
-    // Supervisor — in-app + email.
-    await NotificationService.trigger({
-      userId: teacherId,
-      type: 'INTERNSHIP_STARTED',
-      title: 'Internship Started',
-      message: `The internship you are supervising — "${topicTitle}" — has officially started.`,
-      relatedId: internship.id,
-      relatedType: 'Internship',
-      link: `/teacher/internships/${internship.id}`,
-    });
+    // Supervisor — only if one is assigned (NORMAL internships may have none).
+    if (effectiveTeacherId) {
+      await NotificationService.trigger({
+        userId: effectiveTeacherId,
+        type: 'INTERNSHIP_STARTED',
+        title: 'Internship Started',
+        message: `The internship you are supervising — "${topicTitle}" — has officially started.`,
+        relatedId: internship.id,
+        relatedType: 'Internship',
+        link: `/teacher/internships/${internship.id}`,
+      });
+    }
 
     // Host company / proposer — in-app + email. Skipped for student-proposed
     // topics, where the proposer is one of the students already notified above.

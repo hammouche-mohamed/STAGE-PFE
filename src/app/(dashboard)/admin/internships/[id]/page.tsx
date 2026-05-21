@@ -40,13 +40,15 @@ interface Internship {
       filiere?: { id: string; name: string; code?: string } | null;
       proposedBy: { name: string; email?: string; role?: string }
    };
+   teacherId?: string | null;
+   /** Nullable: NORMAL internships may run without a supervisor. */
    teacher: {
       name: string;
       email: string;
       grade?: string | null;
       speciality?: string | null;
       filiereName?: string | null;
-   };
+   } | null;
    students: {
       isLeader?: boolean;
       student: {
@@ -295,19 +297,25 @@ export default function AdminInternshipDetailPage() {
                   <div className="grid grid-cols-2 gap-6 pt-6 border-t border-gray-100 dark:border-slate-800">
                      <div>
                         <label className="text-[11px] font-bold text-gray-400 uppercase tracking-widest block mb-2">Academic Supervisor</label>
-                        <div className="flex items-center gap-2">
-                           <div className="h-8 w-8 rounded-full bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-400 flex items-center justify-center font-bold text-[11px]">
-                              {internship.teacher.name.charAt(0)}
+                        {internship.teacher ? (
+                           <div className="flex items-center gap-2">
+                              <div className="h-8 w-8 rounded-full bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-400 flex items-center justify-center font-bold text-[11px]">
+                                 {internship.teacher.name.charAt(0)}
+                              </div>
+                              <div className="flex flex-col">
+                                 <span className="text-[13px] font-medium text-gray-900 dark:text-white">{internship.teacher.name}</span>
+                                 {(internship.teacher.grade || internship.teacher.filiereName) && (
+                                    <span className="text-[11px] text-gray-500 dark:text-gray-400">
+                                       {[internship.teacher.grade, internship.teacher.filiereName].filter(Boolean).join(" · ")}
+                                    </span>
+                                 )}
+                              </div>
                            </div>
-                           <div className="flex flex-col">
-                              <span className="text-[13px] font-medium text-gray-900 dark:text-white">{internship.teacher.name}</span>
-                              {(internship.teacher.grade || internship.teacher.filiereName) && (
-                                <span className="text-[11px] text-gray-500 dark:text-gray-400">
-                                   {[internship.teacher.grade, internship.teacher.filiereName].filter(Boolean).join(" · ")}
-                                </span>
-                              )}
-                           </div>
-                        </div>
+                        ) : (
+                           <span className="text-[12px] text-gray-500 dark:text-gray-400 italic">
+                              Not assigned — NORMAL internship running without a supervisor.
+                           </span>
+                        )}
                      </div>
                      <div>
                         <label className="text-[11px] font-bold text-gray-400 uppercase tracking-widest block mb-2">Host Organization</label>
@@ -475,10 +483,16 @@ export default function AdminInternshipDetailPage() {
                       is, not just at the confirmation step. */}
                   {!session?.user?.isSuperAdmin &&
                    ["FINAL_REPORT_SUBMITTED", "PENDING_ADMIN_CONFIRMATION", "NEEDS_REVISION"].includes(internship.status) && (() => {
-                     const teacherOk = !!internship.teacherValidatedFinalReport;
-                     const companyOk = !!internship.companyValidatedFinalReport;
-                     const bothOk = teacherOk && companyOk;
-                     const readyToConfirm = internship.status === "PENDING_ADMIN_CONFIRMATION" && bothOk;
+                     // Dynamic gates: only the roles that actually participate
+                     // need to validate. A NORMAL internship with no supervisor
+                     // skips the teacher row; a student-proposed topic skips
+                     // the company row.
+                     const needsTeacher = !!internship.teacherId || !!internship.teacher;
+                     const needsCompany = internship.topic?.type === "COMPANY_PROPOSED";
+                     const teacherOk = needsTeacher ? !!internship.teacherValidatedFinalReport : true;
+                     const companyOk = needsCompany ? !!internship.companyValidatedFinalReport : true;
+                     const allOk = teacherOk && companyOk;
+                     const readyToConfirm = internship.status === "PENDING_ADMIN_CONFIRMATION" && allOk;
 
                      const Row = ({ ok, label }: { ok: boolean; label: string }) => (
                         <div className="flex items-center gap-2 text-[12px] text-gray-700 dark:text-gray-300">
@@ -491,6 +505,17 @@ export default function AdminInternshipDetailPage() {
                         </div>
                      );
 
+                     const requiredValidators = [
+                        needsTeacher ? "the supervisor" : null,
+                        needsCompany ? "the company" : null,
+                     ].filter(Boolean) as string[];
+                     const validatorList =
+                        requiredValidators.length === 0
+                           ? null
+                           : requiredValidators.length === 1
+                              ? requiredValidators[0]
+                              : `${requiredValidators[0]} and ${requiredValidators[1]}`;
+
                      return (
                         <div className="bg-white dark:bg-slate-900 border border-indigo-200 dark:border-indigo-900/40 rounded-md p-5 shadow-sm">
                            <h3 className="text-[12px] font-bold text-indigo-800 dark:text-indigo-400 uppercase tracking-wide mb-1 flex items-center gap-1.5">
@@ -499,14 +524,23 @@ export default function AdminInternshipDetailPage() {
                            </h3>
                            <p className="text-[11px] text-gray-500 dark:text-gray-400 mb-3">
                               {internship.status === "NEEDS_REVISION"
-                                 ? "The report was sent back. The student must submit a revised version, then the supervisor and company validate again."
+                                 ? "The report was sent back. The student must submit a revised version, then any required parties validate again."
                                  : readyToConfirm
-                                 ? "The supervisor and the company have both validated. Confirm to officially complete and archive the internship, or send it back for revision."
-                                 : "Both the supervisor and the company must validate before you can confirm completion."}
+                                    ? validatorList
+                                       ? `${validatorList} ${requiredValidators.length === 1 ? "has" : "have both"} validated. Confirm to officially complete and archive the internship, or send it back for revision.`
+                                       : "Ready for your final confirmation."
+                                    : validatorList
+                                       ? `${validatorList} must validate before you can confirm completion.`
+                                       : "Ready for your final confirmation."}
                            </p>
                            <div className="space-y-2 mb-4">
-                              <Row ok={teacherOk} label="Supervisor" />
-                              <Row ok={companyOk} label="Company" />
+                              {needsTeacher && <Row ok={teacherOk} label="Supervisor" />}
+                              {needsCompany && <Row ok={companyOk} label="Company" />}
+                              {!needsTeacher && !needsCompany && (
+                                 <div className="text-[11px] text-gray-500 dark:text-gray-400 italic">
+                                    No supervisor or company stakeholder — admin confirmation only.
+                                 </div>
+                              )}
                            </div>
                            <div className="space-y-2">
                               <Button
@@ -514,7 +548,7 @@ export default function AdminInternshipDetailPage() {
                                  className="w-full bg-indigo-600 hover:bg-indigo-700 text-white disabled:opacity-50"
                                  onClick={() => setShowCompleteConfirm(true)}
                                  disabled={!readyToConfirm}
-                                 title={readyToConfirm ? "" : "Available once both parties validate"}
+                                 title={readyToConfirm ? "" : validatorList ? `Available once ${validatorList} validate` : "Available once the final report is submitted"}
                               >
                                  <CheckCircle2 className="h-3.5 w-3.5 mr-1.5" />
                                  Confirm Completion

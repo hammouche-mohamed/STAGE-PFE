@@ -32,7 +32,8 @@ interface Internship {
      *  PFE always has an assigned supervisor. */
     assignedTeacherId?: string | null;
   };
-  teacher: { name: string; email: string };
+  /** Nullable: NORMAL internships may run without a supervisor. */
+  teacher: { name: string; email: string } | null;
   status: string;
   academicYear: string;
   internshipType?: string | null;
@@ -148,31 +149,34 @@ function MilestoneRow({ milestone, uploadLink, labels }: {
 
 /**
  * Visual timeline of the final-report validation pipeline.
- *   • PFE                           → Submitted → Supervisor → Company → Admin
- *   • NORMAL with supervisor        → same 4-step flow
- *   • NORMAL without a supervisor   → Submitted → Company → Admin (3 steps)
- * The current step pulses; cleared steps show a green check; future steps
- * are muted. Whether the Supervisor step shows up is decided by
- * `supervisorRequired`, not by internship type alone.
+ * Only the roles that actually participate are shown as gates:
+ *   • needsTeacher  → supervisor row appears
+ *   • needsCompany  → company row appears
+ * In the degenerate case where neither participates (NORMAL + student-
+ * proposed + no supervisor), only Submitted → Admin shows.
  */
 function FinalReportProgress({
-  supervisorRequired,
+  needsTeacher,
+  needsCompany,
   finalDoc,
   internshipStatus,
   teacherValidated,
   companyValidated,
 }: {
-  supervisorRequired: boolean;
+  needsTeacher: boolean;
+  needsCompany: boolean;
   finalDoc: Document | undefined;
   internshipStatus: string;
   teacherValidated: boolean;
   companyValidated: boolean;
 }) {
   const submitted = !!finalDoc;
-  const teacherDone = supervisorRequired
+  const teacherDone = needsTeacher
     ? !!finalDoc?.approvedByTeacher || teacherValidated
     : true;
-  const companyDone = !!finalDoc?.approvedByCompany || companyValidated;
+  const companyDone = needsCompany
+    ? !!finalDoc?.approvedByCompany || companyValidated
+    : true;
   const adminDone = internshipStatus === "COMPLETED";
   const rejected = internshipStatus === "NEEDS_REVISION";
 
@@ -185,7 +189,7 @@ function FinalReportProgress({
     done: submitted,
     current: !submitted && !rejected,
   });
-  if (supervisorRequired) {
+  if (needsTeacher) {
     steps.push({
       key: "supervisor",
       label: "Supervisor",
@@ -194,13 +198,15 @@ function FinalReportProgress({
       current: submitted && !teacherDone && !rejected,
     });
   }
-  steps.push({
-    key: "company",
-    label: "Company",
-    sub: "Host company validates",
-    done: companyDone && submitted,
-    current: submitted && teacherDone && !companyDone && !rejected,
-  });
+  if (needsCompany) {
+    steps.push({
+      key: "company",
+      label: "Company",
+      sub: "Host company validates",
+      done: companyDone && submitted,
+      current: submitted && teacherDone && !companyDone && !rejected,
+    });
+  }
   steps.push({
     key: "admin",
     label: "Administration",
@@ -625,10 +631,11 @@ export default function StudentInternshipPage() {
               Shows: Submitted → Supervisor (PFE only) → Company → Admin. */}
           {(finalStatus === "SUBMITTED" || finalStatus === "SUBMITTED_LATE" || internship.status === "NEEDS_REVISION" || internship.status === "PENDING_ADMIN_CONFIRMATION" || internship.status === "COMPLETED") && (
             <FinalReportProgress
-              // Mirrors the backend rule in /api/documents/[id] PATCH: PFE
-              // always needs supervisor validation; NORMAL only needs it
-              // when a supervisor was actually assigned to the topic.
-              supervisorRequired={isPFE || !!internship.topic.assignedTeacherId}
+              // Mirrors the backend rule in /api/documents/[id] PATCH:
+              // needsTeacher = a supervisor is actually assigned to the
+              // internship; needsCompany = the topic was company-proposed.
+              needsTeacher={!!internship.teacher}
+              needsCompany={internship.topic.type === "COMPANY_PROPOSED"}
               finalDoc={documents.find((d) => d.type === "FINAL_REPORT")}
               internshipStatus={internship.status}
               teacherValidated={!!internship.teacherValidatedFinalReport}
@@ -644,15 +651,21 @@ export default function StudentInternshipPage() {
               <p className="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-3">
                 {t("internship.reportPanel.academicSupervisor")}
               </p>
-              <div className="flex items-center gap-3">
-                <div className="h-12 w-12 rounded bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 flex items-center justify-center font-bold text-[14px]">
-                  {internship.teacher.name.charAt(0)}
+              {internship.teacher ? (
+                <div className="flex items-center gap-3">
+                  <div className="h-12 w-12 rounded bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 flex items-center justify-center font-bold text-[14px]">
+                    {internship.teacher.name.charAt(0)}
+                  </div>
+                  <div>
+                    <p className="text-[13px] font-bold text-gray-900 dark:text-white">{internship.teacher.name}</p>
+                    <p className="text-[11px] text-gray-500 dark:text-gray-400">{internship.teacher.email}</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-[13px] font-bold text-gray-900 dark:text-white">{internship.teacher.name}</p>
-                  <p className="text-[11px] text-gray-500 dark:text-gray-400">{internship.teacher.email}</p>
-                </div>
-              </div>
+              ) : (
+                <p className="text-[12px] text-gray-500 dark:text-gray-400 italic">
+                  No academic supervisor assigned.
+                </p>
+              )}
             </div>
 
             <div className="pt-6 border-t border-gray-50 dark:border-slate-800">

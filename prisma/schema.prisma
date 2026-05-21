@@ -160,7 +160,10 @@ model Document {
 model Internship {
   id                          String              @id @default(uuid())
   topicId                     String              @unique(map: "Internship_topicId_key")
-  teacherId                   String
+  /// Nullable: PFE internships REQUIRE a supervisor (enforced by API), but
+  /// NORMAL internships may start without one. When null, the supervisor
+  /// validation gate is auto-passed in the final-report flow.
+  teacherId                   String?
   academicYear                String
   status                      internship_status   @default(REQUESTED)
   internshipType              internship_type?
@@ -182,7 +185,7 @@ model Internship {
   updatedAt                   DateTime
   deadline                    Deadline[]
   document                    Document[]
-  user                        User                @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  user                        User?               @relation(fields: [teacherId], references: [id], onDelete: SetNull)
   topic                       Topic               @relation(fields: [topicId], references: [id], onDelete: Cascade)
   internshipstudent           InternshipStudent[]
   message                     Message[]
