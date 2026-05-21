@@ -5,7 +5,7 @@ export interface InternshipDocument {
   id: string;
   internshipId: string;
   uploadedById: string;
-  type: DocumentType;
+  type: DocumentType | "MILESTONE";
   fileName: string;
   fileUrl: string;
   fileSize: number;
@@ -19,4 +19,7 @@ export interface InternshipDocument {
   companyComment?: string | null;
   uploadedBy?: { name: string };
   uploadedAt: string | Date;
+  /** Set on synthesized milestone rows so the UI can show which milestone
+   *  this submission belongs to (e.g. "Mid-term Presentation"). */
+  milestoneTitle?: string | null;
 }

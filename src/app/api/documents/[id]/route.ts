@@ -117,10 +117,25 @@ export async function PATCH(
     // to the other, so we track each side separately and only resolve the
     // overall status from the combination.
     //
-    // The final report needs BOTH the supervisor and the company. Every other
-    // document type is reviewed by the supervisor only (the company-review
-    // endpoint is likewise final-report-only), so it keeps the old behaviour.
-    const requiresBoth = document.type === "FINAL_REPORT";
+    // Final-report validation rule:
+    //   • PFE  → supervisor AND company must both validate before admin.
+    //   • NORMAL with supervisor assigned → same 3-gate flow as PFE.
+    //   • NORMAL without supervisor → company validates, admin confirms.
+    // We use `topic.assignedTeacherId` (nullable) as the source of truth for
+    // "supervisor assigned" — `internship.teacherId` is required by schema
+    // so it isn't a reliable signal on its own.
+    const intRow = await prisma.internship.findUnique({
+      where: { id: document.internshipId },
+      select: {
+        internshipType: true,
+        topic: { select: { assignedTeacherId: true } },
+      } as any,
+    });
+    const internshipType = (intRow as any)?.internshipType as string | null;
+    const isPFE = internshipType === "PFE";
+    const hasSupervisor = !!(intRow as any)?.topic?.assignedTeacherId;
+    const supervisorRequired = isPFE || hasSupervisor;
+    const requiresBoth = document.type === "FINAL_REPORT" && supervisorRequired;
     const approving = status === "APPROVED";
 
     const data: Record<string, unknown> = {};
@@ -213,7 +228,12 @@ export async function PATCH(
           const companyValidated = isCompany
             ? true
             : !!(internship as any).companyValidatedFinalReport;
-          const bothValidated = teacherValidated && companyValidated;
+          // Hand off to admin once every required gate has cleared.
+          // PFE or NORMAL-with-supervisor: both gates; NORMAL-no-supervisor:
+          // company only.
+          const allValidated = supervisorRequired
+            ? teacherValidated && companyValidated
+            : companyValidated;
 
           await prisma.internship.update({
             where: { id: document.internshipId },
@@ -221,35 +241,41 @@ export async function PATCH(
               ...(isTeacher
                 ? { teacherValidatedFinalReport: true, teacherValidatedAt: new Date() }
                 : { companyValidatedFinalReport: true, companyValidatedAt: new Date() }),
-              // Hand off to the admin only once BOTH have validated.
-              ...(bothValidated ? { status: "PENDING_ADMIN_CONFIRMATION" } : {}),
+              // Hand off to the admin once every required gate has cleared.
+              ...(allValidated ? { status: "PENDING_ADMIN_CONFIRMATION" } : {}),
               updatedAt: new Date(),
             } as any,
           });
 
-          if (bothValidated) {
+          if (allValidated) {
             const admins = await prisma.user.findMany({
               where: { role: "ADMIN", isActive: true },
               select: { id: true },
             });
+            const adminMessage = supervisorRequired
+              ? "The supervisor and the company have both validated a final report. It now requires your final confirmation."
+              : "The company has validated a final report. It now requires your final confirmation.";
             for (const admin of admins) {
               await NotificationService.trigger({
                 userId: admin.id,
                 type: "FINAL_REPORT_SUBMITTED",
                 title: "Final Report Awaiting Admin Validation",
-                message: "The supervisor and the company have both validated a final report. It now requires your final confirmation.",
+                message: adminMessage,
                 relatedId: document.internshipId,
                 relatedType: "Internship",
                 link: `/admin/internships/${document.internshipId}`,
                 skipEmail: true,
               });
             }
+            const studentMessage = supervisorRequired
+              ? "Both your supervisor and the company validated your final report. It is now awaiting the administration's final confirmation."
+              : "The company validated your final report. It is now awaiting the administration's final confirmation.";
             for (const { studentId } of (internship as any).internshipstudent) {
               await NotificationService.trigger({
                 userId: studentId,
                 type: "FINAL_REPORT_SUBMITTED",
                 title: "Final Report Fully Validated",
-                message: "Both your supervisor and the company validated your final report. It is now awaiting the administration's final confirmation.",
+                message: studentMessage,
                 relatedId: document.internshipId,
                 relatedType: "Internship",
                 link: "/student/internship",

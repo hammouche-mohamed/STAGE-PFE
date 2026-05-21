@@ -66,8 +66,13 @@ export default async function AdminDashboardPage() {
         prisma.topic.count({
           where: { status: "PENDING_ADMIN", archivedAt: null, ...filiereFilter } as any,
         }),
+        // Count ALL non-archived company-proposed topics so the super-admin
+        // card reflects total company engagement, not just topics currently
+        // sitting in PENDING_ADMIN. Filtering by status hid topics that had
+        // moved past first-stage admin review and made the card read "0"
+        // even when the DB had plenty of company submissions.
         prisma.topic.count({
-          where: { type: "COMPANY_PROPOSED", status: "PENDING_ADMIN", archivedAt: null, ...filiereFilter },
+          where: { type: "COMPANY_PROPOSED", archivedAt: null, ...filiereFilter },
         }),
         prisma.topic.count({
           where: { status: "APPROVED", archivedAt: null, ...filiereFilter } as any,

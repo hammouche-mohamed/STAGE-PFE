@@ -121,6 +121,27 @@ export default function StudentDashboard() {
   const daysUntil = (date: string) =>
     Math.ceil((new Date(date).getTime() - Date.now()) / 86400000);
 
+  // The /api/deadlines endpoint only returns standalone Deadline rows. The
+  // internship's mid-term and final deadlines live on the Internship row,
+  // and milestone deadlines live on MiniPresentation — they need to be
+  // merged in so the dashboard "DEADLINES" card actually reflects what the
+  // student owes. We keep only future-dated deadlines and pick the soonest.
+  const allDeadlines: { label: string; dueDate: string }[] = (() => {
+    const list: { label: string; dueDate: string }[] = deadlines.map((d) => ({
+      label: d.label,
+      dueDate: d.dueDate,
+    }));
+    if (internship?.midtermDeadline) {
+      list.push({ label: t("internship.reportPanel.midTermReport"), dueDate: internship.midtermDeadline });
+    }
+    if (internship?.finalDeadline) {
+      list.push({ label: t("internship.reportPanel.finalLabelPFE"), dueDate: internship.finalDeadline });
+    }
+    return list
+      .filter((d) => new Date(d.dueDate).getTime() > Date.now())
+      .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
+  })();
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-24 text-gray-400 text-[13px]">
@@ -165,12 +186,17 @@ export default function StudentDashboard() {
         {/* Deadlines */}
         <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-md p-5 shadow-sm">
           <p className="text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2">{t("common.deadlines")}</p>
-          {deadlines.length > 0 ? (
+          {allDeadlines.length > 0 ? (
             <>
               <p className="text-[20px] font-bold text-gray-900 dark:text-white">
-                {daysUntil(deadlines[0].dueDate)} {t("common.deadlines")}
+                {daysUntil(allDeadlines[0].dueDate)} {t("dashboard.daysLeft", { defaultValue: "days left" })}
               </p>
-              <p className="text-[12px] text-red-500 dark:text-red-400 font-medium mt-1">{deadlines[0].label}</p>
+              <p className="text-[12px] text-red-500 dark:text-red-400 font-medium mt-1">{allDeadlines[0].label}</p>
+              {allDeadlines.length > 1 && (
+                <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-1">
+                  +{allDeadlines.length - 1} more upcoming
+                </p>
+              )}
             </>
           ) : (
             <p className="text-[13px] text-gray-400 dark:text-gray-500">{t("common.noData")}</p>

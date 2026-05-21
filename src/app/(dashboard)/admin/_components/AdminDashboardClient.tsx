@@ -190,8 +190,7 @@ export function AdminDashboardClient({
           label={t("dashboard.companyProposals")}
           value={(stats as any).pendingCompanyProposals || 0}
           icon={BookOpen}
-          subValue={t("dashboard.pendingReview")}
-          subValueColor="amber"
+          subValue={t("dashboard.partners")}
         />
         <StatsCard
           label={t("dashboard.activeInternships")}

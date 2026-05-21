@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { z } from "zod";
+import prisma from "@/lib/prisma";
 import { MiniPresentationService } from "@/lib/services/miniPresentation.service";
 
 const patchSchema = z.object({
@@ -13,6 +14,37 @@ const patchSchema = z.object({
   adminComment: z.string().max(2000).nullable().optional(),
 });
 
+/**
+ * Authorization rule: department admins own milestone editing — super admins
+ * only monitor. And once the document deadline has passed, the milestone is
+ * frozen: history must not be rewritten retroactively.
+ */
+async function guardMilestoneWrite(
+  session: { user: { isSuperAdmin?: boolean } },
+  id: string,
+): Promise<NextResponse | null> {
+  if (session.user.isSuperAdmin) {
+    return NextResponse.json(
+      { error: "Super administrators have read-only access to milestones. Ask the department admin to edit." },
+      { status: 403 },
+    );
+  }
+  const milestone = await prisma.miniPresentation.findUnique({
+    where: { id },
+    select: { documentDeadline: true },
+  });
+  if (!milestone) {
+    return NextResponse.json({ error: "Mini-presentation not found" }, { status: 404 });
+  }
+  if (Date.now() > milestone.documentDeadline.getTime()) {
+    return NextResponse.json(
+      { error: "This milestone's deadline has passed — it can no longer be edited or deleted." },
+      { status: 400 },
+    );
+  }
+  return null;
+}
+
 export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
@@ -24,6 +56,9 @@ export async function PATCH(
   }
 
   const { id } = await params;
+  const guard = await guardMilestoneWrite(session, id);
+  if (guard) return guard;
+
   try {
     const body = await req.json();
     const parsed = patchSchema.parse(body);
@@ -58,6 +93,9 @@ export async function DELETE(
   }
 
   const { id } = await params;
+  const guard = await guardMilestoneWrite(session, id);
+  if (guard) return guard;
+
   try {
     await MiniPresentationService.remove(id, session.user.id);
     return NextResponse.json({ success: true });

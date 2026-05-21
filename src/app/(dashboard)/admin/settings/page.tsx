@@ -101,7 +101,14 @@ export default function AdminSettingsPage() {
         throw new Error(result.error + (result.message ? `: ${result.message}` : "") || "Update failed");
       }
       
-      toast.success(`${key} updated successfully`);
+      // Settings keys are stored camelCase ("pfeEndDate") but the toast is
+      // user-facing — split into words and capitalize so it reads naturally
+      // ("PFE End Date updated successfully").
+      const humanKey = key
+        .replace(/([a-z])([A-Z])/g, "$1 $2")
+        .replace(/^./, (c) => c.toUpperCase())
+        .replace(/\bPfe\b/i, "PFE");
+      toast.success(`${humanKey} updated successfully`);
       await fetchSettings();
       return true;
     } catch (error: any) {
@@ -411,6 +418,7 @@ export default function AdminSettingsPage() {
           <div className="flex items-center space-x-3 w-full sm:w-auto">
             <input
               type="date"
+              min={new Date().toISOString().slice(0, 10)}
               className="admin-input flex-1 sm:w-[180px] text-center"
               value={settings.pfeEndDate || ""}
               onChange={(e) => setSettings({ ...settings, pfeEndDate: e.target.value })}

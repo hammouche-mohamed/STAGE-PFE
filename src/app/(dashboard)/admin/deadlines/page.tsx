@@ -238,8 +238,9 @@ export default function AdminDeadlinesPage() {
 
             <div className="space-y-2">
               <label className="text-[12px] font-bold text-gray-500 uppercase tracking-tight">{t("common.date")}</label>
-              <Input 
+              <Input
                 type="date"
+                min={new Date().toISOString().slice(0, 10)}
                 value={formData.date}
                 onChange={(e) => setFormData({...formData, date: e.target.value})}
               />

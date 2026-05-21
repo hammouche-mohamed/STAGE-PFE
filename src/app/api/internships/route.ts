@@ -110,6 +110,9 @@ export async function GET(req: NextRequest) {
               companyName: true, description: true,
               targetLevels: true,
               filiereId: true,
+              // Exposed so the student page knows whether a supervisor was
+              // actually assigned — final-report flow gates on this.
+              assignedTeacherId: true,
               filiere: { select: { id: true, name: true, code: true } },
             },
           },

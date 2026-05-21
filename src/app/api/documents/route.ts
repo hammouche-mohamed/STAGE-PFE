@@ -158,6 +158,21 @@ export async function GET(req: NextRequest) {
       .filter((m) => m.documentUrl && m.documentName)
       .map((m) => {
         const firstStudent = m.internship?.internshipstudent?.[0]?.user;
+        // Translate MiniPresentation state into one of the StatusBadge labels
+        // the user expects: APPROVED after the supervisor accepts, REJECTED
+        // after they reject (we detect this by status going back to
+        // DOCUMENT_SUBMITTED with a comment present — that combination is
+        // only ever produced by the rejection branch in PATCH).
+        const hasComment = !!(m.adminComment && m.adminComment.trim());
+        const docStatus =
+          m.status === "REVIEWED"
+            ? "APPROVED"
+            : m.status === "MISSED"
+              ? "REJECTED"
+              : m.status === "DOCUMENT_SUBMITTED" && hasComment
+                ? "REJECTED"
+                : "UPLOADED";
+
         return {
           id: `milestone-${m.id}`,
           internshipId: m.internshipId,
@@ -167,12 +182,7 @@ export async function GET(req: NextRequest) {
           fileUrl: m.documentUrl,
           fileSize: 0,
           version: 1,
-          status:
-            m.status === "REVIEWED"
-              ? "REVIEWED"
-              : m.status === "MISSED"
-                ? "REJECTED"
-                : "UPLOADED",
+          status: docStatus,
           reviewComment: m.adminComment ?? null,
           reviewedById: null,
           approvedByTeacher: false,

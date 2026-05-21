@@ -100,12 +100,14 @@ export default function ActivateInternshipPage({
           <Input
             label="Start Date *"
             type="date"
+            min={new Date().toISOString().slice(0, 10)}
             {...register("startDate")}
             error={errors.startDate?.message}
           />
           <Input
             label="End Date *"
             type="date"
+            min={new Date().toISOString().slice(0, 10)}
             {...register("endDate")}
             error={errors.endDate?.message}
           />

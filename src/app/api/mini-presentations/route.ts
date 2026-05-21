@@ -82,7 +82,14 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const parsed = slotsScheduleSchema.parse(body);
 
-    if (!session.user.isSuperAdmin && !session.user.filiereId) {
+    // Milestones belong to the department admin — super admin only monitors.
+    if (session.user.isSuperAdmin) {
+      return NextResponse.json(
+        { error: "Milestones are managed by department admins. Super administrators are read-only here." },
+        { status: 403 },
+      );
+    }
+    if (!session.user.filiereId) {
       return NextResponse.json(
         { error: "Your admin account has no filière assigned." },
         { status: 403 },

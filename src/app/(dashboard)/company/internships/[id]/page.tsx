@@ -181,6 +181,7 @@ export default function CompanyInternshipDetailPage() {
             <Input
               label={t("company.detail.startDate")}
               type="date"
+              min={new Date().toISOString().slice(0, 10)}
               value={activationData.startDate}
               onChange={(e) => setActivationData({ ...activationData, startDate: e.target.value })}
             />
@@ -188,6 +189,7 @@ export default function CompanyInternshipDetailPage() {
               <Input
                 label={t("company.detail.endDate")}
                 type="date"
+                min={new Date().toISOString().slice(0, 10)}
                 value={activationData.endDate}
                 onChange={(e) => setActivationData({ ...activationData, endDate: e.target.value })}
               />

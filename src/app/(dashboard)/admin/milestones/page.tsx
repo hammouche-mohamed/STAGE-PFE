@@ -158,6 +158,11 @@ export default function AdminMilestonesPage() {
     }));
   };
 
+  // Today as YYYY-MM-DD — used as the `min` on every date picker that
+  // schedules something in the future (milestone dates, doc deadlines, etc.).
+  // Browser native validation refuses past dates without ever submitting.
+  const todayISO = new Date().toISOString().slice(0, 10);
+
   const openCreate = () => {
     resetForm();
     setShowForm(true);
@@ -302,11 +307,18 @@ export default function AdminMilestonesPage() {
             Schedule and manage mini-presentation sessions for active internships.
           </p>
         </div>
-        <Button size="sm" onClick={openCreate}>
-          <Plus className="h-4 w-4 mr-2" />
-          {t("common.scheduleSession")}
-        </Button>
+        {!isSuperAdmin && (
+          <Button size="sm" onClick={openCreate}>
+            <Plus className="h-4 w-4 mr-2" />
+            {t("common.scheduleSession")}
+          </Button>
+        )}
       </div>
+      {isSuperAdmin && (
+        <div className="px-3 py-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-900/30 rounded-md text-[12px] text-amber-800 dark:text-amber-300">
+          Milestones are managed by the department admin. You're in read-only monitoring mode.
+        </div>
+      )}
 
       <Modal
         isOpen={showForm}
@@ -346,6 +358,7 @@ export default function AdminMilestonesPage() {
             <Input
               label="Date"
               type="date"
+              min={todayISO}
               value={form.date}
               onChange={(e) => setForm((p) => ({ ...p, date: e.target.value }))}
             />
@@ -398,6 +411,7 @@ export default function AdminMilestonesPage() {
               <Input
                 label="Document submission deadline (shared)"
                 type="date"
+                min={todayISO}
                 value={form.documentDeadline}
                 onChange={(e) => setForm((p) => ({ ...p, documentDeadline: e.target.value }))}
               />
@@ -452,6 +466,7 @@ export default function AdminMilestonesPage() {
                           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                             <input
                               type="date"
+                              min={todayISO}
                               className="admin-input text-[12px] h-9"
                               value={s.date}
                               onChange={(e) => updateSlot(i.id, { date: e.target.value })}
@@ -505,7 +520,7 @@ export default function AdminMilestonesPage() {
             ) : upcoming.length === 0 ? (
               <p className="text-[12px] text-gray-400 italic">No upcoming mini-presentations scheduled.</p>
             ) : (
-              upcoming.map((s) => <SessionCard key={s.id} session={s} onEdit={openEdit} onDelete={(id) => setPendingDeleteId(id)} />)
+              upcoming.map((s) => <SessionCard key={s.id} session={s} canManage={!isSuperAdmin} onEdit={openEdit} onDelete={(id) => setPendingDeleteId(id)} />)
             )}
           </section>
 
@@ -518,7 +533,7 @@ export default function AdminMilestonesPage() {
             {passed.length === 0 ? (
               <p className="text-[12px] text-gray-400 italic">No past mini-presentations yet.</p>
             ) : (
-              passed.map((s) => <SessionCard key={s.id} session={s} faded onEdit={openEdit} onDelete={(id) => setPendingDeleteId(id)} />)
+              passed.map((s) => <SessionCard key={s.id} session={s} faded canManage={!isSuperAdmin} onEdit={openEdit} onDelete={(id) => setPendingDeleteId(id)} />)
             )}
           </section>
         </div>
@@ -552,11 +567,15 @@ export default function AdminMilestonesPage() {
 function SessionCard({
   session,
   faded,
+  canManage,
   onEdit,
   onDelete,
 }: {
   session: MiniPresentation;
   faded?: boolean;
+  /** Super admin is read-only on milestones — they only monitor.
+   *  Dept admin manages until the doc deadline passes (server enforces). */
+  canManage: boolean;
   onEdit: (s: MiniPresentation) => void;
   onDelete: (id: string) => void;
 }) {
@@ -601,12 +620,18 @@ function SessionCard({
           <p className="text-[11px] font-medium text-gray-600 dark:text-gray-300">{format(dt, "HH:mm")}</p>
         </div>
       </div>
-      {!faded && (
-        <div className="mt-4 flex flex-wrap gap-2">
-          <Button size="sm" variant="outline" onClick={() => onEdit(session)}>Edit</Button>
-          <Button size="sm" variant="danger" onClick={() => onDelete(session.id)}>Delete</Button>
-        </div>
-      )}
+      {!faded && canManage && (() => {
+        // Once the document deadline has passed the row is frozen — no edits,
+        // no deletes. Matches the server-side guard in PATCH/DELETE.
+        const deadlinePast = new Date(session.documentDeadline).getTime() < Date.now();
+        if (deadlinePast) return null;
+        return (
+          <div className="mt-4 flex flex-wrap gap-2">
+            <Button size="sm" variant="outline" onClick={() => onEdit(session)}>Edit</Button>
+            <Button size="sm" variant="danger" onClick={() => onDelete(session.id)}>Delete</Button>
+          </div>
+        );
+      })()}
     </div>
   );
 }

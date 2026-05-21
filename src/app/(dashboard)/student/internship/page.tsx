@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import Link from "next/link";
 import { 
   Briefcase, 
@@ -23,7 +23,15 @@ import { useTranslation } from "@/lib/i18n/LanguageContext";
 
 interface Internship {
   id: string;
-  topic: { title: string; type: string; description: string; companyName?: string };
+  topic: {
+    title: string;
+    type: string;
+    description: string;
+    companyName?: string;
+    /** null when the internship started without a supervisor. NORMAL only:
+     *  PFE always has an assigned supervisor. */
+    assignedTeacherId?: string | null;
+  };
   teacher: { name: string; email: string };
   status: string;
   academicYear: string;
@@ -34,6 +42,8 @@ interface Internship {
   finalDeadline?: string | null;
   technicalSupervisorName?: string;
   technicalSupervisorEmail?: string;
+  teacherValidatedFinalReport?: boolean;
+  companyValidatedFinalReport?: boolean;
 }
 
 interface Document {
@@ -43,6 +53,8 @@ interface Document {
   status: string;
   uploadedAt: string;
   version: number;
+  approvedByTeacher?: boolean;
+  approvedByCompany?: boolean;
 }
 
 interface Milestone {
@@ -134,11 +146,132 @@ function MilestoneRow({ milestone, uploadLink, labels }: {
   );
 }
 
-function ReportRow({ label, deadline, status, uploadLink, daysLeft, labels }: {
+/**
+ * Visual timeline of the final-report validation pipeline.
+ *   • PFE                           → Submitted → Supervisor → Company → Admin
+ *   • NORMAL with supervisor        → same 4-step flow
+ *   • NORMAL without a supervisor   → Submitted → Company → Admin (3 steps)
+ * The current step pulses; cleared steps show a green check; future steps
+ * are muted. Whether the Supervisor step shows up is decided by
+ * `supervisorRequired`, not by internship type alone.
+ */
+function FinalReportProgress({
+  supervisorRequired,
+  finalDoc,
+  internshipStatus,
+  teacherValidated,
+  companyValidated,
+}: {
+  supervisorRequired: boolean;
+  finalDoc: Document | undefined;
+  internshipStatus: string;
+  teacherValidated: boolean;
+  companyValidated: boolean;
+}) {
+  const submitted = !!finalDoc;
+  const teacherDone = supervisorRequired
+    ? !!finalDoc?.approvedByTeacher || teacherValidated
+    : true;
+  const companyDone = !!finalDoc?.approvedByCompany || companyValidated;
+  const adminDone = internshipStatus === "COMPLETED";
+  const rejected = internshipStatus === "NEEDS_REVISION";
+
+  type Step = { key: string; label: string; sub: string; done: boolean; current: boolean };
+  const steps: Step[] = [];
+  steps.push({
+    key: "submitted",
+    label: "Submitted",
+    sub: "Final report uploaded",
+    done: submitted,
+    current: !submitted && !rejected,
+  });
+  if (supervisorRequired) {
+    steps.push({
+      key: "supervisor",
+      label: "Supervisor",
+      sub: "Academic supervisor validates",
+      done: teacherDone && submitted,
+      current: submitted && !teacherDone && !rejected,
+    });
+  }
+  steps.push({
+    key: "company",
+    label: "Company",
+    sub: "Host company validates",
+    done: companyDone && submitted,
+    current: submitted && teacherDone && !companyDone && !rejected,
+  });
+  steps.push({
+    key: "admin",
+    label: "Administration",
+    sub: "Final confirmation by admin",
+    done: adminDone,
+    current: submitted && teacherDone && companyDone && !adminDone && !rejected,
+  });
+
+  return (
+    <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-md p-5 shadow-sm">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-[13px] font-bold text-gray-900 dark:text-white flex items-center gap-2">
+          <CheckCircle2 className="h-4 w-4 text-indigo-500" />
+          Final Report Progress
+        </h3>
+        {rejected && (
+          <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400">
+            <AlertTriangle className="h-3 w-3" />
+            Needs revision
+          </span>
+        )}
+      </div>
+
+      {rejected && (
+        <p className="text-[12px] text-rose-700 dark:text-rose-400 mb-4 leading-relaxed">
+          Your final report was sent back for revision. Resubmit a new version — the validation flow will restart from the beginning.
+        </p>
+      )}
+
+      <ol className="space-y-3">
+        {steps.map((s, i) => {
+          const icon = s.done ? (
+            <span className="h-7 w-7 rounded-full bg-emerald-500 text-white flex items-center justify-center flex-shrink-0">
+              <CheckCircle2 className="h-4 w-4" />
+            </span>
+          ) : s.current ? (
+            <span className="h-7 w-7 rounded-full bg-indigo-500 text-white flex items-center justify-center flex-shrink-0 relative">
+              <span className="absolute inset-0 rounded-full bg-indigo-500 animate-ping opacity-30" />
+              <Clock className="h-3.5 w-3.5 relative" />
+            </span>
+          ) : (
+            <span className="h-7 w-7 rounded-full bg-gray-100 dark:bg-slate-800 text-gray-400 flex items-center justify-center flex-shrink-0 text-[11px] font-bold">
+              {i + 1}
+            </span>
+          );
+          return (
+            <li key={s.key} className="flex items-start gap-3">
+              {icon}
+              <div className="min-w-0 flex-1">
+                <p className={`text-[13px] font-semibold ${s.current ? "text-indigo-700 dark:text-indigo-400" : s.done ? "text-gray-900 dark:text-white" : "text-gray-400 dark:text-gray-500"}`}>
+                  {s.label}
+                  {s.current && <span className="ml-2 text-[10px] font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">Current step</span>}
+                </p>
+                <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">{s.sub}</p>
+              </div>
+            </li>
+          );
+        })}
+      </ol>
+    </div>
+  );
+}
+
+function ReportRow({ label, deadline, status, docType, onUpload, isUploading, daysLeft, labels }: {
   label: string;
   deadline?: string | null;
   status: ReportStatus;
-  uploadLink: string;
+  /** Document.type to write when the student uploads from this row. */
+  docType: "MID_REPORT" | "FINAL_REPORT";
+  onUpload: (docType: "MID_REPORT" | "FINAL_REPORT") => void;
+  isUploading: boolean;
   daysLeft?: number | null;
   labels: {
     submittedOnTime: string;
@@ -182,14 +315,15 @@ function ReportRow({ label, deadline, status, uploadLink, daysLeft, labels }: {
         </div>
       </div>
       {(status === "PENDING" || status === "MISSING_OVERDUE") && (
-        <Link
-          href={uploadLink}
-          className="report-upload-btn flex items-center gap-1.5 text-[12px] font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800 px-3 py-1.5 rounded-lg transition-colors"
+        <button
+          type="button"
+          onClick={() => onUpload(docType)}
+          disabled={isUploading}
+          className="report-upload-btn flex items-center gap-1.5 text-[12px] font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800 px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50"
         >
           <Upload className="h-3.5 w-3.5" />
           {labels.upload}
-          <ChevronRight className="h-3 w-3" />
-        </Link>
+        </button>
       )}
     </div>
   );
@@ -201,6 +335,12 @@ export default function StudentInternshipPage() {
   const [documents, setDocuments] = useState<Document[]>([]);
   const [milestones, setMilestones] = useState<Milestone[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  // Direct upload from the Report Submissions rows — hidden file input
+  // shared by Mid-Term and Final rows, the row that opened the picker
+  // tells us what Document.type to write.
+  const reportFileInput = useRef<HTMLInputElement>(null);
+  const pendingReportType = useRef<"MID_REPORT" | "FINAL_REPORT" | null>(null);
+  const [isUploadingReport, setIsUploadingReport] = useState(false);
 
   const fetchData = useCallback(async () => {
     try {
@@ -229,6 +369,60 @@ export default function StudentInternshipPage() {
   }, [t]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
+
+  const triggerReportUpload = (docType: "MID_REPORT" | "FINAL_REPORT") => {
+    pendingReportType.current = docType;
+    reportFileInput.current?.click();
+  };
+
+  const handleReportFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    const docType = pendingReportType.current;
+    if (!file || !docType || !internship) return;
+
+    setIsUploadingReport(true);
+    try {
+      // Two-step upload mirrors the old UploadDocumentSection flow: the file
+      // bytes go to /api/upload/document, then a Document row is created via
+      // /api/documents with the report type. We do it here so the student
+      // can upload the mid-term / final report directly from the Report
+      // Submissions section without bouncing through another page.
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("type", docType);
+      formData.append("internshipId", internship.id);
+
+      const upRes = await fetch("/api/upload/document", { method: "POST", body: formData });
+      const upData = await upRes.json();
+      if (!upRes.ok) throw new Error(upData.error || "Upload failed");
+
+      const docRes = await fetch("/api/documents", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          internshipId: internship.id,
+          type: docType,
+          fileName: upData.name,
+          fileUrl: upData.url,
+          fileSize: upData.size,
+        }),
+      });
+      if (!docRes.ok) {
+        const err = await docRes.json().catch(() => ({}));
+        throw new Error(err.error || "Failed to register document");
+      }
+
+      toast.success(t("toast.documentUploaded", { defaultValue: "Report uploaded." }));
+      await fetchData();
+    } catch (err: any) {
+      toast.error(err?.message || "Upload failed");
+    } finally {
+      setIsUploadingReport(false);
+      pendingReportType.current = null;
+      // Reset so picking the same file again still triggers onChange.
+      if (reportFileInput.current) reportFileInput.current.value = "";
+    }
+  };
 
   if (isLoading) return <div className="text-center py-12 text-gray-400">{t("common.loading")}</div>;
 
@@ -279,6 +473,16 @@ export default function StudentInternshipPage() {
 
   return (
     <div className="space-y-6">
+      {/* Hidden file input shared by every Report Submissions Upload button.
+          The row that triggered the picker stamps the target Document.type
+          on `pendingReportType` before opening it. */}
+      <input
+        ref={reportFileInput}
+        type="file"
+        className="hidden"
+        onChange={handleReportFileSelect}
+      />
+
       {/* Overdue Banner */}
       {hasOverdue && (
         <div className="alert-banner flex items-center gap-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md p-4">
@@ -370,7 +574,9 @@ export default function StudentInternshipPage() {
                     label={t("internship.reportPanel.midTermLabel")}
                     deadline={internship.midtermDeadline}
                     status={midStatus}
-                    uploadLink={uploadUrl}
+                    docType="MID_REPORT"
+                    onUpload={triggerReportUpload}
+                    isUploading={isUploadingReport}
                     daysLeft={midDaysLeft}
                     labels={panelLabels}
                   />
@@ -379,7 +585,9 @@ export default function StudentInternshipPage() {
                   label={isPFE ? t("internship.reportPanel.finalLabelPFE") : t("internship.reportPanel.finalLabelNormal")}
                   deadline={internship.finalDeadline}
                   status={finalStatus}
-                  uploadLink={uploadUrl}
+                  docType="FINAL_REPORT"
+                  onUpload={triggerReportUpload}
+                  isUploading={isUploadingReport}
                   daysLeft={finalDaysLeft}
                   labels={panelLabels}
                 />
@@ -411,6 +619,22 @@ export default function StudentInternshipPage() {
               </div>
             )}
           </div>
+
+          {/* Final report validation pipeline — only renders once the student
+              has actually submitted the final report (or had it sent back).
+              Shows: Submitted → Supervisor (PFE only) → Company → Admin. */}
+          {(finalStatus === "SUBMITTED" || finalStatus === "SUBMITTED_LATE" || internship.status === "NEEDS_REVISION" || internship.status === "PENDING_ADMIN_CONFIRMATION" || internship.status === "COMPLETED") && (
+            <FinalReportProgress
+              // Mirrors the backend rule in /api/documents/[id] PATCH: PFE
+              // always needs supervisor validation; NORMAL only needs it
+              // when a supervisor was actually assigned to the topic.
+              supervisorRequired={isPFE || !!internship.topic.assignedTeacherId}
+              finalDoc={documents.find((d) => d.type === "FINAL_REPORT")}
+              internshipStatus={internship.status}
+              teacherValidated={!!internship.teacherValidatedFinalReport}
+              companyValidated={!!internship.companyValidatedFinalReport}
+            />
+          )}
         </div>
 
         {/* Sidebar */}

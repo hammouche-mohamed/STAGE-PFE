@@ -39,6 +39,15 @@ export const DocumentList: React.FC<DocumentListProps> = ({ documents, onReview,
     comment: "",
     acknowledged: false,
   });
+  // Read-only feedback viewer — opened from the message-bubble icon next to
+  // a reviewed document. Replaces the prior toast.info() which truncated and
+  // didn't let the user read long comments comfortably.
+  const [feedbackModal, setFeedbackModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    comment: string;
+    status: string;
+  }>({ isOpen: false, title: "", comment: "", status: "" });
 
   const handleOpenReview = (docId: string, status: "APPROVED" | "REJECTED") => {
     setReviewModal({
@@ -69,6 +78,26 @@ export const DocumentList: React.FC<DocumentListProps> = ({ documents, onReview,
 
   const getTypeLabel = (type: string) => {
     return t(`documents.types.${type}` as any) || type.replace(/_/g, " ");
+  };
+
+  /**
+   * Type cell content. For a milestone document we want the row to read
+   * "Milestone — Mid-term Presentation" so the supervisor can see which
+   * milestone the submission belongs to without expanding anything.
+   */
+  const renderTypeLabel = (doc: InternshipDocument) => {
+    const base = getTypeLabel(doc.type);
+    if (doc.type === "MILESTONE" && doc.milestoneTitle) {
+      return (
+        <span className="flex flex-col gap-0.5">
+          <span>{base}</span>
+          <span className="text-[10px] font-normal text-gray-500 dark:text-gray-400 normal-case tracking-normal truncate" title={doc.milestoneTitle}>
+            {doc.milestoneTitle}
+          </span>
+        </span>
+      );
+    }
+    return base;
   };
 
   // Small "who has validated so far" chips, shown next to the status.
@@ -136,10 +165,19 @@ export const DocumentList: React.FC<DocumentListProps> = ({ documents, onReview,
         </span>
       )}
 
-      {canReview && doc.status === "UPLOADED" && (() => {
+      {canReview && (() => {
+        // Milestone documents are reviewable freely — the supervisor can flip
+        // between approved and rejected as many times as they want until the
+        // deadline. Regular documents (mid-term / final report) keep the old
+        // "review once" gate so the lifecycle state machine stays predictable.
+        const isMilestone = doc.type === "MILESTONE";
+        const reviewable = isMilestone || doc.status === "UPLOADED";
+        if (!reviewable) return null;
+
         const alreadyReviewed =
-          (viewerRole === "TEACHER" && doc.approvedByTeacher) ||
-          (viewerRole === "COMPANY" && doc.approvedByCompany);
+          !isMilestone &&
+          ((viewerRole === "TEACHER" && doc.approvedByTeacher) ||
+            (viewerRole === "COMPANY" && doc.approvedByCompany));
 
         if (alreadyReviewed) {
           return (
@@ -188,9 +226,14 @@ export const DocumentList: React.FC<DocumentListProps> = ({ documents, onReview,
 
       {doc.reviewComment && (
         <button
-          onClick={() => {
-            toast.info(doc.reviewComment as string);
-          }}
+          onClick={() =>
+            setFeedbackModal({
+              isOpen: true,
+              title: `${doc.milestoneTitle || doc.fileName}`,
+              comment: doc.reviewComment as string,
+              status: doc.status,
+            })
+          }
           className="p-1.5 text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 rounded-md transition-all"
           title="View Feedback"
         >
@@ -220,9 +263,9 @@ export const DocumentList: React.FC<DocumentListProps> = ({ documents, onReview,
             >
               {/* Top row: type tag + status badge — each on its own line so
                   neither truncates on a narrow phone screen. */}
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 px-2 py-0.5 rounded">
-                  {getTypeLabel(doc.type)}
+              <div className="flex items-start justify-between gap-2">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 px-2 py-0.5 rounded min-w-0">
+                  {renderTypeLabel(doc)}
                 </span>
                 <StatusBadge status={doc.status} />
               </div>
@@ -295,7 +338,7 @@ export const DocumentList: React.FC<DocumentListProps> = ({ documents, onReview,
               documents.map((doc) => (
                 <tr key={doc.id} className="admin-table-row">
                   <td className="font-semibold text-[12px] uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                    {getTypeLabel(doc.type)}
+                    {renderTypeLabel(doc)}
                   </td>
                   <td>
                     <div className="flex items-center min-w-0">
@@ -383,6 +426,47 @@ export const DocumentList: React.FC<DocumentListProps> = ({ documents, onReview,
               onChange={(e) => setReviewModal(prev => ({ ...prev, comment: e.target.value }))}
               autoFocus
             />
+          </div>
+        </div>
+      </Modal>
+
+      {/* Read-only review-feedback viewer. Replaces the prior toast.info()
+          so long comments are readable and the user can copy them. */}
+      <Modal
+        isOpen={feedbackModal.isOpen}
+        onClose={() => setFeedbackModal((p) => ({ ...p, isOpen: false }))}
+        title="Review feedback"
+        footer={
+          <Button
+            variant="outline"
+            onClick={() => setFeedbackModal((p) => ({ ...p, isOpen: false }))}
+          >
+            {t("common.close", { defaultValue: "Close" })}
+          </Button>
+        }
+      >
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500">
+              Decision
+            </span>
+            <StatusBadge status={feedbackModal.status} />
+          </div>
+          <div>
+            <p className="text-[11px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-1.5">
+              On
+            </p>
+            <p className="text-[13px] font-semibold text-gray-900 dark:text-white break-all">
+              {feedbackModal.title}
+            </p>
+          </div>
+          <div>
+            <p className="text-[11px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-1.5">
+              Comment
+            </p>
+            <p className="text-[13px] text-gray-800 dark:text-gray-200 whitespace-pre-wrap leading-relaxed border border-gray-200 dark:border-slate-700 rounded-md p-3 bg-gray-50 dark:bg-slate-800/40 min-h-[80px]">
+              {feedbackModal.comment || <span className="text-gray-400 italic">No comment provided.</span>}
+            </p>
           </div>
         </div>
       </Modal>

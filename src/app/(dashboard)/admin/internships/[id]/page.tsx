@@ -565,6 +565,7 @@ export default function AdminInternshipDetailPage() {
                         <div className="space-y-3">
                            <input
                               type="date"
+                              min={new Date().toISOString().slice(0, 10)}
                               className="admin-input text-[13px]"
                               value={deadlineInput}
                               onChange={(e) => setDeadlineInput(e.target.value)}

@@ -319,24 +319,24 @@ export default function AuditLogsPage() {
 
               <div className="space-y-3">
                 <h3 className="text-[13px] font-bold flex items-center gap-2 text-gray-900 dark:text-white"><User className="h-4 w-4" /> {t("common.audit.performedBy")}</h3>
-                <div className="flex items-center justify-between p-3 border rounded-lg">
+                <div className="flex items-center justify-between p-3 border border-gray-200 dark:border-slate-700 rounded-lg">
                   <div className="flex items-center gap-3">
-                    <div className="h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center font-bold text-indigo-600">{selectedLog.user.name.charAt(0)}</div>
+                    <div className="h-8 w-8 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center font-bold text-indigo-600 dark:text-indigo-400">{selectedLog.user.name.charAt(0)}</div>
                     <div>
-                      <div className="text-[13px] font-medium">{selectedLog.user.name}</div>
-                      <div className="text-[11px] text-gray-500">{selectedLog.user.email}</div>
+                      <div className="text-[13px] font-medium text-gray-900 dark:text-white">{selectedLog.user.name}</div>
+                      <div className="text-[11px] text-gray-500 dark:text-gray-400">{selectedLog.user.email}</div>
                     </div>
                   </div>
-                  <div className="text-[11px] text-gray-400">{t("common.audit.source")}: {selectedLog.ipAddress || "Internal"}</div>
+                  <div className="text-[11px] text-gray-400 dark:text-gray-500">{t("common.audit.source")}: {selectedLog.ipAddress || "Internal"}</div>
                 </div>
               </div>
 
               {details?.modifications?.length > 0 && (
                 <div className="space-y-3">
-                  <h3 className="text-[13px] font-bold flex items-center gap-2 text-blue-600"><RefreshCw className="h-4 w-4" /> {t("common.audit.changesApplied")}</h3>
-                  <div className="bg-blue-50/30 border border-blue-100 rounded-xl p-4 space-y-2">
+                  <h3 className="text-[13px] font-bold flex items-center gap-2 text-blue-600 dark:text-blue-400"><RefreshCw className="h-4 w-4" /> {t("common.audit.changesApplied")}</h3>
+                  <div className="bg-blue-50/30 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-900/40 rounded-xl p-4 space-y-2">
                     {details.modifications.map((mod: string, idx: number) => (
-                      <div key={idx} className="flex items-start gap-2 text-[13px] text-gray-700">
+                      <div key={idx} className="flex items-start gap-2 text-[13px] text-gray-700 dark:text-gray-200">
                         <ChevronRight className="h-4 w-4 mt-0.5 text-blue-400 shrink-0" />
                         <span>{mod.replace(/^• /, "")}</span>
                       </div>
@@ -347,26 +347,26 @@ export default function AuditLogsPage() {
 
               {details?.before && details?.after && (
                 <div className="space-y-3">
-                  <h3 className="text-[13px] font-bold flex items-center gap-2 text-purple-600"><Activity className="h-4 w-4" /> {t("common.audit.comparison")}</h3>
+                  <h3 className="text-[13px] font-bold flex items-center gap-2 text-purple-600 dark:text-purple-400"><Activity className="h-4 w-4" /> {t("common.audit.comparison")}</h3>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <div className="text-[11px] font-bold text-gray-400 uppercase">{t("common.audit.oldData")}</div>
-                      <div className="p-3 bg-gray-50 rounded-lg space-y-2 border">
+                      <div className="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase">{t("common.audit.oldData")}</div>
+                      <div className="p-3 bg-gray-50 dark:bg-slate-800/50 rounded-lg space-y-2 border border-gray-200 dark:border-slate-700">
                         {Object.entries(details.before).map(([k, v]: [string, any]) => (
-                          <div key={k} className="flex flex-col border-b last:border-0 pb-1">
-                            <span className="text-[10px] font-bold text-gray-400 uppercase">{k.replace(/([A-Z])/g, ' $1')}</span>
-                            <span className="text-[12px] text-gray-600 truncate">{String(v ?? "None")}</span>
+                          <div key={k} className="flex flex-col border-b border-gray-100 dark:border-slate-700 last:border-0 pb-1">
+                            <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase">{k.replace(/([A-Z])/g, ' $1')}</span>
+                            <span className="text-[12px] text-gray-600 dark:text-gray-300 truncate">{String(v ?? "None")}</span>
                           </div>
                         ))}
                       </div>
                     </div>
                     <div className="space-y-2">
-                      <div className="text-[11px] font-bold text-gray-400 uppercase">{t("common.audit.newData")}</div>
-                      <div className="p-3 bg-indigo-50/20 border border-indigo-100 rounded-lg space-y-2">
+                      <div className="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase">{t("common.audit.newData")}</div>
+                      <div className="p-3 bg-indigo-50/20 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-900/40 rounded-lg space-y-2">
                         {Object.entries(details.after).map(([k, v]: [string, any]) => (
-                          <div key={k} className="flex flex-col border-b border-indigo-100/30 last:border-0 pb-1">
-                            <span className="text-[10px] font-bold text-indigo-400 uppercase">{k.replace(/([A-Z])/g, ' $1')}</span>
-                            <span className="text-[12px] text-gray-900 font-bold truncate">{String(v ?? "None")}</span>
+                          <div key={k} className="flex flex-col border-b border-indigo-100/30 dark:border-indigo-900/30 last:border-0 pb-1">
+                            <span className="text-[10px] font-bold text-indigo-400 dark:text-indigo-300 uppercase">{k.replace(/([A-Z])/g, ' $1')}</span>
+                            <span className="text-[12px] text-gray-900 dark:text-white font-bold truncate">{String(v ?? "None")}</span>
                           </div>
                         ))}
                       </div>
@@ -377,19 +377,19 @@ export default function AuditLogsPage() {
 
               {details && !details.modifications && !details.before && (
                 <div className="space-y-3">
-                  <h3 className="text-[13px] font-bold flex items-center gap-2 text-gray-500"><Info className="h-4 w-4" /> {t("common.audit.details")}</h3>
-                  <div className="p-4 bg-gray-50 rounded-xl border space-y-3 text-[13px]">
+                  <h3 className="text-[13px] font-bold flex items-center gap-2 text-gray-500 dark:text-gray-400"><Info className="h-4 w-4" /> {t("common.audit.details")}</h3>
+                  <div className="p-4 bg-gray-50 dark:bg-slate-800/50 rounded-xl border border-gray-100 dark:border-slate-700 space-y-3 text-[13px]">
                     {typeof details === 'object' ? Object.entries(details).map(([key, value]) => (
-                      <div key={key} className="flex flex-col border-b last:border-0 pb-2">
-                        <span className="text-[11px] font-bold text-gray-400 uppercase">{key.replace(/([A-Z])/g, ' $1')}</span>
-                        <span>{Array.isArray(value) ? value.join(", ") : String(value)}</span>
+                      <div key={key} className="flex flex-col border-b border-gray-100 dark:border-slate-700 last:border-0 pb-2">
+                        <span className="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase">{key.replace(/([A-Z])/g, ' $1')}</span>
+                        <span className="text-gray-900 dark:text-gray-200">{Array.isArray(value) ? value.join(", ") : String(value)}</span>
                       </div>
-                    )) : String(details)}
+                    )) : <span className="text-gray-900 dark:text-gray-200">{String(details)}</span>}
                   </div>
                 </div>
               )}
-              
-              <div className="flex justify-end pt-4 border-t">
+
+              <div className="flex justify-end pt-4 border-t border-gray-200 dark:border-slate-700">
                 <Button onClick={() => setSelectedLog(null)} variant="outline">{t("common.audit.closeDetails")}</Button>
               </div>
             </div>

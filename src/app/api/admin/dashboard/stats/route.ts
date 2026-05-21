@@ -120,10 +120,13 @@ export async function GET(req: NextRequest) {
         take: 20,
         orderBy: { name: "asc" },
       }),
+      // Same broadened scope as the SSR query in admin/page.tsx — counts
+      // every non-archived company-proposed topic, not just PENDING_ADMIN
+      // ones. Keeps the dashboard card in sync regardless of where the
+      // topic is in its lifecycle.
       prisma.topic.count({
         where: {
           type: "COMPANY_PROPOSED",
-          status: "PENDING_ADMIN",
           archivedAt: null,
           ...(targetFiliereId ? { filiereId: targetFiliereId } : {})
         } as any
