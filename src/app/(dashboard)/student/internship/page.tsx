@@ -507,6 +507,24 @@ export default function StudentInternshipPage() {
         </div>
       )}
 
+      {/* Solo-internship notice — fires for NORMAL internships with no
+          supervisor AND no company stakeholder. The student is running it
+          independently and the administration will validate the final
+          report directly. Keeps the page honest about who's in the loop. */}
+      {!internship.teacher && internship.topic.type === "STUDENT_PROPOSED" && (
+        <div className="alert-banner flex items-start gap-3 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 rounded-md p-4">
+          <CheckCircle2 className="h-5 w-5 text-indigo-600 dark:text-indigo-400 shrink-0 mt-0.5" />
+          <div className="text-[13px] text-indigo-900 dark:text-indigo-300 leading-relaxed">
+            <p className="font-semibold">You're running this internship solo.</p>
+            <p className="text-[12px] text-indigo-700 dark:text-indigo-400 mt-1">
+              No supervisor and no host company are attached. When you submit
+              the final report it goes straight to the administration for
+              confirmation — no other validation step is needed.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="internship-header flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
@@ -668,28 +686,34 @@ export default function StudentInternshipPage() {
               )}
             </div>
 
-            <div className="pt-6 border-t border-gray-50 dark:border-slate-800">
-              <p className="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-3">
-                {t("internship.reportPanel.companyDetails")}
-              </p>
-              <div className="flex items-center gap-3">
-                <div className="h-12 w-12 rounded bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 flex items-center justify-center">
-                  <Building2 className="h-5 w-5" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-[13px] font-bold text-gray-900 dark:text-white truncate">{internship.topic.companyName || t("internship.company")}</p>
-                  {internship.technicalSupervisorName && (
-                    <div className="mt-2 pt-2 border-t border-gray-50 dark:border-slate-800">
-                      <p className="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-tight">
-                        {t("internship.reportPanel.technicalSupervisor")}
-                      </p>
-                      <p className="text-[12px] text-gray-700 dark:text-gray-300 font-medium">{internship.technicalSupervisorName}</p>
-                      <p className="text-[10px] text-gray-400 dark:text-gray-500">{internship.technicalSupervisorEmail}</p>
-                    </div>
-                  )}
+            {/* Hide the Company Details card when there's nothing to show —
+                student-proposed internships without a company name don't have
+                a real host organisation, so an empty card with a placeholder
+                "Company" label was misleading. */}
+            {(internship.topic.type !== "STUDENT_PROPOSED" || internship.topic.companyName) && (
+              <div className="pt-6 border-t border-gray-50 dark:border-slate-800">
+                <p className="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-3">
+                  {t("internship.reportPanel.companyDetails")}
+                </p>
+                <div className="flex items-center gap-3">
+                  <div className="h-12 w-12 rounded bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 flex items-center justify-center">
+                    <Building2 className="h-5 w-5" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[13px] font-bold text-gray-900 dark:text-white truncate">{internship.topic.companyName || t("internship.company")}</p>
+                    {internship.technicalSupervisorName && (
+                      <div className="mt-2 pt-2 border-t border-gray-50 dark:border-slate-800">
+                        <p className="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-tight">
+                          {t("internship.reportPanel.technicalSupervisor")}
+                        </p>
+                        <p className="text-[12px] text-gray-700 dark:text-gray-300 font-medium">{internship.technicalSupervisorName}</p>
+                        <p className="text-[10px] text-gray-400 dark:text-gray-500">{internship.technicalSupervisorEmail}</p>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
 
             {/* Key Deadlines */}
             {(internship.midtermDeadline || internship.finalDeadline) && (

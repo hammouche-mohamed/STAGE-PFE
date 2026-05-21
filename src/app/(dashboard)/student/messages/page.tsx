@@ -31,8 +31,9 @@ interface SharedFile {
 
 interface Internship {
   id: string;
-  topic: { title: string };
-  teacher: { name: string; email: string };
+  topic: { title: string; type?: string; companyName?: string | null };
+  /** Nullable: NORMAL internships may run without a supervisor. */
+  teacher: { name: string; email: string } | null;
   students: { student: { name: string; email: string }; isLeader: boolean }[];
   status: string;
   archivedAt?: string | null;
@@ -340,8 +341,24 @@ function MessagesContent() {
                   }`}
               >
                 <Users className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">{t("messages.participants")} ({internship ? (internship.students.length + 1) : 0})</span>
-                <span className="sm:hidden">{(internship?.students.length || 0) + 1}</span>
+                {(() => {
+                  // Count = students + teacher (if any) + company (if any).
+                  // When neither teacher nor company exists, admin acts as the
+                  // sole other participant, so we add 1 for them.
+                  const hasTeacher = !!internship?.teacher;
+                  const hasCompany = internship?.topic.type === "COMPANY_PROPOSED";
+                  const extras =
+                    (hasTeacher ? 1 : 0) +
+                    (hasCompany ? 1 : 0) +
+                    (!hasTeacher && !hasCompany ? 1 : 0);
+                  const count = (internship?.students.length || 0) + extras;
+                  return (
+                    <>
+                      <span className="hidden sm:inline">{t("messages.participants")} ({count})</span>
+                      <span className="sm:hidden">{count}</span>
+                    </>
+                  );
+                })()}
               </button>
             </div>
           </div>
@@ -540,23 +557,68 @@ function MessagesContent() {
               <div className="flex-1 overflow-y-auto p-3">
                 {sidebarTab === "participants" ? (
                   <div className="space-y-6">
-                    {/* Supervisor */}
-                     <div className="space-y-2">
-                      <p className="text-[10px] text-gray-400 dark:text-gray-500 font-bold uppercase tracking-tighter px-1">
-                        {t("messages.supervisor")}
-                      </p>
-                      <div className="rounded-xl border border-gray-100 dark:border-slate-800 bg-white dark:bg-slate-800/50 p-2.5 shadow-sm">
-                        <div className={`flex items-center gap-4 ${isRTL ? "flex-row-reverse text-right" : ""}`}>
-                          <div className="h-8 w-8 rounded-full bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 flex items-center justify-center font-bold text-[12px] flex-shrink-0">
-                            {internship?.teacher?.name.charAt(0) || "S"}
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <p className="text-[12px] font-bold text-gray-900 dark:text-white truncate">{internship?.teacher?.name || "No Supervisor"}</p>
-                            <p className="text-[10px] text-gray-500 dark:text-gray-400 truncate">{internship?.teacher?.email || "N/A"}</p>
+                    {/* Supervisor card — only when one is assigned. */}
+                    {internship?.teacher && (
+                      <div className="space-y-2">
+                        <p className="text-[10px] text-gray-400 dark:text-gray-500 font-bold uppercase tracking-tighter px-1">
+                          {t("messages.supervisor")}
+                        </p>
+                        <div className="rounded-xl border border-gray-100 dark:border-slate-800 bg-white dark:bg-slate-800/50 p-2.5 shadow-sm">
+                          <div className={`flex items-center gap-4 ${isRTL ? "flex-row-reverse text-right" : ""}`}>
+                            <div className="h-8 w-8 rounded-full bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 flex items-center justify-center font-bold text-[12px] flex-shrink-0">
+                              {internship.teacher.name.charAt(0)}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p className="text-[12px] font-bold text-gray-900 dark:text-white truncate">{internship.teacher.name}</p>
+                              <p className="text-[10px] text-gray-500 dark:text-gray-400 truncate">{internship.teacher.email || "N/A"}</p>
+                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
+                    )}
+
+                    {/* Hosting Company card — only for company-proposed topics. */}
+                    {internship?.topic.type === "COMPANY_PROPOSED" && (
+                      <div className="space-y-2">
+                        <p className="text-[10px] text-gray-400 dark:text-gray-500 font-bold uppercase tracking-tighter px-1">
+                          {t("company.msg.hostingCompany")}
+                        </p>
+                        <div className="rounded-xl border border-amber-100 dark:border-amber-900/40 bg-amber-50/40 dark:bg-amber-900/20 p-2.5 shadow-sm">
+                          <div className={`flex items-center gap-4 ${isRTL ? "flex-row-reverse text-right" : ""}`}>
+                            <div className="h-8 w-8 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400 flex items-center justify-center font-bold text-[12px] flex-shrink-0">
+                              {internship.topic.companyName?.charAt(0) || "C"}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p className="text-[12px] font-bold text-gray-900 dark:text-white truncate">{internship.topic.companyName || "Hosting company"}</p>
+                              <p className="text-[10px] text-gray-500 dark:text-gray-400 truncate">{t("company.msg.hostingPartner", { defaultValue: "Hosting partner" })}</p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Administration card — surface admin when there's nobody
+                        else on the other side, so the student knows they're
+                        not alone. Admin can read AND write per the backend
+                        auth rule (api/messages/[id]/route.ts). */}
+                    {!internship?.teacher && internship?.topic.type !== "COMPANY_PROPOSED" && (
+                      <div className="space-y-2">
+                        <p className="text-[10px] text-gray-400 dark:text-gray-500 font-bold uppercase tracking-tighter px-1">
+                          Administration
+                        </p>
+                        <div className="rounded-xl border border-indigo-100 dark:border-indigo-900/40 bg-indigo-50/40 dark:bg-indigo-900/20 p-2.5 shadow-sm">
+                          <div className={`flex items-center gap-4 ${isRTL ? "flex-row-reverse text-right" : ""}`}>
+                            <div className="h-8 w-8 rounded-full bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-400 flex items-center justify-center font-bold text-[12px] flex-shrink-0">
+                              A
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p className="text-[12px] font-bold text-gray-900 dark:text-white truncate">Department Administration</p>
+                              <p className="text-[10px] text-gray-500 dark:text-gray-400 truncate">Watching and available to chat</p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
 
                     {/* Students */}
                     <div className="space-y-2">
